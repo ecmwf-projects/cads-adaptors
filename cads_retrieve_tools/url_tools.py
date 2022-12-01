@@ -71,6 +71,8 @@ def download_tgz_from_urls(
     for p in paths:
         os.remove(p)
 
+    return target
+
 
 def download_from_urls(
         urls: List[str],
