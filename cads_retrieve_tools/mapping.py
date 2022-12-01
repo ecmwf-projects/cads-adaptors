@@ -3,14 +3,6 @@
 import copy
 
 
-try:
-    from cdsinf.runner.mappingengines.mappingengine import MappingEngine
-    from cdsinf.exceptions import BadRequestException
-except ImportError:
-    MappingEngine = object
-    BadRequestException = Exception
-
-
 def julian_to_ymd(jdate):
     # only integer julian dates are supported for now, as inherited
     try:
@@ -272,7 +264,7 @@ def apply_mapping(request, mapping):
         # print("ITEM count %s limit %s" % (count, selection_limit))
 
         if count > selection_limit:
-            raise BadRequestException("Request too large. Requesting %s items, limit is %s" % (count, selection_limit), '')
+            raise ValueError("Request too large. Requesting %s items, limit is %s" % (count, selection_limit), '')
 
     print(r)
     return r

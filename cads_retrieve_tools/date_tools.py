@@ -1,3 +1,4 @@
+# copied from cdscommon
 
 import re
 from datetime import datetime, timedelta
