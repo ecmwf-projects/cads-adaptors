@@ -28,6 +28,28 @@ def requests_to_urls(requests, patterns):
                 yield {'url': url, 'req': req}
 
 
+def try_download(urls: List[str]) -> List[str]:
+    paths = []
+    for url in urls:
+        path = urllib.parse.urlparse(url).path.lstrip("/")
+        dir = os.path.dirname(path)
+        os.makedirs(dir, exist_ok=True)
+        try:
+            multiurl.download(url, path)
+            paths.append(path)
+        except requests.exceptions.HTTPError as exc:
+            if exc.response.status_code == 404:
+                logger.warning(exc)
+            else:
+                raise exc
+        if len(paths) == 0:
+            raise RuntimeError(
+                f"Request empty. At least one of the following {urls} "
+                "must be a valid url from which to download the data"
+            )
+    return paths
+
+
 # TODO use targzstream
 def download_zip_from_urls(
         urls: List[str],
@@ -35,12 +57,7 @@ def download_zip_from_urls(
 ) -> str:
 
     target = f"{base_target}.zip"
-    paths = []
-    for url in urls:
-        path = os.path.basename(urllib.parse.urlparse(url).path)
-        multiurl.download(url, path)
-        paths.append(path)
-
+    paths = try_download(urls)
     with zipfile.ZipFile(target, mode="w") as archive:
         for p in paths:
             archive.write(p)
@@ -58,12 +75,7 @@ def download_tgz_from_urls(
 ) -> str:
 
     target = f"{base_target}.tar.gz"
-    paths = []
-    for url in urls:
-        path = os.path.basename(urllib.parse.urlparse(url).path)
-        multiurl.download(url, path)
-        paths.append(path)
-
+    paths = try_download(urls)
     with tarfile.open(target, "w:gz") as archive:
         for p in paths:
             archive.add(p)
