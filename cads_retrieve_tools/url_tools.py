@@ -1,16 +1,15 @@
+import logging
 import os
-import requests
 import tarfile
-from typing import List, Optional
 import urllib
 import zipfile
+from typing import List, Optional
 
-import multiurl
 import jinja2
+import multiurl
+import requests
 
 from . import hcube_tools
-
-import logging
 
 logger = logging.Logger(__name__)
 
@@ -18,14 +17,14 @@ logger = logging.Logger(__name__)
 # copied from cdscommon/url2
 def requests_to_urls(requests, patterns):
     """Given a list of requests and a list of URL patterns with Jinja2
-       formatting, yield the associated URLs to download."""
+    formatting, yield the associated URLs to download."""
 
     templates = [jinja2.Template(p) for p in patterns]
 
     for req in hcube_tools.unfactorise(requests):
         for url in [t.render(req).strip() for t in templates]:
             if url:
-                yield {'url': url, 'req': req}
+                yield {"url": url, "req": req}
 
 
 def try_download(urls: List[str]) -> List[str]:
@@ -52,8 +51,8 @@ def try_download(urls: List[str]) -> List[str]:
 
 # TODO use targzstream
 def download_zip_from_urls(
-        urls: List[str],
-        base_target: str,
+    urls: List[str],
+    base_target: str,
 ) -> str:
 
     target = f"{base_target}.zip"
@@ -70,8 +69,8 @@ def download_zip_from_urls(
 
 # TODO zipstream for archive creation
 def download_tgz_from_urls(
-        urls: List[str],
-        base_target: str,
+    urls: List[str],
+    base_target: str,
 ) -> str:
 
     target = f"{base_target}.tar.gz"
@@ -87,8 +86,8 @@ def download_tgz_from_urls(
 
 
 def download_from_urls(
-        urls: List[str],
-        data_format: str = "zip",
+    urls: List[str],
+    data_format: str = "zip",
 ) -> str:
 
     base_target = str(hash(tuple(urls)))
@@ -103,10 +102,12 @@ def download_from_urls(
     return target
 
 
-def download_zip_from_urls_in_memory(urls: List[str], target: Optional[str] = None) -> str:
+def download_zip_from_urls_in_memory(
+    urls: List[str], target: Optional[str] = None
+) -> str:
     if target is None:
         target = str(hash(tuple(urls)))
-    with zipfile.ZipFile(target, 'w') as f:
+    with zipfile.ZipFile(target, "w") as f:
         for url in urls:
             name = os.path.basename(urllib.parse.urlparse(url).path)
             response = multiurl.robust(requests.get)(url)
