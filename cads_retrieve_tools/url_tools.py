@@ -46,8 +46,8 @@ def try_download(urls: List[str]) -> List[str]:
     if len(paths) == 0:
         raise RuntimeError(
             f"Request empty. At least one of the following {urls} "
-            "must be a valid url from which to download the data"
-            f"{[str(exc) for exc in excs]}"
+            "must be a valid url from which to download the data "
+            f"download errors: {[str(exc) for exc in excs]}"
         )
     return paths
 
