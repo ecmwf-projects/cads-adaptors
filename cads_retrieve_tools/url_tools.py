@@ -29,6 +29,7 @@ def requests_to_urls(requests, patterns):
 
 def try_download(urls: List[str]) -> List[str]:
     paths = []
+    excs = []
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
@@ -39,13 +40,15 @@ def try_download(urls: List[str]) -> List[str]:
         except requests.exceptions.HTTPError as exc:
             if exc.response.status_code == 404:
                 logger.warning(exc)
+                excs.append(exc)
             else:
                 raise exc
-        if len(paths) == 0:
-            raise RuntimeError(
-                f"Request empty. At least one of the following {urls} "
-                "must be a valid url from which to download the data"
-            )
+    if len(paths) == 0:
+        raise RuntimeError(
+            f"Request empty. At least one of the following {urls} "
+            "must be a valid url from which to download the data"
+            f"{[str(exc) for exc in excs]}"
+        )
     return paths
 
 
