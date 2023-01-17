@@ -54,6 +54,9 @@ ignore = [
   "D417"
 ]
 
+[tool.setuptools]
+packages = ["cads_retrieve_tools"]
+
 [tool.setuptools_scm]
 write_to = "cads_retrieve_tools/version.py"
 write_to_template = '''
