@@ -2,44 +2,47 @@
 
 """Functions for processing hypercubes represented as dicts."""
 
-from copy import deepcopy
-from itertools import product, chain
-
 # dicts became ordered by default from Python 3.6
 import sys
+from copy import deepcopy
+from itertools import chain, product
+
 if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
     odict = dict
 else:
     from collections import OrderedDict as odict
 
-from .date_tools import expand_dates_list, compress_dates_list
+from .date_tools import compress_dates_list, expand_dates_list
 
 
-def same_fields(reqs1, reqs2, date_field='date'):
+def same_fields(reqs1, reqs2, date_field="date"):
     """Return True of reqs1 and reqs2 represent the same fields and
-       False if not"""
-
+    False if not
+    .
+    """
     intdiff = hcubes_intdiff(reqs1, reqs2, date_field=date_field)
     return intdiff[1] == [] and intdiff[2] == []
 
 
-def hcubes_intdiff(reqs1, reqs2, date_field='date'):
+def hcubes_intdiff(reqs1, reqs2, date_field="date"):
     """Calculate the intersection and differences of the two sets of requests.
-       The output is a three-element list containing 1). a list of requests
-       representing the intersection, 2). a list of requests representing the
-       reqs1 minus reqs2 difference and 3). a list of requests representing the
-       reqs2 minus reqs1 difference.
-       The requests do not all have to have the same keys, but requests will
-       only be considered as having a possible intersection if they do."""
-
+    The output is a three-element list containing 1). a list of requests
+    representing the intersection, 2). a list of requests representing the
+    reqs1 minus reqs2 difference and 3). a list of requests representing the
+    reqs2 minus reqs1 difference.
+    The requests do not all have to have the same keys, but requests will
+    only be considered as having a possible intersection if they do.
+    """
     intn = []
     d12 = []
     d21 = []
 
     # Only compare requests with the same sets of keys. The sorting is done for
     # reproducibility.
-    keysets = sorted(list(set([frozenset(r.keys()) for r in reqs1 + reqs2])),
-                     key=lambda ks: repr(sorted(list(ks))))
+    keysets = sorted(
+        list(set([frozenset(r.keys()) for r in reqs1 + reqs2])),
+        key=lambda ks: repr(sorted(list(ks))),
+    )
     for keyset in keysets:
 
         r1 = [r for r in reqs1 if frozenset(r.keys()) == keyset]
@@ -52,16 +55,16 @@ def hcubes_intdiff(reqs1, reqs2, date_field='date'):
     return [intn, d12, d21]
 
 
-def hcubes_intdiff2(reqs1, reqs2, date_field='date'):
-    """This is the same as hcubes_intdiff() but requests are compared even if
-       they do not have the same keys. Elements of reqs1 may have keys that
-       elements of reqs2 do not, but not the other way around or an exception
-       will be raised. Keys that are not shared are completely ignored."""
-
+def hcubes_intdiff2(reqs1, reqs2, date_field="date"):
+    """Same as hcubes_intdiff() but requests are compared even if
+    they do not have the same keys. Elements of reqs1 may have keys that
+    elements of reqs2 do not, but not the other way around or an exception
+    will be raised. Keys that are not shared are completely ignored.
+    """
     reqs1 = _ensure_list(reqs1)
     reqs2 = _ensure_list(reqs2)
-    assert_lists(reqs1, 'reqs1')
-    assert_lists(reqs2, 'reqs2')
+    assert_lists(reqs1, "reqs1")
+    assert_lists(reqs2, "reqs2")
 
     # Get all intersections between requests
     intns = []
@@ -91,8 +94,7 @@ def hcubes_intdiff2(reqs1, reqs2, date_field='date'):
     hcubes_merge(rem2)
 
     # Attempt to put lists back in original orders, purely for tidiness
-    for reqs, orig in zip([intns, rem1, rem2],
-                          [reqs1, reqs1, reqs2]):
+    for reqs, orig in zip([intns, rem1, rem2], [reqs1, reqs1, reqs2]):
         orig_key_order = sum([list(x.keys()) for x in orig], [])
         for rr in reqs:
             dict_sort_keys(rr, orig_key_order.index)
@@ -109,28 +111,29 @@ def hcubes_intdiff2(reqs1, reqs2, date_field='date'):
     return [intns, rem1, rem2]
 
 
-def hcube_intdiff(req1, req2, date_field='date'):
+def hcube_intdiff(req1, req2, date_field="date"):
     """Calculate the intersection and differences of two requests.
-       The output is a three-element list containing 1). the intersection of
-       the two requests or None if there is no intersection 2). a list of
-       requests representing the req1 minus req2 difference and 3). a list of
-       requests representing the req2 minus req1 difference.
-       req1 may have keys that req2 does not but not the other way around or an
-       exception will be raised. Keys that are not shared are ignored."""
-
-    assert set(req2.keys()) <= set(req1.keys()), \
-        'req2 has keys that req1 does not: '+repr(list(req1.keys())) + ' vs ' \
+    The output is a three-element list containing 1). the intersection of
+    the two requests or None if there is no intersection 2). a list of
+    requests representing the req1 minus req2 difference and 3). a list of
+    requests representing the req2 minus req1 difference.
+    req1 may have keys that req2 does not but not the other way around or an
+    exception will be raised. Keys that are not shared are ignored.
+    """
+    assert set(req2.keys()) <= set(req1.keys()), (
+        "req2 has keys that req1 does not: "
+        + repr(list(req1.keys()))
+        + " vs "
         + repr(list(req2.keys()))
-    assert_lists(req1, 'req1')
-    assert_lists(req2, 'req2')
+    )
+    assert_lists(req1, "req1")
+    assert_lists(req2, "req2")
 
     # Expand dates if compressed
     req1b = _expand_dates(req1, date_field)
     req2b = _expand_dates(req2, date_field)
-    expanded_dates1 = (date_field in req1 and
-                       req1b[date_field] != req1[date_field])
-    expanded_dates2 = (date_field in req2 and
-                       req2b[date_field] != req2[date_field])
+    expanded_dates1 = date_field in req1 and req1b[date_field] != req1[date_field]
+    expanded_dates2 = date_field in req2 and req2b[date_field] != req2[date_field]
 
     # Find intersection and differences
     intdiff = _hcube_intdiff(req1b, req2b)
@@ -157,18 +160,21 @@ def _expand_dates(req, date_field):
 
 def _hcube_intdiff(req1, req2):
     """Calculate the intersection and differences of two requests.
-       The output is a three-element list containing 1). the intersection of
-       the two requests or None if there is no intersection 2). a list of
-       requests representing the req1 minus req2 difference and 3). a list of
-       requests representing the req2 minus req1 difference.
-       req1 may have keys that req2 does not but not the other way around or an
-       exception will be raised. Keys that are not shared are ignored."""
-
-    assert set(req2.keys()) <= set(req1.keys()), \
-        'req2 has keys that req1 does not: '+repr(list(req1.keys())) + ' vs ' \
+    The output is a three-element list containing 1). the intersection of
+    the two requests or None if there is no intersection 2). a list of
+    requests representing the req1 minus req2 difference and 3). a list of
+    requests representing the req2 minus req1 difference.
+    req1 may have keys that req2 does not but not the other way around or an
+    exception will be raised. Keys that are not shared are ignored.
+    """
+    assert set(req2.keys()) <= set(req1.keys()), (
+        "req2 has keys that req1 does not: "
+        + repr(list(req1.keys()))
+        + " vs "
         + repr(list(req2.keys()))
-    assert_lists(req1, 'req1')
-    assert_lists(req2, 'req2')
+    )
+    assert_lists(req1, "req1")
+    assert_lists(req2, "req2")
 
     # We ignore keys that are in req1 but not req2 so if req2 is empty the
     # intersection is total.
@@ -189,7 +195,7 @@ def _hcube_intdiff(req1, req2):
         # We're trying to subtract values of different types. Probably a
         # mistake. Maybe we should be even stricter and not allow multiple types
         # in a key?
-        raise Exception('Values have different types for key: ' + key)
+        raise Exception("Values have different types for key: " + key)
 
     # Get the lists of values that are common and different between requests in
     # key[0]
@@ -221,26 +227,26 @@ def _hcube_intdiff(req1, req2):
         r2[key] = dif21
         intdiff[2].append(deepcopy(r2))
 
-    #check_no_shared_lists(([intdiff[0]] if intdiff[0] else [])
+    # check_no_shared_lists(([intdiff[0]] if intdiff[0] else [])
     #                      + intdiff[1] + intdiff[2])
 
     return intdiff
 
 
-def remove_duplicates(reqs, date_field='date'):
-    """Remove all duplicate fields from reqs"""
-
+def remove_duplicates(reqs, date_field="date"):
+    """Remove all duplicate fields from reqs."""
     # Loop over pairs of elements
-    ii=0
-    while ii < len(reqs)-1:
+    ii = 0
+    while ii < len(reqs) - 1:
         jj = ii + 1
         ii_incr = 1
         while jj < len(reqs):
 
             # Get the intersection and difference of these two requests
             if set(reqs[ii].keys()) == set(reqs[jj].keys()):
-                intn, d12, d21 = hcube_intdiff(reqs[ii], reqs[jj],
-                                               date_field=date_field)
+                intn, d12, d21 = hcube_intdiff(
+                    reqs[ii], reqs[jj], date_field=date_field
+                )
             else:
                 intn = None
 
@@ -248,18 +254,18 @@ def remove_duplicates(reqs, date_field='date'):
             # intersection and the ii remainder; replace jj with just the jj
             # remainder.
             if intn is not None:
-                reqs[:] = reqs[0:ii] + [intn] + d12 + \
-                          reqs[ii+1:jj] + d21 + reqs[jj+1:]
+                reqs[:] = (
+                    reqs[0:ii] + [intn] + d12 + reqs[ii + 1 : jj] + d21 + reqs[jj + 1 :]
+                )
                 jj += len(d12) + len(d21) - 1
-                #ii_incr += len(d12) # This was a bug
+                # ii_incr += len(d12) # This was a bug
 
             jj += 1
         ii += ii_incr
 
 
-def hcubes_subtract(reqs1, reqs2, date_field='date'):
+def hcubes_subtract(reqs1, reqs2, date_field="date"):
     """Return a copy of reqs1 with all fields in reqs2 removed."""
-
     output = []
 
     # Expand dates if compressed
@@ -270,8 +276,7 @@ def hcubes_subtract(reqs1, reqs2, date_field='date'):
 
         # Expand dates if compressed
         req1b = _expand_dates(req1, date_field)
-        expanded_dates1 = (date_field in req1 and
-                           req1b[date_field] != req1[date_field])
+        expanded_dates1 = date_field in req1 and req1b[date_field] != req1[date_field]
 
         for i2, req2 in enumerate(reqs2b):
 
@@ -282,8 +287,7 @@ def hcubes_subtract(reqs1, reqs2, date_field='date'):
                 # req1 with the difference.
                 intn, d12, _ = hcube_intdiff(req1b, req2, date_field=date_field)
                 if intn is not None:
-                    diff = hcubes_subtract(d12, reqs2b[i2+1:],
-                                           date_field=date_field)
+                    diff = hcubes_subtract(d12, reqs2b[i2 + 1 :], date_field=date_field)
                     break
 
         else:
@@ -303,9 +307,8 @@ def hcubes_subtract(reqs1, reqs2, date_field='date'):
 
 
 def hcubes_merge(requests):
-    """Merge mergeable hypercubes into each other"""
-
-    assert_lists(requests, 'request')
+    """Merge mergeable hypercubes into each other."""
+    assert_lists(requests, "request")
 
     merge_occurred = True
     while merge_occurred:
@@ -336,8 +339,8 @@ def hcubes_merge(requests):
 
 def hcube_merge(req, req2, nomerge_keys=[]):
     """Attempt to merge req2 into req. Return True if successful and False
-       if not."""
-
+    if not.
+    """
     if sorted(req2.keys()) != sorted(req.keys()):
         return False
 
@@ -362,13 +365,13 @@ def hcube_merge(req, req2, nomerge_keys=[]):
 #     """Another version of hcubes_merge that is intended to result in a more
 #        merged result in the case where the best merge cannot be obtained
 #        merely by successive merges of pairs. Likely much slower."""
-# 
+#
 #     keys = hcubes[0].keys()
-# 
+#
 #     if date_field in keys:
 #         for hcube in hcubes:
 #             hcube[date_field] = expand_dates_list(hcube[date_field])
-# 
+#
 #     # Get the envelope of all the hypercubes
 #     envelope = {k: set() for k in hcubes[0].keys()}
 #     for hcube in hcubes:
@@ -378,63 +381,69 @@ def hcube_merge(req, req2, nomerge_keys=[]):
 #             envelope[k].update(hcube[k])
 #     for k in keys:
 #         envelope[k] = sorted(list(envelope[k]))
-# 
+#
 #     # Subtract the hypercubes from the envelope to get the fields which are
 #     # inside the envelope but not included in the hcubes
 #     _, not_included, _ = hcubes_intdiff([envelope], hcubes)
-# 
+#
 #     # Subtract the fields not included in hcubes from the envelope to arrive
 #     # at another representation of hcubes
 #     _, merged, _ = hcubes_intdiff([envelope], not_included)
-# 
+#
 #     hcubes[:] = merged
 
 
 def hcubes_reduce_dims(reqs1, reqs2):
     """Return a copy of reqs1 after removing all keys not present in any of
-       reqs2 and performing a merge on the result."""
-
+    reqs2 and performing a merge on the result.
+    """
     reqs1 = _ensure_list(reqs1)
     reqs2 = _ensure_list(reqs2)
     keys2 = set(chain(*(r.keys() for r in reqs2)))
-    reqs1b = [{k:  deepcopy(v) for k, v in r.items() if k in keys2}
-              for r in reqs1]
+    reqs1b = [{k: deepcopy(v) for k, v in r.items() if k in keys2} for r in reqs1]
     hcubes_merge(reqs1b)
     return reqs1b
 
 
 def hcubes_sort(hcubes, hcube_key=None, key_key=None, value_key=None):
     """Sort every aspect of the hypercubes: their order, the order of the
-       keys within a given cube and the order of the values within a given
-       key."""
-
+    keys within a given cube and the order of the values within a given
+    key.
+    """
     # By default values will be sorted numerically if possible
     if value_key is None:
+
         def sort_values(values):
             try:
                 return sorted(values, key=lambda x: float(x))
             except ValueError:
                 return sorted(values)
+
     else:
+
         def sort_values(values):
             return sorted(values, key=value_key)
 
     # Sort keys and values
     for ic, hcube in enumerate(hcubes):
-        hcubes[ic] = odict([(k, sort_values(hcube[k])) for k in
-                            sorted(hcube.keys(), key=key_key)])
+        hcubes[ic] = odict(
+            [(k, sort_values(hcube[k])) for k in sorted(hcube.keys(), key=key_key)]
+        )
 
     # Sort the hypercubes themselves
     if hcube_key is None:
-        hcube_key = lambda hcube: repr(hcube)
+
+        def hcube_key(hcube):
+            return repr(hcube)
 
     hcubes[:] = sorted(hcubes, key=hcube_key)
 
 
 def hcubes_split(requests, nfields):
     """Return the list of requests with any representing more than nfields
-       fields split up into smaller requests"""
-
+    fields split up into smaller requests
+    .
+    """
     remainder = _ensure_list(requests)
     output = []
     while remainder:
@@ -447,14 +456,14 @@ def hcubes_split(requests, nfields):
     return output
 
 
-def hcubes_chunk(requests, chunk_size, date_field='date', max_groups=None):
+def hcubes_chunk(requests, chunk_size, date_field="date", max_groups=None):
     """Chop and group the hypercubes into groups of chunk_size fields. This
-       differs from hcubes_split in its grouping aspect - the output is a list
-       of lists, with each sub-list containing requests that do not exceed
-       chunk_size fields."""
-
+    differs from hcubes_split in its grouping aspect - the output is a list
+    of lists, with each sub-list containing requests that do not exceed
+    chunk_size fields.
+    """
     requests = _ensure_list(requests)
-    assert_lists(requests, 'requests')
+    assert_lists(requests, "requests")
 
     # Loop until all fields assigned to an output group
     output = []
@@ -481,16 +490,17 @@ def hcubes_chunk(requests, chunk_size, date_field='date', max_groups=None):
     return output
 
 
-def hcube_extract(request, nfields, date_field='date'):
+def hcube_extract(request, nfields, date_field="date"):
     """Extract at most nfields fields from request, returning that sub request
-       and a list of hypercubes comprising the remaining fields"""
-
-    assert_lists(request, 'request')
+    and a list of hypercubes comprising the remaining fields
+    .
+    """
+    assert_lists(request, "request")
 
     # Expand compressed date ranges
-    if 'date' in request:
+    if "date" in request:
         request = request.copy()
-        request['date'] = expand_dates_list(request['date'])
+        request["date"] = expand_dates_list(request["date"])
 
     if count_fields(request) > nfields:
 
@@ -514,10 +524,13 @@ def hcube_extract(request, nfields, date_field='date'):
         _, remainder, _ = hcube_intdiff(request, subreq, date_field=date_field)
 
         # Restore remainder key order for tidiness
-        remainder = [{k: r[k] for k in
-                      sorted(r.keys(),
-                             key=lambda k: list(request.keys()).index(k))}
-                     for r in remainder]
+        remainder = [
+            {
+                k: r[k]
+                for k in sorted(r.keys(), key=lambda k: list(request.keys()).index(k))
+            }
+            for r in remainder
+        ]
 
     else:
         subreq = deepcopy(request)
@@ -527,7 +540,7 @@ def hcube_extract(request, nfields, date_field='date'):
 
 
 def dict_sort_keys(adict, key=None):
-    """Sort a dictionary's keys in place"""
+    """Sort a dictionary's keys in place."""
     keys = sorted(adict.keys(), key=key)
     bdict = adict.copy()
     for k in keys:
@@ -535,31 +548,35 @@ def dict_sort_keys(adict, key=None):
         adict[k] = bdict[k]
 
 
-def dates_to_ints(hcubes, date_field='date'):
-    """Convert dates to integers"""
+def dates_to_ints(hcubes, date_field="date"):
+    """Convert dates to integers."""
     for hcube in hcubes:
         dates = hcube.get(date_field, [])
         if dates:
             dates = _ensure_list(dates)
-            hcube[date_field] = [int(d.strftime('%Y%m%d')) for d in
-                                 expand_dates_list(dates, as_datetime=True)]
+            hcube[date_field] = [
+                int(d.strftime("%Y%m%d"))
+                for d in expand_dates_list(dates, as_datetime=True)
+            ]
 
 
-def assert_lists(reqs, name='requests'):
-    """Check that all request values are lists"""
+def assert_lists(reqs, name="requests"):
+    """Check that all request values are lists."""
     reqs = _ensure_list(reqs)
     for r in reqs:
         for k, v in r.items():
             if not isinstance(v, list):
-                raise Exception('{n}[{k}]'.format(n=name, k=repr(k)) +
-                                ' is not a list: {}'.format(repr(v)))
+                raise Exception(
+                    "{n}[{k}]".format(n=name, k=repr(k))
+                    + " is not a list: {}".format(repr(v))
+                )
 
 
-def count_fields(hcubes, date_field='date', ignore=[]):
-    """Count the fields represented by the hypercube or list of hypercubes"""
+def count_fields(hcubes, date_field="date", ignore=[]):
+    """Count the fields represented by the hypercube or list of hypercubes."""
     nfields = 0
     hcubes = _ensure_list(hcubes)
-    if isinstance(ignore, str): # We allow ignore to be list, tuple, set, etc.
+    if isinstance(ignore, str):  # We allow ignore to be list, tuple, set, etc.
         ignore = [ignore]
     for hcube in hcubes:
         hcube = {k: v for k, v in hcube.items() if k not in ignore}
@@ -576,8 +593,10 @@ def count_fields(hcubes, date_field='date', ignore=[]):
 
 
 def check_no_shared_lists(reqs):
-    """Debugging tool to check that no pair of requests share a reference to 
-       the same list"""
+    """Debugging tool to check that no pair of requests share a reference to
+    the same list
+    .
+    """
     ids = {}
     for i, r in enumerate(reqs):
         for k, v in r.items():
@@ -585,20 +604,21 @@ def check_no_shared_lists(reqs):
                 ids[id(v)] = (i, k)
             else:
                 i2, k2 = ids[id(v)]
-                raise Exception('Key "{}" of request {}'.format(k2, i2) +
-                                ' shares the same list as key ' +
-                                '"{}" of request {}'.format(k, i))
+                raise Exception(
+                    'Key "{}" of request {}'.format(k2, i2)
+                    + " shares the same list as key "
+                    + '"{}" of request {}'.format(k, i)
+                )
 
 
-def unfactorise(hcubes, date_field='date'):
+def unfactorise(hcubes, date_field="date"):
     """Generator function that, for a list of hypercubes, yields each individual
-       field as a dict in order."""
-
+    field as a dict in order.
+    """
     expanders = {date_field: expand_dates_list}
 
     for hcube in _ensure_list(hcubes):
-        value_lists = [expanders.get(k, _ensure_list)(v)
-                       for k, v in hcube.items()]
+        value_lists = [expanders.get(k, _ensure_list)(v) for k, v in hcube.items()]
         for values in product(*value_lists):
             yield {k: v for k, v in zip(hcube.keys(), values)}
 

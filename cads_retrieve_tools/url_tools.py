@@ -17,8 +17,8 @@ logger = logging.Logger(__name__)
 # copied from cdscommon/url2
 def requests_to_urls(requests, patterns):
     """Given a list of requests and a list of URL patterns with Jinja2
-    formatting, yield the associated URLs to download."""
-
+    formatting, yield the associated URLs to download.
+    """
     templates = [jinja2.Template(p) for p in patterns]
 
     for req in hcube_tools.unfactorise(requests):

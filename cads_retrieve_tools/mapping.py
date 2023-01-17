@@ -8,7 +8,7 @@ def julian_to_ymd(jdate):
     try:
         jdate = int(jdate)
     except ValueError:
-        raise TypeError('Invalid julian date')
+        raise TypeError("Invalid julian date")
 
     x = 4 * jdate - 6884477
     y = (x // 146097) * 100
@@ -77,8 +77,8 @@ def date_to_julian(ddate):
 
 def parse_date(date):
     if isinstance(date, str):
-        if '-' in date:
-            y, m, d = date.split('-')
+        if "-" in date:
+            y, m, d = date.split("-")
             return int(y) * 10000 + int(m) * 100 + int(d)
     return int(date)
 
@@ -91,10 +91,12 @@ def date_range(start_date, end_date, step=1):
         end_date (str): End date of the interval.
         step (int): Spacing, in days, between dates. Defaults to 1.
 
-    Raises:
+    Raises
+    ------
         ValueError: If the input dates cannot be parsed.
 
-    Returns:
+    Returns
+    -------
         Generator returning one date at a time.
 
     Example:
@@ -142,8 +144,8 @@ def as_list(r, name, force):
 
 
 def to_interval(x):
-    if '/' not in x:
-        return '%s/%s' % (x, x)
+    if "/" not in x:
+        return "%s/%s" % (x, x)
 
 
 def apply_mapping(request, mapping):
@@ -213,8 +215,8 @@ def apply_mapping(request, mapping):
             # Expand intervals
             for d in dates:
 
-                if '/' in d:
-                    start, end = d.split('/')
+                if "/" in d:
+                    start, end = d.split("/")
                     for e in date_range(start, end):
                         newdates.add(e)
                 else:
@@ -231,7 +233,7 @@ def apply_mapping(request, mapping):
             if years and months and days:
                 r[date] = sorted(set(date_from_years_month_days(years, months, days)))
 
-                for k in ('year', 'month', 'day'):
+                for k in ("year", "month", "day"):
                     if k in r:
                         del r[k]
                     if k in force:
@@ -264,7 +266,11 @@ def apply_mapping(request, mapping):
         # print("ITEM count %s limit %s" % (count, selection_limit))
 
         if count > selection_limit:
-            raise ValueError("Request too large. Requesting %s items, limit is %s" % (count, selection_limit), '')
+            raise ValueError(
+                "Request too large. Requesting %s items, limit is %s"
+                % (count, selection_limit),
+                "",
+            )
 
     print(r)
     return r
