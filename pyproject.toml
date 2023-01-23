@@ -17,7 +17,7 @@ classifiers = [
     "Topic :: Scientific/Engineering"
 ]
 dynamic = ["version"]
-dependencies = ["multiurl"]
+dependencies = ["cacholote", "multiurl"]
 
 [tool.coverage.run]
 branch = true
@@ -51,7 +51,8 @@ ignore = [
   "D413",
   "D415",
   "D416",
-  "D417"
+  "D417",
+  "D205"
 ]
 
 [tool.setuptools]
