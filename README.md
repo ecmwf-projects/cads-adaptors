@@ -1,4 +1,4 @@
-# cads-retrieve-tools
+# cads-adaptors
 
 CADS data retrieve utilities to be used by adapters
 

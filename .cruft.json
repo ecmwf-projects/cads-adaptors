@@ -4,7 +4,7 @@
   "checkout": null,
   "context": {
     "cookiecutter": {
-      "project_name": "cads-retrieve-tools",
+      "project_name": "cads-adaptors",
       "project_slug": "cads_retrieve_tools",
       "project_short_description": "CADS data retrieve utilities to be used by adapters",
       "copyright_holder": "European Union",
