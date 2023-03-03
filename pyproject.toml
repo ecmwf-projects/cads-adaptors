@@ -56,10 +56,10 @@ ignore = [
 ]
 
 [tool.setuptools]
-packages = ["cads_retrieve_tools"]
+packages = ["cads_adaptors"]
 
 [tool.setuptools_scm]
-write_to = "cads_retrieve_tools/version.py"
+write_to = "cads_adaptors/version.py"
 write_to_template = '''
 # Do not change! Do not track in version control!
 __version__ = "{version}"

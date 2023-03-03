@@ -1,4 +1,4 @@
-# Welcome to cads_retrieve_tools's documentation!
+# Welcome to cads_adaptors's documentation!
 
 CADS data retrieve utilities to be used by adapters.
 
@@ -6,7 +6,7 @@ CADS data retrieve utilities to be used by adapters.
 :caption: 'Contents:'
 :maxdepth: 2
 
-API Reference <_api/cads_retrieve_tools/index>
+API Reference <_api/cads_adaptors/index>
 ```
 
 # Indices and tables

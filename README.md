@@ -5,7 +5,7 @@ CADS data retrieve utilities to be used by adapters
 ## Quick Start
 
 ```python
->>> import cads_retrieve_tools
+>>> import cads_adaptors
 
 ```
 

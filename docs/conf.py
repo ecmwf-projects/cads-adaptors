@@ -9,17 +9,17 @@
 import os
 import sys
 
-import cads_retrieve_tools
+import cads_adaptors
 
 sys.path.insert(0, os.path.abspath("../"))
 
 # -- Project information -----------------------------------------------------
 
-project = "cads_retrieve_tools"
+project = "cads_adaptors"
 copyright = "2022, European Union"
 author = "European Union"
-version = cads_retrieve_tools.__version__
-release = cads_retrieve_tools.__version__
+version = cads_adaptors.__version__
+release = cads_adaptors.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -37,7 +37,7 @@ extensions = [
 autodoc_typehints = "none"
 
 # autoapi configuration
-autoapi_dirs = ["../cads_retrieve_tools"]
+autoapi_dirs = ["../cads_adaptors"]
 autoapi_ignore = ["*/version.py"]
 autoapi_options = [
     "members",

@@ -1,4 +1,4 @@
-PROJECT := cads_retrieve_tools
+PROJECT := cads_adaptors
 CONDA := conda
 CONDAFLAGS :=
 COV_REPORT := html
