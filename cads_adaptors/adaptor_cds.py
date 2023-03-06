@@ -40,3 +40,18 @@ class UrlCdsAdaptor(CdsAdaptor):
             [ru["url"] for ru in requests_urls], data_format=data_format
         )
         return open(path, "rb")
+
+
+class LegacyCdsAdaptor(CdsAdaptor):
+    def retrieve(self, request):
+        import cdsapi
+
+        # parse input options
+        collection_id = self.config.pop("collection_id", None)
+        if not collection_id:
+            raise ValueError("collection_id is required in request")
+
+        # retrieve data
+        client = cdsapi.Client(self.config["url"], self.config["key"], retry_max=1)
+        result_path = client.retrieve(collection_id, request).download()
+        return open(result_path, "rb")
