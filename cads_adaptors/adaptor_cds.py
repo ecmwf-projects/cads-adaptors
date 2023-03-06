@@ -2,7 +2,7 @@ from . import adaptor, constraints, costing
 
 
 class CDSAdaptor(adaptor.AbstractAdaptor):
-    def __init__(self, config, constraints, mapping, form, licences):
+    def __init__(self, licences, form, config={}, constraints=[], mapping={}):
         self.config = config
         self.constraints = constraints
         self.form = form
