@@ -2,6 +2,10 @@ import abc
 
 
 class AbstractAdaptor(abc.ABC):
+    def __init__(self, form, **config):
+        self.form = form
+        self.config = config
+
     @abc.abstractmethod
     def validate(self, request):
         pass
