@@ -13,4 +13,6 @@ def get_adaptor_class(
     except ValueError:
         exec(setup_code)
         adaptor_class = eval(entry_point)
+    if not issubclass(adaptor_class, adaptor.AbstractAdaptor):
+        raise TypeError(f"{adaptor_class!r} is not subclass of AbstractAdaptor")
     return adaptor_class
