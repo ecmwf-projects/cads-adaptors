@@ -2,9 +2,9 @@
 import copy
 from typing import Any
 
-import cads_catalogue.database
+# import cads_catalogue.database
 
-from . import db_utils, exceptions, translators, utils
+# from . import db_utils, exceptions, translators, utils
 
 SUPPORTED_CONSTRAINTS = [
     "StringListWidget",
@@ -175,7 +175,8 @@ def get_possible_values(
                 ok = False
                 break
             else:
-                raise exceptions.ParameterError(detail=f"invalid param '{field_name}'")
+                raise ValueError(f"invalid param '{field_name}'")
+                # raise exceptions.ParameterError(detail=f"invalid param '{field_name}'")
         if ok:
             for field_name, valid_values in combination.items():
                 result[field_name] |= set(valid_values)
@@ -285,48 +286,48 @@ def get_always_valid_params(
     return result
 
 
-def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any]]:
-    """
-    Parse the form for a given dataset extracting the information on the possible selections.
+# def parse_form(ogc_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any]]:
+#     """
+#     Parse the form for a given dataset extracting the information on the possible selections.
 
-    :param raw_form: a dictionary containing
-    all possible selections in JSON format
-    :type: dict[str, list[Any]]
+#     :param raw_form: a dictionary containing
+#     all possible selections in JSON format
+#     :type: dict[str, list[Any]]
 
-    :rtype: dict[str, set[Any]]:
-    :return: a dict[str, set[Any]] containing all possible selections.
-    """
-    if raw_form is None:
-        raw_form = list()
-    ogc_form = translators.translate_cds_form(raw_form)
-    form = {}
-    for field_name in ogc_form:
-        try:
-            if ogc_form[field_name]["schema_"]["type"] == "array":
-                form[field_name] = set(ogc_form[field_name]["schema_"]["items"]["enum"])
-            else:
-                form[field_name] = set(ogc_form[field_name]["schema_"]["enum"])
-        except KeyError:
-            pass
-    return form
+#     :rtype: dict[str, set[Any]]:
+#     :return: a dict[str, set[Any]] containing all possible selections.
+#     """
+#     if raw_form is None:
+#         raw_form = list()
+#     ogc_form = translators.translate_cds_form(raw_form)
+#     form = {}
+#     for field_name in ogc_form:
+#         try:
+#             if ogc_form[field_name]["schema_"]["type"] == "array":
+#                 form[field_name] = set(ogc_form[field_name]["schema_"]["items"]["enum"])
+#             else:
+#                 form[field_name] = set(ogc_form[field_name]["schema_"]["enum"])
+#         except KeyError:
+#             pass
+#     return form
 
 
-def validate_constraints(
-    process_id: str,
-    body: dict[str, dict[str, Any]],
-) -> dict[str, list[str]]:
-    record = cads_catalogue.database.Resource
-    catalogue_sessionmaker = db_utils.get_catalogue_sessionmaker()
-    with catalogue_sessionmaker() as catalogue_session:
-        dataset = utils.lookup_resource_by_id(process_id, record, catalogue_session)
-    orig_form = dataset.form_data
-    form = parse_form(orig_form)
-    unsupported_vars = get_unsupported_vars(orig_form)
-    constraints = parse_constraints(dataset.constraints_data)
-    constraints = remove_unsupported_vars(constraints, unsupported_vars)
-    selection = parse_selection(body["inputs"])
+# def validate_constraints(
+#     process_id: str,
+#     body: dict[str, dict[str, Any]],
+# ) -> dict[str, list[str]]:
+#     record = cads_catalogue.database.Resource
+#     catalogue_sessionmaker = db_utils.get_catalogue_sessionmaker()
+#     with catalogue_sessionmaker() as catalogue_session:
+#         dataset = utils.lookup_resource_by_id(process_id, record, catalogue_session)
+#     orig_form = dataset.form_data
+#     form = parse_form(orig_form)
+#     unsupported_vars = get_unsupported_vars(orig_form)
+#     constraints = parse_constraints(dataset.constraints_data)
+#     constraints = remove_unsupported_vars(constraints, unsupported_vars)
+#     selection = parse_selection(body["inputs"])
 
-    return apply_constraints(form, selection, constraints)
+#     return apply_constraints(form, selection, constraints)
 
 
 def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
