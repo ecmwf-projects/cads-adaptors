@@ -1,4 +1,4 @@
-from . import adaptor, constraints, costing, mapping, url_tools
+from . import adaptor, constraints, costing, mapping
 
 
 class CdsAdaptor(adaptor.AbstractAdaptor):
@@ -25,6 +25,8 @@ class CdsAdaptor(adaptor.AbstractAdaptor):
 
 class UrlCdsAdaptor(CdsAdaptor):
     def retrieve(self, request):
+        import url_tools
+
         data_format = request.pop("format", "zip")
 
         if data_format not in {"zip", "tgz"}:
