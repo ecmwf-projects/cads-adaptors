@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
 
 [project]
 name = "cads-adaptors"
-description = "CADS data retrieve utilities to be used by adapters"
+description = "CADS data retrieve utilities to be used by adaptors"
 readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = [

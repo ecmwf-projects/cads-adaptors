@@ -1,6 +1,6 @@
 # Welcome to cads_adaptors's documentation!
 
-CADS data retrieve utilities to be used by adapters.
+CADS data retrieve utilities to be used by adaptors.
 
 ```{toctree}
 :caption: 'Contents:'

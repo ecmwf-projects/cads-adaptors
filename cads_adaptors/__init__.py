@@ -1,4 +1,4 @@
-"""CADS data retrieve utilities to be used by adapters."""
+"""CADS data retrieve utilities to be used by adaptors."""
 
 # Copyright 2022, European Union.
 #
