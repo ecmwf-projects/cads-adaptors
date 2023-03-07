@@ -2,8 +2,6 @@
 import copy
 from typing import Any
 
-from . import translators
-
 SUPPORTED_CONSTRAINTS = [
     "StringListWidget",
     "StringListArrayWidget",
@@ -12,14 +10,14 @@ SUPPORTED_CONSTRAINTS = [
 
 
 def get_unsupported_vars(
-    orig_form: list[dict[str, Any]] | dict[str, Any] | None
+    ogc_form: list[dict[str, Any]] | dict[str, Any] | None
 ) -> list[str]:
-    if orig_form is None:
-        orig_form = list()
-    if not isinstance(orig_form, list):
-        orig_form = list(orig_form)
+    if ogc_form is None:
+        ogc_form = list()
+    if not isinstance(ogc_form, list):
+        ogc_form = list(ogc_form)
     unsupported_vars = []
-    for schema in orig_form:
+    for schema in ogc_form:
         if schema["type"] not in SUPPORTED_CONSTRAINTS:
             unsupported_vars.append(schema["name"])
     return unsupported_vars
@@ -175,8 +173,7 @@ def get_possible_values(
                 ok = False
                 break
             else:
-                raise ValueError(f"invalid param '{field_name}'")
-                # raise exceptions.ParameterError(detail=f"invalid param '{field_name}'")
+                raise TypeError(f"invalid param '{field_name}'")
         if ok:
             for field_name, valid_values in combination.items():
                 result[field_name] |= set(valid_values)
@@ -287,7 +284,7 @@ def get_always_valid_params(
 
 
 def parse_form(
-    raw_form: list[dict[str, Any]] | dict[str, Any] | None
+    ogc_form: list[dict[str, Any]] | dict[str, Any] | None
 ) -> dict[str, set[Any]]:
     """
     Parse the form for a given dataset extracting the information on the possible selections.
@@ -299,9 +296,8 @@ def parse_form(
     :rtype: dict[str, set[Any]]:
     :return: a dict[str, set[Any]] containing all possible selections.
     """
-    if raw_form is None:
-        raw_form = list()
-    ogc_form = translators.translate_cds_form(raw_form)
+    if ogc_form is None:
+        ogc_form = list()
     form = {}
     for field_name in ogc_form:
         try:
@@ -315,14 +311,14 @@ def parse_form(
 
 
 def validate_constraints(
-    form: list[dict[str, Any]] | dict[str, Any] | None,
+    ogc_form: list[dict[str, Any]] | dict[str, Any] | None,
     request: dict[str, dict[str, Any]],
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
 ) -> dict[str, list[str]]:
-    parsed_form = parse_form(form)
-    unsupported_vars = get_unsupported_vars(form)
+    parsed_form = parse_form(ogc_form)
+    # unsupported_vars = get_unsupported_vars(ogc_form)
     constraints = parse_constraints(constraints)
-    constraints = remove_unsupported_vars(constraints, unsupported_vars)
+    # constraints = remove_unsupported_vars(constraints, unsupported_vars)
     selection = parse_selection(request["inputs"])
 
     return apply_constraints(parsed_form, selection, constraints)
