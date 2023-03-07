@@ -25,20 +25,20 @@ class CdsAdaptor(adaptor.AbstractAdaptor):
 
 class UrlCdsAdaptor(CdsAdaptor):
     def retrieve(self, request):
-        import url_tools
+        import cads_adaptors.url_tools
 
         data_format = request.pop("format", "zip")
 
         if data_format not in {"zip", "tgz"}:
             raise ValueError(f"{data_format=} is not supported")
 
-        mapped_request = mapping.apply_mapping(request, self.mapping_config)
+        mapped_request = mapping.apply_mapping(request, self.mapping)
 
-        requests_urls = url_tools.requests_to_urls(
+        requests_urls = cads_adaptors.url_tools.requests_to_urls(
             mapped_request, patterns=self.config["patterns"]
         )
 
-        path = url_tools.download_from_urls(
+        path = cads_adaptors.url_tools.download_from_urls(
             [ru["url"] for ru in requests_urls], data_format=data_format
         )
         return open(path, "rb")
