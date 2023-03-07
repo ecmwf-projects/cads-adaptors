@@ -13,7 +13,7 @@ class CdsAdaptor(adaptor.AbstractAdaptor):
         return True
 
     def apply_constraints(self, request):
-        return constraints.apply_constraints(self.form, request, self.constraints)
+        return constraints.validate_constraints(self.form, request, self.constraints)
 
     def estimate_costs(self, request):
         costs = {"size": costing.estimate_size(self.form, request, self.constraints)}
