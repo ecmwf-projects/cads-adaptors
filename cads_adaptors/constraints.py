@@ -11,7 +11,9 @@ SUPPORTED_CONSTRAINTS = [
 ]
 
 
-def get_unsupported_vars(orig_form: list[Any] | dict[str, Any] | None) -> list[str]:
+def get_unsupported_vars(
+    orig_form: list[dict[str, Any]] | dict[str, Any] | None
+) -> list[str]:
     if orig_form is None:
         orig_form = list()
     if not isinstance(orig_form, list):
@@ -40,7 +42,7 @@ def ensure_sequence(v: Any) -> list[Any] | tuple[Any]:
 
 
 def parse_constraints(
-    constraints: list[Any] | dict[str, Any] | None,
+    constraints: list[dict[str, Any]] | dict[str, Any] | None,
 ) -> list[dict[str, set[Any]]]:
     """
     Parse constraints for a given dataset. Convert dict[str, list[Any]] into dict[str, Set[Any]].
@@ -284,7 +286,9 @@ def get_always_valid_params(
     return result
 
 
-def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any]]:
+def parse_form(
+    raw_form: list[dict[str, Any]] | dict[str, Any] | None
+) -> dict[str, set[Any]]:
     """
     Parse the form for a given dataset extracting the information on the possible selections.
 
@@ -311,12 +315,12 @@ def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any
 
 
 def validate_constraints(
-    form: list[Any] | dict[str, Any] | None,
-    constraints: list[Any] | dict[str, Any] | None,
+    form: list[dict[str, Any]] | dict[str, Any] | None,
     request: dict[str, dict[str, Any]],
+    constraints: list[dict[str, Any]] | dict[str, Any] | None,
 ) -> dict[str, list[str]]:
     parsed_form = parse_form(form)
-    unsupported_vars = get_unsupported_vars(parsed_form)
+    unsupported_vars = get_unsupported_vars(form)
     constraints = parse_constraints(constraints)
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
     selection = parse_selection(request["inputs"])
