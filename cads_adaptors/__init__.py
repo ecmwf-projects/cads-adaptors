@@ -22,7 +22,14 @@ except ImportError:  # pragma: no cover
     # Local copy or not installed with setuptools
     __version__ = "999"
 
-from .adaptor import AbstractAdaptor
-from .adaptor_cds import CdsAdaptor, UrlCdsAdaptor
+from .adaptor import AbstractAdaptor, DummyAdaptor
+from .adaptor_cds import CdsAdaptor, LegacyCdsAdaptor, UrlCdsAdaptor
 
-__all__ = ["__version__", "AbstractAdaptor", "CdsAdaptor", "UrlCdsAdaptor"]
+__all__ = [
+    "__version__",
+    "AbstractAdaptor",
+    "CdsAdaptor",
+    "DummyAdaptor",
+    "LegacyCdsAdaptor",
+    "UrlCdsAdaptor",
+]
