@@ -99,32 +99,35 @@ def test_parse_constraints() -> None:
 
 
 def test_parse_form() -> None:
-    ogc_form: dict[str, Any] = {
-        "param": {
-            "schema_": {
-                "type": "array",
-                "items": {"enum": ["Z", "T"], "type": "string"},
+    form: list[dict[str, Any]] = [
+        {
+            "details": {
+                "groups": [{"values": ["Z"]}, {"values": ["T"]}],
+                "default": "Z",
             },
+            "name": "param",
+            "label": "Variable",
+            "type": "StringListArrayWidget",
         },
-        "level": {
-            "schema_": {
-                "type": "array",
-                "items": {"enum": ["500", "850", "1000"], "type": "string"},
-            },
+        {
+            "details": {"values": ["500", "850", "1000"], "default": "500"},
+            "name": "level",
+            "label": "Pressure Level",
+            "type": "StringListWidget",
         },
-        "step": {
-            "schema_": {
-                "type": "array",
-                "items": {"enum": ["24", "36", "48"], "type": "string"},
-            },
+        {
+            "details": {"values": ["24", "36", "48"], "default": "24"},
+            "name": "step",
+            "label": "Step",
+            "type": "StringListWidget",
         },
-        "number": {
-            "schema_": {
-                "type": "array",
-                "items": {"enum": ["1", "2", "3"], "type": "string"},
-            },
+        {
+            "details": {"values": ["1", "2", "3"], "default": "1"},
+            "name": "number",
+            "label": "Number",
+            "type": "StringChoiceWidget",
         },
-    }
+    ]
 
     parsed_form: dict[str, set[Any]] = {
         "level": {"500", "850", "1000"},
@@ -133,7 +136,7 @@ def test_parse_form() -> None:
         "number": {"1", "2", "3"},
     }
 
-    assert parsed_form == constraints.parse_form(ogc_form)
+    assert parsed_form == constraints.parse_form(form)
     assert {} == constraints.parse_form([])
 
 

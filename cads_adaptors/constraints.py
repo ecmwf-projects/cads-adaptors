@@ -2,6 +2,8 @@
 import copy
 from typing import Any
 
+from . import translators
+
 SUPPORTED_CONSTRAINTS = [
     "StringListWidget",
     "StringListArrayWidget",
@@ -283,18 +285,18 @@ def get_always_valid_params(
     return result
 
 
-def parse_form(ogc_form: dict[str, Any] | None) -> dict[str, set[Any]]:
+def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any]]:
     """
     Parse the form for a given dataset extracting the information on the possible selections.
-
-    :param ogc_form: a dictionary containing all possible selections in JSON format
+    :param raw_form: a dictionary containing
+    all possible selections in JSON format
     :type: dict[str, list[Any]]
-
     :rtype: dict[str, set[Any]]:
     :return: a dict[str, set[Any]] containing all possible selections.
     """
-    if ogc_form is None:
-        ogc_form = dict()
+    if raw_form is None:
+        raw_form = list()
+    ogc_form = translators.translate_cds_form(raw_form)
     form = {}
     for field_name in ogc_form:
         try:
@@ -313,9 +315,9 @@ def validate_constraints(
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
 ) -> dict[str, list[str]]:
     parsed_form = parse_form(ogc_form)
-    # unsupported_vars = get_unsupported_vars(ogc_form)
+    unsupported_vars = get_unsupported_vars(ogc_form)
     constraints = parse_constraints(constraints)
-    # constraints = remove_unsupported_vars(constraints, unsupported_vars)
+    constraints = remove_unsupported_vars(constraints, unsupported_vars)
     selection = parse_selection(request["inputs"])
 
     return apply_constraints(parsed_form, selection, constraints)
