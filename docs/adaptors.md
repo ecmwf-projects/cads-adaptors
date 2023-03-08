@@ -7,7 +7,11 @@ Long-term implicit adaptor code:
 ```python
 import abc
 
-class CADSAdaptor(abc.ABC):
+class AbstractAdaptor(abc.ABC):
+    def __init__(self, form, **config):
+        self.form = form
+        self.config = config
+
     @abc.abstractmethod
     def validate(self, request):
         pass
@@ -29,15 +33,15 @@ class CADSAdaptor(abc.ABC):
         pass
 
 
-class BaseCADSAdaptor(CADSAdaptor):
-    # implement defaults
+class CdsAdaptor(CADSAdaptor):
+    # implement CDS defaults
 
 ```
 
 ```python
-import cads
+from cads_adaptors import adaptor_cds
 
-class MyAdaptor(cads.BaseCADSAdaptor):
+class MyAdaptor(adaptor_cds.CdsAdaptor):
     def retrieve(self, request, metadata):
         # parse input options
         with cads.add_step_metrics("process inputs", metadata):
