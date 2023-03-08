@@ -283,21 +283,18 @@ def get_always_valid_params(
     return result
 
 
-def parse_form(
-    ogc_form: list[dict[str, Any]] | dict[str, Any] | None
-) -> dict[str, set[Any]]:
+def parse_form(ogc_form: dict[str, Any] | None) -> dict[str, set[Any]]:
     """
     Parse the form for a given dataset extracting the information on the possible selections.
 
-    :param raw_form: a dictionary containing
-    all possible selections in JSON format
+    :param ogc_form: a dictionary containing all possible selections in JSON format
     :type: dict[str, list[Any]]
 
     :rtype: dict[str, set[Any]]:
     :return: a dict[str, set[Any]] containing all possible selections.
     """
     if ogc_form is None:
-        ogc_form = list()
+        ogc_form = dict()
     form = {}
     for field_name in ogc_form:
         try:
