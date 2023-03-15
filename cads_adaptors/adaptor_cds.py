@@ -2,6 +2,8 @@ from . import adaptor, constraints, costing, mapping
 
 
 class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
+    resources = {"CADS_ADAPTOR": 1}
+
     def __init__(self, form, **config):
         self.form = form
         self.constraints = config.pop("constraints", [])

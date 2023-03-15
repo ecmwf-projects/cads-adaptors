@@ -2,6 +2,8 @@ import abc
 
 
 class AbstractAdaptor(abc.ABC):
+    resources: dict[str, int] = {}
+
     def __init__(self, form, **config):
         self.form = form
         self.config = config
