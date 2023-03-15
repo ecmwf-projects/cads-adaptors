@@ -1,7 +1,7 @@
 from . import adaptor, constraints, costing, mapping
 
 
-class CdsAdaptor(adaptor.AbstractAdaptor):
+class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
     def __init__(self, form, **config):
         self.form = form
         self.constraints = config.pop("constraints", [])
@@ -23,7 +23,7 @@ class CdsAdaptor(adaptor.AbstractAdaptor):
         return self.licences
 
 
-class UrlCdsAdaptor(CdsAdaptor):
+class UrlCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request):
         from . import url_tools
 
@@ -44,7 +44,7 @@ class UrlCdsAdaptor(CdsAdaptor):
         return open(path, "rb")
 
 
-class LegacyCdsAdaptor(CdsAdaptor):
+class LegacyCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request):
         import cdsapi
 
