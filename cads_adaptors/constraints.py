@@ -15,9 +15,9 @@ def get_unsupported_vars(
     ogc_form: list[dict[str, Any]] | dict[str, Any] | None
 ) -> list[str]:
     if ogc_form is None:
-        ogc_form = list()
+        ogc_form = []
     if not isinstance(ogc_form, list):
-        ogc_form = list(ogc_form)
+        ogc_form = [ogc_form]
     unsupported_vars = []
     for schema in ogc_form:
         if schema["type"] not in SUPPORTED_CONSTRAINTS:
@@ -56,9 +56,9 @@ def parse_constraints(
 
     """
     if constraints is None:
-        constraints = list()
+        constraints = []
     if not isinstance(constraints, list):
-        constraints = list(constraints)
+        constraints = [constraints]
     result = []
     for combination in constraints:
         parsed_combination = {}
