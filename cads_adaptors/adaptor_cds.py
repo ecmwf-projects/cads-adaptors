@@ -1,32 +1,34 @@
+from typing import Any, BinaryIO
+
 from . import adaptor, constraints, costing, mapping
 
 
 class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
 
-    def __init__(self, form, **config):
+    def __init__(self, form: dict[str, Any], **config: Any):
         self.form = form
         self.constraints = config.pop("constraints", [])
         self.mapping = config.pop("mapping", {})
-        self.licences = config.pop("licences", [])
+        self.licences: list[tuple[str, int]] = config.pop("licences", [])
         self.config = config
 
-    def validate(self, request):
+    def validate(self, request: adaptor.Request) -> bool:
         return True
 
-    def apply_constraints(self, request):
+    def apply_constraints(self, request: adaptor.Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
 
-    def estimate_costs(self, request):
+    def estimate_costs(self, request: adaptor.Request) -> dict[str, int]:
         costs = {"size": costing.estimate_size(self.form, request, self.constraints)}
         return costs
 
-    def get_licences(self, request):
+    def get_licences(self, request: adaptor.Request) -> list[tuple[str, int]]:
         return self.licences
 
 
 class UrlCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request):
+    def retrieve(self, request: adaptor.Request) -> BinaryIO:
         from . import url_tools
 
         data_format = request.pop("format", "zip")
@@ -47,7 +49,7 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
 
 
 class LegacyCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request):
+    def retrieve(self, request: adaptor.Request) -> BinaryIO:
         import cdsapi
 
         # parse input options
