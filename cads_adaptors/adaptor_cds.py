@@ -66,5 +66,5 @@ class LegacyCdsAdaptor(AbstractCdsAdaptor):
 class MarsCdsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
-    def retrieve(self, request):
+    def retrieve(self, request: adaptor.Request) -> BinaryIO:
         raise NotImplementedError
