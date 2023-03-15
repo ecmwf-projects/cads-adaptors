@@ -61,7 +61,7 @@ class LegacyCdsAdaptor(AbstractCdsAdaptor):
         return open(result_path, "rb")
 
 
-class MarsAdaptor(AbstractCdsAdaptor):
+class MarsCdsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request):
