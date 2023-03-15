@@ -62,5 +62,7 @@ class LegacyCdsAdaptor(AbstractCdsAdaptor):
 
 
 class MarsAdaptor(AbstractCdsAdaptor):
+    resources = {"MARS_CLIENT": 1}
+
     def retrieve(self, request):
         raise NotImplementedError
