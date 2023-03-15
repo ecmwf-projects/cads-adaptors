@@ -23,12 +23,12 @@ except ImportError:  # pragma: no cover
     __version__ = "999"
 
 from .adaptor import AbstractAdaptor, DummyAdaptor
-from .adaptor_cds import CdsAdaptor, LegacyCdsAdaptor, UrlCdsAdaptor
+from .adaptor_cds import AbstractCdsAdaptor, LegacyCdsAdaptor, UrlCdsAdaptor
 
 __all__ = [
     "__version__",
     "AbstractAdaptor",
-    "CdsAdaptor",
+    "AbstractCdsAdaptor",
     "DummyAdaptor",
     "LegacyCdsAdaptor",
     "UrlCdsAdaptor",

@@ -33,7 +33,7 @@ class AbstractAdaptor(abc.ABC):
         pass
 
 
-class CdsAdaptor(CADSAdaptor):
+class AbstractCdsAdaptor(CADSAdaptor):
     # implement CDS defaults
 
 ```
