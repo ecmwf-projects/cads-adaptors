@@ -11,6 +11,10 @@ SUPPORTED_CONSTRAINTS = [
 ]
 
 
+class ParameterError(TypeError):
+    pass
+
+
 def get_unsupported_vars(
     ogc_form: list[dict[str, Any]] | dict[str, Any] | None
 ) -> list[str]:
@@ -175,7 +179,7 @@ def get_possible_values(
                 ok = False
                 break
             else:
-                raise TypeError(f"invalid param '{field_name}'")
+                raise ParameterError(f"invalid param '{field_name}'")
         if ok:
             for field_name, valid_values in combination.items():
                 result[field_name] |= set(valid_values)
