@@ -36,7 +36,7 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
         if data_format not in {"zip", "tgz"}:
             raise ValueError(f"{data_format=} is not supported")
 
-        mapped_request = mapping.apply_mapping(request, self.mapping)
+        mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
 
         requests_urls = url_tools.requests_to_urls(
             mapped_request, patterns=self.config["patterns"]

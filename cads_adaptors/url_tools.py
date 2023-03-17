@@ -3,7 +3,7 @@ import os
 import tarfile
 import urllib
 import zipfile
-from typing import List, Optional
+from typing import Any, Dict, Generator, List, Optional
 
 import jinja2
 import multiurl
@@ -15,13 +15,15 @@ logger = logging.Logger(__name__)
 
 
 # copied from cdscommon/url2
-def requests_to_urls(requests, patterns):
+def requests_to_urls(
+    requests: Dict[str, Any], patterns: List[str]
+) -> Generator[Dict[str, Any], None, None]:
     """Given a list of requests and a list of URL patterns with Jinja2
     formatting, yield the associated URLs to download.
     """
     templates = [jinja2.Template(p) for p in patterns]
 
-    for req in hcube_tools.unfactorise(requests):
+    for req in hcube_tools.unfactorise(requests):  # type: ignore
         for url in [t.render(req).strip() for t in templates]:
             if url:
                 yield {"url": url, "req": req}
