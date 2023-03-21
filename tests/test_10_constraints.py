@@ -1,7 +1,7 @@
-import pytest
-
-from datetimerange import DateTimeRange
 from typing import Any
+
+import pytest
+from datetimerange import DateTimeRange
 
 from cads_adaptors import constraints
 
@@ -313,11 +313,7 @@ def test_get_bounds() -> None:
     ]
     assert constraints.get_bounds(ranges) == "1980-01-01/2022-12-31"
 
-    ranges = {
-        "1990-01-01;2011-12-31",
-        "1980-01-01;2000-12-31",
-        "2000-01-01;2000-12-31"
-    }
+    ranges = {"1990-01-01;2011-12-31", "1980-01-01;2000-12-31", "2000-01-01;2000-12-31"}
     assert constraints.get_bounds(ranges) == "1980-01-01/2011-12-31"
 
     assert constraints.get_bounds({"1980-01-01;1999-12-31"}) == "1980-01-01/1999-12-31"

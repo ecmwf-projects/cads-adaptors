@@ -2,6 +2,7 @@
 import copy
 import re
 from typing import Any
+
 from datetimerange import DateTimeRange
 
 from . import translators
@@ -380,6 +381,3 @@ def get_bounds(ranges: list[DateTimeRange] | set[DateTimeRange]) -> str:
                 _max = _range.end_datetime
 
     return f"{_min.strftime('%Y-%m-%d')}/{_max.strftime('%Y-%m-%d')}"
-
-
-
