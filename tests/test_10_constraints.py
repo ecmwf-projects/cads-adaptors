@@ -55,7 +55,7 @@ def test_get_possible_values() -> None:
     }
 
     form = {
-        "date": {},
+        "date": {""},
         "city": {"rome", "paris", "london"},
         "level": {"1000", "850", "500"},
         "param": {"Z", "T"},
@@ -131,7 +131,7 @@ def test_get_form_state() -> None:
     }
 
     form = {
-        "date": {},
+        "date": {""},
         "city": {"rome", "paris", "london"},
         "level": {"1000", "850", "500"},
         "param": {"Z", "T"},
