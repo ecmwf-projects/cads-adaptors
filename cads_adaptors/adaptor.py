@@ -48,10 +48,21 @@ class DummyAdaptor(AbstractAdaptor):
         return []
 
     def retrieve(self, request: Request) -> BinaryIO:
+        import datetime
         import time
 
         size = int(request.get("size", 0))
-        time_sleep = float(request.get("time", 0.0))
+        elapsed = request.get("elapsed", "0:00:00.0")
+        try:
+            time_elapsed = datetime.time.fromisoformat("0" + elapsed)
+            time_sleep = datetime.timedelta(
+                hours=time_elapsed.hour,
+                minutes=time_elapsed.minute,
+                seconds=time_elapsed.second,
+                microseconds=time_elapsed.microsecond,
+            ).total_seconds()
+        except Exception:
+            time_sleep = 0
 
         time.sleep(time_sleep)
         with open("dummy.grib", "wb") as fp:
