@@ -1,5 +1,6 @@
 import itertools
 import math
+from typing import Any
 
 from . import constraints
 
@@ -68,3 +69,39 @@ def estimate_size(
     granule_size: int = 1,
 ) -> int:
     return estimate_granules(form, selection, _constraints, safe=safe) * granule_size
+
+
+def get_always_valid_params(
+    form: dict[str, set[Any]],
+    _constraints: list[dict[str, set[Any]]],
+) -> dict[str, set[Any]]:
+    """
+    Get always valid field and values.
+
+    :param form: a dict of all selectable fields and values
+    e.g. form = {
+        "level": {"500", "850", "1000"},
+        "param": {"Z", "T"},
+        "step": {"24", "36", "48"},
+        "number": {"1", "2", "3"}
+    }
+    :type: dict[str, set[Any]]:
+
+    :param _constraints: a list of dictionaries representing
+    all constraints for a specific dataset
+    e.g. constraints = [
+        {"level": {"500"}, "param": {"Z", "T"}, "step": {"24", "36", "48"}},
+        {"level": {"1000"}, "param": {"Z"}, "step": {"24", "48"}},
+        {"level": {"850"}, "param": {"T"}, "step": {"36", "48"}},
+    ]
+    :type: list[dict[str, set[Any]]]:
+
+    :rtype: dict[str, set[Any]]
+    :return: A dictionary containing fields and values that are not constrained (i.e. they are always valid)
+
+    """
+    result: dict[str, set[Any]] = {}
+    for key, values in form.items():
+        if key not in constraints.get_keys(_constraints):
+            result.setdefault(key, values)
+    return result

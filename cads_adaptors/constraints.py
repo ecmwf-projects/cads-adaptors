@@ -1,6 +1,8 @@
 """Main module of the request-constraints API."""
 import copy
+import re
 from typing import Any
+from datetimerange import DateTimeRange
 
 from . import translators
 
@@ -66,8 +68,8 @@ def parse_constraints(
     result = []
     for combination in constraints:
         parsed_combination = {}
-        for field_name, field_values in combination.items():
-            parsed_combination[field_name] = set(ensure_sequence(field_values))
+        for key, values in combination.items():
+            parsed_combination[key] = set(ensure_sequence(values))
         result.append(parsed_combination)
     return result
 
@@ -103,13 +105,13 @@ def apply_constraints(
     :return: a dictionary containing all values that should be left
     active for selection, in JSON format
     """
-    always_valid = get_always_valid_params(form, constraints)
+    always_valid = dict()
 
     form = copy.deepcopy(form)
     selection = copy.deepcopy(selection)
     for key, value in form.copy().items():
         if key not in get_keys(constraints):
-            form.pop(key, None)
+            always_valid[key] = form.pop(key)
             selection.pop(key, None)
 
     result = get_form_state(form, selection, constraints)
@@ -170,19 +172,29 @@ def get_possible_values(
     result: dict[str, set[Any]] = {key: set() for key in form}
     for combination in constraints:
         ok = True
-        for field_name, selected_values in selection.items():
-            if field_name in combination.keys():
-                if len(selected_values & combination[field_name]) == 0:
-                    ok = False
-                    break
-            elif field_name in form.keys():
+        for key, values in selection.items():
+            if key in combination.keys():
+                if key != "date":
+                    if len(values & combination[key]) == 0:
+                        ok = False
+                        break
+                else:
+                    selected = gen_time_range_from_string(values.copy().pop())
+                    valid = [
+                        gen_time_range_from_string(valid) for valid in combination[key]
+                    ]
+                    if not temporal_intersection_between(selected, valid):
+                        ok = False
+                        break
+
+            elif key in form.keys():
                 ok = False
                 break
             else:
-                raise ParameterError(f"invalid param '{field_name}'")
+                raise ParameterError(f"invalid param '{key}'")
         if ok:
-            for field_name, valid_values in combination.items():
-                result[field_name] |= set(valid_values)
+            for key, values in combination.items():
+                result[key] |= set(values)
 
     return result
 
@@ -332,3 +344,42 @@ def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
     for constraint in constraints:
         keys |= set(constraint.keys())
     return keys
+
+
+def temporal_intersection_between(
+    selected: DateTimeRange, ranges: list[DateTimeRange]
+) -> bool:
+    for valid in ranges:
+        if selected.intersection(valid).is_valid_timerange():
+            return True
+    return False
+
+
+def gen_time_range_from_string(string: str) -> DateTimeRange:
+    dates = re.split("[;/]", string)
+    if len(dates) == 1:
+        dates *= 2
+    time_range = DateTimeRange(dates[0], dates[1])
+    time_range.start_time_format = "%Y-%m-%d"
+    time_range.end_time_format = "%Y-%m-%d"
+    if time_range.is_valid_timerange():
+        return time_range
+    else:
+        raise ValueError("Start date must be before end date")
+
+
+def get_bounds(ranges: list[DateTimeRange] | set[DateTimeRange]) -> str:
+    ranges = [gen_time_range_from_string(_range) for _range in ranges]
+    _min = ranges[0].start_datetime
+    _max = ranges[0].end_datetime
+    if len(ranges) > 1:
+        for _range in ranges[1:]:
+            if _range.start_datetime < _min:
+                _min = _range.start_datetime
+            if _range.end_datetime > _max:
+                _max = _range.end_datetime
+
+    return f"{_min.strftime('%Y-%m-%d')}/{_max.strftime('%Y-%m-%d')}"
+
+
+

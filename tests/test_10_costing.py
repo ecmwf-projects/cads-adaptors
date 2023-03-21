@@ -222,3 +222,10 @@ def test_estimate_request_size() -> None:
 
     assert costing.estimate_size(form, {"param": {"Z", "T"}}, constraints) == 2
     assert costing.estimate_size(form, {"param": {"Z"}}, constraints) == 1
+
+
+def test_get_always_valid_params() -> None:
+    form = {"param": {"Z", "T"}, "number": {"1", "2"}}
+    constraints = [{"param": {"Z", "T"}}]
+
+    assert costing.get_always_valid_params(form, constraints) == {"number": {"1", "2"}}
