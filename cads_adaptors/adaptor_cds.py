@@ -64,7 +64,7 @@ class LegacyCdsAdaptor(AbstractCdsAdaptor):
         return open(result_path, "rb")
 
 
-class MarsCdsAdaptor(AbstractCdsAdaptor):
+class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
@@ -86,3 +86,9 @@ class MarsCdsAdaptor(AbstractCdsAdaptor):
         subprocess.run(["/usr/local/bin/mars", "r"], check=True, env=env)
 
         return open("data.grib")
+
+
+class MarsCdsAdapter(DirectMarsCdsAdaptor):
+    def retrieve(self, request: adaptor.Request) -> BinaryIO:
+        mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
+        return super().retrieve(mapped_request)
