@@ -88,7 +88,7 @@ class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
         return open("data.grib")
 
 
-class MarsCdsAdapter(DirectMarsCdsAdaptor):
+class MarsCdsAdaptor(DirectMarsCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
         return super().retrieve(mapped_request)
