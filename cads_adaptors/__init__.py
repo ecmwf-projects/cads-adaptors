@@ -25,6 +25,7 @@ except ImportError:  # pragma: no cover
 from .adaptor import AbstractAdaptor, DummyAdaptor
 from .adaptor_cds import (
     AbstractCdsAdaptor,
+    DirectMarsCdsAdaptor,
     LegacyCdsAdaptor,
     MarsCdsAdaptor,
     UrlCdsAdaptor,
@@ -34,6 +35,7 @@ __all__ = [
     "__version__",
     "AbstractAdaptor",
     "AbstractCdsAdaptor",
+    "DirectMarsCdsAdaptor",
     "DummyAdaptor",
     "LegacyCdsAdaptor",
     "MarsCdsAdaptor",
