@@ -67,4 +67,15 @@ class MarsCdsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
-        raise NotImplementedError
+        import subprocess
+
+        with open("r", "w") as fp:
+            print("retrieve, target=data.grib", file=fp)
+            for key, value in request.items():
+                if not isinstance(value, (list, tuple)):
+                    value = [value]
+                print(f", {key}={'/'.join(str(v) for v in value)}", file=fp)
+
+        subprocess.run(["/usr/local/bin/mars", "r"], check=True)
+
+        return open("data.grib")
