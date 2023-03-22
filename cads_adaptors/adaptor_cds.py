@@ -1,3 +1,4 @@
+import os
 from typing import Any, BinaryIO
 
 from . import adaptor, constraints, costing, mapping
@@ -61,3 +62,33 @@ class LegacyCdsAdaptor(AbstractCdsAdaptor):
         client = cdsapi.Client(self.config["url"], self.config["key"], retry_max=1)
         result_path = client.retrieve(collection_id, request).download()
         return open(result_path, "rb")
+
+
+class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
+    resources = {"MARS_CLIENT": 1}
+
+    def retrieve(self, request: adaptor.Request) -> BinaryIO:
+        import subprocess
+
+        with open("r", "w") as fp:
+            print("retrieve, target=data.grib", file=fp)
+            for key, value in request.items():
+                if not isinstance(value, (list, tuple)):
+                    value = [value]
+                print(f", {key}={'/'.join(str(v) for v in value)}", file=fp)
+
+        env = dict(**os.environ)
+        # FIXME: set with the namespace and user_id
+        namespace = "cads"
+        user_id = 0
+        env["MARS_USER"] = f"{namespace}-{user_id}"
+
+        subprocess.run(["/usr/local/bin/mars", "r"], check=True, env=env)
+
+        return open("data.grib")
+
+
+class MarsCdsAdapter(DirectMarsCdsAdaptor):
+    def retrieve(self, request: adaptor.Request) -> BinaryIO:
+        mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
+        return super().retrieve(mapped_request)
