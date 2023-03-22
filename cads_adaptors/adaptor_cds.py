@@ -1,3 +1,4 @@
+import os
 from typing import Any, BinaryIO
 
 from . import adaptor, constraints, costing, mapping
@@ -76,6 +77,12 @@ class MarsCdsAdaptor(AbstractCdsAdaptor):
                     value = [value]
                 print(f", {key}={'/'.join(str(v) for v in value)}", file=fp)
 
-        subprocess.run(["/usr/local/bin/mars", "r"], check=True)
+        env = dict(**os.environ)
+        # FIXME: set with the namespace and user_id
+        namespace = "cads"
+        user_id = 0
+        env["MARS_USER"] = f"{namespace}-{user_id}"
+
+        subprocess.run(["/usr/local/bin/mars", "r"], check=True, env=env)
 
         return open("data.grib")
