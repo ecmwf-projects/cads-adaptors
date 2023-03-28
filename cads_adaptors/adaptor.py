@@ -52,7 +52,7 @@ class DummyAdaptor(AbstractAdaptor):
         import time
 
         size = int(request.get("size", 0))
-        elapsed = request.get("elapsed", "0:00:00.0")
+        elapsed = request.get("elapsed", "0:00:00.000")
         try:
             time_elapsed = datetime.time.fromisoformat("0" + elapsed)
             time_sleep = datetime.timedelta(
