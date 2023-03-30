@@ -5,31 +5,17 @@ from typing import Any
 
 from datetimerange import DateTimeRange
 
-from . import translators
 
 SUPPORTED_CONSTRAINTS = [
     "StringListWidget",
     "StringListArrayWidget",
     "StringChoiceWidget",
+    "DateRangeWidget",
 ]
 
 
 class ParameterError(TypeError):
     pass
-
-
-def get_unsupported_vars(
-    ogc_form: list[dict[str, Any]] | dict[str, Any] | None
-) -> list[str]:
-    if ogc_form is None:
-        ogc_form = []
-    if not isinstance(ogc_form, list):
-        ogc_form = [ogc_form]
-    unsupported_vars = []
-    for schema in ogc_form:
-        if schema["type"] not in SUPPORTED_CONSTRAINTS:
-            unsupported_vars.append(schema["name"])
-    return unsupported_vars
 
 
 def remove_unsupported_vars(
@@ -95,6 +81,7 @@ def apply_constraints(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
+    widget_type: dict[str, str],
 ) -> dict[str, list[Any]]:
     """
     Apply dataset constraints to the current selection.
@@ -103,11 +90,14 @@ def apply_constraints(
     grouped by field name
     :param constraints: a list of all constraints
     :param selection: a dictionary containing the current selection
+    :param widget_type: a dictionary, the keys are the name of the parameters
+    and the values are the type of widget used.
     :return: a dictionary containing all values that should be left
     active for selection, in JSON format
     """
-    always_valid = dict()
 
+    # remove always valid values from the selection
+    always_valid = dict()
     form = copy.deepcopy(form)
     selection = copy.deepcopy(selection)
     for key, value in form.copy().items():
@@ -115,7 +105,10 @@ def apply_constraints(
             always_valid[key] = form.pop(key)
             selection.pop(key, None)
 
-    result = get_form_state(form, selection, constraints)
+    # computed valid values
+    result = get_form_state(form, selection, constraints, widget_type=widget_type)
+
+    # re-add valid values
     result.update(always_valid)
 
     return format_to_json(result)
@@ -125,6 +118,7 @@ def get_possible_values(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
+    widget_type: dict[str, str] = {}
 ) -> dict[str, set[Any]]:
     """
     Get possible values given the current selection.
@@ -156,6 +150,15 @@ def get_possible_values(
     ]
     :type: list[dict[str, set[Any]]]:
 
+    :param widget_type: a dictionary, the keys are the name of the parameters
+    and the values are the type of widget used.
+    e.g. widget_type = {
+        "param": "StringListWidget",
+        "step": "StringListWidget", "date":
+        "DateRangeWidget"
+    }
+    :type: dict[str, str]:
+
     :param selection: a dictionary containing the current selection
     e.g. selection = {
         "param": {"T"},
@@ -175,7 +178,7 @@ def get_possible_values(
         ok = True
         for key, values in selection.items():
             if key in combination.keys():
-                if key != "date":
+                if widget_type.get(key) != "DateRangeWidget":
                     if len(values & combination[key]) == 0:
                         ok = False
                         break
@@ -218,6 +221,7 @@ def get_form_state(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
+    widget_type: dict[str, str] = {},
 ) -> dict[str, set[Any]]:
     """
     Call get_possible_values() once for each key in form.
@@ -231,6 +235,14 @@ def get_form_state(
     }
     :type: dict[str, set[Any]]:
 
+    :param selection: a dictionary containing the current selection
+    e.g. selection = {
+        "param": {"T"},
+        "level": {"850", "500"},
+        "step": {"36"}
+    }
+    :type: dict[str, set[Any]]:
+
     :param constraints: a list of dictionaries representing
     all constraints for a specific dataset
     e.g. constraints = [
@@ -240,13 +252,14 @@ def get_form_state(
     ]
     :type: list[dict[str, set[Any]]]:
 
-    :param selection: a dictionary containing the current selection
-    e.g. selection = {
-        "param": {"T"},
-        "level": {"850", "500"},
-        "step": {"36"}
+    :param widget_type: a dictionary, the keys are the name of the parameters
+    and the values are the type of widget used.
+    e.g. widget_type = {
+        "param": "StringListWidget",
+        "step": "StringListWidget", "date":
+        "DateRangeWidget"
     }
-    :type: dict[str, set[Any]]:
+    :type: dict[str, str]:
 
     :rtype: dict[str, set[Any]]
     :return: a dictionary containing all form values to be left active given the current selection
@@ -261,7 +274,7 @@ def get_form_state(
         sub_selection = selection.copy()
         if key in sub_selection:
             sub_selection.pop(key)
-        sub_results = get_possible_values(form, sub_selection, constraints)
+        sub_results = get_possible_values(form, sub_selection, constraints, widget_type=widget_type)
         result[key] = sub_results.setdefault(key, set())
     return result
 
@@ -302,42 +315,77 @@ def get_always_valid_params(
     return result
 
 
-def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any]]:
-    """
-    Parse the form for a given dataset extracting the information on the possible selections.
-    :param raw_form: a dictionary containing
-    all possible selections in JSON format
-    :type: dict[str, list[Any]]
-    :rtype: dict[str, set[Any]]:
-    :return: a dict[str, set[Any]] containing all possible selections.
-    """
-    if raw_form is None:
-        raw_form = list()
-    ogc_form = translators.translate_cds_form(raw_form)
-    form = {}
-    for field_name in ogc_form:
-        try:
-            if ogc_form[field_name]["schema_"]["type"] == "array":
-                form[field_name] = set(ogc_form[field_name]["schema_"]["items"]["enum"])
-            else:
-                form[field_name] = set(ogc_form[field_name]["schema_"]["enum"])
-        except KeyError:
+def values_from_groups(groups: list[dict[str, Any]]):
+    values = []
+    for group in groups:
+        if "values" in group:
+            values.extend(group["values"])
+        elif "groups" in group:
+            v = values_from_groups(group["groups"])
+            values.extend(v)
+        else:
             pass
-    return form
+    return values
+
+
+def values_from_string_list_array(schema: dict[str, Any]):
+    return values_from_groups(schema["details"]["groups"])
+
+
+def values_from_string_list(schema: dict[str, Any]):
+    return schema["details"]["values"]
+
+
+def range_from_date_range(schema: dict[str, Any]):
+    return schema["details"]["range"]
+
+
+SCHEMA_VALUES_PARSER = {
+    "StringListWidget": values_from_string_list,
+    "StringListArrayWidget": values_from_string_list_array,
+    "StringChoiceWidget": values_from_string_list,
+    "DateRangeWidget": range_from_date_range,
+}
+
+
+def parse_form(
+    form: dict[str, set[Any]] | list[dict[str, set[Any]]] | None,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """
+    list[Any] | dict[str, Any]
+            CDS form.
+    """
+    if form is None:
+        form = []
+    if not isinstance(form, list):
+        form = [form]
+
+    values = {}
+    widget_type = {}
+    for schema in form:
+        name = schema["name"]
+        type_ = schema["type"]
+        if type_ in SCHEMA_VALUES_PARSER:
+            widget_type[name] = type_
+            values[name] = SCHEMA_VALUES_PARSER[type_](schema)
+    return values, widget_type
 
 
 def validate_constraints(
-    ogc_form: list[dict[str, Any]] | dict[str, Any] | None,
+    form: list[dict[str, Any]] | dict[str, Any] | None,
     request: dict[str, dict[str, Any]],
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
 ) -> dict[str, list[str]]:
-    parsed_form = parse_form(ogc_form)
-    unsupported_vars = get_unsupported_vars(ogc_form)
-    constraints = parse_constraints(constraints)
-    constraints = remove_unsupported_vars(constraints, unsupported_vars)
-    selection = parse_selection(request["inputs"])
 
-    return apply_constraints(parsed_form, selection, constraints)
+    """
+    :param form: cds form
+    :param request: user request
+    :param constraints: cds constraints
+    """
+    values, widget_type = parse_form(form)
+    constraints = parse_constraints(constraints)
+    selection = parse_selection(request["inputs"])
+    return apply_constraints(values, selection, constraints, widget_type=widget_type)
 
 
 def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
