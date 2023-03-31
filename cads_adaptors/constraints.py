@@ -95,9 +95,8 @@ def apply_constraints(
     :return: a dictionary containing all values that should be left
     active for selection, in JSON format
     """
-
-    # remove always valid values from the selection
     always_valid = dict()
+
     form = copy.deepcopy(form)
     selection = copy.deepcopy(selection)
     for key, value in form.copy().items():
@@ -105,10 +104,7 @@ def apply_constraints(
             always_valid[key] = form.pop(key)
             selection.pop(key, None)
 
-    # computed valid values
     result = get_form_state(form, selection, constraints, widget_type=widget_type)
-
-    # re-add valid values
     result.update(always_valid)
 
     return format_to_json(result)
@@ -173,12 +169,13 @@ def get_possible_values(
     {'level': {'500', '850'}, 'param': {'T', 'Z'}, 'step': {'24', '36', '48'}}
 
     """
+    print(widget_type)
     result: dict[str, set[Any]] = {key: set() for key in form}
     for combination in constraints:
         ok = True
         for key, values in selection.items():
             if key in combination.keys():
-                if widget_type.get(key) != "DateRangeWidget":
+                if key != "date":
                     if len(values & combination[key]) == 0:
                         ok = False
                         break
@@ -329,11 +326,13 @@ def values_from_groups(groups: list[dict[str, Any]]):
 
 
 def values_from_string_list_array(schema: dict[str, Any]):
-    return values_from_groups(schema["details"]["groups"])
+    return set(values_from_groups(schema["details"]["groups"]))
 
 
 def values_from_string_list(schema: dict[str, Any]):
-    return schema["details"]["values"]
+    values = schema["details"]["values"]
+    values = ensure_sequence(values)
+    return set(values)
 
 
 def range_from_date_range(schema: dict[str, Any]):
