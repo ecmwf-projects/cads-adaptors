@@ -126,8 +126,10 @@ def test_get_form_state() -> None:
         {"level": {"500"}, "param": {"Z"}},
         {"level": {"850"}, "param": {"T"}},
     ]
+    widget_type = {"date": "DateRangeWidget"}
 
-    assert constraints.get_form_state(form, {"level": {"500"}}, raw_constraints) == {
+
+    assert constraints.get_form_state(form, {"level": {"500"}}, raw_constraints, widget_type=widget_type) == {
         "level": {"500", "850"},
         "param": {"Z"},
     }
@@ -166,7 +168,7 @@ def test_get_form_state() -> None:
 
     selection = {"level": {"1000", "850"}, "date": {"1990-01-01;2011-12-31"}}
 
-    assert constraints.get_form_state(form, selection, _constraints) == {
+    assert constraints.get_form_state(form, selection, _constraints, widget_type=widget_type) == {
         "date": {"1980-01-01;2011-12-31", "1990-01-01;2011-12-31"},
         "city": {"london", "paris", "rome"},
         "level": {"1000", "850", "500"},

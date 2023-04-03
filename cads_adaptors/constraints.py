@@ -169,13 +169,12 @@ def get_possible_values(
     {'level': {'500', '850'}, 'param': {'T', 'Z'}, 'step': {'24', '36', '48'}}
 
     """
-    print(widget_type)
     result: dict[str, set[Any]] = {key: set() for key in form}
     for combination in constraints:
         ok = True
         for key, values in selection.items():
             if key in combination.keys():
-                if key != "date":
+                if widget_type.get(key, None) != "DateRangeWidget":
                     if len(values & combination[key]) == 0:
                         ok = False
                         break
