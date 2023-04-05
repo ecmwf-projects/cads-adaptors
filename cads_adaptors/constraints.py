@@ -5,7 +5,6 @@ from typing import Any
 
 from datetimerange import DateTimeRange
 
-
 SUPPORTED_CONSTRAINTS = [
     "StringListWidget",
     "StringListArrayWidget",
@@ -81,7 +80,7 @@ def apply_constraints(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
-    widget_type: dict[str, str],
+    daterange_key: str = None,
 ) -> dict[str, list[Any]]:
     """
     Apply dataset constraints to the current selection.
@@ -90,7 +89,7 @@ def apply_constraints(
     grouped by field name
     :param constraints: a list of all constraints
     :param selection: a dictionary containing the current selection
-    :param widget_type: a dictionary, the keys are the name of the parameters
+    :param daterange_key: a dictionary, the keys are the name of the parameters
     and the values are the type of widget used.
     :return: a dictionary containing all values that should be left
     active for selection, in JSON format
@@ -104,7 +103,7 @@ def apply_constraints(
             always_valid[key] = form.pop(key)
             selection.pop(key, None)
 
-    result = get_form_state(form, selection, constraints, widget_type=widget_type)
+    result = get_form_state(form, selection, constraints, daterange_key=daterange_key)
     result.update(always_valid)
 
     return format_to_json(result)
@@ -114,7 +113,7 @@ def get_possible_values(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
-    widget_type: dict[str, str] = {}
+    daterange_key: str = None,
 ) -> dict[str, set[Any]]:
     """
     Get possible values given the current selection.
@@ -146,14 +145,10 @@ def get_possible_values(
     ]
     :type: list[dict[str, set[Any]]]:
 
-    :param widget_type: a dictionary, the keys are the name of the parameters
-    and the values are the type of widget used.
-    e.g. widget_type = {
-        "param": "StringListWidget",
-        "step": "StringListWidget", "date":
-        "DateRangeWidget"
-    }
-    :type: dict[str, str]:
+    :param daterange_key: the name of the key that corresponds to date ranges in form, selection and
+    constraints, if any
+    e.g. daterange_key = 'date'
+    :type: str:
 
     :param selection: a dictionary containing the current selection
     e.g. selection = {
@@ -174,7 +169,7 @@ def get_possible_values(
         ok = True
         for key, values in selection.items():
             if key in combination.keys():
-                if widget_type.get(key, None) != "DateRangeWidget":
+                if key != daterange_key:
                     if len(values & combination[key]) == 0:
                         ok = False
                         break
@@ -217,7 +212,7 @@ def get_form_state(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
-    widget_type: dict[str, str] = {},
+    daterange_key: str = None,
 ) -> dict[str, set[Any]]:
     """
     Call get_possible_values() once for each key in form.
@@ -248,7 +243,7 @@ def get_form_state(
     ]
     :type: list[dict[str, set[Any]]]:
 
-    :param widget_type: a dictionary, the keys are the name of the parameters
+    :param daterange_key: a dictionary, the keys are the name of the parameters
     and the values are the type of widget used.
     e.g. widget_type = {
         "param": "StringListWidget",
@@ -270,7 +265,9 @@ def get_form_state(
         sub_selection = selection.copy()
         if key in sub_selection:
             sub_selection.pop(key)
-        sub_results = get_possible_values(form, sub_selection, constraints, widget_type=widget_type)
+        sub_results = get_possible_values(
+            form, sub_selection, constraints, daterange_key=daterange_key
+        )
         result[key] = sub_results.setdefault(key, set())
     return result
 
@@ -347,8 +344,8 @@ SCHEMA_VALUES_PARSER = {
 
 
 def parse_form(
-    form: dict[str, set[Any]] | list[dict[str, set[Any]]] | None,
-) -> tuple[dict[str, Any], dict[str, str]]:
+    form: dict[str, set[Any] | str] | list[dict[str, set[Any] | str]] | None,
+) -> tuple[dict[str, Any], None | str]:
     """
     list[Any] | dict[str, Any]
             CDS form.
@@ -359,14 +356,15 @@ def parse_form(
         form = [form]
 
     values = {}
-    widget_type = {}
+    daterange_key = None
     for schema in form:
         name = schema["name"]
         type_ = schema["type"]
         if type_ in SCHEMA_VALUES_PARSER:
-            widget_type[name] = type_
+            if type == "DateRangeWidget":
+                daterange_key = type_
             values[name] = SCHEMA_VALUES_PARSER[type_](schema)
-    return values, widget_type
+    return values, daterange_key
 
 
 def validate_constraints(
@@ -374,16 +372,17 @@ def validate_constraints(
     request: dict[str, dict[str, Any]],
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
 ) -> dict[str, list[str]]:
-
     """
     :param form: cds form
     :param request: user request
     :param constraints: cds constraints
     """
-    values, widget_type = parse_form(form)
+    values, daterange_key = parse_form(form)
     constraints = parse_constraints(constraints)
     selection = parse_selection(request["inputs"])
-    return apply_constraints(values, selection, constraints, widget_type=widget_type)
+    return apply_constraints(
+        values, selection, constraints, daterange_key=daterange_key
+    )
 
 
 def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
@@ -415,7 +414,7 @@ def gen_time_range_from_string(string: str) -> DateTimeRange:
         raise ValueError("Start date must be before end date")
 
 
-def get_bounds(ranges: list[DateTimeRange] | set[DateTimeRange]) -> str:
+def get_bounds(ranges: list[str] | set[str]) -> str:
     ranges = [gen_time_range_from_string(_range) for _range in ranges]
     _min = ranges[0].start_datetime
     _max = ranges[0].end_datetime

@@ -7,8 +7,7 @@ from cads_adaptors import constraints
 
 
 def test_get_possible_values() -> None:
-    widget_type = {"date": "DateRangeWidget"}
-
+    daterange_key = "date"
     form = {
         "level": {"500", "850"},
         "time": {"12:00", "00:00"},
@@ -23,7 +22,7 @@ def test_get_possible_values() -> None:
     ]
 
     assert constraints.get_possible_values(
-        form, {"stat": {"mean"}}, raw_constraints, widget_type
+        form, {"stat": {"mean"}}, raw_constraints
     ) == {
         "level": {"500"},
         "time": set(),
@@ -31,7 +30,7 @@ def test_get_possible_values() -> None:
         "stat": {"mean"},
     }
     assert constraints.get_possible_values(
-        form, {"time": {"12:00"}}, raw_constraints, widget_type
+        form, {"time": {"12:00"}}, raw_constraints
     ) == {
         "level": {"850", "500"},
         "time": {"12:00", "00:00"},
@@ -39,7 +38,7 @@ def test_get_possible_values() -> None:
         "stat": set(),
     }
     assert constraints.get_possible_values(
-        form, {"stat": {"mean"}, "time": {"12:00"}}, raw_constraints, widget_type
+        form, {"stat": {"mean"}, "time": {"12:00"}}, raw_constraints
     ) == {"level": set(), "time": set(), "param": set(), "stat": set()}
     assert constraints.get_possible_values(form, {"param": {"Z"}}, raw_constraints) == {
         "level": {"500"},
@@ -48,7 +47,7 @@ def test_get_possible_values() -> None:
         "stat": {"mean"},
     }
     assert constraints.get_possible_values(
-        form, {"level": {"500", "850"}}, raw_constraints, widget_type
+        form, {"level": {"500", "850"}}, raw_constraints
     ) == {
         "level": {"500", "850"},
         "time": {"12:00", "00:00"},
@@ -90,7 +89,9 @@ def test_get_possible_values() -> None:
 
     selection = {"level": {"1000", "850"}, "date": {"1990-01-01;2011-12-31"}}
 
-    assert constraints.get_possible_values(form, selection, _constraints, widget_type) == {
+    assert constraints.get_possible_values(
+        form, selection, _constraints, daterange_key=daterange_key
+    ) == {
         "date": {"1980-01-01;2011-12-31", "1990-01-01;2011-12-31"},
         "city": {"london", "paris", "rome"},
         "level": {"1000", "850"},
@@ -103,11 +104,15 @@ def test_get_possible_values() -> None:
     }
 
     with pytest.raises(constraints.ParameterError):
-        constraints.get_possible_values(form, selection, _constraints, widget_type)
+        constraints.get_possible_values(
+            form, selection, _constraints, daterange_key=daterange_key
+        )
 
     selection = {"date": {"1600-01-01;1600-12-31"}}
 
-    assert constraints.get_possible_values(form, selection, _constraints, widget_type) == {
+    assert constraints.get_possible_values(
+        form, selection, _constraints, daterange_key=daterange_key
+    ) == {
         "date": set(),
         "city": set(),
         "level": set(),
@@ -126,10 +131,9 @@ def test_get_form_state() -> None:
         {"level": {"500"}, "param": {"Z"}},
         {"level": {"850"}, "param": {"T"}},
     ]
-    widget_type = {"date": "DateRangeWidget"}
+    daterange_key = "date"
 
-
-    assert constraints.get_form_state(form, {"level": {"500"}}, raw_constraints, widget_type=widget_type) == {
+    assert constraints.get_form_state(form, {"level": {"500"}}, raw_constraints) == {
         "level": {"500", "850"},
         "param": {"Z"},
     }
@@ -168,7 +172,9 @@ def test_get_form_state() -> None:
 
     selection = {"level": {"1000", "850"}, "date": {"1990-01-01;2011-12-31"}}
 
-    assert constraints.get_form_state(form, selection, _constraints, widget_type=widget_type) == {
+    assert constraints.get_form_state(
+        form, selection, _constraints, daterange_key=daterange_key
+    ) == {
         "date": {"1980-01-01;2011-12-31", "1990-01-01;2011-12-31"},
         "city": {"london", "paris", "rome"},
         "level": {"1000", "850", "500"},
@@ -178,7 +184,6 @@ def test_get_form_state() -> None:
 
 
 def test_apply_constraints() -> None:
-    widget_type = {"date": "DateRangeWidget"}
     form = {"level": {"500", "850"}, "param": {"Z", "T"}, "number": {"1"}}
 
     raw_constraints = [
@@ -186,7 +191,7 @@ def test_apply_constraints() -> None:
         {"level": {"850"}, "param": {"T"}},
     ]
 
-    assert constraints.apply_constraints(form, {"level": {"500"}}, raw_constraints, widget_type)[
+    assert constraints.apply_constraints(form, {"level": {"500"}}, raw_constraints)[
         "number"
     ] == ["1"]
 
@@ -244,10 +249,10 @@ def test_parse_form() -> None:
         "step": {"24", "36", "48"},
         "number": {"1", "2", "3"},
     }
-    out, widget_type = constraints.parse_form(form)
+    out, daterange_key = constraints.parse_form(form)
     assert parsed_form == out
 
-    out, widget_type = constraints.parse_form([])
+    out, daterange_key = constraints.parse_form([])
     assert {} == out
 
 
