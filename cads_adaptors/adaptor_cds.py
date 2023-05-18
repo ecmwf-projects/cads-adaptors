@@ -90,5 +90,9 @@ class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
 
 class MarsCdsAdaptor(DirectMarsCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
+        format = request.pop("format", "grib").lower()
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
+        if format != "grib":
+            # FIXME: reformat if needed
+            pass
         return super().retrieve(mapped_request)
