@@ -314,7 +314,6 @@ def validate_constraints(
 ) -> dict[str, list[str]]:
     parsed_form = parse_form(ogc_form)
     unsupported_vars = get_unsupported_vars(ogc_form)
-    print(unsupported_vars)
     constraints = parse_constraints(constraints)
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
     selection = parse_selection(request["inputs"])

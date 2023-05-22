@@ -90,9 +90,9 @@ def test_apply_constraints_with_unknown_field() -> None:
         {"level": {"850"}, "param": {"T"}},
     ]
 
-    assert constraints.apply_constraints(form, {"level": {"500"}, "area": [1, 2, 3, 4]}, raw_constraints)[
-        "number"
-    ] == ["1"]
+    assert constraints.apply_constraints(
+        form, {"level": {"500"}, "area": [1, 2, 3, 4]}, raw_constraints
+    )["number"] == ["1"]
 
 
 def test_parse_constraints() -> None:
@@ -166,8 +166,10 @@ def test_remove_unsupported_vars() -> None:
     ]
     unsupported_vars = constraints.get_unsupported_vars(form)
 
-    assert(unsupported_vars == ["unknown"])
-    assert parsed_constraints == constraints.remove_unsupported_vars(raw_constraints, unsupported_vars)
+    assert unsupported_vars == ["unknown"]
+    assert parsed_constraints == constraints.remove_unsupported_vars(
+        raw_constraints, unsupported_vars
+    )
 
 
 def test_parse_form() -> None:
