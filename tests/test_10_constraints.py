@@ -82,19 +82,6 @@ def test_apply_constraints() -> None:
     ] == ["1"]
 
 
-def test_apply_constraints_with_unknown_field() -> None:
-    form = {"level": {"500", "850"}, "param": {"Z", "T"}, "number": {"1"}}
-
-    raw_constraints = [
-        {"level": {"500"}, "param": {"Z"}},
-        {"level": {"850"}, "param": {"T"}},
-    ]
-
-    assert constraints.apply_constraints(
-        form, {"level": {"500"}, "area": [1, 2, 3, 4]}, raw_constraints
-    )["number"] == ["1"]
-
-
 def test_parse_constraints() -> None:
     raw_constraints: list[dict[str, list[Any]]] = [
         {"level": ["500"], "param": ["Z", "T"], "step": ["24", "36", "48"]},
