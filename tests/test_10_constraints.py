@@ -82,6 +82,19 @@ def test_apply_constraints() -> None:
     ] == ["1"]
 
 
+def test_apply_constraints_with_unknown_field() -> None:
+    form = {"level": {"500", "850"}, "param": {"Z", "T"}, "number": {"1"}}
+
+    raw_constraints = [
+        {"level": {"500"}, "param": {"Z"}},
+        {"level": {"850"}, "param": {"T"}},
+    ]
+
+    assert constraints.apply_constraints(
+        form, {"level": {"500"}, "area": [1, 2, 3, 4]}, raw_constraints
+    )["number"] == ["1"]
+
+
 def test_parse_constraints() -> None:
     raw_constraints: list[dict[str, list[Any]]] = [
         {"level": ["500"], "param": ["Z", "T"], "step": ["24", "36", "48"]},
@@ -96,6 +109,67 @@ def test_parse_constraints() -> None:
     ]
     assert parsed_constraints == constraints.parse_constraints(raw_constraints)
     assert [{}] == constraints.parse_constraints([{}])
+
+
+def test_remove_unsupported_vars() -> None:
+    raw_constraints: list[dict[str, list[Any]]] = [
+        {"level": ["500"], "param": ["Z", "T"], "step": ["24", "36", "48"]},
+        {"level": ["1000"], "param": ["Z"], "step": ["24", "48"]},
+        {"level": ["850"], "param": ["T"], "step": ["36", "48"], "unknown": "foo"},
+    ]
+
+    parsed_constraints: list[dict[str, list[Any]]] = [
+        {"level": ["500"], "param": ["Z", "T"], "step": ["24", "36", "48"]},
+        {"level": ["1000"], "param": ["Z"], "step": ["24", "48"]},
+        {"level": ["850"], "param": ["T"], "step": ["36", "48"]},
+    ]
+
+    form: list[dict[str, Any]] = [
+        {
+            "details": {
+                "groups": [{"values": ["Z"]}, {"values": ["T"]}],
+                "default": "Z",
+            },
+            "name": "param",
+            "label": "Variable",
+            "type": "StringListArrayWidget",
+        },
+        {
+            "details": {"values": ["500", "850", "1000"], "default": "500"},
+            "name": "level",
+            "label": "Pressure Level",
+            "type": "StringListWidget",
+        },
+        {
+            "details": {"values": ["24", "36", "48"], "default": "24"},
+            "name": "step",
+            "label": "Step",
+            "type": "StringListWidget",
+        },
+        {
+            "details": {"values": ["1", "2", "3"], "default": "1"},
+            "name": "number",
+            "label": "Number",
+            "type": "StringChoiceWidget",
+        },
+        {
+            "details": {"values": ["1", "2", "3"], "default": "1"},
+            "name": "area",
+            "label": "Area",
+            "type": "GeographicExtentWidget",
+        },
+        {
+            "name": "unknown",
+            "label": "Don't know hot to handle this",
+            "type": "UnknownWidget",
+        },
+    ]
+    unsupported_vars = constraints.get_unsupported_vars(form)
+
+    assert unsupported_vars == ["unknown"]
+    assert parsed_constraints == constraints.remove_unsupported_vars(
+        raw_constraints, unsupported_vars
+    )
 
 
 def test_parse_form() -> None:

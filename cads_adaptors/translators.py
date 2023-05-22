@@ -72,7 +72,7 @@ SCHEMA_TRANSLATORS = {
     "StringListWidget": translate_string_list,
     "StringListArrayWidget": translate_string_list_array,
     "StringChoiceWidget": translate_string_choice,
-    "GeographicExtentMapWidget": translate_geographic_extent_map,
+    "GeographicExtentWidget": translate_geographic_extent_map,
 }
 
 
