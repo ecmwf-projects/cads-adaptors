@@ -4,12 +4,6 @@ from typing import Any
 
 from . import translators
 
-SUPPORTED_CONSTRAINTS = [
-    "StringListWidget",
-    "StringListArrayWidget",
-    "StringChoiceWidget",
-]
-
 
 class ParameterError(TypeError):
     pass
@@ -24,7 +18,7 @@ def get_unsupported_vars(
         ogc_form = [ogc_form]
     unsupported_vars = []
     for schema in ogc_form:
-        if schema["type"] not in SUPPORTED_CONSTRAINTS:
+        if schema["type"] not in translators.SCHEMA_TRANSLATORS:
             unsupported_vars.append(schema["name"])
     return unsupported_vars
 
