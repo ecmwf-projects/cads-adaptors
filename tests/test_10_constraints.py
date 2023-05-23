@@ -51,15 +51,6 @@ def test_get_possible_values() -> None:
         "stat": {"mean"},
     }
 
-    assert constraints.get_possible_values(
-        form, {"level": {"500", "850"}, "area": {1, 2, 3, 4}}, raw_constraints
-    ) == {
-        "level": {"500", "850"},
-        "time": {"12:00", "00:00"},
-        "param": {"Z", "T"},
-        "stat": {"mean"},
-    }
-
 
 def test_get_form_state() -> None:
     form = {

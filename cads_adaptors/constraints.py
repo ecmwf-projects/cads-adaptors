@@ -304,7 +304,13 @@ def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any
     for field_name in ogc_form:
         try:
             if ogc_form[field_name]["schema_"]["type"] == "array":
-                form[field_name] = set(ogc_form[field_name]["schema_"]["items"]["enum"])
+                if ogc_form[field_name]["schema_"]["items"].get("enum"):
+                    form[field_name] = set(
+                        ogc_form[field_name]["schema_"]["items"]["enum"]
+                    )
+                else:
+                    # FIXME: temporarely fix for making constraints working from UI
+                    form[field_name] = []
             else:
                 form[field_name] = set(ogc_form[field_name]["schema_"]["enum"])
         except KeyError:
@@ -321,7 +327,6 @@ def validate_constraints(
     unsupported_vars = get_unsupported_vars(ogc_form)
     constraints = parse_constraints(constraints)
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
-    print(unsupported_vars)
     selection = parse_selection(request["inputs"], unsupported_vars)
 
     return apply_constraints(parsed_form, selection, constraints)
