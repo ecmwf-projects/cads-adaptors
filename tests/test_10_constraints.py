@@ -98,6 +98,67 @@ def test_parse_constraints() -> None:
     assert [{}] == constraints.parse_constraints([{}])
 
 
+def test_remove_unsupported_vars() -> None:
+    raw_constraints: list[dict[str, list[Any]]] = [
+        {"level": ["500"], "param": ["Z", "T"], "step": ["24", "36", "48"]},
+        {"level": ["1000"], "param": ["Z"], "step": ["24", "48"]},
+        {"level": ["850"], "param": ["T"], "step": ["36", "48"], "unknown": "foo"},
+    ]
+
+    parsed_constraints: list[dict[str, list[Any]]] = [
+        {"level": ["500"], "param": ["Z", "T"], "step": ["24", "36", "48"]},
+        {"level": ["1000"], "param": ["Z"], "step": ["24", "48"]},
+        {"level": ["850"], "param": ["T"], "step": ["36", "48"]},
+    ]
+
+    form: list[dict[str, Any]] = [
+        {
+            "details": {
+                "groups": [{"values": ["Z"]}, {"values": ["T"]}],
+                "default": "Z",
+            },
+            "name": "param",
+            "label": "Variable",
+            "type": "StringListArrayWidget",
+        },
+        {
+            "details": {"values": ["500", "850", "1000"], "default": "500"},
+            "name": "level",
+            "label": "Pressure Level",
+            "type": "StringListWidget",
+        },
+        {
+            "details": {"values": ["24", "36", "48"], "default": "24"},
+            "name": "step",
+            "label": "Step",
+            "type": "StringListWidget",
+        },
+        {
+            "details": {"values": ["1", "2", "3"], "default": "1"},
+            "name": "number",
+            "label": "Number",
+            "type": "StringChoiceWidget",
+        },
+        {
+            "details": {"values": ["1", "2", "3"], "default": "1"},
+            "name": "area",
+            "label": "Area",
+            "type": "GeographicExtentWidget",
+        },
+        {
+            "name": "unknown",
+            "label": "Don't know hot to handle this",
+            "type": "UnknownWidget",
+        },
+    ]
+    unsupported_vars = constraints.get_unsupported_vars(form)
+
+    assert unsupported_vars == ["unknown"]
+    assert parsed_constraints == constraints.remove_unsupported_vars(
+        raw_constraints, unsupported_vars
+    )
+
+
 def test_parse_form() -> None:
     form: list[dict[str, Any]] = [
         {
@@ -168,3 +229,47 @@ def test_ensure_sequence() -> None:
     assert constraints.ensure_sequence([]) == []
     assert constraints.ensure_sequence(("1",)) == ("1",)
     assert constraints.ensure_sequence("1") == ["1"]
+
+
+def test_validate_constraints() -> None:
+    raw_form: list[dict[str, list[Any] | str]] = [
+        {
+            "details": {
+                "groups": [{"values": ["1"]}, {"values": ["2", "3"]}],
+                "default": "A",
+            },
+            "name": "param1",
+            "label": "Param1",
+            "type": "StringListArrayWidget",
+        },
+        {
+            "details": {"values": ["1", "2", "3"], "default": "1"},
+            "name": "param2",
+            "label": "Param2",
+            "type": "StringListWidget",
+        },
+        {
+            "details": {"values": ["1", "2", "3"], "default": "1"},
+            "name": "param3",
+            "label": "Param3",
+            "type": "StringListWidget",
+        },
+        {
+            "details": {"values": ["1", "2", "3"], "default": "1"},
+            "name": "param4",
+            "label": "Param4",
+            "type": "UnsupportedWidget",
+        },
+    ]
+
+    selections: dict[str, Any] = {
+        "inputs": {"param1": "1", "param2": "1", "param4": "1"}
+    }
+
+    raw_constraints: list[dict[str, list[Any]]] = [
+        {"param1": ["1"], "param2": ["1", "2", "3"], "param3": ["1", "2", "3"]},
+        {"param1": ["2"], "param2": ["2"], "param3": ["2"]},
+        {"param1": ["3"], "param2": ["3"], "param3": ["3"]},
+    ]
+
+    constraints.validate_constraints(raw_form, selections, raw_constraints)

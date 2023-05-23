@@ -4,12 +4,6 @@ from typing import Any
 
 from . import translators
 
-SUPPORTED_CONSTRAINTS = [
-    "StringListWidget",
-    "StringListArrayWidget",
-    "StringChoiceWidget",
-]
-
 
 class ParameterError(TypeError):
     pass
@@ -24,7 +18,7 @@ def get_unsupported_vars(
         ogc_form = [ogc_form]
     unsupported_vars = []
     for schema in ogc_form:
-        if schema["type"] not in SUPPORTED_CONSTRAINTS:
+        if schema["type"] not in translators.SCHEMA_TRANSLATORS:
             unsupported_vars.append(schema["name"])
     return unsupported_vars
 
@@ -72,19 +66,24 @@ def parse_constraints(
     return result
 
 
-def parse_selection(selection: dict[str, list[Any] | str]) -> dict[str, set[Any]]:
+def parse_selection(
+    selection: dict[str, list[Any] | str], unsupported_vars: list[str] = []
+) -> dict[str, set[Any]]:
     """
     Parse current selection and convert dict[str, list[Any]] into dict[str, set[Any]].
 
     :param selection: a dictionary containing the current selection
     :type: dict[str, list[Any]]
+    :param unsupported_vars: list of variables not supported
+    :type: list[str]
 
     :rtype: dict[str, set[Any]]:
     :return: a dict[str, set[Any]] containing the current selection.
     """
     result = {}
     for field_name, field_values in selection.items():
-        result[field_name] = set(ensure_sequence(field_values))
+        if field_name not in unsupported_vars:
+            result[field_name] = set(ensure_sequence(field_values))
     return result
 
 
@@ -305,7 +304,13 @@ def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any
     for field_name in ogc_form:
         try:
             if ogc_form[field_name]["schema_"]["type"] == "array":
-                form[field_name] = set(ogc_form[field_name]["schema_"]["items"]["enum"])
+                if ogc_form[field_name]["schema_"]["items"].get("enum"):
+                    form[field_name] = set(
+                        ogc_form[field_name]["schema_"]["items"]["enum"]
+                    )
+                else:
+                    # FIXME: temporarely fix for making constraints working from UI
+                    form[field_name] = []
             else:
                 form[field_name] = set(ogc_form[field_name]["schema_"]["enum"])
         except KeyError:
@@ -322,7 +327,7 @@ def validate_constraints(
     unsupported_vars = get_unsupported_vars(ogc_form)
     constraints = parse_constraints(constraints)
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
-    selection = parse_selection(request["inputs"])
+    selection = parse_selection(request["inputs"], unsupported_vars)
 
     return apply_constraints(parsed_form, selection, constraints)
 
