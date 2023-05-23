@@ -67,8 +67,7 @@ def parse_constraints(
 
 
 def parse_selection(
-    selection: dict[str, list[Any] | str],
-    unsupported_vars: list[str] = []
+    selection: dict[str, list[Any] | str], unsupported_vars: list[str] = []
 ) -> dict[str, set[Any]]:
     """
     Parse current selection and convert dict[str, list[Any]] into dict[str, set[Any]].
@@ -322,6 +321,7 @@ def validate_constraints(
     unsupported_vars = get_unsupported_vars(ogc_form)
     constraints = parse_constraints(constraints)
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
+    print(unsupported_vars)
     selection = parse_selection(request["inputs"], unsupported_vars)
 
     return apply_constraints(parsed_form, selection, constraints)

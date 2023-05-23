@@ -51,6 +51,15 @@ def test_get_possible_values() -> None:
         "stat": {"mean"},
     }
 
+    assert constraints.get_possible_values(
+        form, {"level": {"500", "850"}, "area": {1, 2, 3, 4}}, raw_constraints
+    ) == {
+        "level": {"500", "850"},
+        "time": {"12:00", "00:00"},
+        "param": {"Z", "T"},
+        "stat": {"mean"},
+    }
+
 
 def test_get_form_state() -> None:
     form = {
@@ -262,7 +271,9 @@ def test_validate_constraints() -> None:
         },
     ]
 
-    selections: dict[str, Any] = {"inputs": {"param1": "1", "param2": "1", "param4": "1"}}
+    selections: dict[str, Any] = {
+        "inputs": {"param1": "1", "param2": "1", "param4": "1"}
+    }
 
     raw_constraints: list[dict[str, list[Any]]] = [
         {"param1": ["1"], "param2": ["1", "2", "3"], "param3": ["1", "2", "3"]},
@@ -271,6 +282,3 @@ def test_validate_constraints() -> None:
     ]
 
     constraints.validate_constraints(raw_form, selections, raw_constraints)
-
-
-
