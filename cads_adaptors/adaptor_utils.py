@@ -1,3 +1,5 @@
+from typing import Any
+
 from cacholote import decode
 
 from . import adaptor
@@ -18,3 +20,14 @@ def get_adaptor_class(
     if not issubclass(adaptor_class, adaptor.AbstractAdaptor):
         raise TypeError(f"{adaptor_class!r} is not subclass of AbstractAdaptor")
     return adaptor_class  # type: ignore
+
+
+def get_adaptor(config: dict[str, Any], form: dict[str, Any] | None = None):
+    config = config.copy()
+    entry_point = config.pop("entry_pont")
+    setup_code = config.pop("setup_code")
+
+    adaptor_class = get_adaptor_class(entry_point=entry_point, setup_code=setup_code)
+    adaptor = adaptor_class(form=form, **config)
+
+    return adaptor
