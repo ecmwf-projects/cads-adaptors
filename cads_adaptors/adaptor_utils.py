@@ -25,7 +25,7 @@ def get_adaptor_class(
 def get_adaptor(config: dict[str, Any], form: dict[str, Any] | None = None):
     config = config.copy()
     entry_point = config.pop("entry_pont")
-    setup_code = config.pop("setup_code")
+    setup_code = config.pop("setup_code", None)
 
     adaptor_class = get_adaptor_class(entry_point=entry_point, setup_code=setup_code)
     adaptor = adaptor_class(form=form, **config)
