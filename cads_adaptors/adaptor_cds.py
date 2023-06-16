@@ -98,3 +98,4 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
             # FIXME: reformat if needed
             pass
         return super().retrieve(mapped_request)
+
