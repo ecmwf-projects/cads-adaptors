@@ -12,7 +12,7 @@ if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
 else:
     from collections import OrderedDict as odict
 
-from .date_tools import compress_dates_list, expand_dates_list
+from cads_adaptors.tools.date_tools import compress_dates_list, expand_dates_list
 
 
 def same_fields(reqs1, reqs2, date_field="date"):
