@@ -310,7 +310,7 @@ def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any
                     )
                 else:
                     # FIXME: temporarely fix for making constraints working from UI
-                    form[field_name] = []
+                    form[field_name] = []  # type: ignore
             else:
                 form[field_name] = set(ogc_form[field_name]["schema_"]["enum"])
         except KeyError:

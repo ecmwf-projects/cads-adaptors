@@ -99,7 +99,7 @@ def test_parse_constraints() -> None:
 
 
 def test_remove_unsupported_vars() -> None:
-    raw_constraints: list[dict[str, list[Any]]] = [
+    raw_constraints: list[dict[str, Any]] = [
         {"level": ["500"], "param": ["Z", "T"], "step": ["24", "36", "48"]},
         {"level": ["1000"], "param": ["Z"], "step": ["24", "48"]},
         {"level": ["850"], "param": ["T"], "step": ["36", "48"], "unknown": "foo"},
@@ -232,7 +232,7 @@ def test_ensure_sequence() -> None:
 
 
 def test_validate_constraints() -> None:
-    raw_form: list[dict[str, list[Any] | str]] = [
+    raw_form: list[dict[str, Any]] = [
         {
             "details": {
                 "groups": [{"values": ["1"]}, {"values": ["2", "3"]}],

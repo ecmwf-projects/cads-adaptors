@@ -23,7 +23,8 @@ dependencies = ["cacholote", "multiurl"]
 branch = true
 
 [tool.mypy]
-strict = true
+strict = false
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [

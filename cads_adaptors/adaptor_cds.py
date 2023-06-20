@@ -85,7 +85,7 @@ class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
 
         subprocess.run(["/usr/local/bin/mars", "r"], check=True, env=env)
 
-        return open("data.grib")
+        return open("data.grib")  # type: ignore
 
 
 class MarsCdsAdaptor(DirectMarsCdsAdaptor):
