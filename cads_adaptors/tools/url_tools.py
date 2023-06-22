@@ -9,7 +9,7 @@ import jinja2
 import multiurl
 import requests
 
-from . import hcube_tools
+from cads_adaptors.tools import hcube_tools
 
 logger = logging.Logger(__name__)
 

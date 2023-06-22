@@ -30,7 +30,7 @@ class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
 
 class UrlCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
-        from . import url_tools
+        from cads_adaptors.tools import url_tools
 
         data_format = request.pop("format", "zip")
 
@@ -85,7 +85,7 @@ class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
 
         subprocess.run(["/usr/local/bin/mars", "r"], check=True, env=env)
 
-        return open("data.grib")
+        return open("data.grib")  # type: ignore
 
 
 class MarsCdsAdaptor(DirectMarsCdsAdaptor):
