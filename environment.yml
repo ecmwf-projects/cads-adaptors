@@ -11,4 +11,5 @@ dependencies:
 - pip
 - requests
 - pip:
+  - cacholote
   - multiurl
