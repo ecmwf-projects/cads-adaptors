@@ -66,7 +66,6 @@ def expand_dates_list(dates_in, as_datetime=False):
 
     dates = []
     for date in dates_in:
-
         items = date.split(separator)
         if len(items) == 1:
             # Not a compressed list
