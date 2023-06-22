@@ -9,7 +9,7 @@ import jinja2
 import multiurl
 import requests
 
-from cads_adaptors.tools import hcube_tools
+from . import hcube_tools
 
 logger = logging.Logger(__name__)
 
@@ -59,7 +59,6 @@ def download_zip_from_urls(
     urls: List[str],
     base_target: str,
 ) -> str:
-
     target = f"{base_target}.zip"
     paths = try_download(urls)
     with zipfile.ZipFile(target, mode="w") as archive:
@@ -77,7 +76,6 @@ def download_tgz_from_urls(
     urls: List[str],
     base_target: str,
 ) -> str:
-
     target = f"{base_target}.tar.gz"
     paths = try_download(urls)
     with tarfile.open(target, "w:gz") as archive:
@@ -94,7 +92,6 @@ def download_from_urls(
     urls: List[str],
     data_format: str = "zip",
 ) -> str:
-
     base_target = str(hash(tuple(urls)))
 
     if data_format == "tgz":

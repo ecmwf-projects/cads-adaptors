@@ -30,7 +30,7 @@ class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
 
 class UrlCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
-        from cads_adaptors.tools import url_tools
+        from .tools import url_tools
 
         data_format = request.pop("format", "zip")
 

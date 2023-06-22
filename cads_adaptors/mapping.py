@@ -46,7 +46,6 @@ def julian_to_sdate(jdate):
 
 
 def ymd_to_julian(year, month, day):
-
     if month > 2:
         m1 = month - 3
         y1 = year
@@ -87,6 +86,7 @@ def date_range(start_date, end_date, step=1):
     """Get all the dates in the interval defined by start_date and end_date.
 
     Args:
+    ----
         start_date (str): Start date of the interval.
         end_date (str): End date of the interval.
         step (int): Spacing, in days, between dates. Defaults to 1.
@@ -100,6 +100,7 @@ def date_range(start_date, end_date, step=1):
         Generator returning one date at a time.
 
     Example:
+    -------
         >>> list(date_range(20110101, 20110105))
         >>> [20110101, 20110102, 20110103, 20110104, 20110105]
 
@@ -114,7 +115,6 @@ def date_range(start_date, end_date, step=1):
 
 
 def date_from_years_month_days(years, months, days):
-
     for y in years:
         for m in months:
             for d in days:
@@ -149,7 +149,6 @@ def to_interval(x):
 
 
 def apply_mapping(request, mapping):
-
     request = copy.deepcopy(request)
 
     options = mapping.get("options", {})
@@ -206,7 +205,6 @@ def apply_mapping(request, mapping):
     # Transform year/month/day in dates
 
     if options.get("wants_dates", False):
-
         if date in r:
             newdates = set()
             dates = r[date]
@@ -214,7 +212,6 @@ def apply_mapping(request, mapping):
                 dates = [dates]
             # Expand intervals
             for d in dates:
-
                 if "/" in d:
                     start, end = d.split("/")
                     for e in date_range(start, end):
@@ -225,7 +222,6 @@ def apply_mapping(request, mapping):
             r[date] = sorted(newdates)
 
         else:
-
             years = [int(x) for x in as_list(request, "year", force)]
             months = [int(x) for x in as_list(request, "month", force)]
             days = [int(x) for x in as_list(request, "day", force)]
