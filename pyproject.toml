@@ -2,51 +2,39 @@
 requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
 
 [project]
-name = "cads-adaptors"
-description = "CADS data retrieve utilities to be used by adaptors"
-readme = "README.md"
-license = {file = "LICENSE"}
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Topic :: Scientific/Engineering"
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Scientific/Engineering"
 ]
-dynamic = ["version"]
 dependencies = ["cacholote", "multiurl"]
+description = "CADS data retrieve utilities to be used by adaptors"
+dynamic = ["version"]
+license = {file = "LICENSE"}
+name = "cads-adaptors"
+readme = "README.md"
 
 [tool.coverage.run]
 branch = true
 
 [tool.mypy]
-strict = false
 ignore_missing_imports = true
+strict = false
 
 [[tool.mypy.overrides]]
-module = [
-    "cdsapi",
-    "multiurl"
-]
 ignore_missing_imports = true
+module = [
+  "cdsapi",
+  "multiurl"
+]
 
 [tool.ruff]
-# Black line length is 88, but black does not format comments.
-line-length = 110
-select = [
-  # pyflakes
-  "F",
-  # pycodestyle
-  "E",
-  "W",
-  # isort
-  "I",
-  # pydocstyle
-  "D",
-]
 ignore = [
   # pydocstyle: Missing Docstrings
   "D1",
@@ -61,6 +49,19 @@ ignore = [
   "D416",
   "D417",
   "D205"
+]
+# Black line length is 88, but black does not format comments.
+line-length = 110
+select = [
+  # pyflakes
+  "F",
+  # pycodestyle
+  "E",
+  "W",
+  # isort
+  "I",
+  # pydocstyle
+  "D"
 ]
 
 [tool.setuptools]
