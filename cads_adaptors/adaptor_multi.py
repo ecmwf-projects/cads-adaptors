@@ -44,6 +44,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             for p in results:
                 archive.write(p)
 
+        # TODO: clean up afterwards?
         # for p in results:
         #     os.remove(p)
 
