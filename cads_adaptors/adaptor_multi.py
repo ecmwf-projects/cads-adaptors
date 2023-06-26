@@ -66,7 +66,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 request, self.values[adaptor_tag], **self.config
             )
 
-            # TODO: check this_request is valid for this_adaptor, or rely on try?
+            # TODO: check this_request is valid for this_adaptor, or rely on try? i.e. split_request does 
+            #       NOT implement constraints.
             try:
                 results.append(this_adaptor.retrieve(this_request))
             except Exception as err:
