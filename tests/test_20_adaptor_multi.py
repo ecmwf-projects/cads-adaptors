@@ -1,6 +1,5 @@
 from cads_adaptors import adaptor_multi
 
-
 FORM = {
     "level": ["500", "850"],
     "time": ["12:00", "00:00"],
@@ -30,7 +29,7 @@ ADAPTOR_CONFIG = {
                 "stat": ["max"],
             },
         },
-    }
+    },
 }
 
 
@@ -45,4 +44,3 @@ def test_multi_adaptor():
 
     split_max = multi_adaptor.split_request(REQUEST, multi_adaptor.values["max"])
     assert split_max == ADAPTOR_CONFIG["adaptors"]["max"]["values"]
-
