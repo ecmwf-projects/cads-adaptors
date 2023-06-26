@@ -30,10 +30,11 @@ from .adaptor_cds import (
     MarsCdsAdaptor,
     UrlCdsAdaptor,
 )
-from .adaptor_utils import get_adaptor_class, get_adaptor
+from .tools.adaptor_tools import get_adaptor_class
 
 __all__ = [
     "__version__",
+    "get_adaptor_class",
     "AbstractAdaptor",
     "AbstractCdsAdaptor",
     "DirectMarsCdsAdaptor",
@@ -41,6 +42,4 @@ __all__ = [
     "LegacyCdsAdaptor",
     "MarsCdsAdaptor",
     "UrlCdsAdaptor",
-    "get_adaptor_class",
-    "get_adaptor"
 ]

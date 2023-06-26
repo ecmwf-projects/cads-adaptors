@@ -44,7 +44,6 @@ def hcubes_intdiff(reqs1, reqs2, date_field="date"):
         key=lambda ks: repr(sorted(list(ks))),
     )
     for keyset in keysets:
-
         r1 = [r for r in reqs1 if frozenset(r.keys()) == keyset]
         r2 = [r for r in reqs2 if frozenset(r.keys()) == keyset]
         intdiff = hcubes_intdiff2(r1, r2, date_field=date_field)
@@ -241,7 +240,6 @@ def remove_duplicates(reqs, date_field="date"):
         jj = ii + 1
         ii_incr = 1
         while jj < len(reqs):
-
             # Get the intersection and difference of these two requests
             if set(reqs[ii].keys()) == set(reqs[jj].keys()):
                 intn, d12, d21 = hcube_intdiff(
@@ -273,16 +271,13 @@ def hcubes_subtract(reqs1, reqs2, date_field="date"):
 
     # Loop over all pairs
     for req1 in reqs1:
-
         # Expand dates if compressed
         req1b = _expand_dates(req1, date_field)
         expanded_dates1 = date_field in req1 and req1b[date_field] != req1[date_field]
 
         for i2, req2 in enumerate(reqs2b):
-
             # req2 cannot be subtracted if it contains keys that req1 doesn't
             if set(req2.keys()) <= set(req1b.keys()):
-
                 # If there is an intersection between the two then replace
                 # req1 with the difference.
                 intn, d12, _ = hcube_intdiff(req1b, req2, date_field=date_field)
@@ -469,7 +464,6 @@ def hcubes_chunk(requests, chunk_size, date_field="date", max_groups=None):
     output = []
     nfields = chunk_size
     while requests:
-
         if nfields == chunk_size:
             # Need to start a new group
             if max_groups and len(output) == max_groups:
@@ -503,7 +497,6 @@ def hcube_extract(request, nfields, date_field="date"):
         request["date"] = expand_dates_list(request["date"])
 
     if count_fields(request) > nfields:
-
         # Strip it down to its first field
         subreq = {k: [v[0]] for k, v in request.items()}
         nsubreq = 1
