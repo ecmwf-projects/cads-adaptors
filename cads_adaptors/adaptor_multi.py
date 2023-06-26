@@ -1,5 +1,6 @@
-# WORK IN PROCESS
 from typing import Any
+
+import yaml  # type: ignore
 
 # import os
 from cads_adaptors import AbstractCdsAdaptor
@@ -59,6 +60,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
     def retrieve(self, request: Request):
         results = []
+        exception_logs = {}
         for adaptor_tag, this_adaptor in self.adaptors.items():
             this_request = self.split_request(
                 request, self.values[adaptor_tag], **self.config
@@ -67,9 +69,15 @@ class MultiAdaptor(AbstractCdsAdaptor):
             # TODO: check this_request is valid for this_adaptor, or rely on try?
             try:
                 results.append(this_adaptor.retrieve(this_request))
-            except (
-                Exception
-            ):  # Alessandro, what is the correct exception for a failed retrieve?
-                pass
+            except Exception as err:
+                # Alessandro, what is the correct exception for a failed retrieve?
+                exception_logs[adaptor_tag] = err
+                # pass
+
+        if len(results) == 0:
+            raise RuntimeError(
+                "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
+                f"{yaml.safe_dump(exception_logs)}"
+            )
 
         return self.merge_results(results)
