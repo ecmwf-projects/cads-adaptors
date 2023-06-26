@@ -70,9 +70,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
             try:
                 results.append(this_adaptor.retrieve(this_request))
             except Exception as err:
-                # Alessandro, what is the correct exception for a failed retrieve?
+                # Catch any possible exception and store error message in case all adaptors fail
                 exception_logs[adaptor_tag] = err
-                # pass
 
         if len(results) == 0:
             raise RuntimeError(
