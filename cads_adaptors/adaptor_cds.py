@@ -215,7 +215,7 @@ class DbDataset(AbstractCdsAdaptor):
         fmt = fmt[0] if isinstance(fmt, list) else fmt
         self.logger.info(f'~~~~~~~ format requested: {fmt},  {_q["format"]}')
 
-        engine = insitu_lib.insitu_utils.sql_engine(self.config['api']['db'], source)
+        engine = insitu_lib.insitu_utils.sql_engine(self.config['db'], source)
 
         # If not netCDF we will always need a temporary csv file
         csv_path = "temp.csv"
