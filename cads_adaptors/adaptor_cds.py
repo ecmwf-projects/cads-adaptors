@@ -1,11 +1,13 @@
 import os
 from typing import Any, BinaryIO
+
+from . import adaptor, constraints, costing, mapping
+from cads_adaptors import tools
+
 import time
 import zipfile
 import logging
 import requests
-
-from . import adaptor, constraints, costing, mapping
 
 
 class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
@@ -150,7 +152,7 @@ class DbDataset(AbstractCdsAdaptor):
         self.values = {}
         print(config)
         for adaptor_tag, adaptor_desc in config.get("adaptors", {}).items():
-            self.adaptors[adaptor_tag] = cads_adaptors.tools.get_adaptor(adaptor_desc, form)
+            self.adaptors[adaptor_tag] = tools.get_adaptor(adaptor_desc, form)
             self.values[adaptor_tag] = adaptor_desc.get("values", {})
 
     def retrieve(self, request: adaptor.Request):
