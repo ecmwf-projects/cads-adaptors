@@ -192,7 +192,7 @@ class DbDataset(AbstractCdsAdaptor):
             request.setdefault('format', 'nc')
             for q in request:
                 _q[q] = [request[q]] if not isinstance(request[q], list) else request[q]
-
+        print(request)
         version = _q.get('version', ['v1'])[0]
         source = _q.get('source', ['not specified'])
 
