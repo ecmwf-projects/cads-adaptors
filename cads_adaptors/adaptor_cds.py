@@ -174,6 +174,9 @@ class DbDataset(AbstractCdsAdaptor):
 
         self.logger.info(request)
         _q = {}
+
+        request = mapping.apply_mapping(request, self.mapping)
+
         if isinstance(request, list):
             for q in request:
                 q.setdefault('format', ['nc'])
