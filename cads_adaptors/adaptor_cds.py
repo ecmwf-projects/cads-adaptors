@@ -2,6 +2,8 @@ import os
 from typing import Any, BinaryIO
 import time
 import zipfile
+import logging
+import requests
 
 from . import adaptor, constraints, costing, mapping
 
@@ -103,9 +105,6 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
 
 
 class DbDataset(AbstractCdsAdaptor):
-    import logging
-    import requests
-    import zipfile
     logger = logging.Logger(__name__)
     @staticmethod
     def split_request(
