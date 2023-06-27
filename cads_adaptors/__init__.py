@@ -25,10 +25,12 @@ except ImportError:  # pragma: no cover
 from .adaptor import AbstractAdaptor, DummyAdaptor
 from .adaptor_cds import (
     AbstractCdsAdaptor,
+    DbDataset,
     DirectMarsCdsAdaptor,
     LegacyCdsAdaptor,
     MarsCdsAdaptor,
     UrlCdsAdaptor,
+
 )
 from .tools.adaptor_tools import get_adaptor_class
 
@@ -37,6 +39,7 @@ __all__ = [
     "get_adaptor_class",
     "AbstractAdaptor",
     "AbstractCdsAdaptor",
+    "DbDataset",
     "DirectMarsCdsAdaptor",
     "DummyAdaptor",
     "LegacyCdsAdaptor",
