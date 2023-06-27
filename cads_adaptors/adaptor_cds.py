@@ -8,6 +8,7 @@ import time
 import zipfile
 import logging
 import requests
+import sqlalchemy
 
 
 class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
@@ -158,10 +159,10 @@ class DbDataset(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request):
         self.logger.info(f"{request}, {self.config}")
         try:
-            self.logger.debug(f"all in:{self.config} - {dir(self)}")
+            self.logger.info(f"all in:{self.config} - {dir(self)}")
         except Exception as err:
-            self.logger.debug(f"{err}")
-        self.logger.debug(f"metadata: {request.get('metadata', 'no metadata')}")
+            self.logger.info(f"{err}")
+        self.logger.info(f"metadata: {request.get('metadata', 'no metadata')}")
 
         #resource = request['metadata']['resource']
         api_url: str = self.config['api']
@@ -194,80 +195,55 @@ class DbDataset(AbstractCdsAdaptor):
 
         self.logger.info("REQUEST recomposed: [{}]".format(_q))
 
-        #header, out_name = insitu_utils.csv_header(context, _q)
-        #self.logger.debug(f'insitu: {header}, {out_name}')
+        header, out_name = tools.insitu_lib.insitu_utils.csv_header(context, _q)
+        #self.logger.info(f'insitu: {header}, {out_name}')
 
-        self.logger.debug(f"REQUEST renamed: [{_q}]")
+        self.logger.info(f"REQUEST renamed: [{_q}]")
 
         res = requests.get(f'{api_url}/compose', params=_q)
         table = res.json().lower().split(' from ')[1].split(' ')[0]
 
-        self.logger.debug(f"db request: [{res.json()}]")
-        self.logger.debug(f"table: [{table}]")
+        self.logger.info(f"db request: [{res.json()}]")
+        self.logger.info(f"table: [{table}]")
 
         fmt = _q['format']
         fmt = fmt[0] if isinstance(fmt, list) else fmt
-        self.logger.debug(f'~~~~~~~ format requested: {fmt},  {_q["format"]}')
+        self.logger.info(f'~~~~~~~ format requested: {fmt},  {_q["format"]}')
 
-        #t0 = time.time()  # timer
-
-        # engine = insitu_utils.sql_engine(context, source)
-        engine = insitu_utils.sql_engine(context, source)
-        if fmt in ['nc', 'cdf', 'netcdf', 'NetCDF', ]:
-            netcdf = dbdataset2netcdf.sql_2_netcdf(
-                sqlalchemy.text(res.json()), engine,
-                context=context,
-                dataset=dataset, endpoint=endpoint,
-                source=source,
-                table=table
-            )
-            self.logger.debug(f'netcdf file(s): {netcdf}')
-            receipt = context.create_temp_file('.json')
-            with open(receipt, 'w') as f:
-                json.dump([resource, request], f, indent=4)
-            output = context.create_result_file('.zip')
-            flist = [netcdf, receipt]
-            with zipfile.ZipFile(output.path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for v in flist:
-                    # remove ugly bits of filename
-                    ofile = f"adaptor{''.join(v.split('adaptor')[1:]).replace('-tmp.', '.')}"
-                    zipf.write(v, ofile)
-            self.logger.debug("timing: time take to stream data from DB into netcdf file %6.3f" % (time.time() - t0))
-            return output
+        engine = tools.insitu_lib.insitu_utils.sql_engine(self.logger, source)
 
         # If not netCDF we will always need a temporary csv file
-        csv_path = context.create_temp_file(".csv")
+        csv_path = "temp.csv"
 
-        insitu_utils.sql_2_csv(sqlalchemy.text(res.json()), engine, csv_path)
+        tools.insitu_lib.insitu_utils.sql_2_csv(sqlalchemy.text(res.json()), engine, csv_path)
 
         engine.dispose()
 
-        self.logger.debug("timing: time elapsed retrieving from db streaming to csv file %6.3f" % (time.time() - t0))
-        self.logger.debug(f"format requested =  {_q['format']} - {fmt}")
+        self.logger.info("timing: time elapsed retrieving from db streaming to csv file %6.3f" % (time.time() - t0))
+        self.logger.info(f"format requested =  {_q['format']} - {fmt}")
         # If necessary convert to one row per observation
         if not fmt in ['csv-lev.zip', 'csv.zip', '.zip', 'zip']:
             t1 = time.time()
-            csv_obs_path = context.create_temp_file(".csv")
-            csv_path = baron_csv_cdm.cdm_converter(
+            csv_obs_path = "temp2.csv"
+            csv_path = tools.insitu_lib.converters.baron_csv_cdm.cdm_converter(
                 csv_path, source,
                 dataset=dataset,
                 end_point=endpoint,
-                out_file=csv_obs_path,
-                context=context
+                out_file=csv_obs_path
             )
-            self.logger.debug("timing: time elapsed converting to cdm-obs the file %6.3f" % (time.time() - t1))
+            self.logger.info("timing: time elapsed converting to cdm-obs the file %6.3f" % (time.time() - t1))
 
             # if observation database
             if fmt in ['ODB', 'odb']:
                 t2 = time.time()
-                output = context.create_result_file('.odb')
-                csv2odb.convert(csv_path, output.path)
-                self.logger.debug("timing: time elapsed encoding odb %6.3f" % (time.time() - t2))
+                output = 'out.odb'
+                tools.insitu_lib.converters.csv2odb.convert(csv_path, output)
+                self.logger.info("timing: time elapsed encoding odb %6.3f" % (time.time() - t2))
                 return output
 
         t2 = time.time()
         # prepending the header to the output file
-        csv_path_out = context.create_temp_file(".csv")
+        csv_path_out = 'tmp3.csv'
         with open(csv_path_out, 'w', encoding='utf-8') as fo:
             fo.write(header)
             with open(csv_path, 'r', encoding='utf-8') as fi:
@@ -278,9 +254,9 @@ class DbDataset(AbstractCdsAdaptor):
                     else:
                         break
 
-        output = context.create_result_file('.zip')
-        with zipfile.ZipFile(output.path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        output = f'{out_name}.zip'
+        with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zipf:
             zipf.write(csv_path_out, out_name)
-        self.logger.debug("timing: time elapsed compressing the file %6.3f" % (time.time() - t2))
+        # self.logger.info("timing: time elapsed compressing the file %6.3f" % (time.time() - t2))
         return output
 
