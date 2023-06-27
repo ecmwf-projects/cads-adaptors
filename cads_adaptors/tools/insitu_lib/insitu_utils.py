@@ -2,8 +2,6 @@ import yaml
 import sqlalchemy
 import requests
 
-from cds_common.system import utils
-
 header_template = """
 ########################################################################################
 # This file contains data retrieved from the CDS {cds_url}
@@ -27,8 +25,7 @@ def get_public_hostname():
 
 
 def get_licences(resource):
-    licences = utils.get_licences(resource)
-    return '\n'.join([f"#     - {l}" for l in licences])
+    return 'licence is udefined'
 
 
 def get_end_points(resource):
