@@ -10,8 +10,8 @@ channels:
 dependencies:
 - pip
 - requests
+- pandas
+- sqlachemie
 - pip:
   - cacholote
   - multiurl
-  - pandas
-  - SQLAlchemy
