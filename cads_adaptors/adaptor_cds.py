@@ -241,7 +241,7 @@ class DbDataset(AbstractCdsAdaptor):
                 output = 'out.odb'
                 insitu_lib.converters.csv2odb.convert(csv_path, output)
                 self.logger.info("timing: time elapsed encoding odb %6.3f" % (time.time() - t2))
-                return output
+                return open(output, 'rb')
 
         t2 = time.time()
         # prepending the header to the output file
@@ -260,5 +260,5 @@ class DbDataset(AbstractCdsAdaptor):
         with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zipf:
             zipf.write(csv_path_out, out_name)
         # self.logger.info("timing: time elapsed compressing the file %6.3f" % (time.time() - t2))
-        return output
+        return open(output, 'rb')
 
