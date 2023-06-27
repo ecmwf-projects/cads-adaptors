@@ -200,7 +200,7 @@ class DbDataset(AbstractCdsAdaptor):
 
         self.logger.info("REQUEST recomposed: [{}]".format(_q))
 
-        header, out_name = insitu_lib.insitu_utils.csv_header(endpoint, _q)
+        header, out_name = insitu_lib.insitu_utils.csv_header(api_url, _q)
         #self.logger.info(f'insitu: {header}, {out_name}')
 
         self.logger.info(f"REQUEST renamed: [{_q}]")
