@@ -150,7 +150,7 @@ class DbDataset(AbstractCdsAdaptor):
         super().__init__(form, **config)
         self.adaptors = {}
         self.values = {}
-        print(config)
+        self.logger.info(config)
         for adaptor_tag, adaptor_desc in config.get("adaptors", {}).items():
             self.adaptors[adaptor_tag] = tools.get_adaptor(adaptor_desc, form)
             self.values[adaptor_tag] = adaptor_desc.get("values", {})
