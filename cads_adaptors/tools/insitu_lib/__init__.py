@@ -1,3 +1,1 @@
-import insitu_utils
-import baron_csv_cdm
-import insitu_legacy
+from . import insitu_utils, baron_csv_cdm, insitu_legacy
