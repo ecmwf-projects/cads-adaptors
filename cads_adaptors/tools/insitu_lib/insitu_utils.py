@@ -56,7 +56,7 @@ zipped_file_template = '{source}_{first_date}_{last_date}_{area_type}_{csv_conve
 
 def variables_units(api_url, variables, source):
     service_definition = requests.get(f'{api_url}/service_definition').json()
-    descriptions = service_definition['sources'][source]['descriptions']
+    descriptions = service_definition['sources'].get(source, {}).get('descriptions', {})
     out = []
     variables = [variables] if isinstance(variables, str) else variables
     variables.sort()
