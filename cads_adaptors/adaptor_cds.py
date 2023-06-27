@@ -2,8 +2,10 @@ import os
 from typing import Any, BinaryIO
 
 from . import adaptor, constraints, costing, mapping
-from cads_adaptors import tools
-from cads_adaptors.tools import insitu_lib
+from . import tools
+from .tools import insitu_lib
+
+
 import time
 import zipfile
 import logging
