@@ -3,7 +3,7 @@ from typing import Any, BinaryIO
 
 from . import adaptor, constraints, costing, mapping
 from cads_adaptors import tools
-
+from cads_adaptors.tools import insitu_lib
 import time
 import zipfile
 import logging
@@ -195,7 +195,7 @@ class DbDataset(AbstractCdsAdaptor):
 
         self.logger.info("REQUEST recomposed: [{}]".format(_q))
 
-        header, out_name = tools.insitu_lib.insitu_utils.csv_header(context, _q)
+        header, out_name = insitu_lib.insitu_utils.csv_header(api_url, _q)
         #self.logger.info(f'insitu: {header}, {out_name}')
 
         self.logger.info(f"REQUEST renamed: [{_q}]")
@@ -210,12 +210,12 @@ class DbDataset(AbstractCdsAdaptor):
         fmt = fmt[0] if isinstance(fmt, list) else fmt
         self.logger.info(f'~~~~~~~ format requested: {fmt},  {_q["format"]}')
 
-        engine = tools.insitu_lib.insitu_utils.sql_engine(self.logger, source)
+        engine = insitu_lib.insitu_utils.sql_engine(self.logger, source)
 
         # If not netCDF we will always need a temporary csv file
         csv_path = "temp.csv"
 
-        tools.insitu_lib.insitu_utils.sql_2_csv(sqlalchemy.text(res.json()), engine, csv_path)
+        insitu_lib.insitu_utils.sql_2_csv(sqlalchemy.text(res.json()), engine, csv_path)
 
         engine.dispose()
 
@@ -225,7 +225,7 @@ class DbDataset(AbstractCdsAdaptor):
         if not fmt in ['csv-lev.zip', 'csv.zip', '.zip', 'zip']:
             t1 = time.time()
             csv_obs_path = "temp2.csv"
-            csv_path = tools.insitu_lib.converters.baron_csv_cdm.cdm_converter(
+            csv_path = insitu_lib.converters.baron_csv_cdm.cdm_converter(
                 csv_path, source,
                 dataset=dataset,
                 end_point=endpoint,
@@ -237,7 +237,7 @@ class DbDataset(AbstractCdsAdaptor):
             if fmt in ['ODB', 'odb']:
                 t2 = time.time()
                 output = 'out.odb'
-                tools.insitu_lib.converters.csv2odb.convert(csv_path, output)
+                insitu_lib.converters.csv2odb.convert(csv_path, output)
                 self.logger.info("timing: time elapsed encoding odb %6.3f" % (time.time() - t2))
                 return output
 

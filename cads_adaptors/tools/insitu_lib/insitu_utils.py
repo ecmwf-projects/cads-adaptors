@@ -51,15 +51,11 @@ def sql_2_csv(query, db_engine, csv_file):
         cur = conn.cursor()
         cur.copy_expert(copy_sql, f)
 
-
 zipped_file_template = '{source}_{first_date}_{last_date}_{area_type}_{csv_convention}_{version}.csv'
 
 
-def variables_units(context, variables, source):
-    resource = context.request['metadata']['resource']
-    api_url = get_end_points(resource)
+def variables_units(api_url, variables, source):
     service_definition = requests.get(f'{api_url}/service_definition').json()
-    context.debug('variables')
     descriptions = service_definition['sources'][source]['descriptions']
     out = []
     variables = [variables] if isinstance(variables, str) else variables
