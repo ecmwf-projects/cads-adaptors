@@ -200,7 +200,7 @@ class DbDataset(AbstractCdsAdaptor):
 
         self.logger.info("REQUEST recomposed: [{}]".format(_q))
 
-        header, out_name = insitu_lib.insitu_utils.csv_header(api_url, _q)
+        header, out_name = insitu_lib.insitu_utils.csv_header(endpoint, _q)
         #self.logger.info(f'insitu: {header}, {out_name}')
 
         self.logger.info(f"REQUEST renamed: [{_q}]")
@@ -215,7 +215,7 @@ class DbDataset(AbstractCdsAdaptor):
         fmt = fmt[0] if isinstance(fmt, list) else fmt
         self.logger.info(f'~~~~~~~ format requested: {fmt},  {_q["format"]}')
 
-        engine = insitu_lib.insitu_utils.sql_engine(self.config['db'], source)
+        engine = insitu_lib.insitu_utils.sql_engine(api_url, source)
 
         # If not netCDF we will always need a temporary csv file
         csv_path = "temp.csv"
