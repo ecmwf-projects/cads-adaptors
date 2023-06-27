@@ -37,7 +37,7 @@ def get_end_points(resource):
 def sql_engine(api_url, source):
     return sqlalchemy.engine_from_config(
         requests.get(
-            f'{api_url}/db_engine'
+            f'{api_url}/source/db_engine'
         ).json()
     )
 
