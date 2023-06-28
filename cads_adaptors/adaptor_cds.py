@@ -4,7 +4,7 @@ from typing import Any, BinaryIO
 from . import adaptor, constraints, costing, mapping
 from . import tools
 from .tools import insitu_lib
-
+from .tools.insitu_lib import converters
 
 import time
 import zipfile
@@ -151,6 +151,7 @@ class DbDataset(AbstractCdsAdaptor):
     ):
 
         super().__init__(form, **config)
+        print(form, config)
         self.adaptors = {}
         self.values = {}
         self.logger.info(config)
@@ -230,7 +231,7 @@ class DbDataset(AbstractCdsAdaptor):
         if not fmt in ['csv-lev.zip', 'csv.zip', '.zip', 'zip']:
             t1 = time.time()
             csv_obs_path = "temp2.csv"
-            csv_path = insitu_lib.converters.baron_csv_cdm.cdm_converter(
+            csv_path = converters.baron_csv_cdm.cdm_converter(
                 csv_path, source,
                 dataset=dataset,
                 end_point=endpoint,
@@ -242,7 +243,7 @@ class DbDataset(AbstractCdsAdaptor):
             if fmt in ['ODB', 'odb']:
                 t2 = time.time()
                 output = 'out.odb'
-                insitu_lib.converters.csv2odb.convert(csv_path, output)
+                converters.csv2odb.convert(csv_path, output)
                 self.logger.info("timing: time elapsed encoding odb %6.3f" % (time.time() - t2))
                 return open(output, 'rb')
 
