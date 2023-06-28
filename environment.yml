@@ -11,7 +11,7 @@ dependencies:
 - pip
 - requests
 - pandas
-- pyodc
 - pip:
   - cacholote
   - multiurl
+  - pyodc
