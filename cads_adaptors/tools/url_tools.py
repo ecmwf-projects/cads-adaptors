@@ -91,8 +91,9 @@ def download_tgz_from_urls(
 def download_from_urls(
     urls: List[str],
     data_format: str = "zip",
+    prefix: str = "collection",
 ) -> str:
-    base_target = str(hash(tuple(urls)))
+    base_target = f"{prefix}-{hash(tuple(urls))}"
 
     if data_format == "tgz":
         target = download_tgz_from_urls(urls=urls, base_target=base_target)

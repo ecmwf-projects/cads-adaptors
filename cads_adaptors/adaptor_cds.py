@@ -16,6 +16,7 @@ class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
 
     def __init__(self, form: dict[str, Any], **config: Any):
         self.form = form
+        self.collection_id = config.pop("collection_id", "unknown-collection")
         self.constraints = config.pop("constraints", [])
         self.mapping = config.pop("mapping", {})
         self.licences: list[tuple[str, int]] = config.pop("licences", [])
@@ -51,7 +52,7 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
         )
         print(f"UrlCdsAdptor, self.config: {self.config}")
         path = url_tools.download_from_urls(
-            [ru["url"] for ru in requests_urls], data_format=data_format
+            [ru["url"] for ru in requests_urls], data_format=data_format, prefix=self.collection_id
         )
         return open(path, "rb")
 
