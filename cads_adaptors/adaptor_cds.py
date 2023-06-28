@@ -3,8 +3,6 @@ from typing import Any, BinaryIO
 
 from . import adaptor, constraints, costing, mapping
 from . import tools
-from .tools import insitu_lib
-from .tools.insitu_lib import converters
 
 import time
 import zipfile
@@ -160,6 +158,10 @@ class DbDataset(AbstractCdsAdaptor):
             self.values[adaptor_tag] = adaptor_desc.get("values", {})
 
     def retrieve(self, request: adaptor.Request):
+
+        from .tools import insitu_lib
+        from .tools.insitu_lib import converters
+
         self.logger.info(f"{request}, {self.config}")
         try:
             self.logger.info(f"all in:{self.config} - {dir(self)}")
