@@ -72,7 +72,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 results.append(this_adaptor.retrieve(this_request))
             except Exception as err:
                 # Catch any possible exception and store error message in case all adaptors fail
-                exception_logs[adaptor_tag] = err
+                exception_logs[adaptor_tag] = f"{err}"
 
         if len(results) == 0:
             raise RuntimeError(
