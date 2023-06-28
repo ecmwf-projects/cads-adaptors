@@ -151,6 +151,7 @@ class DbDataset(AbstractCdsAdaptor):
     ):
 
         super().__init__(form, **config)
+        print(form, config)
         self.adaptors = {}
         self.values = {}
         self.logger.info(config)

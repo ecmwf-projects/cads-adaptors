@@ -1,3 +1,5 @@
+import os
+
 import yaml
 import sqlalchemy
 import requests
@@ -66,10 +68,10 @@ def variables_units(api_url, variables, source):
     return "\n".join(out)
 
 
-def csv_header(context, query):
+def csv_header(api_url, query, config={}, form={}):
     resource = 'a dataset to be specified'#context.request['metadata']['resource']
     source = query.get('source', ['not specified'])[0]
-    variables = variables_units(context, query.get('variable'), source)
+    variables = variables_units(api_url, query.get('variable'), source)
 
     y = query.get('year', ['not set'])
     y.sort()
@@ -89,7 +91,7 @@ def csv_header(context, query):
         area = f'{area[0]}_{area[1]}_{area[2]}_{area[3]}'
     area = 'global' if area == '90_-180_-90_180' else area
     fmts = dict(
-        cds_url="utils.get_public_hostname() + '/cdsapp#!/dataset/' + resource",
+        cds_url=f"{os.environ.get('PROJECT_URL', 'cads-portal-url')}/datasets/{resource}",
         source=source,
         licences=get_licences(resource),
         first_date=f'{y0}{m0}{d0}',

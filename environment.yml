@@ -11,7 +11,6 @@ dependencies:
 - pip
 - requests
 - pandas
-- SQLAlchemy
 - pip:
   - cacholote
   - multiurl
