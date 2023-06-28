@@ -69,6 +69,8 @@ def variables_units(api_url, variables, source):
 
 
 def csv_header(api_url, query, config={}, form={}):
+
+    print(query, form)
     resource = 'a dataset to be specified'#context.request['metadata']['resource']
     source = query.get('source', ['not specified'])[0]
     variables = variables_units(api_url, query.get('variable'), source)

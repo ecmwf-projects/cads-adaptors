@@ -196,6 +196,7 @@ class DbDataset(AbstractCdsAdaptor):
             for q in request:
                 _q[q] = [request[q]] if not isinstance(request[q], list) else request[q]
         print(request)
+
         version = _q.get('version', ['v1'])[0]
         source = _q.get('source', ['not specified'])
 
@@ -203,7 +204,7 @@ class DbDataset(AbstractCdsAdaptor):
 
         self.logger.info("REQUEST recomposed: [{}]".format(_q))
 
-        header, out_name = insitu_lib.insitu_utils.csv_header(api_url, _q)
+        header, out_name = insitu_lib.insitu_utils.csv_header(api_url, _q, self.config, self.form)
         #self.logger.info(f'insitu: {header}, {out_name}')
 
         self.logger.info(f"REQUEST renamed: [{_q}]")
@@ -227,13 +228,13 @@ class DbDataset(AbstractCdsAdaptor):
 
         engine.dispose()
 
-        self.logger.info("timing: time elapsed retrieving from db streaming to csv file %6.3f" % (time.time() - t0))
-        self.logger.info(f"format requested =  {_q['format']} - {fmt}")
+        print("timing: time elapsed retrieving from db streaming to csv file %6.3f" % (time.time() - t0))
+        print(f"format requested =  {_q['format']} - {fmt}")
         # If necessary convert to one row per observation
         if not fmt in ['csv-lev.zip', 'csv.zip', '.zip', 'zip']:
             t1 = time.time()
             csv_obs_path = "temp2.csv"
-            csv_path = converters.baron_csv_cdm.cdm_converter(
+            csv_path = insitu_lib.baron_csv_cdm.cdm_converter(
                 csv_path, source,
                 dataset=dataset,
                 end_point=endpoint,
@@ -246,7 +247,7 @@ class DbDataset(AbstractCdsAdaptor):
                 t2 = time.time()
                 output = 'out.odb'
                 converters.csv2odb.convert(csv_path, output)
-                self.logger.info("timing: time elapsed encoding odb %6.3f" % (time.time() - t2))
+                print("timing: time elapsed encoding odb %6.3f" % (time.time() - t2))
                 return open(output, 'rb')
 
         t2 = time.time()
@@ -265,6 +266,6 @@ class DbDataset(AbstractCdsAdaptor):
         output = f'{out_name}.zip'
         with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zipf:
             zipf.write(csv_path_out, out_name)
-        # self.logger.info("timing: time elapsed compressing the file %6.3f" % (time.time() - t2))
+        print("timing: time elapsed compressing the file %6.3f" % (time.time() - t2))
         return open(output, 'rb')
 
