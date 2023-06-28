@@ -22,6 +22,8 @@ except ImportError:  # pragma: no cover
     # Local copy or not installed with setuptools
     __version__ = "999"
 
+from cads_adaptors.adaptor_multi import MultiAdaptor
+
 from .adaptor import AbstractAdaptor, DummyAdaptor
 from .adaptor_cds import (
     AbstractCdsAdaptor,
@@ -45,4 +47,5 @@ __all__ = [
     "LegacyCdsAdaptor",
     "MarsCdsAdaptor",
     "UrlCdsAdaptor",
+    "MultiAdaptor",
 ]
