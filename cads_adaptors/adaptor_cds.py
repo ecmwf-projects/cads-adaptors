@@ -219,7 +219,7 @@ class DbDataset(AbstractCdsAdaptor):
 
         # If not netCDF we will always need a temporary csv file
         csv_path = "temp.csv"
-
+        t0 = time.time()
         insitu_lib.insitu_utils.sql_2_csv(sqlalchemy.text(res.json()), engine, csv_path)
 
         engine.dispose()
