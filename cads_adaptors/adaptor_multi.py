@@ -56,7 +56,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         # for p in results:
         #     os.remove(p)
 
-        return target
+        return open(target, 'rb')
 
     def __init__(self, form: dict[str, Any], **config: Any):
         from cads_adaptors.tools import adaptor_tools
