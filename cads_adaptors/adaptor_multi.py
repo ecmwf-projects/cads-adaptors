@@ -3,7 +3,7 @@ from typing import Any
 import yaml  # type: ignore
 
 # import os
-from cads_adaptors import AbstractCdsAdaptor
+from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
 from cads_adaptors.adaptor import Request
 
 
