@@ -50,8 +50,7 @@ def sql_engine(api_url, source, config):
     res = requests.get(
         f'{api_url}/{source}/db_engine'
     ).json()
-    print(res)
-    res['url'] = res['url'].replace('obs-insitu', config['db'])
+    res['sqlalchemy.url'] = res['sqlalchemy.url'].replace('obs-insitu', config['db'])
     return sqlalchemy.engine_from_config(res)
 >>>>>>> 5955e33 (install develop packages before starting service)
 
