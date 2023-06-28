@@ -50,7 +50,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         with zipfile.ZipFile(target, mode="w") as archive:
             for p in results:
-                archive.write(p)
+                archive.writestr(p.name, p.read())
 
         # TODO: clean up afterwards?
         # for p in results:
@@ -80,7 +80,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             # TODO: check this_request is valid for this_adaptor, or rely on try? i.e. split_request does
             #       NOT implement constraints.
             try:
-                results.append(this_adaptor.retrieve(this_request))
+                results += ensure_list(this_adaptor.retrieve(this_request))
             except Exception as err:
                 # Catch any possible exception and store error message in case all adaptors fail
                 exception_logs[adaptor_tag] = f"{err}"
