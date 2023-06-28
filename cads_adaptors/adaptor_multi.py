@@ -65,7 +65,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.split_request(
                 request, self.values[adaptor_tag], **self.config
             )
-
+            print(adaptor_tag, this_request)
             # TODO: check this_request is valid for this_adaptor, or rely on try? i.e. split_request does
             #       NOT implement constraints.
             try:
