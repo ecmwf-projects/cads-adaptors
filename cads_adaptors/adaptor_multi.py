@@ -61,11 +61,12 @@ class MultiAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request):
         results = []
         exception_logs = {}
+        print(f"Full request: {request}")
         for adaptor_tag, this_adaptor in self.adaptors.items():
             this_request = self.split_request(
                 request, self.values[adaptor_tag], **self.config
             )
-            print(adaptor_tag, this_request)
+            print(f"{adaptor_tag} request: {this_request}")
             # TODO: check this_request is valid for this_adaptor, or rely on try? i.e. split_request does
             #       NOT implement constraints.
             try:
