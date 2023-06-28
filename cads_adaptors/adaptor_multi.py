@@ -6,6 +6,11 @@ import yaml  # type: ignore
 from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
 from cads_adaptors.adaptor import Request
 
+def ensure_list(input_item):
+    if not isinstance(input_item, list):
+        return [input_item]
+    return input_item
+
 
 class MultiAdaptor(AbstractCdsAdaptor):
     @staticmethod
@@ -22,7 +27,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         print("Splitting request:")
         this_request = {}
         for key, vals in full_request.items():
-            print(f"{key}: {vals}")
+            vals = ensure_list(vals)
             this_request[key] = [v for v in vals if v in this_values.get(key, [])]
             print(f"this_values: {this_values.get(key, [])}")
             print(f"this_request[{key}]: {this_request[key]}")
