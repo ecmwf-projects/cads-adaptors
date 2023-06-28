@@ -196,6 +196,7 @@ class DbDataset(AbstractCdsAdaptor):
             for q in request:
                 _q[q] = [request[q]] if not isinstance(request[q], list) else request[q]
         print(request)
+
         version = _q.get('version', ['v1'])[0]
         source = _q.get('source', ['not specified'])
 
@@ -203,7 +204,7 @@ class DbDataset(AbstractCdsAdaptor):
 
         self.logger.info("REQUEST recomposed: [{}]".format(_q))
 
-        header, out_name = insitu_lib.insitu_utils.csv_header(api_url, _q)
+        header, out_name = insitu_lib.insitu_utils.csv_header(api_url, _q, self.config, self.form)
         #self.logger.info(f'insitu: {header}, {out_name}')
 
         self.logger.info(f"REQUEST renamed: [{_q}]")
