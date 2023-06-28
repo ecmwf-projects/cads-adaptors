@@ -1,3 +1,4 @@
+from sys import prefix
 from typing import Any
 
 import yaml  # type: ignore
@@ -36,11 +37,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
         return this_request
 
     @staticmethod
-    def merge_results(results: list):
+    def merge_results(results: list, prefix: str="collection"):
         """Basic results merge, creates a zip file containing all results."""
         import zipfile
 
-        base_target = str(hash(tuple(results)))
+        base_target = f"{prefix}-{hash(tuple(results))}"
 
         target = f"{base_target}.zip"
 
@@ -88,4 +89,4 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 f"{yaml.safe_dump(exception_logs)}"
             )
 
-        return self.merge_results(results)
+        return self.merge_results(results, prefix=self.collection_id)
