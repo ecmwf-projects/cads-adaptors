@@ -49,7 +49,7 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
         requests_urls = url_tools.requests_to_urls(
             mapped_request, patterns=self.config["patterns"]
         )
-
+        print(f"UrlCdsAdptor, self.config: {self.config}")
         path = url_tools.download_from_urls(
             [ru["url"] for ru in requests_urls], data_format=data_format
         )

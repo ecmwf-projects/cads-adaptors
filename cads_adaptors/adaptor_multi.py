@@ -67,6 +67,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request):
         results = []
         exception_logs = {}
+        print(f"MultiAdaptor, self.config: {self.config}")
         print(f"Full request: {request}")
         for adaptor_tag, this_adaptor in self.adaptors.items():
             this_request = self.split_request(
