@@ -24,14 +24,10 @@ class MultiAdaptor(AbstractCdsAdaptor):
         the specific adaptor.
         More complex constraints may need a more detailed splitter.
         """
-        print("Splitting request:")
         this_request = {}
         for key, vals in full_request.items():
             vals = ensure_list(vals)
             this_request[key] = [v for v in vals if v in this_values.get(key, [])]
-            print(f"this_values: {this_values.get(key, [])}")
-            print(f"this_request[{key}]: {this_request[key]}")
-
 
         # Check all required keys exist:
         if not all([key in this_request for key in config.get("required_keys", [])]):
