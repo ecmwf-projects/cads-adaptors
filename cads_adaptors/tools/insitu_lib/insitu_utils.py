@@ -26,8 +26,10 @@ def get_public_hostname():
         return f'https://{host}'
 
 
-def get_licences(resource):
-    return 'licence is udefined'
+def get_licences(form):
+    out = [_ for _ in form if _.get('type', 'not type') == 'LicenceWidget'][0]
+    out = [_.get('label', 'unspecified licence') for _ in out.get('details', {}).get('licences', [])]
+    return '\n'.join(out)
 
 
 def get_end_points(resource):
@@ -95,7 +97,7 @@ def csv_header(api_url, query, config={}, form={}):
     fmts = dict(
         cds_url=f"{os.environ.get('PROJECT_URL', 'cads-portal-url')}/datasets/{resource}",
         source=source,
-        licences=get_licences(resource),
+        licences=get_licences(form),
         first_date=f'{y0}{m0}{d0}',
         last_date=f'{y1}{m1}{d1}',
         bbox=area,
