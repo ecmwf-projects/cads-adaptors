@@ -133,7 +133,7 @@ class DbDataset(AbstractCdsAdaptor):
             self.values[adaptor_tag] = adaptor_desc.get("values", {})
 
     def retrieve(self, request: adaptor.Request):
-        from .tools.insitu_lib import converters, insitu_utils, baron_csv_cdm
+        from .tools.insitu_lib import insitu_utils, baron_csv_cdm
 
         print(f"{request},\n\n {self.config} \n\n {self.form}")
         try:
