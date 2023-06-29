@@ -52,7 +52,10 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
             prefix=self.collection_id,
         )
 
-        return [open(path, "rb") for path in paths]
+        if len(paths) == 1:
+            return open(paths[0], "rb")
+        else:
+            return [open(path, "rb") for path in paths]
 
 
 class LegacyCdsAdaptor(AbstractCdsAdaptor):
