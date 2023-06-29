@@ -2,7 +2,7 @@ from typing import Any
 
 from cacholote import decode
 
-from .. import adaptor
+from cads_adaptors import adaptor
 
 
 def get_adaptor_class(
@@ -31,3 +31,4 @@ def get_adaptor(config: dict[str, Any], form: dict[str, Any] | None = None):
     adaptor = adaptor_class(form=form, **config)  # type: ignore
 
     return adaptor
+
