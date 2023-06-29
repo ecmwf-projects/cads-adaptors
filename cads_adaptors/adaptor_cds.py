@@ -44,7 +44,9 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
         )
 
         path = url_tools.download_from_urls(
-            [ru["url"] for ru in requests_urls], data_format=data_format
+            [ru["url"] for ru in requests_urls],
+            data_format=data_format,
+            prefix=self.collection_id,
         )
         return open(path, "rb")
 
