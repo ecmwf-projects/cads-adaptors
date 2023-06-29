@@ -137,7 +137,6 @@ class DbDataset(AbstractCdsAdaptor):
         print(form, config)
         self.adaptors = {}
         self.values = {}
-        self.logger.info(config)
         for adaptor_tag, adaptor_desc in config.get("adaptors", {}).items():
             self.adaptors[adaptor_tag] = tools.get_adaptor(adaptor_desc, form)
             self.values[adaptor_tag] = adaptor_desc.get("values", {})
