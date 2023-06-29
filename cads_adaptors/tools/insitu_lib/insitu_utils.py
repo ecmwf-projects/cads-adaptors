@@ -21,15 +21,12 @@ header_template = """
 
 
 def get_public_hostname():
-    with open('/etc/cds/settings.yaml', 'r') as f:
-        host = yaml.load(f, Loader=yaml.SafeLoader)['publichost']['publichost']
-        return f'https://{host}'
+    return os.environ.get('PROJECT_URL', 'Project url not defined')
 
 
 def get_licences(form):
     out = [_ for _ in form if _.get('type', 'not type') == 'LicenceWidget'][0]
-    out = [_.get('label', 'unspecified licence') for _ in out.get('details', {}).get('licences', [])]
-    return '\n'.join(out)
+    return '\n'.join([_.get('label', 'unspecified licence') for _ in out.get('details', {}).get('licences', [])])
 
 
 def get_end_points(resource):
