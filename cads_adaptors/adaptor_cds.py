@@ -32,10 +32,13 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
         from .tools import url_tools
 
-        data_format = request.pop("format", "zip")
+        download_format = request.pop("format", "zip")  # TODO: Remove legacy syntax
+        # CADS syntax over-rules legacy syntax
+        download_format = request.pop("download_format", download_format)
 
-        if data_format not in {"zip", "tgz"}:
-            raise ValueError(f"{data_format=} is not supported")
+        # Do not need to check twice
+        # if download_format not in {"zip", "tgz"}:
+        #     raise ValueError(f"{download_format} is not supported")
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
 
@@ -43,12 +46,13 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
             mapped_request, patterns=self.config["patterns"]
         )
 
-        path = url_tools.download_from_urls(
+        paths = url_tools.download_from_urls(
             [ru["url"] for ru in requests_urls],
-            data_format=data_format,
+            download_format=download_format,
             prefix=self.collection_id,
         )
-        return open(path, "rb")
+
+        return [open(path, "rb") for path in paths]
 
 
 class LegacyCdsAdaptor(AbstractCdsAdaptor):
@@ -93,6 +97,7 @@ class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
 class MarsCdsAdaptor(DirectMarsCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
         format = request.pop("format", ["grib"])
+        request.pop("download_format", "raw")
         assert len(format) == 1
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore

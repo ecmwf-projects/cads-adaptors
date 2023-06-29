@@ -6,12 +6,7 @@ from cads_adaptors.adaptor import Request
 
 # import os
 from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
-
-
-def ensure_list(input_item):
-    if not isinstance(input_item, list):
-        return [input_item]
-    return input_item
+from cads_adaptors.tools import ensure_list
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
@@ -75,6 +70,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.split_request(
                 request, self.values[adaptor_tag], **self.config
             )
+            this_request.setdefault("download_format", "list")
             print(f"{adaptor_tag} request: {this_request}")
             # TODO: check this_request is valid for this_adaptor, or rely on try? i.e. split_request does
             #       NOT implement constraints.
