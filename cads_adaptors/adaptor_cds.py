@@ -168,7 +168,7 @@ class DbDataset(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request):
 
         from .tools import insitu_lib
-        from .tools.insitu_lib import converters
+        from .tools.insitu_lib import converters, insitu_utils, baron_csv_cdm
 
         self.logger.info(f"{request}, {self.config}")
         try:
@@ -212,7 +212,7 @@ class DbDataset(AbstractCdsAdaptor):
 
         self.logger.info("REQUEST recomposed: [{}]".format(_q))
 
-        header, out_name = insitu_lib.insitu_utils.csv_header(api_url, _q, self.config, self.form)
+        header, out_name = insitu_utils.csv_header(api_url, _q, self.config, self.form)
         #self.logger.info(f'insitu: {header}, {out_name}')
 
         self.logger.info(f"REQUEST renamed: [{_q}]")
@@ -227,12 +227,12 @@ class DbDataset(AbstractCdsAdaptor):
         fmt = fmt[0] if isinstance(fmt, list) else fmt
         self.logger.info(f'~~~~~~~ format requested: {fmt},  {_q["format"]}')
 
-        engine = insitu_lib.insitu_utils.sql_engine(api_url, source, self.config)
+        engine = insitu_utils.sql_engine(api_url, source, self.config)
 
         # If not netCDF we will always need a temporary csv file
         csv_path = "temp.csv"
         t0 = time.time()
-        insitu_lib.insitu_utils.sql_2_csv(sqlalchemy.text(res.json()), engine, csv_path)
+        insitu_utils.sql_2_csv(sqlalchemy.text(res.json()), engine, csv_path)
 
         engine.dispose()
 
@@ -242,7 +242,7 @@ class DbDataset(AbstractCdsAdaptor):
         if not fmt in ['csv-lev.zip', 'csv.zip', '.zip', 'zip']:
             t1 = time.time()
             csv_obs_path = "temp2.csv"
-            csv_path = insitu_lib.baron_csv_cdm.cdm_converter(
+            csv_path = baron_csv_cdm.cdm_converter(
                 csv_path, source,
                 dataset=dataset,
                 end_point=endpoint,
