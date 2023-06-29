@@ -56,7 +56,7 @@ def raw_path(
     return open(paths[0], "rb")
 
 
-DOWNLOAD_BUNDLER = {
+ARCHIVER = {
     "zip": zip_paths,
     "tgz": targz_paths,
     "list": list_paths,

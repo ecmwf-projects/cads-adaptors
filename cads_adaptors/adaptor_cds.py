@@ -82,7 +82,7 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
         paths = url_tools.try_download([ru["url"] for ru in requests_urls])
 >>>>>>> 83b3045 (refactor of URL adaptor)
 
-        return download_tools.DOWNLOAD_FORMATS[download_format](paths, prefix=self.collection_id)
+        return download_tools.ARCHIVER[download_format](paths, prefix=self.collection_id)
 
 class LegacyCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
