@@ -6,7 +6,8 @@ from cads_adaptors.tools import ensure_list
 # TODO use targzstream
 def zip_paths(
     paths: List[str],
-    base_target: str,
+    base_target: str = "output-data",
+    **kwargs
 ) -> str:
     import zipfile
 
@@ -24,7 +25,7 @@ def zip_paths(
 # TODO zipstream for archive creation
 def targz_paths(
     paths: List[str],
-    base_target: str,
+    base_target: str = "output-data",
     **kwargs,
 ) -> str:
     import tarfile

@@ -45,9 +45,15 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
             mapped_request, patterns=self.config["patterns"]
         )
 
-        paths = url_tools.try_download([ru["url"] for ru in requests_urls])
+        urls = [ru["url"] for ru in requests_urls]
+        paths = url_tools.try_download(urls)
 
-        return download_tools.DOWNLOAD_FORMATS[download_format](paths, prefix=self.collection_id)
+        download_kwargs = dict(
+            base_target = f"{self.collection_id}-{hash(tuple(urls))}"
+        )
+
+        return download_tools.DOWNLOAD_FORMATS[download_format](paths, **download_kwargs)
+
 
 class LegacyCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
