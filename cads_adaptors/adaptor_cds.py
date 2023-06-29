@@ -1,7 +1,7 @@
 import os
 from typing import Any, BinaryIO
 
-from . import adaptor, constraints, costing, mapping
+from cads_adaptors import adaptor, constraints, costing, mapping
 from . import tools
 
 import time
@@ -38,7 +38,7 @@ class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
 
 class UrlCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
-        from .tools import url_tools
+        from cads_adaptors.tools import url_tools, download_tools
 
         download_format = request.pop("format", "zip")  # TODO: Remove legacy syntax
         # CADS syntax over-rules legacy syntax
@@ -54,13 +54,14 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
             mapped_request, patterns=self.config["patterns"]
         )
 
-        paths = url_tools.download_from_urls(
-            [ru["url"] for ru in requests_urls],
-            download_format=download_format,
-            prefix=self.collection_id,
+        urls = [ru["url"] for ru in requests_urls]
+        paths = url_tools.try_download(urls)
+
+        download_kwargs = dict(
+            base_target = f"{self.collection_id}-{hash(tuple(urls))}"
         )
 
-        return [open(path, "rb") for path in paths]
+        return download_tools.DOWNLOAD_FORMATS[download_format](paths, **download_kwargs)
 
 
 class LegacyCdsAdaptor(AbstractCdsAdaptor):
