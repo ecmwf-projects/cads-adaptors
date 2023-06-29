@@ -3,9 +3,11 @@ from typing import Any
 
 import yaml  # type: ignore
 
+from cads_adaptors.adaptor import Request
+
 # import os
 from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
-from cads_adaptors.adaptor import Request
+from cads_adaptors.tools import ensure_list
 
 def ensure_list(input_item):
     if not isinstance(input_item, list):
@@ -37,7 +39,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         return this_request
 
     @staticmethod
-    def merge_results(results: list, prefix: str="collection"):
+    def merge_results(results: list, prefix: str = "collection"):
         """Basic results merge, creates a zip file containing all results."""
         import zipfile
 
@@ -53,7 +55,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         # for p in results:
         #     os.remove(p)
 
-        return open(target, 'rb')
+        return open(target, "rb")
 
     def __init__(self, form: dict[str, Any], **config: Any):
         from cads_adaptors.tools import adaptor_tools
@@ -74,6 +76,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.split_request(
                 request, self.values[adaptor_tag], **self.config
             )
+            this_request.setdefault("download_format", "list")
             print(f"{adaptor_tag} request: {this_request}")
             # TODO: check this_request is valid for this_adaptor, or rely on try? i.e. split_request does
             #       NOT implement constraints.
