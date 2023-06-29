@@ -51,12 +51,11 @@ def raw_path(
     paths: List[str],
     **kwargs
 ):
-    
     assert len(paths)==1
     return open(paths[0], "rb")
 
 
-ARCHIVER = {
+DOWNLOAD_FORMATS = {
     "zip": zip_paths,
     "tgz": targz_paths,
     "list": list_paths,
