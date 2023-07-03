@@ -143,7 +143,6 @@ class DbDataset(AbstractCdsAdaptor):
             print(f"{err}")
         print(f"metadata: {request.get('metadata', 'no metadata')}")
 
-        #resource = request['metadata']['resource']
         api_url: str = self.config['api']
 
         dataset = api_url.split('/')[-1]
