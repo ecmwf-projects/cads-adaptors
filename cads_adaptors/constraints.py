@@ -183,6 +183,8 @@ def get_possible_values(
             for field_name, valid_values in combination.items():
                 if field_name in result:
                     result[field_name] |= set(valid_values)
+                else:
+                    result[field_name] = set(valid_values)
 
     return result
 
