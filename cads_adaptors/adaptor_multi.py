@@ -16,6 +16,10 @@ def ensure_list(input_item):
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
+    # Alternatively inherit the DirectMarsCdsAdaptor class, but this may create an unwanted dependancy
+    #  Also, this may not be required when all workers are turned into mars-workers
+    resources = {"MARS_CLIENT": 1}
+
     @staticmethod
     def split_request(
         full_request: Request,  # User request
