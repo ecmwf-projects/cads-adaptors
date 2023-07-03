@@ -181,7 +181,8 @@ def get_possible_values(
                 raise ParameterError(f"invalid param '{field_name}'")
         if ok:
             for field_name, valid_values in combination.items():
-                result[field_name] |= set(valid_values)
+                if field_name in result:
+                    result[field_name] |= set(valid_values)
 
     return result
 
