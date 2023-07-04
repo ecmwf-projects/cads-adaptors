@@ -222,10 +222,11 @@ def apply_mapping(request, mapping):
     # Transform year/month/day in dates
     for date_opt in date_options:
         wants_dates = date_opt.get("wants_dates", options.get("wants_dates", False))
-        date_key = date_opt.get("date_keyword", "date")
-        year_key = date_opt.get("year_keyword", "year")
-        month_key = date_opt.get("month_keyword", "month")
-        day_key = date_opt.get("day_keyword", "day")
+        date_key = date_opt.get("date_key", "date")
+        year_key = date_opt.get("year_key", "year")
+        month_key = date_opt.get("month_key", "month")
+        day_key = date_opt.get("day_key", "day")
+        print(f"WANTS_DATES: {date_key}, {year_key}, {month_key}, {day_key}")
 
         if wants_dates:
             this_request = expand_dates(
