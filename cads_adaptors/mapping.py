@@ -226,7 +226,6 @@ def apply_mapping(request, mapping):
         year_key = date_opt.get("year_key", "year")
         month_key = date_opt.get("month_key", "month")
         day_key = date_opt.get("day_key", "day")
-        print(f"WANTS_DATES: {date_key}, {year_key}, {month_key}, {day_key}")
 
         if wants_dates:
             this_request = expand_dates(
@@ -237,7 +236,6 @@ def apply_mapping(request, mapping):
                 month_key=month_key,
                 day_key=day_key,
             )
-        print('DEBUG apply mapping', this_request, date_opt)
 
     # TODO: is this required? not used in any dataset
     if options.get("wants_intervals", False):
@@ -289,7 +287,6 @@ def expand_dates(
     month_key="month",
     day_key="day",
 ):
-    print(f"EXPAND_DATES: {date_key}, {year_key}, {month_key}, {day_key}")
     if date_key in this_request:
         newdates = set()
         dates = this_request[date_key]
@@ -308,11 +305,8 @@ def expand_dates(
 
     else:
         years = [int(x) for x in ensure_list(request.get(year_key, []))]
-        print(years)
         months = [int(x) for x in ensure_list(request.get(month_key, []))]
-        print(months)
         days = [int(x) for x in ensure_list(request.get(day_key, []))]
-        print(days)
 
         if years and months and days:
             this_request[date_key] = sorted(
