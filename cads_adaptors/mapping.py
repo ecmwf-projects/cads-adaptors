@@ -228,7 +228,7 @@ def apply_mapping(request, mapping):
         day_key = date_opt.get("day_keyword", "day")
 
         if wants_dates:
-            this_request[date_key] = expand_dates(
+            this_request = expand_dates(
                 this_request,
                 request,
                 date_key=date_key,
@@ -316,3 +316,5 @@ def expand_dates(
             for k in (year_key, month_key, day_key):
                 if k in this_request:
                     del this_request[k]
+    
+    return this_request
