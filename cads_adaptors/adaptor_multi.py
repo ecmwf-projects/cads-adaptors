@@ -10,6 +10,9 @@ from cads_adaptors.tools import ensure_list, download_tools
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
+    # Alternatively inherit the DirectMarsCdsAdaptor class, but this may create an unwanted dependancy
+    #  Also, this may not be required when all workers are turned into mars-workers
+    resources = {"MARS_CLIENT": 1}
     @staticmethod
     def split_request(
         full_request: Request,  # User request
@@ -74,14 +77,15 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
             this_request.setdefault("download_format", "list")
             print(f"{adaptor_tag}, request: {this_request}")
-            print(f"{adaptor_tag}, adaptor: {this_adaptor}")
-            print(f"{adaptor_tag}, config {this_adaptor.config}")
+            # print(f"{adaptor_tag}, adaptor: {this_adaptor}")
+            # print(f"{adaptor_tag}, config {this_adaptor.config}")
             # TODO: check this_request is valid for this_adaptor, or rely on try? i.e. split_request does
             #       NOT implement constraints.
             try:
                 results += ensure_list(this_adaptor.retrieve(this_request))
             except Exception as err:
                 # Catch any possible exception and store error message in case all adaptors fail
+                print(f"{adaptor_tag} Error: {err}")
                 exception_logs[adaptor_tag] = f"{err}"
 
         if len(results) == 0:
