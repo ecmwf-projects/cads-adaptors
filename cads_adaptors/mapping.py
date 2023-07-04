@@ -306,9 +306,12 @@ def expand_dates(
 
     else:
         years = [int(x) for x in ensure_list(request.get(year_key, []))]
+        print(years)
         months = [int(x) for x in ensure_list(request.get(month_key, []))]
+        print(months)
         days = [int(x) for x in ensure_list(day_key, [])]
-
+        print(days)
+        
         if years and months and days:
             this_request[date_key] = sorted(
                 set(date_from_years_months_days(years, months, days))
