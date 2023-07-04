@@ -243,7 +243,7 @@ class DbDataset(AbstractCdsAdaptor):
         print("timing: time elapsed compressing the file %6.3f" % (time.time() - t2))
         return open(output, 'rb')
 
-class GlamodDB(DbDataset):
+class GlamodDb(DbDataset):
     def retrieve(self, query: adaptor.Request):
         from .tools.insitu_lib import insitu_utils
 

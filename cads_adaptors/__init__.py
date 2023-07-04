@@ -28,7 +28,7 @@ from .adaptor import AbstractAdaptor, DummyAdaptor
 from .adaptor_cds import (
     AbstractCdsAdaptor,
     DbDataset,
-    GlamodDB,
+    GlamodDb,
     DirectMarsCdsAdaptor,
     LegacyCdsAdaptor,
     MarsCdsAdaptor,
@@ -45,7 +45,7 @@ __all__ = [
     "DbDataset",
     "DirectMarsCdsAdaptor",
     "DummyAdaptor",
-    "GlamodDB",
+    "GlamodDb",
     "LegacyCdsAdaptor",
     "MarsCdsAdaptor",
     "UrlCdsAdaptor",
