@@ -84,14 +84,15 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
             this_request.setdefault("download_format", "list")
             print(f"{adaptor_tag}, request: {this_request}")
-            print(f"{adaptor_tag}, adaptor: {this_adaptor}")
-            print(f"{adaptor_tag}, config {this_adaptor.config}")
+            # print(f"{adaptor_tag}, adaptor: {this_adaptor}")
+            # print(f"{adaptor_tag}, config {this_adaptor.config}")
             # TODO: check this_request is valid for this_adaptor, or rely on try? i.e. split_request does
             #       NOT implement constraints.
             try:
                 results += ensure_list(this_adaptor.retrieve(this_request))
             except Exception as err:
                 # Catch any possible exception and store error message in case all adaptors fail
+                print(f"{adaptor_tag} Error: {err}")
                 exception_logs[adaptor_tag] = f"{err}"
 
         if len(results) == 0:
