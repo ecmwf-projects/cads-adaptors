@@ -249,11 +249,13 @@ class GlamodDb(DbDataset):
 
         resource = self.config['uri']
         domain = 'land' if 'land' in resource else 'marine'
-        print(f'query::::::: {query}')
+        print(f'query:::::::{resource} {query}')
 
         url = self.config['urls']['requests'].replace(
             self.config['urls']['requests'],
             self.config['urls']['internal']['pattern'], self.config['urls']['internal']['ip'])
+
+        query = mapping.apply_mapping(query, self.mapping)
         _q = query
 
         _q['domain'] = domain
