@@ -3,12 +3,9 @@ from typing import List
 
 from cads_adaptors.tools import ensure_list
 
+
 # TODO use targzstream
-def zip_paths(
-    paths: List[str],
-    base_target: str = "output-data",
-    **kwargs
-) -> str:
+def zip_paths(paths: List[str], base_target: str = "output-data", **kwargs) -> str:
     import zipfile
 
     target = f"{base_target}.zip"
@@ -48,11 +45,8 @@ def list_paths(
     return [open(path, "rb") for path in ensure_list(paths)]
 
 
-def raw_path(
-    paths: List[str],
-    **kwargs
-):
-    assert len(paths)==1
+def raw_path(paths: List[str], **kwargs):
+    assert len(paths) == 1
     return open(paths[0], "rb")
 
 

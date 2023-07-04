@@ -7,7 +7,7 @@ from cads_adaptors.adaptor import Request
 
 # import os
 from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
-from cads_adaptors.tools import ensure_list, download_tools
+from cads_adaptors.tools import ensure_list
 
 def ensure_list(input_item):
     if not isinstance(input_item, list):
@@ -75,7 +75,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.tools import download_tools
 
         download_format = request.pop("download_format", "zip")
-        
+
         results = []
         exception_logs = {}
         for adaptor_tag, this_adaptor in self.adaptors.items():
@@ -101,7 +101,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 f"{yaml.safe_dump(exception_logs)}"
             )
 
-
         # return self.merge_results(results, prefix=self.collection_id)
         # close files
         [res.close() for res in results]
@@ -109,7 +108,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
         paths = [res.name for res in results]
 
         download_kwargs = dict(
-            base_target = f"{self.collection_id}-{hash(tuple(results))}"
+            base_target=f"{self.collection_id}-{hash(tuple(results))}"
         )
 
-        return download_tools.DOWNLOAD_FORMATS[download_format](paths, **download_kwargs)
+        return download_tools.DOWNLOAD_FORMATS[download_format](
+            paths, **download_kwargs
+        )
