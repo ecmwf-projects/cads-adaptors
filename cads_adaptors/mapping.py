@@ -236,6 +236,7 @@ def apply_mapping(request, mapping):
                 month_key=month_key,
                 day_key=day_key,
             )
+        print('DEBUG apply mapping', this_request, date_opt)
 
     # TODO: is this required? not used in any dataset
     if options.get("wants_intervals", False):
