@@ -24,6 +24,53 @@ def get_public_hostname():
     return os.environ.get('PROJECT_URL', 'Project url not defined')
 
 
+def is_sparse(x, translator=int):
+    if isinstance(x, str):
+        x = [x]
+    if isinstance(x[0], list):
+        x = x[0]
+    x = [x] if isinstance(x, str) else x
+    y = list(map(translator, x))
+    if len(y) == 1:
+        return False
+    else:
+        y.sort()
+        for i in range(1, len(y)):
+            if abs(y[i] - y[i - 1]) > 1:
+                return True
+    return False
+
+
+def adjust_time(query):
+    if 'time' in query:
+        return query
+    if is_sparse(query['year']) or \
+       is_sparse(query['month']) or \
+       is_sparse(query['day']):
+        return query
+    d = list(map(int, query['day'] if isinstance(query['day'], list) else [query['day']]))
+    m = list(map(int, query['month'] if isinstance(query['month'], list) else [query['month']]))
+    y = list(map(int, query['year'] if isinstance(query['year'], list) else [query['year']]))
+
+    all_months = m == list(range(1, 13))
+    all_days = d == list(range(1, 32))
+    fd = 1 if all_days else min(d)
+    ld = calendar.monthrange(max(y), max(m))[1] if all_days else max(d)
+
+    fm = 1 if all_months else min(m)
+    lm = 12 if all_months else max(m)
+
+    query.update(
+        {
+            'time': f'{min(y):04d}-{fm:02d}-{fd:02d}T00:00:00/'
+                    f'{max(y):04d}-{lm:02d}-{ld:02d}T23:59:59'
+        }
+    )
+    del query['year']
+    del query['month']
+    del query['day']
+    return query
+
 def get_licences(form):
     out = [_ for _ in form if _.get('type', 'not type') == 'LicenceWidget'][0]
     return '\n'.join([_.get('label', 'unspecified licence') for _ in out.get('details', {}).get('licences', [])])
@@ -70,7 +117,7 @@ def variables_units(api_url, variables, source):
 def csv_header(api_url, query, config={}, form={}):
 
     print(query, form)
-    resource = 'a dataset to be specified'#context.request['metadata']['resource']
+    resource = config.get('uri', 'not specified')
     source = query.get('source', ['not specified'])[0]
     variables = variables_units(api_url, query.get('variable'), source)
 

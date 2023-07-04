@@ -242,3 +242,44 @@ class DbDataset(AbstractCdsAdaptor):
         print("timing: time elapsed compressing the file %6.3f" % (time.time() - t2))
         return open(output, 'rb')
 
+class Glamod(DbDataset):
+    def retrieve(self, query: adaptor.Request):
+        from .tools.insitu_lib import insitu_utils
+
+        resource = self.config['uri']
+        domain = 'land' if 'land' in resource else 'marine'
+        print(f'query::::::: {query}')
+
+        url = self.config['urls']['requests'].replace(
+            self.config['urls']['requests'],
+            self.config['urls']['internal']['pattern'], self.config['urls']['internal']['ip'])
+        _q = query
+
+        _q['domain'] = domain
+        _q['compress'] = 'true'
+        if 'area' in _q:
+            bbox = _q.get('area', [90, -180, -90, 180])  # what service want : [<w>,<s>,<e>,<n>]
+            # {'n':90., 'w': -180., 's': -90., 'e': 180.})
+            bbox = ','.join([str(bbox[i]) for i in [1, 2, 3, 0]])
+            _q['bbox'] = bbox
+            if bbox == '180,90,-180,-90':
+                _q.pop('bbox', None)
+                _q.pop('area', None)
+        _q = insitu_utils.adjust_time(_q)
+        _q.pop('format', None)
+        print(_q)
+        print(f'glamod adaptor received query {query}')
+        mid_processing = 'tmp.zip'
+        with requests.get(url, params=_q, timeout=(60 * 60 * 10 * 10, 60 * 60 * 10 * 10), stream=True) as res:
+            print(res.request.url)
+            print(res.request.body)
+            print(res.request.headers)
+            print(f'yyyyyyy {res.status_code} {res.reason}')
+            assert res.status_code in [200, 304], f"Error returned by the data provider: {res.content}" \
+                                                  f"When calling {res.request.url}"
+
+
+            with open(mid_processing, 'wb') as f:
+                f.write(res.content)
+
+        return open(mid_processing, 'rb')
