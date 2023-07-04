@@ -222,10 +222,10 @@ def apply_mapping(request, mapping):
     # Transform year/month/day in dates
     for date_opt in date_options:
         wants_dates = date_opt.get("wants_dates", options.get("wants_dates", False))
-        date_key = date_opt.get("date_keyword", "date")
-        year_key = date_opt.get("year_keyword", "year")
-        month_key = date_opt.get("month_keyword", "month")
-        day_key = date_opt.get("day_keyword", "day")
+        date_key = date_opt.get("date_key", "date")
+        year_key = date_opt.get("year_key", "year")
+        month_key = date_opt.get("month_key", "month")
+        day_key = date_opt.get("day_key", "day")
 
         if wants_dates:
             this_request = expand_dates(
@@ -236,7 +236,6 @@ def apply_mapping(request, mapping):
                 month_key=month_key,
                 day_key=day_key,
             )
-        print('DEBUG apply mapping', this_request, date_opt)
 
     # TODO: is this required? not used in any dataset
     if options.get("wants_intervals", False):
@@ -307,7 +306,7 @@ def expand_dates(
     else:
         years = [int(x) for x in ensure_list(request.get(year_key, []))]
         months = [int(x) for x in ensure_list(request.get(month_key, []))]
-        days = [int(x) for x in ensure_list(day_key, [])]
+        days = [int(x) for x in ensure_list(request.get(day_key, []))]
 
         if years and months and days:
             this_request[date_key] = sorted(
