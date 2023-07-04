@@ -288,6 +288,7 @@ def expand_dates(
     month_key="month",
     day_key="day",
 ):
+    print(f"EXPAND_DATES: {date_key}, {year_key}, {month_key}, {day_key}")
     if date_key in this_request:
         newdates = set()
         dates = this_request[date_key]
