@@ -31,4 +31,3 @@ def get_adaptor(config: dict[str, Any], form: dict[str, Any] | None = None):
     adaptor = adaptor_class(form=form, **config)  # type: ignore
 
     return adaptor
-
