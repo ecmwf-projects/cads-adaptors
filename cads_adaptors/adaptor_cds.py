@@ -244,21 +244,21 @@ class DbDataset(AbstractCdsAdaptor):
         return open(output, 'rb')
 
 class GlamodDb(DbDataset):
-    def retrieve(self, query: adaptor.Request):
+    def retrieve(self, request: adaptor.Request):
         from .tools.insitu_lib import insitu_utils
 
         resource = self.config['uri']
         domain = 'land' if 'land' in resource else 'marine'
-        print(f'query:::::::{resource} {query}')
-        query = mapping.apply_mapping(query, self.mapping)
-        print(f'query{"~" * 10}{resource} {query}')
+        print(f'request:::::::{resource} {request}')
+        request = mapping.apply_mapping(request, self.mapping)
+        print(f'request{"~" * 10}{resource} {request}')
 
         url = self.config['urls']['requests'].replace(
             self.config['urls']['requests'],
             self.config['urls']['internal']['pattern'], self.config['urls']['internal']['ip'])
         print(url)
 
-        _q = query
+        _q = request
 
         _q['domain'] = domain
         _q['compress'] = 'true'
@@ -273,7 +273,7 @@ class GlamodDb(DbDataset):
         _q = insitu_utils.adjust_time(_q)
         _q.pop('format', None)
         print(_q)
-        print(f'glamod adaptor received query {query}')
+        print(f'glamod adaptor received request {request}')
         mid_processing = 'tmp.zip'
         with requests.get(url, params=_q, timeout=(60 * 60 * 10 * 10, 60 * 60 * 10 * 10), stream=True) as res:
             print(res.request.url)
