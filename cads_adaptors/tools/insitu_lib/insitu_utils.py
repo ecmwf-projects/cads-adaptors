@@ -3,6 +3,8 @@ import os
 import yaml
 import sqlalchemy
 import requests
+import calendar
+from itertools import product
 
 header_template = """
 ########################################################################################
@@ -70,6 +72,19 @@ def adjust_time(query):
     del query['month']
     del query['day']
     return query
+
+def iterate_over_days(query):
+    out = query.copy()
+    if 'year' in query:
+        del out['year']
+        del out['month']
+        del out['day']
+        for y,m,d in product(query['year'], query['month'], query['day']):
+            out.update({'time': f'{y:04d}-{m:02d}-{d:02d}'})
+    elif 'time' in query:
+        return query
+
+
 
 def get_licences(form):
     out = [_ for _ in form if _.get('type', 'not type') == 'LicenceWidget'][0]
