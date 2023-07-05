@@ -80,7 +80,7 @@ def iterate_over_days(query):
         del out['month']
         del out['day']
         for y,m,d in product(query['year'], query['month'], query['day']):
-            out.update({'time': f'{y:04d}-{m:02d}-{d:02d}'})
+            out.update({'time': f'{y:04i}-{m:02i}-{d:02i}'})
             yield out
 
     elif 'time' in query:
