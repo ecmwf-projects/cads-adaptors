@@ -10,6 +10,7 @@ import logging
 import requests
 import sqlalchemy
 
+import multiprocessing
 
 
 class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
@@ -268,21 +269,14 @@ class GlamodDb(DbDataset):
 
         mid_processing = 'tmp.zip'
         with zipfile.ZipFile(mid_processing, 'a') as z_out:
-            for i, __q in enumerate(insitu_utils.iterate_over_days(_q)):
-                print(__q)
-                with requests.get(url, params=__q, timeout=(60 * 60 * 10 * 10, 60 * 60 * 10 * 10), stream=True) as res:
-                    print(res.request.url)
-                    print(res.request.body)
-                    print(res.request.headers)
-                    print(f'yyyyyyy {res.status_code} {res.reason}')
-                    assert res.status_code in [200, 304], f"Error returned by the data provider: {res.content}" \
-                                                          f"When calling {res.request.url}"
-
-                    with open('all_tmp.zip', 'wb') as f:
-                        f.write(res.content)
-                    with zipfile.ZipFile('all_tmp.zip', 'r') as z:
-                        for zitem in z.namelist():
-                            # assuming zitem is not a memory blowing up file
-                            z_out.writestr(zitem, z.read(zitem))
+            with multiprocessing.Pool(4) as pool:
+                outs = pool.starmap(
+                    insitu_utils.par_get,
+                    [(url, __q, f'tmp_{i}.zip') for i, __q in enumerate(insitu_utils.iterate_over_days(_q))])
+            for azf in outs:
+                with zipfile.ZipFile(azf, 'r') as z:
+                    for zitem in z.namelist():
+                        # assuming zitem is not a memory blowing up file
+                        z_out.writestr(zitem, z.read(zitem))
 
         return open(mid_processing, 'rb')
