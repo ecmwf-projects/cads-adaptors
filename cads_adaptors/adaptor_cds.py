@@ -127,7 +127,7 @@ class DbDataset(AbstractCdsAdaptor):
     ):
 
         super().__init__(form, **config)
-        print(form, config)
+        #print(form, config)
         self.adaptors = {}
         self.values = {}
         for adaptor_tag, adaptor_desc in config.get("adaptors", {}).items():
@@ -216,14 +216,6 @@ class DbDataset(AbstractCdsAdaptor):
             )
             print("timing: time elapsed converting to cdm-obs the file %6.3f" % (time.time() - t1))
 
-            # if observation database
-            if fmt in ['ODB', 'odb']:
-                t2 = time.time()
-                output = 'out.odb'
-                converters.csv2odb.convert(csv_path, output)
-                print("timing: time elapsed encoding odb %6.3f" % (time.time() - t2))
-                return open(output, 'rb')
-
         t2 = time.time()
         # prepending the header to the output file
         csv_path_out = 'tmp3.csv'
@@ -246,7 +238,6 @@ class DbDataset(AbstractCdsAdaptor):
 class GlamodDb(DbDataset):
     def retrieve(self, request: adaptor.Request):
         from .tools.insitu_lib import insitu_utils
-
         resource = self.config['uri']
         domain = 'land' if 'land' in resource else 'marine'
         print(f'request:::::::{resource} {request}')
@@ -272,8 +263,8 @@ class GlamodDb(DbDataset):
                 _q.pop('area', None)
         _q = insitu_utils.adjust_time(_q)
         _q.pop('format', None)
-        print(_q)
-        print(f'glamod adaptor received request {request}')
+        #print(_q)
+        #print(f'glamod adaptor received request {request}')
         mid_processing = 'tmp.zip'
         with requests.get(url, params=_q, timeout=(60 * 60 * 10 * 10, 60 * 60 * 10 * 10), stream=True) as res:
             print(res.request.url)
@@ -282,8 +273,6 @@ class GlamodDb(DbDataset):
             print(f'yyyyyyy {res.status_code} {res.reason}')
             assert res.status_code in [200, 304], f"Error returned by the data provider: {res.content}" \
                                                   f"When calling {res.request.url}"
-
-
             with open(mid_processing, 'wb') as f:
                 f.write(res.content)
 
