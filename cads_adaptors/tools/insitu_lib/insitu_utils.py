@@ -103,7 +103,7 @@ def par_get(url, request, out_f):
 
         with open(out_f, 'wb') as f:
             f.write(res.content)
-    return os.path.join(cwd, out_f)
+    return out_f
 
 
 
