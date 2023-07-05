@@ -273,6 +273,7 @@ class GlamodDb(DbDataset):
             outs = [dask.delayed(insitu_utils)(url, __q, f'tmp_{i}.zip')
                     for i, __q in enumerate(insitu_utils.iterate_over_days(_q))]
             outs = dask.compute(*outs)
+            print(outs)
             for azf in outs:
                 with zipfile.ZipFile(azf, 'r') as z:
                     for zitem in z.namelist():
