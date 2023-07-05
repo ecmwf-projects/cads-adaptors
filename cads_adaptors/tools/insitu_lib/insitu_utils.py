@@ -95,7 +95,7 @@ def iterate_over_days(query):
             ts += datetime.timedelta(days=1)
             yield out
 
-@cacheable
+
 def par_get(url, request, out_f):
     cwd = os.getcwd()
     hostname = socket.gethostname()
@@ -108,7 +108,7 @@ def par_get(url, request, out_f):
                                               f"When calling {res.request.url}"
         with open(out_f, 'wb') as f:
             f.write(res.content)
-        return open(out_f, 'rb')
+        return outf
 
 
 
