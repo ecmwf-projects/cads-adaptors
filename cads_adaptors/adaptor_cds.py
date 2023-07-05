@@ -274,13 +274,14 @@ class GlamodDb(DbDataset):
                     for i, __q in enumerate(insitu_utils.iterate_over_days(_q))]
             outs = dask.compute(*outs)
             print(outs)
-            for azf in outs:
+            for azf, hn in outs:
+                print(azf, hn)
                 try:
                     with zipfile.ZipFile(azf, 'r') as z:
                         for zitem in z.namelist():
                             # assuming zitem is not a memory blowing up file
                             z_out.writestr(zitem, z.read(zitem))
                 except FileNotFoundError:
-                    print(azf)
+                    print('failed', azf, hn)
 
         return open(mid_processing, 'rb')

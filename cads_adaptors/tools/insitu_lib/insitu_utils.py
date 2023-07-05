@@ -7,6 +7,8 @@ import sqlalchemy
 import requests
 import calendar
 from itertools import product
+import socket
+
 
 header_template = """
 ########################################################################################
@@ -75,6 +77,7 @@ def adjust_time(query):
     del query['day']
     return query
 
+
 def iterate_over_days(query):
     out = query.copy()
     if 'year' in query:
@@ -91,8 +94,10 @@ def iterate_over_days(query):
             ts += datetime.timedelta(days=1)
             yield out
 
+
 def par_get(url, request, out_f):
     cwd = os.getcwd()
+    hostname = socket.gethostname()
     with requests.get(url, params=request, timeout=(60 * 60 * 10 * 10, 60 * 60 * 10 * 10), stream=True) as res:
         print(res.request.url)
         print(res.request.body)
@@ -100,10 +105,9 @@ def par_get(url, request, out_f):
         print(f'yyyyyyy {res.status_code} {res.reason}')
         assert res.status_code in [200, 304], f"Error returned by the data provider: {res.content}" \
                                               f"When calling {res.request.url}"
-
         with open(out_f, 'wb') as f:
             f.write(res.content)
-    return out_f
+    return out_f, hostname
 
 
 
