@@ -92,6 +92,7 @@ def iterate_over_days(query):
             yield out
 
 def par_get(url, request, out_f):
+    cwd = os.getcwd()
     with requests.get(url, params=request, timeout=(60 * 60 * 10 * 10, 60 * 60 * 10 * 10), stream=True) as res:
         print(res.request.url)
         print(res.request.body)
@@ -102,7 +103,7 @@ def par_get(url, request, out_f):
 
         with open(out_f, 'wb') as f:
             f.write(res.content)
-    return out_f
+    return os.path.join(cwd, out_f)
 
 
 
