@@ -282,6 +282,7 @@ class GlamodDb(DbDataset):
                         f.write(res.content)
                     with zipfile.ZipFile('all_tmp.zip', 'r') as z:
                         for zitem in z.namelist():
+                            # assuming zitem is not a memory blowing up file
                             z_out.writestr(zitem, z.read(zitem))
 
         return open(mid_processing, 'rb')
