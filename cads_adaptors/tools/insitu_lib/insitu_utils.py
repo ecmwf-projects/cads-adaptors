@@ -108,7 +108,7 @@ def par_get(url, request, out_f):
                                               f"When calling {res.request.url}"
         with open(out_f, 'wb') as f:
             f.write(res.content)
-        return outf
+        return out_f
 
 
 
