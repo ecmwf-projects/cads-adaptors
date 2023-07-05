@@ -8,6 +8,7 @@ import requests
 import calendar
 from itertools import product
 import socket
+from cads_adaptors.cache import cacheable
 
 
 header_template = """
@@ -94,7 +95,7 @@ def iterate_over_days(query):
             ts += datetime.timedelta(days=1)
             yield out
 
-
+@cacheable
 def par_get(url, request, out_f):
     cwd = os.getcwd()
     hostname = socket.gethostname()
@@ -107,7 +108,7 @@ def par_get(url, request, out_f):
                                               f"When calling {res.request.url}"
         with open(out_f, 'wb') as f:
             f.write(res.content)
-    return out_f, hostname
+        return open(out_f, 'rb')
 
 
 
