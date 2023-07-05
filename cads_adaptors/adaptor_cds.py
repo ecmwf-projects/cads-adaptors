@@ -10,7 +10,7 @@ import logging
 import requests
 import sqlalchemy
 
-import multiprocessing
+import dask
 
 
 class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
@@ -268,11 +268,11 @@ class GlamodDb(DbDataset):
         _q.pop('format', None)
 
         mid_processing = 'tmp.zip'
+
         with zipfile.ZipFile(mid_processing, 'a') as z_out:
-            with multiprocessing.Pool(4) as pool:
-                outs = pool.starmap(
-                    insitu_utils.par_get,
-                    [(url, __q, f'tmp_{i}.zip') for i, __q in enumerate(insitu_utils.iterate_over_days(_q))])
+            outs = [dask.delayed(insitu_utils)(url, __q, f'tmp_{i}.zip')
+                    for i, __q in enumerate(insitu_utils.iterate_over_days(_q))]
+            outs = dask.compute(*outs)
             for azf in outs:
                 with zipfile.ZipFile(azf, 'r') as z:
                     for zitem in z.namelist():
