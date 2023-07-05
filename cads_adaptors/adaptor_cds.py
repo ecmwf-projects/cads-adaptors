@@ -245,8 +245,9 @@ class GlamodDb(DbDataset):
         print(f'request{"~" * 10}{resource} {request}')
 
         url = self.config['urls']['requests'].replace(
-            self.config['urls']['requests'],
-            self.config['urls']['internal']['pattern'], self.config['urls']['internal']['ip'])
+            self.config['urls']['internal']['pattern'],
+            self.config['urls']['internal']['ip']
+        )
         print(url)
 
         _q = request
