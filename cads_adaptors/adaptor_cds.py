@@ -263,7 +263,7 @@ class GlamodDb(DbDataset):
             if bbox == '180,90,-180,-90':
                 _q.pop('bbox', None)
                 _q.pop('area', None)
-        _q = insitu_utils.adjust_time(_q)
+        #_q = insitu_utils.adjust_time(_q)
         _q.pop('format', None)
 
         mid_processing = 'tmp.zip'
