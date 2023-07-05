@@ -244,11 +244,12 @@ class GlamodDb(DbDataset):
         request = mapping.apply_mapping(request, self.mapping)
         print(f'request{"~" * 10}{resource} {request}')
 
-        url = self.config['urls']['requests'].replace(
-            self.config['urls']['internal']['pattern'],
-            self.config['urls']['internal']['ip']
-        )
-        print(url)
+        # url = self.config['urls']['requests'].replace(
+        #     self.config['urls']['internal']['pattern'],
+        #     self.config['urls']['internal']['ip']
+        # )
+        # print(url)
+        url = self.config['urls']['requests']
 
         _q = request
 
