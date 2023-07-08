@@ -86,8 +86,12 @@ def iterate_over_days(query):
         del out['month']
         del out['day']
         for y,m,d in product(query['year'], query['month'], query['day']):
-            out.update({'time': f'{y}-{m}-{d}/{y}-{m}-{d}'})
-            yield out
+            try:
+                newDate = datetime.datetime(int(y), int(m), int(day))
+                out.update({'time': f'{y}-{m}-{d}/{y}-{m}-{d}'})
+                yield out
+            except:
+                continue
     elif 'time' in query:
         ts, te = [dateutil.parser.parse(_) for _ in query['time'].split('/')]
         while ts <= te:
@@ -97,17 +101,17 @@ def iterate_over_days(query):
 
 
 def par_get(url, request, out_f):
-    cwd = os.getcwd()
-    hostname = socket.gethostname()
-    with requests.get(url, params=request, timeout=(60 * 60 * 10 * 10, 60 * 60 * 10 * 10), stream=True) as res:
-        print(res.request.url)
-        print(res.request.body)
-        print(res.request.headers)
-        print(f'yyyyyyy {res.status_code} {res.reason}')
-        assert res.status_code in [200, 304], f"Error returned by the data provider: {res.content}" \
-                                              f"When calling {res.request.url}"
-        with open(out_f, 'wb') as f:
-            f.write(res.content)
+    # cwd = os.getcwd()
+    # hostname = socket.gethostname()
+    try:
+        with requests.get(url, params=request, timeout=(60 * 60 * 10 * 10, 60 * 60 * 10 * 10), stream=True) as res:
+            assert res.status_code in [200, 304], f"Error returned by the data provider: {res.content}" \
+                                                  f"When calling {res.request.url}"
+            with open(out_f, 'wb') as f:
+                f.write(res.content)
+    except AssertionError as _err:
+        print(_err)
+    finally:
         return out_f
 
 

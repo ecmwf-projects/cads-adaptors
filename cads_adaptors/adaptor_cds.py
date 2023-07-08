@@ -282,6 +282,9 @@ class GlamodDb(DbDataset):
                         for zitem in z.namelist():
                             # assuming zitem is not a memory blowing up file
                             z_out.writestr(zitem, z.read(zitem))
+                    del azf_url
+                except Exception as _err:
+                    print('failed', _err)
                 except FileNotFoundError:
                     print('failed', azf_url)
 
