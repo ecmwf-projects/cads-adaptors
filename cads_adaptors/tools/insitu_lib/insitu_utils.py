@@ -111,8 +111,7 @@ def par_get(url, request, out_f):
                 f.write(res.content)
     except AssertionError as _err:
         print(_err)
-    finally:
-        return out_f
+    return out_f
 
 
 def get_licences(form):

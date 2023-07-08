@@ -151,7 +151,7 @@ class DbDataset(AbstractCdsAdaptor):
         dataset = api_url.split('/')[-1]
         endpoint = api_url.replace('http://', '').split('/')[0]
 
-        self.logger.info(request)
+        print(request)
         _q = {}
 
         request = mapping.apply_mapping(request, self.mapping)
@@ -178,18 +178,18 @@ class DbDataset(AbstractCdsAdaptor):
 
         source = source[0] if isinstance(source, list) else source
 
-        self.logger.info("REQUEST recomposed: [{}]".format(_q))
+        print("REQUEST recomposed: [{}]".format(_q))
 
         header, out_name = insitu_utils.csv_header(api_url, _q, self.config, self.form)
         #self.logger.info(f'insitu: {header}, {out_name}')
 
-        self.logger.info(f"REQUEST renamed: [{_q}]")
+        print(f"REQUEST renamed: [{_q}]")
 
         res = requests.get(f'{api_url}/compose', params=_q)
         table = res.json().lower().split(' from ')[1].split(' ')[0]
 
-        self.logger.info(f"db request: [{res.json()}]")
-        self.logger.info(f"table: [{table}]")
+        print(f"db request: [{res.json()}]")
+        print(f"table: [{table}]")
 
         fmt = _q['format']
         fmt = fmt[0] if isinstance(fmt, list) else fmt
@@ -248,14 +248,9 @@ class GlamodDb(DbDataset):
         request = mapping.apply_mapping(request, self.mapping)
         print(f'request{"~" * 10}{resource} {request}')
 
-        # url = self.config['urls']['requests'].replace(
-        #     self.config['urls']['internal']['pattern'],
-        #     self.config['urls']['internal']['ip']
-        # )
-        # print(url)
         url = self.config['urls']['requests']
 
-        _q = request
+        _q = request.copy()
 
         _q['domain'] = domain
         _q['compress'] = 'true'
