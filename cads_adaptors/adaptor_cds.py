@@ -1,4 +1,5 @@
 import os
+import shutil
 from typing import Any, BinaryIO
 
 from cads_adaptors import adaptor, constraints, costing, mapping
@@ -238,7 +239,9 @@ class DbDataset(AbstractCdsAdaptor):
 
 class GlamodDb(DbDataset):
     def retrieve(self, request: adaptor.Request):
+
         from .tools.insitu_lib import insitu_utils
+
         resource = self.config['uri']
         domain = 'land' if 'land' in resource else 'marine'
         print(f'request:::::::{resource} {request}')
@@ -282,9 +285,9 @@ class GlamodDb(DbDataset):
                         for zitem in z.namelist():
                             # assuming zitem is not a memory blowing up file
                             z_out.writestr(zitem, z.read(zitem))
-                    del azf_url
+                    os.remove(azf_url)
                 except Exception as _err:
-                    print('failed', _err)
+                    print('failed unexpected', _err)
                 except FileNotFoundError:
                     print('failed', azf_url)
 

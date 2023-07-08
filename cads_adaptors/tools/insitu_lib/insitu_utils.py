@@ -115,16 +115,10 @@ def par_get(url, request, out_f):
         return out_f
 
 
-
 def get_licences(form):
     out = [_ for _ in form if _.get('type', 'not type') == 'LicenceWidget'][0]
     return '\n'.join([_.get('label', 'unspecified licence') for _ in out.get('details', {}).get('licences', [])])
 
-
-def get_end_points(resource):
-    with open(f'/opt/cds/forms/{resource}/generate.yaml', 'r') as f:
-        api_url = yaml.safe_load(f)['api']['url']
-    return api_url
 
 
 def sql_engine(api_url, source, config):
