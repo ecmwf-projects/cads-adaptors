@@ -1,6 +1,5 @@
-import operator
 import os
-from typing import List, BinaryIO, Dict, Callable
+from typing import BinaryIO, Callable, Dict, List
 
 from cads_adaptors.tools import ensure_list
 

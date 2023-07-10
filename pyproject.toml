@@ -33,7 +33,6 @@ module = [
   "cdsapi",
   "multiurl",
   "pandas",
-  "pyodc"
   "pydantic<=1.10.11"
 ]
 
