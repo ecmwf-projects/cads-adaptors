@@ -2,10 +2,10 @@
 from typing import BinaryIO
 
 from cads_adaptors import mapping
-from cads_adaptors.adaptors import AbstractCdsAdaptor, Request
+from cads_adaptors.adaptors import cds, Request
 
 
-class UrlAdaptor(AbstractCdsAdaptor):
+class UrlAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import url_tools
 
