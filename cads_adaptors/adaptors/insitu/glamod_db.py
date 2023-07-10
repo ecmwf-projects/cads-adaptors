@@ -5,12 +5,10 @@ from typing import BinaryIO
 from cads_adaptors import adaptor, mapping
 from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
 
-# import dask
-
 
 class GlamodDb(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
-        from .insitu_lib import insitu_utils
+        from cads_adaptors.adaptors.insitu.tools import insitu_utils
 
         resource = self.config["uri"]
         domain = "land" if "land" in resource else "marine"
