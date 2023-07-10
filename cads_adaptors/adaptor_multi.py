@@ -32,13 +32,21 @@ class MultiAdaptor(AbstractCdsAdaptor):
         More complex constraints may need a more detailed splitter.
         """
         this_request = {}
-        for key, vals in full_request.items():
-            vals = ensure_list(vals)
-            this_request[key] = [v for v in vals if v in this_values.get(key, [])]
-
-        # Check all required keys exist:
-        if not all([key in this_request for key in config.get("required_keys", [])]):
-            return {}
+        # loop over keys in this_values, i.e. the keys relevant to this_adaptor
+        for key in list(this_values):
+            # get request values for that key
+            req_vals = full_request.get(key, [])
+            # filter for values relevant to this_adaptor:
+            these_vals = [
+                v for v in ensure_list(req_vals) if v in this_values.get(key, [])
+            ]
+            if len(these_vals) > 0:
+                # if values then add to request
+                this_request[key] = these_vals
+            elif key not in config.get("optional_keys", []):
+                # If not an optional key, then return an empty dictionary.
+                #  optional keys must be set in the adaptor.json via gecko
+                return {}
 
         return this_request
 
@@ -57,6 +65,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.split_request(
                 request, this_values, **self.config
             )
+            if len(this_request)==0:
+                # if request is empty then continue
+                continue
             this_request.setdefault("download_format", "list")
             print(f"{adaptor_tag}, request: {this_request}")
             # TODO: check this_request is valid for this_adaptor, or rely on try? i.e. split_request does
