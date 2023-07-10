@@ -13,3 +13,4 @@ dependencies:
 - pip:
   - cacholote
   - multiurl
+  - pydantic<=1.10.11
