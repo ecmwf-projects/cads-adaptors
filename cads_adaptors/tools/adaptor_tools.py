@@ -1,11 +1,11 @@
 from typing import Any
 
-from .. import adaptor
+from cds_adaptors.adaptors import Base
 
 
 def get_adaptor_class(
     entry_point: str, setup_code: str | None = None
-) -> type[adaptor.AbstractAdaptor]:
+) -> type[Base]:
     from cacholote import decode
 
     try:
@@ -17,8 +17,8 @@ def get_adaptor_class(
             raise TypeError
         exec(setup_code)
         adaptor_class = eval(entry_point)
-    if not issubclass(adaptor_class, adaptor.AbstractAdaptor):
-        raise TypeError(f"{adaptor_class!r} is not subclass of AbstractAdaptor")
+    if not issubclass(adaptor_class, Base):
+        raise TypeError(f"{adaptor_class!r} is not subclass of Base")
     return adaptor_class  # type: ignore
 
 
