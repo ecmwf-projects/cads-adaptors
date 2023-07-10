@@ -18,11 +18,10 @@ import sqlalchemy
 
 
 class DbDataset(AbstractCdsAdaptor):
-    logger = logging.Logger(__name__)
 
-    def retrieve(self, request: adaptor.Request):
+    def retrieve(self, request: adaptor.Request) -> BinaryIO:
 
-        from .insitu_lib import insitu_utils, baron_csv_cdm
+        from .insitu_lib import insitu_utils, csvlev2obs
 
         print(f"{request},\n\n {self.config} \n\n {self.form}")
         try:
@@ -65,8 +64,7 @@ class DbDataset(AbstractCdsAdaptor):
 
         print("REQUEST recomposed: [{}]".format(_q))
 
-        header, out_name = insitu_utils.csv_header(api_url, _q, self.config, self.form)
-        #self.logger.info(f'insitu: {header}, {out_name}')
+        header, out_name = insitu_utils.csv_header(api_url, _q, self.collection_id, self.config, self.form)
 
         print(f"REQUEST renamed: [{_q}]")
 
@@ -95,7 +93,7 @@ class DbDataset(AbstractCdsAdaptor):
         if not fmt in ['csv-lev.zip', 'csv.zip', '.zip', 'zip']:
             t1 = time.time()
             csv_obs_path = "temp2.csv"
-            csv_path = baron_csv_cdm.cdm_converter(
+            csv_path = csvlev2obs.cdm_converter(
                 csv_path, source,
                 dataset=dataset,
                 end_point=endpoint,

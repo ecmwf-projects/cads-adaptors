@@ -2,13 +2,10 @@ import datetime
 import os
 
 import dateutil.parser
-import yaml
 import sqlalchemy
 import requests
 import calendar
 from itertools import product
-import socket
-from cads_adaptors.cache import cacheable
 
 
 header_template = """
@@ -152,10 +149,10 @@ def variables_units(api_url, variables, source):
     return "\n".join(out)
 
 
-def csv_header(api_url, query, config={}, form={}):
+def csv_header(api_url, query, resource, config={}, form={}):
 
     print(query, form)
-    resource = config.get('uri', 'not specified')
+    #resource = config.get('uri', 'not specified')
     source = query.get('source', ['not specified'])[0]
     variables = variables_units(api_url, query.get('variable'), source)
 

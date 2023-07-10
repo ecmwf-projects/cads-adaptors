@@ -5,20 +5,13 @@ from typing import Any, BinaryIO
 from cads_adaptors import adaptor, constraints, costing, mapping
 from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
 
-from cads_adaptors.adaptors.insitu import insitu_lib
-
-
-import time
 import zipfile
-import logging
-import requests
-import sqlalchemy
 
 # import dask
 
 
 class GlamodDb(AbstractCdsAdaptor):
-    def retrieve(self, request: adaptor.Request):
+    def retrieve(self, request: adaptor.Request) -> BinaryIO:
 
         from .insitu_lib import insitu_utils
 
