@@ -11,7 +11,7 @@ dependencies:
 - pip
 - requests
 - pandas
-- dateutil
+- python-dateutil
 - pip:
   - cacholote
   - multiurl
