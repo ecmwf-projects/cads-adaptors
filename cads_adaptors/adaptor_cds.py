@@ -91,7 +91,7 @@ class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
 class MarsCdsAdaptor(DirectMarsCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
         format = request.pop("format", ["grib"])
-        assert len(format) == 1
+        assert len(format) == 1, f"{format}"
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
         if format[0] != "grib":
