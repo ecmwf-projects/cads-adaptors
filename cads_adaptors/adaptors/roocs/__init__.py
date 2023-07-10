@@ -1,0 +1,47 @@
+
+import os
+
+from typing import Any, BinaryIO
+
+from rooki import rooki          # rooki must be imported before rookops
+import rooki.operators as rookops
+
+from cads_adaptors import adaptor
+from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
+
+
+os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
+
+
+class RoocsCdsAdaptor(AbstractCdsAdaptor):    
+    def retrieve(self, request: adaptor.Request) -> BinaryIO:
+        workflow = self.construct_workflow(request)
+        
+        
+    
+    def construct_workflow(self, request):
+        facets = self.find_facets(request)
+        
+        dataset_id = ".".join(facets.values())
+        variable_id = facets.get("variable", "")
+        
+        workflow = rookops.Input(variable_id, [dataset_id])
+        
+    
+    
+        
+    
+    def find_facets(self, request):
+        """Expand the CDS request into a full, unique set of facets for ROOCS.
+
+        NOTE: This method assumes unique facets for each CDS request.
+        """
+        facets = self.config.get("facets", dict())
+        
+        for candidate in facets:
+            if candidate.items() >= request.items():
+                break
+        else:
+            raise ValueError(f"No data found for request {request}")
+        
+        return candidate
