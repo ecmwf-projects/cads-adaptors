@@ -88,11 +88,12 @@ def download_tgz_from_urls(
     return target
 
 
+# Deprecated method, TODO: remove if not used externally
 def download_from_urls(
     urls: List[str],
     download_format: str = "zip",
     prefix: str = "collection",
-) -> str:
+) -> List:
     base_target = f"{prefix}-{hash(tuple(urls))}"
 
     if download_format == "tgz":
@@ -100,7 +101,7 @@ def download_from_urls(
     elif download_format == "zip":
         target = download_zip_from_urls(urls=urls, base_target=base_target)
     elif download_format == "list":
-        target = try_download(urls=urls)
+        target = try_download(urls=urls)  # type: ignore
     else:
         raise ValueError(f"Download format '{download_format}' is not supported")
 
