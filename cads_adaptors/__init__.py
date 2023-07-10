@@ -28,18 +28,24 @@ from cads_adaptors.adaptors.url import UrlAdaptor
 from cads_adaptors.adaptors.mars import MarsAdaptor, DirectMarsAdaptor
 from cads_adaptors.adaptors.legacy import LegacyCdsAdaptor
 
-
+# TODO: Rename adaptors further up the chain
+AbstractAdaptor = Base
+AbstractCdsAdaptor = Adaptor
+DirectMarsCdsAdaptor = DirectMarsAdaptor
+MarsCdsAdaptor = MarsAdaptor
+UrlCdsAdaptor = UrlAdaptor
+# ###########################################
 
 from .tools.adaptor_tools import get_adaptor_class
 
 __all__ = [
     "__version__",
     "get_adaptor_class",
-    "Base",
-    "Adaptor",
-    "DirectMarsAdaptor",
+    "AbstractAdaptor",
+    "AbstractCdsAdaptor",
+    "DirectMarsCdsAdaptor",
     "DummyAdaptor",
     "LegacyCdsAdaptor",
-    "MarsAdaptor",
-    "UrlAdaptor",
+    "MarsCdsAdaptor",
+    "UrlCdsAdaptor",
 ]
