@@ -1,10 +1,13 @@
 import abc
 from typing import Any, BinaryIO
 
+from cads_adaptors import constraints, costing
+
+
 Request = dict[str, Any]
 
 
-class AbstractAdaptor(abc.ABC):
+class Base(abc.ABC):
     resources: dict[str, int] = {}
 
     def __init__(self, form: dict[str, Any], **config: Any) -> None:
@@ -32,7 +35,7 @@ class AbstractAdaptor(abc.ABC):
         pass
 
 
-class DummyAdaptor(AbstractAdaptor):
+class DummyAdaptor(Base):
     def validate(self, request: Request) -> bool:
         return True
 
@@ -72,3 +75,27 @@ class DummyAdaptor(AbstractAdaptor):
                     fp.write(random.read(length))
                     size -= length
         return open("dummy.grib", "rb")
+
+
+class Adaptor(Base):
+    resources = {"CADS_ADAPTORS": 1}
+
+    def __init__(self, form: dict[str, Any], **config: Any):
+        self.form = form
+        self.constraints = config.pop("constraints", [])
+        self.mapping = config.pop("mapping", {})
+        self.licences: list[tuple[str, int]] = config.pop("licences", [])
+        self.config = config
+
+    def validate(self, request: Request) -> bool:
+        return True
+
+    def apply_constraints(self, request: Request) -> dict[str, Any]:
+        return constraints.validate_constraints(self.form, request, self.constraints)
+
+    def estimate_costs(self, request: Request) -> dict[str, int]:
+        costs = {"size": costing.estimate_size(self.form, request, self.constraints)}
+        return costs
+
+    def get_licences(self, request: Request) -> list[tuple[str, int]]:
+        return self.licences
