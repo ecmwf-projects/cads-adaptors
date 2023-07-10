@@ -248,8 +248,3 @@ def baron_cdm_converter(csv_file, source='IGRA_H', out_file=None):
     print(f'parsing df in {time.time()-t0} s\n time spent in writing to file {wt}')
 
     return out_file
-
-
-def fold_df(df, ):
-    pass
-

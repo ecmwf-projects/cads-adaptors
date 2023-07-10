@@ -27,13 +27,14 @@ from cads_adaptors.adaptor_multi import MultiAdaptor
 from .adaptor import AbstractAdaptor, DummyAdaptor
 from .adaptor_cds import (
     AbstractCdsAdaptor,
-    DbDataset,
-    GlamodDb,
     DirectMarsCdsAdaptor,
     LegacyCdsAdaptor,
     MarsCdsAdaptor,
     UrlCdsAdaptor,
-
+)
+from .adaptors.insitu import (
+    DbDataset,
+    GlamodDb,
 )
 from .tools.adaptor_tools import get_adaptor_class
 
