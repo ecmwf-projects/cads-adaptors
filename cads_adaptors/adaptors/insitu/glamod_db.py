@@ -38,7 +38,7 @@ class GlamodDb(AbstractCdsAdaptor):
         _q.pop("format", None)
 
         mid_processing = "tmp.zip"
-
+        # import dask
         with zipfile.ZipFile(mid_processing, "a") as z_out:
             # outs = [dask.delayed(insitu_utils.par_get)(url, __q, f'/tmp/tmp_{i}.zip')
             #         for i, __q in enumerate(insitu_utils.iterate_over_days(_q))]
