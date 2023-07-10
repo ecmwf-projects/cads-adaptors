@@ -7,7 +7,7 @@ from cads_adaptors import constraints, costing
 Request = dict[str, Any]
 
 
-class Base(abc.ABC):
+class AbstractAdaptor(abc.ABC):
     resources: dict[str, int] = {}
 
     def __init__(self, form: dict[str, Any], **config: Any) -> None:
@@ -35,7 +35,7 @@ class Base(abc.ABC):
         pass
 
 
-class DummyAdaptor(Base):
+class DummyAdaptor(AbstractAdaptor):
     def validate(self, request: Request) -> bool:
         return True
 
@@ -77,7 +77,7 @@ class DummyAdaptor(Base):
         return open("dummy.grib", "rb")
 
 
-class Adaptor(Base):
+class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
 
     def __init__(self, form: dict[str, Any], **config: Any):

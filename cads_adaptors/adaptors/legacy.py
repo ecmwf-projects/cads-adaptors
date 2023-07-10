@@ -1,9 +1,9 @@
 
 from typing import BinaryIO
 
-from cads_adaptors.adaptors import Adaptor, Request
+from cads_adaptors.adaptors import AbstractCdsAdaptor, Request
 
-class LegacyCdsAdaptor(Adaptor):
+class LegacyCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         import cdsapi
 

@@ -3,10 +3,10 @@ import os
 from typing import BinaryIO
 
 from cads_adaptors import mapping
-from cads_adaptors.adaptors import Adaptor, Request
+from cads_adaptors.adaptors import AbstractCdsAdaptor, Request
 
 
-class DirectMarsAdaptor(Adaptor):
+class DirectMarsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
@@ -30,7 +30,7 @@ class DirectMarsAdaptor(Adaptor):
         return open("data.grib")  # type: ignore
 
 
-class MarsAdaptor(Adaptor):
+class MarsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         format = request.pop("format", ["grib"])
         assert len(format) == 1
