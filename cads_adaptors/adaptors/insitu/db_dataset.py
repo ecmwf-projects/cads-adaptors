@@ -13,6 +13,7 @@ from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
 
 
 class DbDataset(AbstractCdsAdaptor):
+
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
         from cads_adaptors.adaptors.insitu.tools import csvlev2obs, insitu_utils
 
