@@ -13,3 +13,4 @@ dependencies:
 - pip:
   - cacholote
   - multiurl
+  - rooki
