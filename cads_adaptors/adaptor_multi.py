@@ -36,6 +36,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         for key in list(this_values):
             # get request values for that key
             req_vals = full_request.get(key, [])
+            print(key, req_vals)
             # filter for values relevant to this_adaptor:
             these_vals = [
                 v for v in ensure_list(req_vals) if v in this_values.get(key, [])
