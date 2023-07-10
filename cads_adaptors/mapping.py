@@ -1,26 +1,6 @@
 # copied from cds-forms-scripts/cds/mapping
+
 import copy
-import datetime
-from typing import List
-
-from cads_adaptors.tools import ensure_list
-
-DATE_OPTIONS = [
-    {
-        "date_key": "date",
-        "year_key": "year",
-        "month_key": "month",
-        "day_key": "day",
-        "date_format": "%Y-%m-%d",
-    },
-    {
-        "date_key": "hdate",
-        "year_key": "hyear",
-        "month_key": "hmonth",
-        "day_key": "hday",
-        "date_format": "%Y%m%d",
-    },
-]
 
 
 def julian_to_ymd(jdate):
@@ -61,8 +41,8 @@ def julian_to_date(jdate):
     return y * 10000 + m * 100 + d
 
 
-# def julian_to_sdate(jdate):
-#     return "%d-%02d-%02d" % julian_to_ymd(jdate)
+def julian_to_sdate(jdate):
+    return "%d-%02d-%02d" % julian_to_ymd(jdate)
 
 
 def ymd_to_julian(year, month, day):
@@ -134,17 +114,14 @@ def date_range(start_date, end_date, step=1):
         s += step
 
 
-def date_from_years_months_days(
-    years: List, months: List, days: List, date_format: str = "%Y-%m-%d"
-):
+def date_from_years_month_days(years, months, days):
     for y in years:
         for m in months:
             for d in days:
-                try:
-                    dt = datetime.date(y, m, d)
-                except ValueError:
-                    continue
-                yield dt.strftime(date_format)
+                julian = ymd_to_julian(y, m, d)
+                y1, m1, d1 = julian_to_ymd(julian)
+                if (y, m, d) == (y1, m1, d1):
+                    yield "%d-%02d-%02d" % (y, m, d)
 
 
 def days_since_epoch(date, epoch):
@@ -159,6 +136,13 @@ def seconds_since_epoch(date, epoch):
 # Code from mapping.py
 
 
+def as_list(r, name, force):
+    x = force.get(name, r.get(name, []))
+    if not isinstance(x, list):
+        return [x]
+    return x
+
+
 def to_interval(x):
     if "/" not in x:
         return "%s/%s" % (x, x)
@@ -171,20 +155,19 @@ def apply_mapping(request, mapping):
     force = mapping.get("force", {})
     defaults = mapping.get("defaults", {})
     selection_limit = mapping.get("selection_limit")
-    selection_limit_ignore = mapping.get("selection_limit_ignore", [])
 
     # Set defaults
+
     for name, values in defaults.items():
         request.setdefaults(name, values)
 
-    # Enforce forced values:
-    request.update(force)
-
     for name in options.get("wants_lists", []):
         if name in request:
-            request[name] = ensure_list(request[name])
+            if not isinstance(request[name], list):
+                request[name] = [request[name]]
 
     # Remap values first
+
     remapping = mapping.get("remap", {})
     for name, remap in remapping.items():
         oldvalues = request.get(name)
@@ -195,10 +178,10 @@ def apply_mapping(request, mapping):
             else:
                 request[name] = remap.get(oldvalues, oldvalues)
 
-    # This request starts with an empty list
-    this_request = {}
+    r = {}
 
-    # Apply patches, TODO: check if this is required, no datasets use patches
+    # Apply patches
+
     patches = mapping.get("patches", [])
     for p in patches:
         source = p["from"]
@@ -206,65 +189,74 @@ def apply_mapping(request, mapping):
         transform = p["mapping"]
         values = request[source]
         if isinstance(values, list):
-            this_request[target] = [transform.get(v, v) for v in values]
+            r[target] = [transform.get(v, v) for v in values]
         else:
-            this_request[target] = transform.get(values, values)
+            r[target] = transform.get(values, values)
 
     # remaps param names
+
     rename = mapping.get("rename", {})
 
     for name, values in request.items():
-        this_request[rename.get(name, name)] = values
+        r[rename.get(name, name)] = values
 
-    date_options = ensure_list(options.get("date_options", DATE_OPTIONS))
+    date = options.get("date_keyword", "date")
 
     # Transform year/month/day in dates
-    for date_opt in date_options:
-        wants_dates = date_opt.get("wants_dates", options.get("wants_dates", False))
-        date_key = date_opt.get("date_key", "date")
-        year_key = date_opt.get("year_key", "year")
-        month_key = date_opt.get("month_key", "month")
-        day_key = date_opt.get("day_key", "day")
 
-        if wants_dates:
-            this_request = expand_dates(
-                this_request,
-                request,
-                date_key=date_key,
-                year_key=year_key,
-                month_key=month_key,
-                day_key=day_key,
-            )
+    if options.get("wants_dates", False):
+        if date in r:
+            newdates = set()
+            dates = r[date]
+            if not isinstance(dates, list):
+                dates = [dates]
+            # Expand intervals
+            for d in dates:
+                if "/" in d:
+                    start, end = d.split("/")
+                    for e in date_range(start, end):
+                        newdates.add(e)
+                else:
+                    newdates.add(d)
 
-    # TODO: is this required? not used in any dataset
+            r[date] = sorted(newdates)
+
+        else:
+            years = [int(x) for x in as_list(request, "year", force)]
+            months = [int(x) for x in as_list(request, "month", force)]
+            days = [int(x) for x in as_list(request, "day", force)]
+
+            if years and months and days:
+                r[date] = sorted(set(date_from_years_month_days(years, months, days)))
+
+                for k in ("year", "month", "day"):
+                    if k in r:
+                        del r[k]
+                    if k in force:
+                        del force[k]
+
     if options.get("wants_intervals", False):
-        if date_key in this_request:
-            this_request[date_key] = [
-                to_interval(d) for d in ensure_list(this_request[date_key])
-            ]
+        if date in r:
+            r[date] = [to_interval(d) for d in r[date]]
 
-    # TODO: is this required? not used in any dataset
     epoch = options.get("seconds_since_epoch")
     if epoch:
+        date = options.get("date_keyword", "date")
         extra = options.get("add_hours_to_date", 0) * 3600
-        oldvalues = this_request[date_key]
+        oldvalues = r[date]
         if isinstance(oldvalues, list):
-            this_request[date_key] = [
-                str(seconds_since_epoch(v, epoch) + extra) for v in oldvalues
-            ]
+            r[date] = [str(seconds_since_epoch(v, epoch) + extra) for v in oldvalues]
         else:
-            this_request[date_key] = str(seconds_since_epoch(oldvalues, epoch) + extra)
+            r[date] = str(seconds_since_epoch(oldvalues, epoch) + extra)
 
     # Set forced values
-    this_request.update(force)
 
-    # Ensure that all values are lists:
-    this_request = {k: ensure_list(v) for k, v in this_request.items()}
+    r.update(force)
 
     if selection_limit:
         count = 1
-        for key, values in this_request.items():
-            if key not in selection_limit_ignore:
+        for _, values in r.items():
+            if isinstance(values, list):
                 count *= len(values)
 
         # print("ITEM count %s limit %s" % (count, selection_limit))
@@ -276,46 +268,5 @@ def apply_mapping(request, mapping):
                 "",
             )
 
-    print(this_request)
-    return this_request
-
-
-def expand_dates(
-    this_request,
-    request,
-    date_key="date",
-    year_key="year",
-    month_key="month",
-    day_key="day",
-):
-    if date_key in this_request:
-        newdates = set()
-        dates = this_request[date_key]
-        if not isinstance(dates, list):
-            dates = [dates]
-        # Expand intervals
-        for d in dates:
-            if "/" in d:
-                start, end = d.split("/")
-                for e in date_range(start, end):
-                    newdates.add(e)
-            else:
-                newdates.add(d)
-
-        this_request[date_key] = sorted(newdates)
-
-    else:
-        years = [int(x) for x in ensure_list(request.get(year_key, []))]
-        months = [int(x) for x in ensure_list(request.get(month_key, []))]
-        days = [int(x) for x in ensure_list(request.get(day_key, []))]
-
-        if years and months and days:
-            this_request[date_key] = sorted(
-                set(date_from_years_months_days(years, months, days))
-            )
-
-            for k in (year_key, month_key, day_key):
-                if k in this_request:
-                    del this_request[k]
-
-    return this_request
+    print(r)
+    return r
