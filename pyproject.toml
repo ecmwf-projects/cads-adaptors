@@ -31,7 +31,8 @@ strict = false
 ignore_missing_imports = true
 module = [
   "cdsapi",
-  "multiurl"
+  "multiurl",
+  "pydantic<=1.10.11"
 ]
 
 [tool.ruff]
