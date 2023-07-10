@@ -55,26 +55,29 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
     #     return open(target, "rb")
 
-    def __init__(self, form: dict[str, Any], **config: Any):
-        from cads_adaptors.tools import adaptor_tools
+    # def __init__(self, form: dict[str, Any], **config: Any):
+    #     from cads_adaptors.tools import adaptor_tools
 
-        super().__init__(form, **config)
-        self.adaptors = {}
-        self.values = {}
-        for adaptor_tag, adaptor_desc in config["adaptors"].items():
-            self.adaptors[adaptor_tag] = adaptor_tools.get_adaptor(adaptor_desc, form)
-            self.values[adaptor_tag] = adaptor_desc.get("values", {})
+    #     super().__init__(form, **config)
+    #     self.adaptors = {}
+    #     self.values = {}
+    #     for adaptor_tag, adaptor_desc in config["adaptors"].items():
+    #         self.adaptors[adaptor_tag] = adaptor_tools.get_adaptor(adaptor_desc, form)
+    #         self.values[adaptor_tag] = adaptor_desc.get("values", {})
 
     def retrieve(self, request: Request):
-        from cads_adaptors.tools import download_tools
+        from cads_adaptors.tools import download_tools, adaptor_tools
 
         download_format = request.pop("download_format", "zip")
 
         results = []
         exception_logs = {}
-        for adaptor_tag, this_adaptor in self.adaptors.items():
+        for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
+            this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
+            this_values = adaptor_desc.get("values", {})
+
             this_request = self.split_request(
-                request, self.values[adaptor_tag], **self.config
+                request, this_values, **self.config
             )
             this_request.setdefault("download_format", "list")
             print(f"{adaptor_tag}, request: {this_request}")
