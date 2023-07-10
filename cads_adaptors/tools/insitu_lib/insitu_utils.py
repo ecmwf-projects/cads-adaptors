@@ -87,7 +87,7 @@ def iterate_over_days(query):
         del out['day']
         for y,m,d in product(query['year'], query['month'], query['day']):
             try:
-                newDate = datetime.datetime(int(y), int(m), int(day))
+                newDate = datetime.datetime(int(y), int(m), int(d))
                 out.update({'time': f'{y}-{m}-{d}/{y}-{m}-{d}'})
                 yield out
             except:
