@@ -65,11 +65,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.split_request(
                 request, this_values, **self.config
             )
+            print(f"{adaptor_tag}, request: {this_request}")
             if len(this_request)==0:
                 # if request is empty then continue
                 continue
             this_request.setdefault("download_format", "list")
-            print(f"{adaptor_tag}, request: {this_request}")
             # TODO: check this_request is valid for this_adaptor, or rely on try? i.e. split_request does
             #       NOT implement constraints.
             try:
