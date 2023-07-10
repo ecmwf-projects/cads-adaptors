@@ -12,6 +12,7 @@ unit-tests:
 	python -m pytest -vv --cov=. --cov-report=$(COV_REPORT) --doctest-glob="*.md" --doctest-glob="*.rst"
 
 type-check:
+	python -m mypy --install-types
 	python -m mypy .
 
 conda-env-update:
