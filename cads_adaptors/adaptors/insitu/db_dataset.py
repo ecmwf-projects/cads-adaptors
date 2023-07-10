@@ -154,3 +154,4 @@ class DbDataset(AbstractCdsAdaptor):
         )
 
         return insitu_utils.header_template.format(**fmts), insitu_utils.zipped_file_template.format(**fmts)
+
