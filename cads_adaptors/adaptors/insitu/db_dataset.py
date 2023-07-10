@@ -5,12 +5,8 @@ from typing import Any, BinaryIO
 from cads_adaptors import adaptor, constraints, costing, mapping
 from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
 
-from cads_adaptors.adaptors.insitu import insitu_lib
-
-
 import time
 import zipfile
-import logging
 import requests
 import sqlalchemy
 
@@ -21,7 +17,7 @@ class DbDataset(AbstractCdsAdaptor):
 
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
 
-        from .insitu_lib import insitu_utils, csvlev2obs
+        from cads_adaptors.adaptors.insitu.tools import insitu_utils, csvlev2obs
 
         print(f"{request},\n\n {self.config} \n\n {self.form}")
         try:
@@ -119,3 +115,42 @@ class DbDataset(AbstractCdsAdaptor):
             zipf.write(csv_path_out, out_name)
         print("timing: time elapsed compressing the file %6.3f" % (time.time() - t2))
         return open(output, 'rb')
+
+    def csv_header(self, api_url, query):
+        from cads_adaptors.adaptors.insitu.tools import insitu_utils
+        print(query, self.form)
+        resource = self.collection_id
+        source = query.get('source', ['not specified'])[0]
+        variables = insitu_utils.variables_units(api_url, query.get('variable'), source)
+
+        y = query.get('year', ['not set'])
+        y.sort()
+        y0 = y[0]
+        y1 = y[-1]
+        m = query.get('month', [f'{_:%02d}' for _ in range(1, 13)])
+        m.sort()
+        m0 = m[0]
+        m1 = m[-1]
+        d = query.get('day', [f'{_:%02d}' for _ in range(1, 32)])
+        d.sort()
+        d0 = d[0]
+        d1 = d[-1]
+        area = query.get('area') if 'area' in query else 'global'
+
+        if area != 'global':
+            area = f'{area[0]}_{area[1]}_{area[2]}_{area[3]}'
+        area = 'global' if area == '90_-180_-90_180' else area
+        fmts = dict(
+            cds_url=f"{os.environ.get('PROJECT_URL', 'cads-portal-url')}/datasets/{self.collection_id}",
+            source=source,
+            licences=insitu_utils.get_licences(self.form),
+            first_date=f'{y0}{m0}{d0}',
+            last_date=f'{y1}{m1}{d1}',
+            bbox=area,
+            csv_convention='cdm-lev' if 'csv-lev' in query.get('format', ['csv-lev'])[0] else 'cdm-obs',
+            area_type=area if area == 'global' else 'subset',
+            variables=variables,
+            version=query.get('version', [''])[0]
+        )
+
+        return insitu_utils.header_template.format(**fmts), insitu_utils.zipped_file_template.format(**fmts)

@@ -8,11 +8,14 @@ import calendar
 from itertools import product
 
 
+zipped_file_template = '{source}_{first_date}_{last_date}_{area_type}_{csv_convention}_{version}.csv'
+
+
 header_template = """
 ########################################################################################
 # This file contains data retrieved from the CDS {cds_url}
 # This is a C3S product under the following licences:
-# {licences}
+{licences}
 # This is a CSV file following the CDS convention {csv_convention}
 # Data source: {source}
 # Version: {version}
@@ -133,8 +136,6 @@ def sql_2_csv(query, db_engine, csv_file):
         conn = db_engine.raw_connection()
         cur = conn.cursor()
         cur.copy_expert(copy_sql, f)
-
-zipped_file_template = '{source}_{first_date}_{last_date}_{area_type}_{csv_convention}_{version}.csv'
 
 
 def variables_units(api_url, variables, source):

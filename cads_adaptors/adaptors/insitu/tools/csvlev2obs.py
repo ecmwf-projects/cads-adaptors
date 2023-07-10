@@ -34,7 +34,7 @@ def cdm_converter(
         csv_file,
         source,
         dataset=None,
-        end_point='obs-base-ref',
+        end_point='obs-insitu',
         out_file=None,
         include_missing=False
 ):
