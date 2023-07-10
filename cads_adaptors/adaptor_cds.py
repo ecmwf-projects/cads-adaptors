@@ -1,13 +1,7 @@
 import os
 from typing import Any, BinaryIO
 
-from cads_adaptors import adaptor, constraints, costing, mapping
-from . import tools
-
-import time
-import zipfile
-import logging
-import requests
+from . import adaptor, constraints, costing, mapping
 
 
 class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
@@ -37,15 +31,12 @@ class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
 
 class UrlCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
-        from cads_adaptors.tools import download_tools, url_tools
+        from .tools import url_tools
 
-        download_format = request.pop("format", "zip")  # TODO: Remove legacy syntax
-        # CADS syntax over-rules legacy syntax
-        download_format = request.pop("download_format", download_format)
+        data_format = request.pop("format", "zip")
 
-        # Do not need to check twice
-        # if download_format not in {"zip", "tgz"}:
-        #     raise ValueError(f"{download_format} is not supported")
+        if data_format not in {"zip", "tgz"}:
+            raise ValueError(f"{data_format=} is not supported")
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
 
@@ -53,14 +44,10 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
             mapped_request, patterns=self.config["patterns"]
         )
 
-        urls = [ru["url"] for ru in requests_urls]
-        paths = url_tools.try_download(urls)
-
-        download_kwargs = dict(base_target=f"{self.collection_id}-{hash(tuple(urls))}")
-
-        return download_tools.DOWNLOAD_FORMATS[download_format](
-            paths, **download_kwargs
+        path = url_tools.download_from_urls(
+            [ru["url"] for ru in requests_urls], data_format=data_format
         )
+        return open(path, "rb")
 
 
 class LegacyCdsAdaptor(AbstractCdsAdaptor):
@@ -104,13 +91,10 @@ class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
 
 class MarsCdsAdaptor(DirectMarsCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
-        format = request.pop("format", ["grib"])
-        request.pop("download_format", "raw")
-        assert len(format) == 1
+        data_format = request.pop("format", "grib")
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
-        if format[0] != "grib":
+        if data_format != "grib":
             # FIXME: reformat if needed
             pass
         return super().retrieve(mapped_request)
-
