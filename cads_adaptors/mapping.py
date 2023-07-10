@@ -1,7 +1,7 @@
 # copied from cds-forms-scripts/cds/mapping
-from typing import List
 import copy
 import datetime
+from typing import List
 
 from cads_adaptors.tools import ensure_list
 
@@ -134,11 +134,9 @@ def date_range(start_date, end_date, step=1):
         s += step
 
 
-
 def date_from_years_months_days(
-    years: List, months: List, days: List, date_format: str ="%Y-%m-%d"
+    years: List, months: List, days: List, date_format: str = "%Y-%m-%d"
 ):
-
     for y in years:
         for m in months:
             for d in days:
@@ -147,6 +145,7 @@ def date_from_years_months_days(
                 except ValueError:
                     continue
                 yield dt.strftime(date_format)
+
 
 def days_since_epoch(date, epoch):
     return date_to_julian(parse_date(date)) - date_to_julian(parse_date(epoch))
@@ -240,7 +239,9 @@ def apply_mapping(request, mapping):
     # TODO: is this required? not used in any dataset
     if options.get("wants_intervals", False):
         if date_key in this_request:
-            this_request[date_key] = [to_interval(d) for d in ensure_list(this_request[date_key])]
+            this_request[date_key] = [
+                to_interval(d) for d in ensure_list(this_request[date_key])
+            ]
 
     # TODO: is this required? not used in any dataset
     epoch = options.get("seconds_since_epoch")
@@ -316,5 +317,5 @@ def expand_dates(
             for k in (year_key, month_key, day_key):
                 if k in this_request:
                     del this_request[k]
-    
+
     return this_request

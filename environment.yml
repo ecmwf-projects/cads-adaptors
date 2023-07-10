@@ -10,6 +10,7 @@ channels:
 dependencies:
 - pip
 - requests
+- pydantic
 - pip:
   - cacholote
   - multiurl
