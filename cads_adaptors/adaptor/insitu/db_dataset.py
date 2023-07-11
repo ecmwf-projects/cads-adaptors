@@ -6,8 +6,8 @@ from typing import BinaryIO
 import requests
 import sqlalchemy
 
-from cads_adaptors import adaptors, mapping
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors import adaptor, mapping
+from cads_adaptors.adaptor.cds import AbstractCdsAdaptor
 
 
 class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
@@ -17,8 +17,8 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
             "collection_id", self.config.get("uri", "not specified")
         )
 
-    def retrieve(self, request: adaptors.Request) -> BinaryIO:
-        from cads_adaptors.adaptors.insitu.tools import csvlev2obs, insitu_utils
+    def retrieve(self, request: adaptor.Request) -> BinaryIO:
+        from cads_adaptors.adaptor.insitu.tools import csvlev2obs, insitu_utils
 
         print(f"{request},\n\n {self.config} \n\n {self.form}")
         try:
@@ -127,7 +127,7 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
         return open(output, "rb")
 
     def csv_header(self, api_url, query):
-        from cads_adaptors.adaptors.insitu.tools import insitu_utils
+        from cads_adaptors.adaptor.insitu.tools import insitu_utils
 
         print(query, self.form)
         source = query.get("source", ["not specified"])[0]

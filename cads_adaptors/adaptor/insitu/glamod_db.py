@@ -2,8 +2,8 @@ import os
 import zipfile
 from typing import BinaryIO
 
-from cads_adaptors import adaptors, mapping
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors import adaptor, mapping
+from cads_adaptors.adaptor.cds import AbstractCdsAdaptor
 
 
 class InsituGlamodCdsAdaptor(AbstractCdsAdaptor):
@@ -13,8 +13,8 @@ class InsituGlamodCdsAdaptor(AbstractCdsAdaptor):
             "collection_id", self.config.get("uri", "not specified")
         )
 
-    def retrieve(self, request: adaptors.Request) -> BinaryIO:
-        from cads_adaptors.adaptors.insitu.tools import insitu_utils
+    def retrieve(self, request: adaptor.Request) -> BinaryIO:
+        from cads_adaptors.adaptor.insitu.tools import insitu_utils
 
         resource = self.config["uri"]
         domain = "land" if "land" in resource else "marine"
