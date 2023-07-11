@@ -4,7 +4,7 @@ from cads_adaptors import mapping
 from cads_adaptors.adaptors import Request, cds
 
 
-class UrlAdaptor(cds.AbstractCdsAdaptor):
+class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import url_tools
 

@@ -5,7 +5,7 @@ from cads_adaptors import mapping
 from cads_adaptors.adaptors import Request, cds
 
 
-class DirectMarsAdaptor(cds.AbstractCdsAdaptor):
+class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
@@ -29,7 +29,7 @@ class DirectMarsAdaptor(cds.AbstractCdsAdaptor):
         return open("data.grib")  # type: ignore
 
 
-class MarsAdaptor(cds.AbstractCdsAdaptor):
+class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         format = request.pop("format", "grib")
 
