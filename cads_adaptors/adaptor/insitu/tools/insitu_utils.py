@@ -3,7 +3,7 @@ import datetime
 import os
 from itertools import product
 
-import dateutil.parser   # type: ignore
+import dateutil.parser  # type: ignore
 import requests
 import sqlalchemy
 
