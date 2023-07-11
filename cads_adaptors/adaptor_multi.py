@@ -7,7 +7,7 @@ from cads_adaptors.adaptor import Request
 
 # import os
 from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
-from cads_adaptors.tools import ensure_list
+from cads_adaptors.tools import ensure_list, download_tools
 
 def ensure_list(input_item):
     if not isinstance(input_item, list):
@@ -38,6 +38,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return this_request
 
+<<<<<<< HEAD
     @staticmethod
 <<<<<<< HEAD
     def merge_results(results: list, prefix: str="collection"):
@@ -46,24 +47,34 @@ class MultiAdaptor(AbstractCdsAdaptor):
 >>>>>>> 331a4f7 (collection_id field)
         """Basic results merge, creates a zip file containing all results."""
         import zipfile
+=======
+    # @staticmethod
+    # def merge_results(results: list, prefix: str = "collection"):
+    #     """Basic results merge, creates a zip file containing all results."""
+    #     import zipfile
+>>>>>>> 11d8f7a (MultiAdaptor using DOWNLOAD_FORMATS)
 
-        base_target = f"{prefix}-{hash(tuple(results))}"
+    #     base_target = f"{prefix}-{hash(tuple(results))}"
 
-        target = f"{base_target}.zip"
+    #     target = f"{base_target}.zip"
 
-        with zipfile.ZipFile(target, mode="w") as archive:
-            for p in results:
-                archive.writestr(p.name, p.read())
+    #     with zipfile.ZipFile(target, mode="w") as archive:
+    #         for p in results:
+    #             archive.writestr(p.name, p.read())
 
-        # TODO: clean up afterwards?
-        # for p in results:
-        #     os.remove(p)
+    #     # TODO: clean up afterwards?
+    #     # for p in results:
+    #     #     os.remove(p)
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         return open(target, 'rb')
 =======
         return open(target, "rb")
 >>>>>>> 331a4f7 (collection_id field)
+=======
+    #     return open(target, "rb")
+>>>>>>> 11d8f7a (MultiAdaptor using DOWNLOAD_FORMATS)
 
     def __init__(self, form: dict[str, Any], **config: Any):
         from cads_adaptors.tools import adaptor_tools
@@ -76,10 +87,12 @@ class MultiAdaptor(AbstractCdsAdaptor):
             self.values[adaptor_tag] = adaptor_desc.get("values", {})
 
     def retrieve(self, request: Request):
+        from cads_adaptors.tools import download_tools
+
+        download_format = request.pop("download_format", "zip")
+        
         results = []
         exception_logs = {}
-        print(f"MultiAdaptor, self.config: {self.config}")
-        print(f"Full request: {request}")
         for adaptor_tag, this_adaptor in self.adaptors.items():
             this_request = self.split_request(
                 request, self.values[adaptor_tag], **self.config
@@ -100,4 +113,15 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 f"{yaml.safe_dump(exception_logs)}"
             )
 
-        return self.merge_results(results, prefix=self.collection_id)
+
+        # return self.merge_results(results, prefix=self.collection_id)
+        # close files
+        [res.close() for res in results]
+        # get the paths
+        paths = [res.name for res in results]
+
+        download_kwargs = dict(
+            base_target = f"{self.collection_id}-{hash(tuple(results))}"
+        )
+
+        return download_tools.DOWNLOAD_FORMATS[download_format](paths, **download_kwargs)
