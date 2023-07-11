@@ -17,6 +17,7 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
         import requests
         import sqlalchemy
+
         from cads_adaptors.adaptor.insitu.tools import csvlev2obs, insitu_utils
 
         print(f"{request},\n\n {self.config} \n\n {self.form}")
