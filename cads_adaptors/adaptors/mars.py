@@ -31,11 +31,10 @@ class DirectMarsAdaptor(cds.AbstractCdsAdaptor):
 
 class MarsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        format = request.pop("format", ["grib"])
-        assert len(format) == 1
+        format = request.pop("format", "grib")
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
-        if format[0] != "grib":
+        if format != "grib":
             # FIXME: reformat if needed
             pass
         return super().retrieve(mapped_request)
