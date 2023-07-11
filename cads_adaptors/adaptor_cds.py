@@ -90,11 +90,13 @@ class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
 
 class MarsCdsAdaptor(DirectMarsCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
-        format = request.pop("format", ["grib"])
-        assert len(format) == 1
+        data_format = request.pop("format", "grib")
+
+        if data_format not in {"grib", "netcdf", "netcdf.zip"}:
+            raise ValueError(f"{data_format=} is not supported")
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
-        if format[0] != "grib":
+        if data_format != "grib":
             # FIXME: reformat if needed
             pass
         return super().retrieve(mapped_request)
