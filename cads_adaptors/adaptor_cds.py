@@ -66,6 +66,7 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
 =======
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         paths = url_tools.download_from_urls(
 >>>>>>> 5786ca2 (TEST: returning list of open paths)
             [ru["url"] for ru in requests_urls],
@@ -81,8 +82,17 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
 =======
         paths = url_tools.try_download([ru["url"] for ru in requests_urls])
 >>>>>>> 83b3045 (refactor of URL adaptor)
+=======
+        urls = [ru["url"] for ru in requests_urls]
+        paths = url_tools.try_download(urls)
 
-        return download_tools.DOWNLOAD_FORMATS[download_format](paths, prefix=self.collection_id)
+        download_kwargs = dict(
+            base_target = f"{self.collection_id}-{hash(tuple(urls))}"
+        )
+
+        return download_tools.DOWNLOAD_FORMATS[download_format](paths, **download_kwargs)
+>>>>>>> 652643d (download_formats)
+
 
 class LegacyCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
