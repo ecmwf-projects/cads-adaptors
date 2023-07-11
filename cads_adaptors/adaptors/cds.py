@@ -9,6 +9,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def __init__(self, form: dict[str, Any], **config: Any):
         self.form = form
+        self.collection_id = config.pop("collection_id", "unknown-collection")
         self.constraints = config.pop("constraints", [])
         self.mapping = config.pop("mapping", {})
         self.licences: list[tuple[str, int]] = config.pop("licences", [])
