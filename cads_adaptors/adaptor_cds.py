@@ -1,6 +1,7 @@
 import os
 from typing import Any, BinaryIO
 
+<<<<<<< HEAD
 from . import adaptor, constraints, costing, mapping
 from . import tools
 
@@ -10,6 +11,9 @@ import logging
 import requests
 import sqlalchemy
 
+=======
+from cads_adaptors import adaptor, constraints, costing, mapping
+>>>>>>> 83b3045 (refactor of URL adaptor)
 
 class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
@@ -38,7 +42,7 @@ class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
 
 class UrlCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
-        from .tools import url_tools
+        from cads_adaptors.tools import url_tools, download_tools
 
         download_format = request.pop("format", "zip")  # TODO: Remove legacy syntax
         # CADS syntax over-rules legacy syntax
@@ -61,6 +65,7 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
 =======
 =======
 
+<<<<<<< HEAD
         paths = url_tools.download_from_urls(
 >>>>>>> 5786ca2 (TEST: returning list of open paths)
             [ru["url"] for ru in requests_urls],
@@ -73,7 +78,11 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
             return open(paths[0], "rb")
         else:
             return [open(path, "rb") for path in paths]
+=======
+        paths = url_tools.try_download([ru["url"] for ru in requests_urls])
+>>>>>>> 83b3045 (refactor of URL adaptor)
 
+        return download_tools.DOWNLOAD_FORMATS[download_format](paths, prefix=self.collection_id)
 
 class LegacyCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
