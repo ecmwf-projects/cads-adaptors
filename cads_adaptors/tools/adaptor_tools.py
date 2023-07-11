@@ -1,12 +1,6 @@
 from typing import Any
 
-<<<<<<< HEAD
 from cads_adaptors.adaptors import AbstractAdaptor
-=======
-from cacholote import decode
-
-from cads_adaptors import adaptor
->>>>>>> 83b3045 (refactor of URL adaptor)
 
 
 def get_adaptor_class(
