@@ -34,6 +34,7 @@ def get_end_points(resource):
     return api_url
 
 
+<<<<<<< HEAD
 def sql_engine(api_url, source):
     return sqlalchemy.engine_from_config(
         requests.get(
@@ -44,6 +45,15 @@ def sql_engine(api_url, source):
 >>>>>>> bbe23be (install develop packages before starting service)
         ).json()
     )
+=======
+def sql_engine(api_url, source, config):
+    res = requests.get(
+        f'{api_url}/{source}/db_engine'
+    ).json()
+    print(res)
+    res['url'] = res['url'].replace('obs-insitu', config['db'])
+    return sqlalchemy.engine_from_config(res)
+>>>>>>> 5955e33 (install develop packages before starting service)
 
 
 def sql_2_csv(query, db_engine, csv_file):
