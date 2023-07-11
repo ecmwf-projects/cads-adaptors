@@ -3,9 +3,16 @@ from typing import Any
 
 import yaml  # type: ignore
 
+from cads_adaptors.adaptor import Request
+
 # import os
 from cads_adaptors.adaptor_cds import AbstractCdsAdaptor
-from cads_adaptors.adaptor import Request
+
+
+def ensure_list(input_item):
+    if not isinstance(input_item, list):
+        return [input_item]
+    return input_item
 
 def ensure_list(input_item):
     if not isinstance(input_item, list):
@@ -37,7 +44,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
         return this_request
 
     @staticmethod
+<<<<<<< HEAD
     def merge_results(results: list, prefix: str="collection"):
+=======
+    def merge_results(results: list, prefix: str = "collection"):
+>>>>>>> 331a4f7 (collection_id field)
         """Basic results merge, creates a zip file containing all results."""
         import zipfile
 
@@ -53,7 +64,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
         # for p in results:
         #     os.remove(p)
 
+<<<<<<< HEAD
         return open(target, 'rb')
+=======
+        return open(target, "rb")
+>>>>>>> 331a4f7 (collection_id field)
 
     def __init__(self, form: dict[str, Any], **config: Any):
         from cads_adaptors.tools import adaptor_tools

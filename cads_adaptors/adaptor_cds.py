@@ -52,7 +52,13 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
         )
         print(f"UrlCdsAdptor, self.config: {self.config}")
         path = url_tools.download_from_urls(
+<<<<<<< HEAD
             [ru["url"] for ru in requests_urls], data_format=data_format, prefix=self.collection_id
+=======
+            [ru["url"] for ru in requests_urls],
+            data_format=data_format,
+            prefix=self.collection_id,
+>>>>>>> 331a4f7 (collection_id field)
         )
         return open(path, "rb")
 
