@@ -3,9 +3,6 @@ import time
 import zipfile
 from typing import BinaryIO
 
-import requests
-import sqlalchemy
-
 from cads_adaptors import adaptor, mapping
 from cads_adaptors.adaptor.cds import AbstractCdsAdaptor
 
@@ -18,6 +15,8 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
         )
 
     def retrieve(self, request: adaptor.Request) -> BinaryIO:
+        import requests
+        import sqlalchemy
         from cads_adaptors.adaptor.insitu.tools import csvlev2obs, insitu_utils
 
         print(f"{request},\n\n {self.config} \n\n {self.form}")
