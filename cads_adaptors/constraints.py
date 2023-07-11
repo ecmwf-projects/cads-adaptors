@@ -183,8 +183,11 @@ def get_possible_values(
             for field_name, valid_values in combination.items():
                 if field_name in result:
                     result[field_name] |= set(valid_values)
+<<<<<<< HEAD
                 else:
                     result[field_name] = set(valid_values)
+=======
+>>>>>>> 21fa4da (CDS-218)
 
     return result
 
