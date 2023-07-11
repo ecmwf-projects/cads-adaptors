@@ -28,10 +28,14 @@ from cads_adaptors.adaptors.insitu import (
     InsituDatabaseCdsAdaptor,
     InsituGlamodCdsAdaptor,
 )
+<<<<<<< HEAD
 from cads_adaptors.adaptors.legacy import LegacyCdsAdaptor
 from cads_adaptors.adaptors.mars import DirectMarsCdsAdaptor, MarsCdsAdaptor
 from cads_adaptors.adaptors.url import UrlCdsAdaptor
 
+=======
+from cads_adaptors.adaptor_multi import MultiAdaptor
+>>>>>>> cc46973 (adding MultiAdaptor to __init__)
 from .tools.adaptor_tools import get_adaptor_class
 
 __all__ = [
@@ -46,4 +50,5 @@ __all__ = [
     "LegacyCdsAdaptor",
     "MarsCdsAdaptor",
     "UrlCdsAdaptor",
+    "MultiAdaptor",
 ]
