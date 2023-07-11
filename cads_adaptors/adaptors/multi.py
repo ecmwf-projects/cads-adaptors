@@ -2,9 +2,9 @@ from typing import Any
 
 import yaml  # type: ignore
 
+from cads_adaptors import AbstractCdsAdaptor
 from cads_adaptors.adaptor import Request
 
-from cads_adaptors import AbstractCdsAdaptor
 
 def ensure_list(input_item):
     if not isinstance(input_item, list):
@@ -47,9 +47,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return this_request
 
-
     def retrieve(self, request: Request):
-        from cads_adaptors.tools import download_tools, adaptor_tools
+        from cads_adaptors.tools import adaptor_tools, download_tools
 
         download_format = request.pop("download_format", "zip")
 
@@ -59,11 +58,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
-            this_request = self.split_request(
-                request, this_values, **self.config
-            )
+            this_request = self.split_request(request, this_values, **self.config)
             print(f"{adaptor_tag}, request: {this_request}")
-            if len(this_request)==0:
+            if len(this_request) == 0:
                 # if request is empty then continue
                 continue
             this_request.setdefault("download_format", "list")
