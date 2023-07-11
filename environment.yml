@@ -12,9 +12,13 @@ dependencies:
 - requests
 - pandas
 <<<<<<< HEAD
+<<<<<<< HEAD
 - python-dateutil
 =======
 >>>>>>> 808395c (migrating insitu db-datasets to cads)
+=======
+- pyodc
+>>>>>>> f2e7469 (migrating insitu db-datasets to cads)
 - pip:
   - cacholote
   - multiurl
