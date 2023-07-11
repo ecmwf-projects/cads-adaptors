@@ -23,11 +23,10 @@ except ImportError:  # pragma: no cover
     __version__ = "999"
 
 from cads_adaptors.adaptors import AbstractAdaptor, DummyAdaptor
-
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
-from cads_adaptors.adaptors.url import UrlCdsAdaptor
-from cads_adaptors.adaptors.mars import MarsCdsAdaptor, DirectMarsCdsAdaptor
 from cads_adaptors.adaptors.legacy import LegacyCdsAdaptor
+from cads_adaptors.adaptors.mars import DirectMarsCdsAdaptor, MarsCdsAdaptor
+from cads_adaptors.adaptors.url import UrlCdsAdaptor
 
 from .tools.adaptor_tools import get_adaptor_class
 

@@ -1,9 +1,8 @@
-
 import os
 from typing import BinaryIO
 
 from cads_adaptors import mapping
-from cads_adaptors.adaptors import cds, Request
+from cads_adaptors.adaptors import Request, cds
 
 
 class DirectMarsAdaptor(cds.AbstractCdsAdaptor):
