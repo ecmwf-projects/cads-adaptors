@@ -9,10 +9,11 @@ from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 class InsituGlamodCdsAdaptor(AbstractCdsAdaptor):
     def __init__(self, *args, **kwargs):
         super.__init__(*args, **kwargs)
-        self.collection_id = self.config.get('collection_id', self.config.get('uri', 'not specified'))
+        self.collection_id = self.config.get(
+            "collection_id", self.config.get("uri", "not specified")
+        )
 
     def retrieve(self, request: adaptors.Request) -> BinaryIO:
-
         from cads_adaptors.adaptors.insitu.tools import insitu_utils
 
         resource = self.config["uri"]
