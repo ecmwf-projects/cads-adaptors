@@ -32,9 +32,13 @@ ignore_missing_imports = true
 module = [
   "cdsapi",
   "multiurl",
+<<<<<<< HEAD
   "pandas",
   "python-dateutil",
   "pydantic<=1.10.11"
+=======
+  "pandas"
+>>>>>>> 808395c (migrating insitu db-datasets to cads)
 ]
 
 [tool.ruff]
