@@ -12,6 +12,7 @@ class InsituGlamodCdsAdaptor(AbstractCdsAdaptor):
         self.collection_id = self.config.get('collection_id', self.config.get('uri', 'not specified'))
 
     def retrieve(self, request: adaptors.Request) -> BinaryIO:
+
         from cads_adaptors.adaptors.insitu.tools import insitu_utils
 
         resource = self.config["uri"]
