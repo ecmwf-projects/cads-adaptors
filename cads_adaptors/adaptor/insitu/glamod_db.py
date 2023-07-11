@@ -8,7 +8,7 @@ from cads_adaptors.adaptor.cds import AbstractCdsAdaptor
 
 class InsituGlamodCdsAdaptor(AbstractCdsAdaptor):
     def __init__(self, *args, **kwargs):
-        super.__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.collection_id = self.config.get(
             "collection_id", self.config.get("uri", "not specified")
         )
