@@ -9,7 +9,7 @@ import jinja2
 import multiurl
 import requests
 
-from cads_adaptors.tools import ensure_list, hcube_tools
+from . import hcube_tools
 
 logger = logging.Logger(__name__)
 
@@ -90,21 +90,18 @@ def download_tgz_from_urls(
 
 def download_from_urls(
     urls: List[str],
-    download_format: str = "zip",
-    prefix: str = "collection",
+    data_format: str = "zip",
 ) -> str:
-    base_target = f"{prefix}-{hash(tuple(urls))}"
+    base_target = str(hash(tuple(urls)))
 
-    if download_format == "tgz":
+    if data_format == "tgz":
         target = download_tgz_from_urls(urls=urls, base_target=base_target)
-    elif download_format == "zip":
+    elif data_format == "zip":
         target = download_zip_from_urls(urls=urls, base_target=base_target)
-    elif download_format == "list":
-        target = try_download(urls=urls)
     else:
-        raise ValueError(f"Download format '{download_format}' is not supported")
+        raise ValueError(f"{data_format=} is not supported")
 
-    return ensure_list(target)
+    return target
 
 
 def download_zip_from_urls_in_memory(
