@@ -12,6 +12,7 @@ dependencies:
 - requests
 - pandas
 - python-dateutil
+- types-pyyaml
 - pip:
   - types-python-dateutil
   - cacholote
