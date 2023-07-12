@@ -32,9 +32,18 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         format = request.pop("format", "grib")
+        # TODO: Implement download_format options using common tools
+        # download_format = request.pop("download_format", "as_source")
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
         if format != "grib":
             # FIXME: reformat if needed
             pass
         return super().retrieve(mapped_request)
+        # TODO: Implement download_format options using common tools
+        # download_kwargs = {
+        #     "base_target": f"{self.collection_id}-{hash(tuple(request))}"
+        # }
+        # return download_tools.DOWNLOAD_FORMATS[download_format](
+        #     super().retrieve(mapped_request), **download_kwargs
+        # )
