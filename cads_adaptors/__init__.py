@@ -24,6 +24,10 @@ except ImportError:  # pragma: no cover
 
 from cads_adaptors.adaptor import AbstractAdaptor, DummyAdaptor
 from cads_adaptors.adaptor.cds import AbstractCdsAdaptor
+from cads_adaptors.adaptor.insitu import (
+    InsituDatabaseCdsAdaptor,
+    InsituGlamodCdsAdaptor,
+)
 from cads_adaptors.adaptor.legacy import LegacyCdsAdaptor
 from cads_adaptors.adaptor.mars import DirectMarsCdsAdaptor, MarsCdsAdaptor
 from cads_adaptors.adaptor.url import UrlCdsAdaptor
@@ -37,6 +41,8 @@ __all__ = [
     "AbstractCdsAdaptor",
     "DirectMarsCdsAdaptor",
     "DummyAdaptor",
+    "InsituDatabaseCdsAdaptor",
+    "InsituGlamodCdsAdaptor",
     "LegacyCdsAdaptor",
     "MarsCdsAdaptor",
     "UrlCdsAdaptor",
