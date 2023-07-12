@@ -1,9 +1,12 @@
+import logging
 from typing import Any
 
-import yaml  # type: ignore
+import yaml
 
 from cads_adaptors import AbstractCdsAdaptor
 from cads_adaptors.adaptor import Request
+
+logger = logging.Logger(__name__)
 
 
 def ensure_list(input_item):
@@ -59,7 +62,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_values = adaptor_desc.get("values", {})
 
             this_request = self.split_request(request, this_values, **self.config)
-            print(f"{adaptor_tag}, request: {this_request}")
+            logger.debug(f"{adaptor_tag}, request: {this_request}")
             if len(this_request) == 0:
                 # if request is empty then continue
                 continue
@@ -70,7 +73,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 results += ensure_list(this_adaptor.retrieve(this_request))
             except Exception as err:
                 # Catch any possible exception and store error message in case all adaptors fail
-                print(f"{adaptor_tag} Error: {err}")
+                logger.debug(f"{adaptor_tag} Error: {err}")
                 exception_logs[adaptor_tag] = f"{err}"
 
         if len(results) == 0:
