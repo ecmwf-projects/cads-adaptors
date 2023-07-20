@@ -1,4 +1,4 @@
-from cads_adaptors.adaptor import multi
+from cads_adaptors.adaptors import multi
 
 FORM = {
     "level": ["500", "850"],
