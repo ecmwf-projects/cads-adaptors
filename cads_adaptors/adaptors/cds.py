@@ -1,7 +1,7 @@
 from typing import Any
 
 from cads_adaptors import constraints, costing
-from cads_adaptors.adaptor import AbstractAdaptor, Request
+from cads_adaptors.adaptors import AbstractAdaptor, Request
 
 
 class AbstractCdsAdaptor(AbstractAdaptor):
