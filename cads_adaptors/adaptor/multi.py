@@ -16,10 +16,6 @@ def ensure_list(input_item):
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
-    # Alternatively inherit the DirectMarsCdsAdaptor class, but this may create an unwanted dependancy
-    #  Also, this may not be required when all workers are turned into mars-workers
-    resources = {"MARS_CLIENT": 1}
-
     @staticmethod
     def split_request(
         full_request: Request,  # User request
@@ -52,10 +48,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
     def retrieve(self, request: Request):
         from cads_adaptors.tools import adaptor_tools, download_tools
+        import multiprocessing as mp
 
         download_format = request.pop("download_format", "zip")
 
-        results = []
+        these_requests = {}
         exception_logs = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
@@ -63,19 +60,31 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
             this_request = self.split_request(request, this_values, **self.config)
             logger.debug(f"{adaptor_tag}, request: {this_request}")
-            if len(this_request) == 0:
-                # if request is empty then continue
-                continue
-            this_request.setdefault("download_format", "list")
-            # TODO: check this_request is valid for this_adaptor, or rely on try? i.e. split_request does
-            #       NOT implement constraints.
-            try:
-                results += ensure_list(this_adaptor.retrieve(this_request))
-            except Exception as err:
-                # Catch any possible exception and store error message in case all adaptors fail
-                logger.debug(f"{adaptor_tag} Error: {err}")
-                exception_logs[adaptor_tag] = f"{err}"
+            
+            # TODO: check this_request is valid for this_adaptor, or rely on try?
+            #  i.e. split_request does NOT implement constraints.
+            if len(this_request) > 0:
+                this_request.setdefault("download_format", "list")
+                these_requests[this_adaptor] = this_request
+        
+        # Allow a maximum of 2 parallel processes
+        pool = mp.Pool(min(len(these_requests), 2))
 
+        def apply_adaptor(args):
+            try:
+                result = args[0](args[1])
+            except:
+                # Catch any possible exception and store error message in case all adaptors fail
+                logger.debug(f"Adaptor Error ({args}): {err}")
+                result = []
+            return result
+
+        results = pool.map(
+            apply_adaptor,
+            ((adaptor, request) for adaptor, request in these_requests.items())
+
+        )
+        
         if len(results) == 0:
             raise RuntimeError(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
