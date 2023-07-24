@@ -24,6 +24,7 @@ except ImportError:  # pragma: no cover
 
 from cads_adaptors.adaptors import AbstractAdaptor, DummyAdaptor
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.adaptors.insitu import InsituDatabaseCdsAdaptor, InsituGlamodCdsAdaptor
 from cads_adaptors.adaptors.legacy import LegacyCdsAdaptor
 from cads_adaptors.adaptors.mars import DirectMarsCdsAdaptor, MarsCdsAdaptor
 from cads_adaptors.adaptors.url import UrlCdsAdaptor
