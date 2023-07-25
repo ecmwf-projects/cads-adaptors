@@ -24,6 +24,7 @@ readme = "README.md"
 branch = true
 
 [tool.mypy]
+exclude = "build"
 ignore_missing_imports = true
 strict = false
 
