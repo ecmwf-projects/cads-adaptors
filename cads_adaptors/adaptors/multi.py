@@ -1,10 +1,10 @@
 import logging
-from typing import Any
+import typing as T
 
 import yaml
 
 from cads_adaptors import AbstractCdsAdaptor
-from cads_adaptors.adaptor import Request
+from cads_adaptors.adaptors import Request
 
 logger = logging.Logger(__name__)
 
@@ -19,8 +19,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
     @staticmethod
     def split_request(
         full_request: Request,  # User request
-        this_values: dict[str, Any],  # key: [values] for the adaptor component
-        **config: Any,
+        this_values: T.Dict[str, T.Any],  # key: [values] for the adaptor component
+        **config: T.Any,
     ) -> Request:
         """
         Basic request splitter, splits based on whether the values are relevant to
@@ -47,33 +47,34 @@ class MultiAdaptor(AbstractCdsAdaptor):
         return this_request
 
     def retrieve(self, request: Request):
-        from cads_adaptors.tools import adaptor_tools, download_tools
         import multiprocessing as mp
+
+        from cads_adaptors.tools import adaptor_tools, download_tools
 
         download_format = request.pop("download_format", "zip")
 
         these_requests = {}
-        exception_logs = {}
+        exception_logs: T.Dict[str, str] = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
             this_request = self.split_request(request, this_values, **self.config)
             logger.debug(f"{adaptor_tag}, request: {this_request}")
-            
+
             # TODO: check this_request is valid for this_adaptor, or rely on try?
             #  i.e. split_request does NOT implement constraints.
             if len(this_request) > 0:
                 this_request.setdefault("download_format", "list")
                 these_requests[this_adaptor] = this_request
-        
+
         # Allow a maximum of 2 parallel processes
         pool = mp.Pool(min(len(these_requests), 2))
 
         def apply_adaptor(args):
             try:
                 result = args[0](args[1])
-            except:
+            except Exception as err:
                 # Catch any possible exception and store error message in case all adaptors fail
                 logger.debug(f"Adaptor Error ({args}): {err}")
                 result = []
@@ -81,10 +82,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         results = pool.map(
             apply_adaptor,
-            ((adaptor, request) for adaptor, request in these_requests.items())
-
+            ((adaptor, request) for adaptor, request in these_requests.items()),
         )
-        
+
         if len(results) == 0:
             raise RuntimeError(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
