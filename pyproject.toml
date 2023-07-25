@@ -34,7 +34,8 @@ module = [
   "multiurl",
   "pandas",
   "python-dateutil",
-  "pydantic<=1.10.11"
+  "pydantic<=1.10.11",
+  "pyyaml"
 ]
 
 [tool.ruff]
