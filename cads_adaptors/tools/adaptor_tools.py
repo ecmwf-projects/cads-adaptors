@@ -1,6 +1,6 @@
 from typing import Any
 
-from cads_adaptors.adaptor import AbstractAdaptor
+from cads_adaptors.adaptors import AbstractAdaptor
 
 
 def get_adaptor_class(
