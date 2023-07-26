@@ -190,11 +190,11 @@ def get_possible_values(
     return result
 
 
-def get_possible_values_for_ADS_forms(
+def apply_constraints_v2(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
-) -> dict[str, set[Any]]:
+) -> dict[str, list[Any]]:
   full_result = {}
   result_out = {}
   for combination in constraints:
@@ -239,7 +239,7 @@ def get_possible_values_for_ADS_forms(
     if not (fname in result_out or fname in selection):
       result_out[fname] = set()
 
-  return result_out
+  return format_to_json(result_out)
 
 
 def format_to_json(result: dict[str, set[Any]]) -> dict[str, list[Any]]:
@@ -386,7 +386,7 @@ def validate_constraints(
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
     selection = parse_selection(request["inputs"], unsupported_vars)
 
-    return apply_constraints(parsed_form, selection, constraints)
+    return apply_constraints_v2(parsed_form, selection, constraints)
 
 
 def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
