@@ -102,12 +102,13 @@ def apply_constraints(
     :return: a dictionary containing all values that should be left
     active for selection, in JSON format
     """
-    always_valid = get_always_valid_params(form, constraints)
+    constraint_keys = get_keys(constraints)
+    always_valid = get_always_valid_params(form, constraint_keys)
 
     form = copy.deepcopy(form)
     selection = copy.deepcopy(selection)
-    for key, value in form.copy().items():
-        if key not in get_keys(constraints):
+    for key in form.copy():
+        if key not in constraint_keys:
             form.pop(key, None)
             selection.pop(key, None)
 
@@ -189,6 +190,58 @@ def get_possible_values(
     return result
 
 
+def get_possible_values_for_ADS_forms(
+    form: dict[str, set[Any]],
+    selection: dict[str, set[Any]],
+    constraints: list[dict[str, set[Any]]],
+) -> dict[str, set[Any]]:
+  full_result = {}
+  result_out = {}
+  for combination in constraints:
+    for name, values in combination.items():
+      if name in full_result:
+        full_result[name] |= set(values)
+      else:
+        full_result[name] = set(values)
+
+  # if no selection then return full result
+  if len(selection) == 0:
+    return full_result
+
+  # loop over selected names and values
+  for sname, svalues in selection.items():
+    result = {}
+    for combination in constraints:
+      if sname in combination:
+        common = svalues & combination[sname]
+        if len(common):
+          for name, values in combination.items():
+            if name != sname:
+              if name in result:
+                result[name] |= set(values)
+              else:
+                result[name] = set(values)
+      else:
+        for name, values in combination.items():
+          if name in result:
+            result[name] |= set(values)
+          else:
+            result[name] = set(values)
+    for rname, rvalues in result.items():
+      if rname != sname:
+        if rname in result_out:
+          result_out[rname] = result_out[rname] & rvalues
+        else:
+          result_out[rname] = full_result[rname] & rvalues
+
+  # loop over full result to check if there are any missing keys
+  for fname in full_result:
+    if not (fname in result_out or fname in selection):
+      result_out[fname] = set()
+
+  return result_out
+
+
 def format_to_json(result: dict[str, set[Any]]) -> dict[str, list[Any]]:
     """
     Convert dict[str, set[Any]] into dict[str, list[Any]].
@@ -247,6 +300,7 @@ def get_form_state(
     result: dict[str, set[Any]] = {key: set() for key in form}
 
     for key in form:
+        print(key)
         sub_selection = selection.copy()
         if key in sub_selection:
             sub_selection.pop(key)
@@ -257,7 +311,7 @@ def get_form_state(
 
 def get_always_valid_params(
     form: dict[str, set[Any]],
-    constraints: list[dict[str, set[Any]]],
+    constraint_keys: set[str],
 ) -> dict[str, set[Any]]:
     """
     Get always valid field and values.
@@ -286,7 +340,7 @@ def get_always_valid_params(
     """
     result: dict[str, set[Any]] = {}
     for field_name, field_values in form.items():
-        if field_name not in get_keys(constraints):
+        if field_name not in constraint_keys:
             result.setdefault(field_name, field_values)
     return result
 
