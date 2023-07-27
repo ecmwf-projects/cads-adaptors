@@ -178,19 +178,19 @@ def get_possible_values(
     key_affects = {}
     for key in list(selection):
         affects = [
-            a_key for a_key in list(form) if all([
+            a_key for a_key in list(form) if key!=a_key and all([
                 (a_key in cube)+(key in cube) in (0, 2)
                 for cube in constraints
             ])
         ]
-        if len(affects)>1:
+        if len(affects)>0:
             key_affects[key] = affects
 
     for combination in constraints:
         ok = True
         for field_name, affects in key_affects.items():
             selected_values = selection[field_name]
-            if all([key in combination.keys()] for key in affects):
+            if all([key in combination.keys()] for key in [field_name]+affects):
                 if len(selected_values & combination[field_name]) == 0:
                     ok = False
                     break
