@@ -26,17 +26,18 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         subprocess.run(["/usr/local/bin/mars", "r"], check=True, env=env)
 
-        return open("data.grib", "rb")  # type: ignore
+        return open("data.grib")  # type: ignore
 
 
-class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
+
+class MarsCdsAdaptor(DirectMarsCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        format = request.pop("format", "grib")
+        data_format = request.pop("format", "grib")
         # TODO: Implement download_format options using common tools
         # download_format = request.pop("download_format", "as_source")
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
-        if format != "grib":
+        if data_format != "grib":
             # FIXME: reformat if needed
             pass
         return super().retrieve(mapped_request)
