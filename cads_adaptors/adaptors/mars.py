@@ -29,12 +29,12 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
         return open("data.grib")  # type: ignore
 
 
-class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
+class MarsCdsAdaptor(DirectMarsCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        format = request.pop("format", "grib")
+        data_format = request.pop("format", "grib")
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
-        if format != "grib":
+        if data_format != "grib":
             # FIXME: reformat if needed
             pass
         return super().retrieve(mapped_request)
