@@ -1,5 +1,4 @@
 import time
-
 import pandas as pd
 import requests
 
@@ -79,7 +78,7 @@ def cdm_converter(
             if v in just_variables:
                 # this works for any product variable
                 simple_variables.append(v)
-                next
+                continue
             for _p in ph:
                 for _sv in just_variables:
                     if v == f"{_sv}_{_p}":
