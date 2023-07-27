@@ -190,7 +190,7 @@ def get_possible_values(
         ok = True
         for field_name, affects in key_affects.items():
             selected_values = selection[field_name]
-            if all([key in combination.keys()] for key in [field_name]+affects):
+            if all([key in combination.keys() for key in [field_name]+affects]):
                 if len(selected_values & combination[field_name]) == 0:
                     ok = False
                     break
