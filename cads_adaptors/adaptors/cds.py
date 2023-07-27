@@ -27,3 +27,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
+
+
+class DummyCdsAdaptor(AbstractCdsAdaptor):
+    def retrieve(self, request: Request) -> Any:
+        pass
