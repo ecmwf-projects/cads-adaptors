@@ -23,7 +23,7 @@ except ImportError:  # pragma: no cover
     __version__ = "999"
 
 from cads_adaptors.adaptors import AbstractAdaptor, DummyAdaptor
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, DummyCdsAdaptor
 from cads_adaptors.adaptors.insitu import (
     InsituDatabaseCdsAdaptor,
     InsituGlamodCdsAdaptor,
@@ -40,6 +40,7 @@ __all__ = [
     "get_adaptor_class",
     "AbstractAdaptor",
     "AbstractCdsAdaptor",
+    "DummyCdsAdaptor",
     "DirectMarsCdsAdaptor",
     "DummyAdaptor",
     "InsituDatabaseCdsAdaptor",
