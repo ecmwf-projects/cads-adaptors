@@ -167,30 +167,10 @@ def get_possible_values(
 
     """
     result: dict[str, set[Any]] = {key: set() for key in form}
-    #  ECP testing
-    # constraints should only be applied to keys that are in all constraints cubes
-    # use_keys = [
-    #     key for key in list(selection) if all([key in list(cube) for cube in constraints])
-    # ]
-
-    # More thorough, but maybe too slow, option.
-    #  Here we find all keys which are completely linked in the constraint cubes
-    key_affects = {}
-    for key in list(selection):
-        affects = [
-            a_key
-            for a_key in list(form)
-            if key != a_key
-            and all([(a_key in cube) + (key in cube) in (0, 2) for cube in constraints])
-        ]
-        if len(affects) > 0:
-            key_affects[key] = affects
-
     for combination in constraints:
         ok = True
-        for field_name, affects in key_affects.items():
-            selected_values = selection[field_name]
-            if all([key in combination.keys() for key in [field_name] + affects]):
+        for field_name, selected_values in selection.items():
+            if field_name in combination.keys():
                 if len(selected_values & combination[field_name]) == 0:
                     ok = False
                     break
@@ -201,10 +181,7 @@ def get_possible_values(
                 raise ParameterError(f"invalid param '{field_name}'")
         if ok:
             for field_name, valid_values in combination.items():
-                if field_name in result:
-                    result[field_name] |= set(valid_values)
-                else:
-                    result[field_name] = set(valid_values)
+                result[field_name] |= set(valid_values)
 
     return result
 
