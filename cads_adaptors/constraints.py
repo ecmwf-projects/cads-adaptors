@@ -208,11 +208,13 @@ def apply_constraints_v2(
   if len(selection) == 0:
     return full_result
 
+  is_constraint_on = [True] * len(constraints)
   # loop over selected names and values
   for sname, svalues in selection.items():
     result = {}
-    for combination in constraints:
+    for i_combination,combination in enumerate(constraints):
       if sname in combination:
+        if not is_constraint_on[i_combination]: continue
         common = svalues & combination[sname]
         if len(common):
           for name, values in combination.items():
@@ -221,6 +223,8 @@ def apply_constraints_v2(
                 result[name] |= set(values)
               else:
                 result[name] = set(values)
+        else:
+           is_constraint_on[i_combination] = False
       else:
         for name, values in combination.items():
           if name in result:
