@@ -190,6 +190,20 @@ def get_possible_values(
     return result
 
 
+def get_value(value_in_constraint):
+   return value_in_constraint.split(":")[1]
+
+def get_values(values_in_constraint):
+   return [get_value(value_in_constraint) for value_in_constraint in values_in_constraint]
+
+def value_from_constraint(constraint, value):
+   return f"{constraint}:{value}"
+
+
+def values_from_constraint(constraint, values):
+   return [value_from_constraint(constraint, value) for value in values]
+
+
 def apply_constraints_v2(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
@@ -197,35 +211,38 @@ def apply_constraints_v2(
 ) -> dict[str, list[Any]]:
   full_result = {}
   result_out = {}
-  for combination in constraints:
+  for i_combination, combination in enumerate(constraints):
     for name, values in combination.items():
       if name in full_result:
-        full_result[name] |= set(values)
+        full_result[name] |= set(values_from_constraint(i_combination, values))
       else:
-        full_result[name] = set(values)
+        full_result[name] = set(values_from_constraint(i_combination, values))
 
   # if no selection then return full result
   if len(selection) == 0:
+    for fname in full_result:
+      full_result[fname] = set(get_values(full_result[fname]))
     return full_result
-
-  for combination in constraints:
-    for widget in full_result:
-      if not widget in combination:
-        combination[widget] = full_result[widget]
 
   # loop over selected names and values
   for sname, svalues in selection.items():
     result = {}
-    for combination in constraints:
+    for i_combination, combination in enumerate(constraints):
       if sname in combination:
         common = svalues & combination[sname]
         if len(common):
           for name, values in combination.items():
             if name != sname:
               if name in result:
-                result[name] |= set(values)
+                result[name] |= set(values_from_constraint(i_combination, values))
               else:
-                result[name] = set(values)
+                result[name] = set(values_from_constraint(i_combination, values))
+      else:
+        for name, values in combination.items():
+          if name in result:
+            result[name] |= set(values_from_constraint(i_combination, values))
+          else:
+            result[name] = set(values_from_constraint(i_combination, values))
     for rname, rvalues in result.items():
       if rname != sname:
         if rname in result_out:
@@ -237,6 +254,9 @@ def apply_constraints_v2(
   for fname in full_result:
     if not (fname in result_out or fname in selection):
       result_out[fname] = set()
+
+  for fname in result_out:
+    result_out[fname] = set(get_values(result_out[fname]))
 
   return format_to_json(result_out)
 
