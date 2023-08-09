@@ -208,33 +208,31 @@ def apply_constraints_v2(
   if len(selection) == 0:
     return full_result
 
-  is_selection_independent_constraint = [True] * len(constraints)
   # loop over selected names and values
   for sname, svalues in selection.items():
     result = {}
-    for i_combination,combination in enumerate(constraints):
+    for combination in constraints:
       if sname in combination:
         common = svalues & combination[sname]
         if len(common):
-          is_selection_independent_constraint[i_combination] = False
           for name, values in combination.items():
-            if name in result:
-              result[name] |= set(values)
-            else:
-              result[name] = set(values)
-    for rname, rvalues in result.items():
-      if rname in result_out:
-        result_out[rname] = result_out[rname] & rvalues
+            if name != sname:
+              if name in result:
+                result[name] |= set(values)
+              else:
+                result[name] = set(values)
       else:
-        result_out[rname] = full_result[rname] & rvalues
-  
-  for i_combination,combination in enumerate(constraints):
-    if is_selection_independent_constraint[i_combination]:
-      for name, values in combination.items():
-        if name in result:
-          result_out[name] |= set(values)
+        for name, values in combination.items():
+          if name in result:
+            result[name] |= set(values)
+          else:
+            result[name] = set(values)
+    for rname, rvalues in result.items():
+      if rname != sname:
+        if rname in result_out:
+          result_out[rname] = result_out[rname] & rvalues
         else:
-          result_out[name] = set(values)
+          result_out[rname] = full_result[rname] & rvalues
 
   # loop over full result to check if there are any missing keys
   for fname in full_result:
