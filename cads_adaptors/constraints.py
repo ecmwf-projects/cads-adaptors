@@ -208,6 +208,11 @@ def apply_constraints_v2(
   if len(selection) == 0:
     return full_result
 
+  for combination in constraints:
+    for widget in full_result:
+      if not widget in combination:
+        combination[widget] = full_result[widget]
+
   # loop over selected names and values
   for sname, svalues in selection.items():
     result = {}
@@ -221,12 +226,6 @@ def apply_constraints_v2(
                 result[name] |= set(values)
               else:
                 result[name] = set(values)
-      else:
-        for name, values in combination.items():
-          if name in result:
-            result[name] |= set(values)
-          else:
-            result[name] = set(values)
     for rname, rvalues in result.items():
       if rname != sname:
         if rname in result_out:
