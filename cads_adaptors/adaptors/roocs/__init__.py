@@ -13,6 +13,13 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
     
     def retrieve(self, request: Request) -> BinaryIO:
         workflow = self.construct_workflow(request)
+        with open("dummy.grib", "wb") as fp:
+            with open("/dev/urandom", "rb") as random:
+                while size > 0:
+                    length = min(size, 10240)
+                    fp.write(random.read(length))
+                    size -= length
+        return open("dummy.grib", "rb")
 
     def construct_workflow(self, request):
         from rooki import rooki  # rooki must be imported before rookops
@@ -24,6 +31,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         variable_id = facets.get("variable", "")
         
         workflow = rookops.Input(variable_id, [dataset_id])
+        
+        
         
     def find_facets(self, request):
         """
