@@ -5,15 +5,9 @@ import yaml
 
 from cads_adaptors import AbstractCdsAdaptor
 from cads_adaptors.adaptors import Request
+from cads_adaptors.tools import ensure_list
 
 logger = logging.Logger(__name__)
-
-
-def ensure_list(input_item):
-    if not isinstance(input_item, list):
-        return [input_item]
-    return input_item
-
 
 class MultiAdaptor(AbstractCdsAdaptor):
     @staticmethod
@@ -47,8 +41,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
         return this_request
 
     def retrieve(self, request: Request):
-        import multiprocessing as mp
-
         from cads_adaptors.tools import adaptor_tools, download_tools
 
         download_format = request.pop("download_format", "zip")
@@ -66,24 +58,31 @@ class MultiAdaptor(AbstractCdsAdaptor):
             #  i.e. split_request does NOT implement constraints.
             if len(this_request) > 0:
                 this_request.setdefault("download_format", "list")
-                these_requests[this_adaptor] = this_request
+                if this_adaptor not in these_requests:
+                    these_requests[this_adaptor] = [this_request]
+                else:
+                    these_requests[this_adaptor].append(this_request)
 
-        # Allow a maximum of 2 parallel processes
-        pool = mp.Pool(min(len(these_requests), 2))
 
-        def apply_adaptor(args):
-            try:
-                result = args[0](args[1])
-            except Exception as err:
-                # Catch any possible exception and store error message in case all adaptors fail
-                logger.debug(f"Adaptor Error ({args}): {err}")
-                result = []
-            return result
+        # TODO: Add multiprocessing
+        # # Allow a maximum of 2 parallel processes
+        # import multiprocessing as mp
 
-        results = pool.map(
-            apply_adaptor,
-            ((adaptor, request) for adaptor, request in these_requests.items()),
-        )
+        # pool = mp.Pool(min(len(these_requests), 2))
+
+        # def apply_adaptor(args):
+        #     try:
+        #         result = args[0](args[1])
+        #     except Exception as err:
+        #         # Catch any possible exception and store error message in case all adaptors fail
+        #         logger.debug(f"Adaptor Error ({args}): {err}")
+        #         result = []
+        #     return result
+
+        # results = pool.map(
+        #     apply_adaptor,
+        #     ((adaptor, request) for adaptor, request in these_requests.items()),
+        # )
 
         if len(results) == 0:
             raise RuntimeError(
