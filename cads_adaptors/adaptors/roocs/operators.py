@@ -25,19 +25,42 @@ def parse_date_string(date_string, date_format=DEFAULT_DATE_FORMAT):
 
 class Operator:
     
+    ROOKI = None
+    
     def __init__(self, request):
         self.request = request
+    
+    @property
+    def parameters(self):
+        return (
+            getattr(self, parameter)
+            for parameter in dir(self)
+            if not parameter.startswith("_")
+        )
+    
+    @staticmethod
+    def update_kwargs(target, source):
+        """
+        Combine rooki parameters to be passed as a single operator argument.
+        """
+        for key, value in source.items():
+            if key in target:
+                target[key] = "|".join((target[key], value)).rstrip("|")
+            else:
+                target[key] = value
+        return target
     
 
 class Subset(Operator):
 
-    @property
+    ROOKI = "Subset"
+
     def date(request):
         """
         Extract a date range from a CDS request and translate it to a rooki-style
         date range.
         """
-        date_range = request['date']
+        date_range = request["date"]
 
         if isinstance(date_range, list):
             start, end = str(date_range[0]), str(date_range[-1])
@@ -45,7 +68,6 @@ class Subset(Operator):
 
         return {"time": date_range}
 
-    @property
     def year_range(self):
         """Convert a CDS-style year range to a rooki-style year range."""
         years = self.request["year"]
@@ -53,7 +75,6 @@ class Subset(Operator):
             years = [years]
         return {"time": '/'.join((min(years), max(years)))}
     
-    @property
     def year(self):
         """Convert a CDS-style year request to a rooki-style year request."""
         years = self.request["year"]
@@ -64,7 +85,6 @@ class Subset(Operator):
             **{"time_components": "year:"+",".join(years)},
         }
 
-    @property
     def month(self):
         """Convert a CDS-style month request to a rooki-style month request."""
         months = self.request["month"]
@@ -73,7 +93,6 @@ class Subset(Operator):
         months = [calendar.month_name[int(month)].lower()[:3] for month in months]
         return {"time_components": "month:"+",".join(months)}
 
-    @property
     def day(self):
         """Convert a CDS-style day request to a rooki-style day request."""
         days = self.request["day"]
@@ -81,7 +100,6 @@ class Subset(Operator):
             days = [days]
         return {"time_components": "day:"+",".join(days)}
 
-    @property
     def level(self):
         """
         Extract a level argument from a CDS request and translate it to a
@@ -108,7 +126,6 @@ class Subset(Operator):
 
         return {"level": levels}
 
-    @property
     def area(self):
         """
         Extract an area argument from a CDS request and translate it to a
@@ -132,3 +149,8 @@ class Subset(Operator):
         extents = ",".join(str(extent) for extent in extents)
 
         return {"area": extents}
+
+
+ROOKI_OPERATORS = [
+    Subset,
+]

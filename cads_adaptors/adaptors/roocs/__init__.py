@@ -12,18 +12,21 @@ os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
     
     def retrieve(self, request: Request) -> BinaryIO:
-        # workflow = self.construct_workflow(request)
-        with open("dummy.grib", "wb") as fp:
-            with open("/dev/urandom", "rb") as random:
-                while size > 0:
-                    length = min(size, 10240)
-                    fp.write(random.read(length))
-                    size -= length
-        return open("dummy.grib", "rb")
+        from cads_adaptors.tools import download_tools
+        
+        workflow = self.construct_workflow(request)
+        response = workflow.orchestrate()
+        
+        try:
+            urls = response.download_urls()
+        except:
+            raise Exception(response.status)
 
+        return download_tools.DOWNLOAD_FORMATS["zip"](urls)        
+        
     def construct_workflow(self, request):
-        from rooki import rooki  # rooki must be imported before rookops
         import rooki.operators as rookops
+        from cads_adaptors.adaptors.roocs import operators
 
         facets = self.find_facets(request)
         
@@ -32,8 +35,17 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         
         workflow = rookops.Input(variable_id, [dataset_id])
         
+        for operator_class in operators.ROOKI_OPERATORS:
+            operator = operator_class(request)
+            kwargs = dict()
+            for parameter in operator.parameters:
+                if parameter.__name__ in request:
+                    kwargs = operator.update_kwargs(kwargs, parameter())
+            if kwargs:
+                workflow = getattr(rookops, operator.ROOKI)(workflow, **kwargs)
         
-        
+        return workflow
+
     def find_facets(self, request):
         """
         Expand the CDS request into a full, unique set of facets for ROOCS.
