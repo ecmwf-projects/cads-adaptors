@@ -12,7 +12,7 @@ os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
     
     def retrieve(self, request: Request) -> BinaryIO:
-        workflow = self.construct_workflow(request)
+        # workflow = self.construct_workflow(request)
         with open("dummy.grib", "wb") as fp:
             with open("/dev/urandom", "rb") as random:
                 while size > 0:
