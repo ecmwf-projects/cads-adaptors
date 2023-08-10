@@ -5,6 +5,7 @@ from typing import BinaryIO
 from cads_adaptors import mapping
 from cads_adaptors.adaptors import Request
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.tools.logger import logger
 
 
 class InsituGlamodCdsAdaptor(AbstractCdsAdaptor):
@@ -19,9 +20,9 @@ class InsituGlamodCdsAdaptor(AbstractCdsAdaptor):
 
         resource = self.config["uri"]
         domain = "land" if "land" in resource else "marine"
-        print(f"request:::::::{resource} {request}")
+        logger.debug(f"request:::::::{resource} {request}")
         request = mapping.apply_mapping(request, self.mapping)
-        print(f'request{"~" * 10}{resource} {request}')
+        logger.debug(f'request{"~" * 10}{resource} {request}')
 
         url = self.config["urls"]["requests"]
 
@@ -61,8 +62,8 @@ class InsituGlamodCdsAdaptor(AbstractCdsAdaptor):
                             z_out.writestr(zitem, z.read(zitem))
                     os.remove(azf_url)
                 except Exception as _err:
-                    print("failed unexpected", _err)
+                    logger.warning(msg=f"failed unexpected {_err.__str__()}", exc_info=True)
                 except FileNotFoundError:
-                    print("failed", azf_url)
+                    logger.warning(msg=f"failed {azf_url}", exc_info=True)
 
         return open(mid_processing, "rb")

@@ -2,6 +2,7 @@ import time
 
 import pandas as pd
 import requests
+from cads_adaptors.tools.logger import logger
 
 
 def clean_name(inp):
@@ -17,7 +18,7 @@ def names_conversion(vname, source_def, out2in=False):
         try:
             return clean_name(source_def["descriptions"][vname]["name_for_output"])
         except Exception as err:
-            print(err)
+            logger.warning(err, exc_info=True)
     return None
 
 
@@ -45,9 +46,7 @@ def cdm_converter(
     #
     _sd_url = f"http://{end_point}/api/{dataset}/service_definition"
 
-    # print(_sd_url)
     service_definition = requests.get(_sd_url).json()
-    # print(service_definition)
     source_def = service_definition["sources"][source]
 
     out_file = f"{source}_{int(time.time())}.csv" if out_file is None else out_file
@@ -97,7 +96,6 @@ def cdm_converter(
     out_columns = mandatory_columns + ["observed_variable", "observed_value"] + products
 
     repacking = {}
-    # print(f'{variables},\n {simple_variables}, \n {variables_products}')
     for v in simple_variables:
         repacking[v] = [i_cols.index(v)] + [
             i_cols.index(f"{v}_{_p}") if f"{v}_{_p}" in i_cols else False
@@ -112,7 +110,6 @@ def cdm_converter(
     def _safe(_inp: str):
         if "," not in _inp:
             return _inp
-        # print('safe not for ', _inp)
         if (_inp.startswith('"') and _inp.endswith('"')) or (
             _inp.startswith("'") and _inp.endswith("'")
         ):
@@ -128,11 +125,9 @@ def cdm_converter(
             converters=dict([(ic, str) for ic in i_cols]),
         ):
             buffer = ""
-            # print(df)
             for i in range(len(df.index)):
                 a_row = df.values[i, :].squeeze()
                 index_string = ",".join([_safe(_) for _ in a_row[mandatory_indexes]])
-                # print(index_string)
                 for v in repacking:
                     if a_row[repacking[v][0]] not in ("", None) or include_missing:
                         buffer += (
@@ -149,6 +144,5 @@ def cdm_converter(
             _t0 = time.time()
             f.write(buffer)
             wt += time.time() - _t0
-    # print(f'parsing df in {time.time() - t0} s\n time spent in writing to file {wt}')
 
     return out_file

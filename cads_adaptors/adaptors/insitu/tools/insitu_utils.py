@@ -6,6 +6,7 @@ from itertools import product
 import dateutil.parser
 import requests
 import sqlalchemy
+from cads_adaptors.tools.logger import logger
 
 zipped_file_template = (
     "{source}_{first_date}_{last_date}_{area_type}_{csv_convention}_{version}.csv"
@@ -125,7 +126,7 @@ def par_get(url, request, out_f):
             with open(out_f, "wb") as f:
                 f.write(res.content)
     except AssertionError as _err:
-        print(_err)
+        logger.warning(_err, exc_info=True)
     return out_f
 
 
@@ -171,9 +172,15 @@ def variables_units(api_url, variables, source):
     return "\n".join(out)
 
 
-def csv_header(api_url, query, resource, config={}, form={}):
-    print(query, form)
-    # resource = config.get('uri', 'not specified')
+def csv_header(api_url, query, resource, form={}):
+    """
+
+    :param api_url: endpoint of the dbdataset api as defined in generate.yaml
+    :param query: query received
+    :param resource:
+    :param form:
+    :return:
+    """
     source = query.get("source", ["not specified"])[0]
     variables = variables_units(api_url, query.get("variable"), source)
 
