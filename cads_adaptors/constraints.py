@@ -243,6 +243,12 @@ def apply_constraints_v2(
             result[name] |= set(values_from_constraint(i_combination, values))
           else:
             result[name] = set(values_from_constraint(i_combination, values))
+
+    # loop over full result to check if there are any missing keys
+    for fname in full_result:
+      if not fname in result:
+        result[fname] = set()
+
     for rname, rvalues in result.items():
       if rname != sname:
         if rname in result_out:
