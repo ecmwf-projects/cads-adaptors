@@ -5,9 +5,10 @@ import yaml
 
 from cads_adaptors import AbstractCdsAdaptor
 from cads_adaptors.adaptors import Request
-from cads_adaptors.tools import ensure_list
+from cads_adaptors.tools.general import ensure_list
 
 logger = logging.Logger(__name__)
+
 
 class MultiAdaptor(AbstractCdsAdaptor):
     @staticmethod

@@ -1,7 +1,7 @@
 import os
 from typing import BinaryIO, Callable, Dict, List
 
-from cads_adaptors.tools import ensure_list
+from cads_adaptors.tools.general import ensure_list
 
 
 # TODO use targzstream
