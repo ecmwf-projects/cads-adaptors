@@ -58,13 +58,13 @@ class MultiAdaptor(AbstractCdsAdaptor):
             #  i.e. split_request does NOT implement constraints.
             if len(this_request) > 0:
                 this_request.setdefault("download_format", "list")
-                if this_adaptor not in these_requests:
-                    these_requests[this_adaptor] = [this_request]
-                else:
-                    these_requests[this_adaptor].append(this_request)
+                these_requests[this_adaptor] = [this_request]
 
+        results = []
+        for adaptor, req in these_requests.items():
+            results.append(adaptor(req))
 
-        # TODO: Add multiprocessing
+        # TODO: Add parallelistation via multiprocessing
         # # Allow a maximum of 2 parallel processes
         # import multiprocessing as mp
 
