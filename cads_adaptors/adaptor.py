@@ -1,7 +1,13 @@
 import abc
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, TextIO
 
 Request = dict[str, Any]
+
+
+class Context:
+    def __init__(self, stdout: str = "", stderr: str = ""):
+        self.stdout = stdout
+        self.stderr = stderr
 
 
 class AbstractAdaptor(abc.ABC):
@@ -28,7 +34,7 @@ class AbstractAdaptor(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def retrieve(self, request: Request) -> Any:
+    def retrieve(self, request: Request, context: Context) -> Any:
         pass
 
 
@@ -47,7 +53,7 @@ class DummyAdaptor(AbstractAdaptor):
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return []
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def retrieve(self, request: Request, context: Context) -> BinaryIO:
         import datetime
         import time
 
