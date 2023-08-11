@@ -62,7 +62,9 @@ class InsituGlamodCdsAdaptor(AbstractCdsAdaptor):
                             z_out.writestr(zitem, z.read(zitem))
                     os.remove(azf_url)
                 except Exception as _err:
-                    logger.warning(msg=f"failed unexpected {_err.__str__()}", exc_info=True)
+                    logger.warning(
+                        msg=f"failed unexpected {_err.__str__()}", exc_info=True
+                    )
                 except FileNotFoundError:
                     logger.warning(msg=f"failed {azf_url}", exc_info=True)
 

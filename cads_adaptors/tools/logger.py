@@ -4,8 +4,8 @@ import os
 
 logging_level = os.getenv("ADAPTORS_LOG_LEVEL", "DEBUG")
 
-class CustomFormatter(logging.Formatter):
 
+class CustomFormatter(logging.Formatter):
     grey = "\x1b[38;20m"
     green = "\x1b[32m"
     yellow = "\x1b[33;20m"
@@ -15,14 +15,14 @@ class CustomFormatter(logging.Formatter):
     bold_red = "\x1b[31;1m"
     white = "\x1b[37m"
     reset = "\x1b[0m"
-    format = "%(levelname)s: %(message)s"
+    _format = "%(levelname)s: %(message)s"
 
     FORMATS = {
-        logging.DEBUG: green + format + reset,
-        logging.INFO: grey + format + reset,
-        logging.WARNING: yellow_box + format + reset,
-        logging.ERROR: red_box + format + reset,
-        logging.CRITICAL: bold_red + format + reset,
+        logging.DEBUG: green + _format + reset,
+        logging.INFO: grey + _format + reset,
+        logging.WARNING: yellow_box + _format + reset,
+        logging.ERROR: red_box + _format + reset,
+        logging.CRITICAL: bold_red + _format + reset,
     }
 
     def format(self, record):
@@ -31,7 +31,7 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-logger = logging.getLogger()
+logger = logging.getLogger(logging_level)
 ch = logging.StreamHandler()
 
 ch.setFormatter(CustomFormatter())

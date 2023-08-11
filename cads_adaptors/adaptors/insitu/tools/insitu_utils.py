@@ -6,6 +6,7 @@ from itertools import product
 import dateutil.parser
 import requests
 import sqlalchemy
+
 from cads_adaptors.tools.logger import logger
 
 zipped_file_template = (
@@ -172,7 +173,7 @@ def variables_units(api_url, variables, source):
     return "\n".join(out)
 
 
-def csv_header(api_url, query, resource, form={}):
+def csv_header(api_url, query, resource, config, form={}):
     """
 
     :param api_url: endpoint of the dbdataset api as defined in generate.yaml

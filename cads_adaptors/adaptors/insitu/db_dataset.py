@@ -122,7 +122,9 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
         output = f"{out_name}.zip"
         with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zipf:
             zipf.write(csv_path_out, out_name)
-        logger.info("timing: time elapsed compressing the file %6.3f" % (time.time() - t2))
+        logger.info(
+            "timing: time elapsed compressing the file %6.3f" % (time.time() - t2)
+        )
         return open(output, "rb")
 
     def csv_header(self, api_url, query):
