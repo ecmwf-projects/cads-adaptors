@@ -191,19 +191,21 @@ def get_possible_values(
 
 
 def get_value(value_in_constraint):
-   return value_in_constraint.split(":")[1]
+    return value_in_constraint.split(":")[1]
 
 
 def get_values(values_in_constraint):
-   return set([get_value(value_in_constraint) for value_in_constraint in values_in_constraint])
+    return set(
+        [get_value(value_in_constraint) for value_in_constraint in values_in_constraint]
+    )
 
 
 def get_value_from_constraint(constraint, value):
-   return f"{constraint}:{value}"
+    return f"{constraint}:{value}"
 
 
 def get_values_from_constraint(constraint, values):
-   return set([get_value_from_constraint(constraint, value) for value in values])
+    return set([get_value_from_constraint(constraint, value) for value in values])
 
 
 def apply_constraints_in_old_cds_fashion(
@@ -218,9 +220,13 @@ def apply_constraints_in_old_cds_fashion(
     for constraint_index, constraint in enumerate(constraints):
         for widget_name, widget_options in constraint.items():
             if widget_name in result:
-                result[widget_name] |= get_values_from_constraint(constraint_index, widget_options)
+                result[widget_name] |= get_values_from_constraint(
+                    constraint_index, widget_options
+                )
             else:
-                result[widget_name] = get_values_from_constraint(constraint_index, widget_options)
+                result[widget_name] = get_values_from_constraint(
+                    constraint_index, widget_options
+                )
 
     # loop over the widgets in the selection
     # as a general rule, a widget cannot decide for itself (but only for others)
@@ -233,22 +239,32 @@ def apply_constraints_in_old_cds_fashion(
                 per_widget_result[widget_name] = set()
 
         # the per-selected-widget result is the union of:
-        # - all constraints containing the selected widget with at least one value/option in common with the selected values/options (Category 1)
+        # - all constraints containing the selected widget with at least one
+        #   value/option in common with the selected values/options (Category 1)
         # - all constraints NOT containing the selected widget (Category 2)
         for i_constraint, constraint in enumerate(constraints):
             if selected_widget_name in constraint:
-                constraint_selection_intersection = selected_widget_options & constraint[selected_widget_name]
+                constraint_selection_intersection = (
+                    selected_widget_options & constraint[selected_widget_name]
+                )
                 if len(constraint_selection_intersection):
                     # factoring in Category 1 constraints
                     for widget_name, widget_options in constraint.items():
                         if widget_name != selected_widget_name:
-                            per_widget_result[widget_name] |= get_values_from_constraint(i_constraint, widget_options)
+                            per_widget_result[
+                                widget_name
+                            ] |= get_values_from_constraint(
+                                i_constraint, widget_options
+                            )
             else:
                 # factoring in Category 2 constraints
                 for widget_name, widget_options in constraint.items():
-                    per_widget_result[widget_name] |= get_values_from_constraint(i_constraint, widget_options)
+                    per_widget_result[widget_name] |= get_values_from_constraint(
+                        i_constraint, widget_options
+                    )
 
-        # perform the intersection of the result triggered by the currently considered widget with the global result
+        # perform the intersection of the result triggered by
+        # the currently considered widget with the global result
         # it is at this intersection step where the origin of a value (in terms of constraint) matters
         for widget_name, widget_values in per_widget_result.items():
             if widget_name != selected_widget_name:
