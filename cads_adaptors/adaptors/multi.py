@@ -72,7 +72,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 logger.debug(Exception)
             else:
                 print(adaptor, req, this_result)
-                results+=[this_result]
+                results+=this_result
         print(results)
 
         # TODO: Add parallelistation via multiprocessing
