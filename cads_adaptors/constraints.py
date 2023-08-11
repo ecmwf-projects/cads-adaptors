@@ -213,7 +213,7 @@ def apply_constraints_in_old_cds_fashion(
     # construct the widget-to-values map
     # each widget entry contains a set of (constraint_index, value) pairs
     # this is needed because the origin of a value is relevant (i.e. the constraint it originates from)
-    result = {}
+    result: dict[str, set[Any]] = {}
     for constraint_index, constraint in enumerate(constraints):
         for widget_name, widget_options in constraint.items():
             if widget_name in result:
@@ -230,7 +230,7 @@ def apply_constraints_in_old_cds_fashion(
     # only other widgets can enable/disable options/values in the "current" widget
     for selected_widget_name, selected_widget_options in selection.items():
         # prepare an initially empty result wrt to the currently considered widget in the selection
-        per_widget_result = {}
+        per_widget_result: dict[str, set[Any]] = {}
         for widget_name in result:
             if widget_name != selected_widget_name:
                 per_widget_result[widget_name] = set()
