@@ -71,6 +71,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             except Exception:
                 logger.debug(Exception)
             else:
+                print(adaptor, req, this_result)
                 results+=[this_result]
         print(results)
 
