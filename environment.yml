@@ -12,9 +12,8 @@ dependencies:
 - requests
 - pandas
 - python-dateutil
-- types-pyyaml
 - pip:
-  - types-python-dateutil
+  - rooki
   - cacholote
   - multiurl
   - pydantic<=1.10.11

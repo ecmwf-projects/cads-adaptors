@@ -5,14 +5,9 @@ import yaml
 
 from cads_adaptors import AbstractCdsAdaptor
 from cads_adaptors.adaptors import Request
+from cads_adaptors.tools import ensure_list
 
-logger = logging.Logger(__name__)
-
-
-def ensure_list(input_item):
-    if not isinstance(input_item, list):
-        return [input_item]
-    return input_item
+from cads_adaptors.tools.logger import logger
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
@@ -39,16 +34,14 @@ class MultiAdaptor(AbstractCdsAdaptor):
             if len(these_vals) > 0:
                 # if values then add to request
                 this_request[key] = these_vals
-            elif key not in config.get("optional_keys", []):
-                # If not an optional key, then return an empty dictionary.
+            elif key in config.get("required_keys", []):
+                # If a required key, then return an empty dictionary.
                 #  optional keys must be set in the adaptor.json via gecko
                 return {}
 
         return this_request
 
     def retrieve(self, request: Request):
-        import multiprocessing as mp
-
         from cads_adaptors.tools import adaptor_tools, download_tools
 
         download_format = request.pop("download_format", "zip")
@@ -60,7 +53,10 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_values = adaptor_desc.get("values", {})
 
             this_request = self.split_request(request, this_values, **self.config)
-            logger.debug(f"{adaptor_tag}, request: {this_request}")
+            print(f"{adaptor_tag}, request: {request}")
+            print(f"{adaptor_tag}, this_values: {this_values}")
+            print(f"{adaptor_tag}, optional_keys: {self.config.get('optional_keys', [])}")
+            print(f"{adaptor_tag}, this_request: {this_request}")
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
             #  i.e. split_request does NOT implement constraints.
@@ -68,22 +64,36 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 this_request.setdefault("download_format", "list")
                 these_requests[this_adaptor] = this_request
 
-        # Allow a maximum of 2 parallel processes
-        pool = mp.Pool(min(len(these_requests), 2))
-
-        def apply_adaptor(args):
+        results = []
+        for adaptor, req in these_requests.items():
             try:
-                result = args[0](args[1])
-            except Exception as err:
-                # Catch any possible exception and store error message in case all adaptors fail
-                logger.debug(f"Adaptor Error ({args}): {err}")
-                result = []
-            return result
+                this_result = adaptor.retrieve(req)
+            except Exception:
+                logger.debug(Exception)
+            else:
+                print(adaptor, req, this_result)
+                results+=this_result
+        print(results)
 
-        results = pool.map(
-            apply_adaptor,
-            ((adaptor, request) for adaptor, request in these_requests.items()),
-        )
+        # TODO: Add parallelistation via multiprocessing
+        # # Allow a maximum of 2 parallel processes
+        # import multiprocessing as mp
+
+        # pool = mp.Pool(min(len(these_requests), 2))
+
+        # def apply_adaptor(args):
+        #     try:
+        #         result = args[0](args[1])
+        #     except Exception as err:
+        #         # Catch any possible exception and store error message in case all adaptors fail
+        #         logger.debug(f"Adaptor Error ({args}): {err}")
+        #         result = []
+        #     return result
+
+        # results = pool.map(
+        #     apply_adaptor,
+        #     ((adaptor, request) for adaptor, request in these_requests.items()),
+        # )
 
         if len(results) == 0:
             raise RuntimeError(
