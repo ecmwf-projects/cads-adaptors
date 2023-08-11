@@ -1,4 +1,5 @@
 import calendar
+import typing as T
 
 DEFAULT_DATE_FORMAT = "%Y-%m-%d"
 
@@ -23,7 +24,7 @@ def parse_date_string(date_string, date_format=DEFAULT_DATE_FORMAT):
 
 
 class Operator:
-    ROOKI = None
+    ROOKI: T.Union[str, None] = None
 
     def __init__(self, request):
         self.request = request
@@ -48,7 +49,7 @@ class Operator:
 
 
 class Subset(Operator):
-    ROOKI = "Subset"
+    ROOKI: T.Union[str, None] = "Subset"
 
     def date(request):
         """
