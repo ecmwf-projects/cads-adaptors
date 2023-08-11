@@ -2,7 +2,7 @@
 import logging
 import os
 
-logger = logging.getLogger('adaptors')
+logger = logging.getLogger("adaptors")
 logger.setLevel(os.getenv("ADAPTORS_LOG_LEVEL", "DEBUG"))
 ch = logging.StreamHandler()
 
