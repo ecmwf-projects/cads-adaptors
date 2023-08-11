@@ -54,6 +54,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
             this_request = self.split_request(request, this_values, **self.config)
             print(f"{adaptor_tag}, request: {this_request}")
+            print(f"{adaptor_tag}, this_values: {this_values}")
+            print(f"{adaptor_tag}, optional_keys: {self.config.get('optional_keys', [])}")
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
             #  i.e. split_request does NOT implement constraints.
