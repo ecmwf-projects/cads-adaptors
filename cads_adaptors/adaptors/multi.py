@@ -7,7 +7,7 @@ from cads_adaptors import AbstractCdsAdaptor
 from cads_adaptors.adaptors import Request
 from cads_adaptors.tools import ensure_list
 
-logger = logging.Logger(__name__)
+from cads_adaptors.tools.logger import logger
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
@@ -53,7 +53,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_values = adaptor_desc.get("values", {})
 
             this_request = self.split_request(request, this_values, **self.config)
-            logger.debug(f"{adaptor_tag}, request: {this_request}")
+            print(f"{adaptor_tag}, request: {this_request}")
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
             #  i.e. split_request does NOT implement constraints.
