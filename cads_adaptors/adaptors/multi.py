@@ -66,7 +66,13 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         results = []
         for adaptor, req in these_requests.items():
-            results.append(adaptor.retrieve(req))
+            try:
+                this_result = adaptor.retrieve(req)
+            except Exception:
+                logger.debug(Exception)
+            else:
+                results+=[this_result]
+        print(results)
 
         # TODO: Add parallelistation via multiprocessing
         # # Allow a maximum of 2 parallel processes
