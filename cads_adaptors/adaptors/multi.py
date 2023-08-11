@@ -1,11 +1,13 @@
 import logging
 import typing as T
 
+import yaml
+
 from cads_adaptors import AbstractCdsAdaptor
 from cads_adaptors.adaptors import Request
-from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools import ensure_list
 
-logger = logging.Logger(__name__)
+from cads_adaptors.tools.logger import logger
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
@@ -32,8 +34,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
             if len(these_vals) > 0:
                 # if values then add to request
                 this_request[key] = these_vals
-            elif key not in config.get("optional_keys", []):
-                # If not an optional key, then return an empty dictionary.
+            elif key in config.get("required_keys", []):
+                # If a required key, then return an empty dictionary.
                 #  optional keys must be set in the adaptor.json via gecko
                 return {}
 
@@ -51,17 +53,27 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_values = adaptor_desc.get("values", {})
 
             this_request = self.split_request(request, this_values, **self.config)
-            logger.debug(f"{adaptor_tag}, request: {this_request}")
+            print(f"{adaptor_tag}, request: {request}")
+            print(f"{adaptor_tag}, this_values: {this_values}")
+            print(f"{adaptor_tag}, optional_keys: {self.config.get('optional_keys', [])}")
+            print(f"{adaptor_tag}, this_request: {this_request}")
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
             #  i.e. split_request does NOT implement constraints.
             if len(this_request) > 0:
                 this_request.setdefault("download_format", "list")
-                these_requests[this_adaptor] = [this_request]
+                these_requests[this_adaptor] = this_request
 
         results = []
         for adaptor, req in these_requests.items():
-            results.append(adaptor(req))
+            try:
+                this_result = adaptor.retrieve(req)
+            except Exception:
+                logger.debug(Exception)
+            else:
+                print(adaptor, req, this_result)
+                results+=this_result
+        print(results)
 
         # TODO: Add parallelistation via multiprocessing
         # # Allow a maximum of 2 parallel processes
@@ -84,8 +96,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
         # )
 
         if len(results) == 0:
-            import yaml
-
             raise RuntimeError(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
                 f"{yaml.safe_dump(exception_logs)}"
