@@ -13,7 +13,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Topic :: Scientific/Engineering"
 ]
-dependencies = ["cacholote", "multiurl"]
+dependencies = ["cacholote", "multiurl", "python-dateutil"]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]
 license = {file = "LICENSE"}
@@ -31,8 +31,7 @@ strict = false
 ignore_missing_imports = true
 module = [
   "cdsapi",
-  "multiurl",
-  "python-dateutil"
+  "multiurl"
 ]
 
 [tool.ruff]
