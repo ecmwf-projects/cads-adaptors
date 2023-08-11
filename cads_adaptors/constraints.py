@@ -332,7 +332,6 @@ def get_form_state(
     result: dict[str, set[Any]] = {key: set() for key in form}
 
     for key in form:
-        print(key)
         sub_selection = selection.copy()
         if key in sub_selection:
             sub_selection.pop(key)
