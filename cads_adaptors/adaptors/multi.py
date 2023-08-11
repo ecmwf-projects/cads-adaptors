@@ -62,7 +62,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             #  i.e. split_request does NOT implement constraints.
             if len(this_request) > 0:
                 this_request.setdefault("download_format", "list")
-                these_requests[this_adaptor] = [this_request]
+                these_requests[this_adaptor] = this_request
 
         results = []
         for adaptor, req in these_requests.items():
