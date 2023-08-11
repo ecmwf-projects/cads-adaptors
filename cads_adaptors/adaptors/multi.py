@@ -34,8 +34,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
             if len(these_vals) > 0:
                 # if values then add to request
                 this_request[key] = these_vals
-            elif key not in config.get("optional_keys", []):
-                # If not an optional key, then return an empty dictionary.
+            elif key in config.get("required_keys", []):
+                # If a required key, then return an empty dictionary.
                 #  optional keys must be set in the adaptor.json via gecko
                 return {}
 
