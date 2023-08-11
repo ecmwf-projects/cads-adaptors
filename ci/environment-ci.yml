@@ -14,3 +14,6 @@ dependencies:
 - sphinx-autoapi
 # DO NOT EDIT ABOVE THIS LINE, ADD DEPENDENCIES BELOW
 - types-requests
+- types-pyyaml
+- pip:
+  - types-python-dateutil
