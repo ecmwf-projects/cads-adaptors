@@ -9,6 +9,7 @@ from cads_adaptors.tools import ensure_list
 
 logger = logging.Logger(__name__)
 
+
 class MultiAdaptor(AbstractCdsAdaptor):
     @staticmethod
     def split_request(

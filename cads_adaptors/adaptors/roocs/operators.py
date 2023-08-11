@@ -1,6 +1,4 @@
-
 import calendar
-
 
 DEFAULT_DATE_FORMAT = "%Y-%m-%d"
 
@@ -10,26 +8,26 @@ def rooki_args(*keys):
         def wrapper(self, *args, **kwargs):
             values = method(self, *args, **kwargs)
             return {keys[i]: values[i] for i in range(len(values))}
+
         return wrapper
+
     return decorator
 
 
 def parse_date_string(date_string, date_format=DEFAULT_DATE_FORMAT):
-    """
-    Format any datestring into the required WPS date format.
-    """
+    """Format any datestring into the required WPS date format."""
     import dateutil
+
     datetime = dateutil.parser.parse(date_string)
     return datetime.strftime(date_format)
 
 
 class Operator:
-    
     ROOKI = None
-    
+
     def __init__(self, request):
         self.request = request
-    
+
     @property
     def parameters(self):
         return (
@@ -37,22 +35,19 @@ class Operator:
             for parameter in dir(self)
             if not parameter.startswith("_")
         )
-    
+
     @staticmethod
     def update_kwargs(target, source):
-        """
-        Combine rooki parameters to be passed as a single operator argument.
-        """
+        """Combine rooki parameters to be passed as a single operator argument."""
         for key, value in source.items():
             if key in target:
                 target[key] = "|".join((target[key], value)).rstrip("|")
             else:
                 target[key] = value
         return target
-    
+
 
 class Subset(Operator):
-
     ROOKI = "Subset"
 
     def date(request):
@@ -64,7 +59,7 @@ class Subset(Operator):
 
         if isinstance(date_range, list):
             start, end = str(date_range[0]), str(date_range[-1])
-            date_range = f'{parse_date_string(start)}/{parse_date_string(end)}'
+            date_range = f"{parse_date_string(start)}/{parse_date_string(end)}"
 
         return {"time": date_range}
 
@@ -73,8 +68,8 @@ class Subset(Operator):
         years = self.request["year"]
         if not isinstance(years, (list, tuple)):
             years = [years]
-        return {"time": '/'.join((min(years), max(years)))}
-    
+        return {"time": "/".join((min(years), max(years)))}
+
     def year(self):
         """Convert a CDS-style year request to a rooki-style year request."""
         years = self.request["year"]
@@ -82,7 +77,7 @@ class Subset(Operator):
             years = [years]
         return {
             **self.year_range,
-            **{"time_components": "year:"+",".join(years)},
+            **{"time_components": "year:" + ",".join(years)},
         }
 
     def month(self):
@@ -91,14 +86,14 @@ class Subset(Operator):
         if not isinstance(months, (list, tuple)):
             months = [months]
         months = [calendar.month_name[int(month)].lower()[:3] for month in months]
-        return {"time_components": "month:"+",".join(months)}
+        return {"time_components": "month:" + ",".join(months)}
 
     def day(self):
         """Convert a CDS-style day request to a rooki-style day request."""
         days = self.request["day"]
         if not isinstance(days, (list, tuple)):
             days = [days]
-        return {"time_components": "day:"+",".join(days)}
+        return {"time_components": "day:" + ",".join(days)}
 
     def level(self):
         """
@@ -106,14 +101,14 @@ class Subset(Operator):
         rooki-style level range.
         """
         import re
+
         levels = self.request["level"]
 
         if not isinstance(levels, (list, tuple)):
             levels = [levels]
-    
+
         levels = [
-            list(re.finditer("[\d]*[.][\d]+|[\d]+", level))[0]
-            for level in levels
+            list(re.finditer(r"[\d]*[.][\d]+|[\d]+", level))[0] for level in levels
         ]
 
         for i, level in enumerate(levels):
