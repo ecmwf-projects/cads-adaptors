@@ -1,7 +1,7 @@
 import os
 from typing import Any, BinaryIO
 
-from . import adaptor, constraints, costing, mapping
+from . import adaptor, constraints, costing, mapping, exceptions
 
 
 class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
@@ -29,7 +29,7 @@ class AbstractCdsAdaptor(adaptor.AbstractAdaptor):
 
 
 class UrlCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request: adaptor.Request) -> BinaryIO:
+    def retrieve(self, request: adaptor.Request, context: adaptor.Context) -> BinaryIO:
         from .tools import url_tools
 
         data_format = request.pop("format", "zip")
@@ -50,7 +50,7 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
 
 
 class LegacyCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request: adaptor.Request) -> BinaryIO:
+    def retrieve(self, request: adaptor.Request, context: adaptor.Context) -> BinaryIO:
         import cdsapi
 
         # parse input options
@@ -67,7 +67,7 @@ class LegacyCdsAdaptor(AbstractCdsAdaptor):
 class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
-    def retrieve(self, request: adaptor.Request) -> BinaryIO:
+    def retrieve(self, request: adaptor.Request, context: adaptor.Context) -> BinaryIO:
         import subprocess
 
         with open("r", "w") as fp:
@@ -83,17 +83,21 @@ class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
         user_id = 0
         env["MARS_USER"] = f"{namespace}-{user_id}"
 
-        subprocess.run(["/usr/local/bin/mars", "r"], check=True, env=env)
+        output = subprocess.run(["/usr/local/bin/mars r"], shell=True, env=env, capture_output=True)
+        context.stdout = output.stdout.decode()
+        context.stderr = output.stderr.decode()
+        if output.returncode:
+            raise exceptions.AdaptorException(context.stderr)
 
         return open("data.grib")  # type: ignore
 
 
 class MarsCdsAdaptor(DirectMarsCdsAdaptor):
-    def retrieve(self, request: adaptor.Request) -> BinaryIO:
+    def retrieve(self, request: adaptor.Request, context: adaptor.Context) -> BinaryIO:
         data_format = request.pop("format", "grib")
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
         if data_format != "grib":
             # FIXME: reformat if needed
             pass
-        return super().retrieve(mapped_request)
+        return super().retrieve(mapped_request, context)
