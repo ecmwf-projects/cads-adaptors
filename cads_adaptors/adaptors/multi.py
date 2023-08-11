@@ -1,8 +1,6 @@
 import logging
 import typing as T
 
-import yaml
-
 from cads_adaptors import AbstractCdsAdaptor
 from cads_adaptors.adaptors import Request
 from cads_adaptors.tools.general import ensure_list
@@ -86,6 +84,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
         # )
 
         if len(results) == 0:
+            import yaml
+
             raise RuntimeError(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
                 f"{yaml.safe_dump(exception_logs)}"
