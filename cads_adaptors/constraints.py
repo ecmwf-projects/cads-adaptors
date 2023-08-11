@@ -193,78 +193,72 @@ def get_possible_values(
 def get_value(value_in_constraint):
    return value_in_constraint.split(":")[1]
 
-def get_values(values_in_constraint):
-   return [get_value(value_in_constraint) for value_in_constraint in values_in_constraint]
 
-def value_from_constraint(constraint, value):
+def get_values(values_in_constraint):
+   return set([get_value(value_in_constraint) for value_in_constraint in values_in_constraint])
+
+
+def get_value_from_constraint(constraint, value):
    return f"{constraint}:{value}"
 
 
-def values_from_constraint(constraint, values):
-   return [value_from_constraint(constraint, value) for value in values]
+def get_values_from_constraint(constraint, values):
+   return set([get_value_from_constraint(constraint, value) for value in values])
 
 
-def apply_constraints_v2(
+def apply_constraints_in_old_cds_fashion(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
 ) -> dict[str, list[Any]]:
-  full_result = {}
-  result_out = {}
-  for i_combination, combination in enumerate(constraints):
-    for name, values in combination.items():
-      if name in full_result:
-        full_result[name] |= set(values_from_constraint(i_combination, values))
-      else:
-        full_result[name] = set(values_from_constraint(i_combination, values))
-
-  # if no selection then return full result
-  if len(selection) == 0:
-    for fname in full_result:
-      full_result[fname] = set(get_values(full_result[fname]))
-    return full_result
-
-  # loop over selected names and values
-  for sname, svalues in selection.items():
+    # construct the widget-to-values map
+    # each widget entry contains a set of (constraint_index, value) pairs
+    # this is needed because the origin of a value is relevant (i.e. the constraint it originates from)
     result = {}
-    for i_combination, combination in enumerate(constraints):
-      if sname in combination:
-        common = svalues & combination[sname]
-        if len(common):
-          for name, values in combination.items():
-            if name != sname:
-              if name in result:
-                result[name] |= set(values_from_constraint(i_combination, values))
-              else:
-                result[name] = set(values_from_constraint(i_combination, values))
-      else:
-        for name, values in combination.items():
-          if name in result:
-            result[name] |= set(values_from_constraint(i_combination, values))
-          else:
-            result[name] = set(values_from_constraint(i_combination, values))
+    for constraint_index, constraint in enumerate(constraints):
+        for widget_name, widget_options in constraint.items():
+            if widget_name in result:
+                result[widget_name] |= get_values_from_constraint(constraint_index, widget_options)
+            else:
+                result[widget_name] = get_values_from_constraint(constraint_index, widget_options)
 
-    # loop over full result to check if there are any missing keys
-    for fname in full_result:
-      if not fname in result:
-        result[fname] = set()
+    # loop over the widgets in the selection
+    # as a general rule, a widget cannot decide for itself (but only for others)
+    # only other widgets can enable/disable options/values in the "current" widget
+    for selected_widget_name, selected_widget_options in selection.items():
+        # prepare an initially empty result wrt to the currently considered widget in the selection
+        per_widget_result = {}
+        for widget_name in result:
+            if widget_name != selected_widget_name:
+                per_widget_result[widget_name] = set()
 
-    for rname, rvalues in result.items():
-      if rname != sname:
-        if rname in result_out:
-          result_out[rname] = result_out[rname] & rvalues
-        else:
-          result_out[rname] = full_result[rname] & rvalues
+        # the per-selected-widget result is the union of:
+        # - all constraints containing the selected widget with at least one value/option in common with the selected values/options (Category 1)
+        # - all constraints NOT containing the selected widget (Category 2)
+        for i_constraint, constraint in enumerate(constraints):
+            if selected_widget_name in constraint:
+                constraint_selection_intersection = selected_widget_options & constraint[selected_widget_name]
+                if len(constraint_selection_intersection):
+                    # factoring in Category 1 constraints
+                    for widget_name, widget_options in constraint.items():
+                        if widget_name != selected_widget_name:
+                            per_widget_result[widget_name] |= get_values_from_constraint(i_constraint, widget_options)
+            else:
+                # factoring in Category 2 constraints
+                for widget_name, widget_options in constraint.items():
+                    per_widget_result[widget_name] |= get_values_from_constraint(i_constraint, widget_options)
 
-  # loop over full result to check if there are any missing keys
-  for fname in full_result:
-    if not (fname in result_out or fname in selection):
-      result_out[fname] = set()
+        # perform the intersection of the result triggered by the currently considered widget with the global result
+        # it is at this intersection step where the origin of a value (in terms of constraint) matters
+        for widget_name, widget_values in per_widget_result.items():
+            if widget_name != selected_widget_name:
+                result[widget_name] = result[widget_name] & widget_values
 
-  for fname in result_out:
-    result_out[fname] = set(get_values(result_out[fname]))
+    # make the result constraint-independent
+    for widget_name in result:
+        result[widget_name] = get_values(result[widget_name])
 
-  return format_to_json(result_out)
+    return format_to_json(result)
 
 
 def format_to_json(result: dict[str, set[Any]]) -> dict[str, list[Any]]:
@@ -411,7 +405,7 @@ def validate_constraints(
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
     selection = parse_selection(request["inputs"], unsupported_vars)
 
-    return apply_constraints_v2(parsed_form, selection, constraints)
+    return apply_constraints_in_old_cds_fashion(parsed_form, selection, constraints)
 
 
 def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
