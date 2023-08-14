@@ -484,7 +484,7 @@ def validate_constraints(
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
     selection = parse_selection(request["inputs"], unsupported_vars)
 
-    return apply_constraints_in_old_cds_fashion(parsed_form, selection, constraints)
+    return apply_constraints_alternate(parsed_form, selection, constraints)
 
 
 def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
