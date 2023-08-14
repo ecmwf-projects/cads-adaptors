@@ -3,6 +3,21 @@
 import copy
 
 
+DATE_KEYWORD_CONFIGS = [
+    {
+        "date_keyword": "date",
+        "year_keyword": "year",
+        "month_keyword": "month",
+        "day_keyword": "day",
+    },
+    {
+        "date_keyword": "hdate",
+        "year_keyword": "hyear",
+        "month_keyword": "hmonth",
+        "day_keyword": "hday",
+    }
+]
+
 def julian_to_ymd(jdate):
     # only integer julian dates are supported for now, as inherited
     try:
@@ -200,54 +215,65 @@ def apply_mapping(request, mapping):
     for name, values in request.items():
         r[rename.get(name, name)] = values
 
-    date = options.get("date_keyword", "date")
+    date_keyword_configs = options.get("date_keyword_config", DATE_KEYWORD_CONFIGS)
+    if isinstance(date_keyword_config, dict):
+        date_keyword_configs = [date_keyword_configs]
 
-    # Transform year/month/day in dates
+    # Loop over potential date keyword configs:
+    for date_keyword_config in date_keyword_configs:
+        date = date_keyword_config.get("date_keyword", "date")
+        year = date_keyword_config.get("year_keyword", "year")
+        month = date_keyword_config.get("month_keyword", "month")
+        day = date_keyword_config.get("day_keyword", "day")
 
-    if options.get("wants_dates", False):
-        if date in r:
-            newdates = set()
-            dates = r[date]
-            if not isinstance(dates, list):
-                dates = [dates]
-            # Expand intervals
-            for d in dates:
-                if "/" in d:
-                    start, end = d.split("/")
-                    for e in date_range(start, end):
-                        newdates.add(e)
-                else:
-                    newdates.add(d)
+        # Transform year/month/day in dates
+        if options.get("wants_dates", False):
 
-            r[date] = sorted(newdates)
+            if date in r:
+                newdates = set()
+                dates = r[date]
+                if not isinstance(dates, list):
+                    dates = [dates]
+                # Expand intervals
+                for d in dates:
+                    if "/" in d:
+                        start, end = d.split("/")
+                        for e in date_range(start, end):
+                            newdates.add(e)
+                    else:
+                        newdates.add(d)
 
-        else:
-            years = [int(x) for x in as_list(request, "year", force)]
-            months = [int(x) for x in as_list(request, "month", force)]
-            days = [int(x) for x in as_list(request, "day", force)]
+                r[date] = sorted(newdates)
 
-            if years and months and days:
-                r[date] = sorted(set(date_from_years_month_days(years, months, days)))
+            # check if all Y,M,D are in request or force values
+            elif all(
+                [(thing in request) or (thing in force) for thing in [year, month, day]]
+            ):
+                years = [int(x) for x in as_list(request, year, force)]
+                months = [int(x) for x in as_list(request, month, force)]
+                days = [int(x) for x in as_list(request, day, force)]
 
-                for k in ("year", "month", "day"):
-                    if k in r:
-                        del r[k]
-                    if k in force:
-                        del force[k]
+                if years and months and days:
+                    r[date] = sorted(set(date_from_years_month_days(years, months, days)))
 
-    if options.get("wants_intervals", False):
-        if date in r:
-            r[date] = [to_interval(d) for d in r[date]]
+                    for k in (year, month, day):
+                        if k in r:
+                            del r[k]
+                        if k in force:
+                            del force[k]
 
-    epoch = options.get("seconds_since_epoch")
-    if epoch:
-        date = options.get("date_keyword", "date")
-        extra = options.get("add_hours_to_date", 0) * 3600
-        oldvalues = r[date]
-        if isinstance(oldvalues, list):
-            r[date] = [str(seconds_since_epoch(v, epoch) + extra) for v in oldvalues]
-        else:
-            r[date] = str(seconds_since_epoch(oldvalues, epoch) + extra)
+        if options.get("wants_intervals", False):
+            if date in r:
+                r[date] = [to_interval(d) for d in r[date]]
+
+        epoch = options.get("seconds_since_epoch")
+        if epoch is not None:
+            extra = options.get("add_hours_to_date", 0) * 3600
+            oldvalues = r[date]
+            if isinstance(oldvalues, list):
+                r[date] = [str(seconds_since_epoch(v, epoch) + extra) for v in oldvalues]
+            else:
+                r[date] = str(seconds_since_epoch(oldvalues, epoch) + extra)
 
     # Set forced values
 
