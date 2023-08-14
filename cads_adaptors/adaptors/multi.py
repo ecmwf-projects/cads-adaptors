@@ -1,4 +1,3 @@
-import logging
 import typing as T
 
 import yaml
@@ -6,7 +5,6 @@ import yaml
 from cads_adaptors import AbstractCdsAdaptor
 from cads_adaptors.adaptors import Request
 from cads_adaptors.tools import ensure_list
-
 from cads_adaptors.tools.logger import logger
 
 
@@ -55,7 +53,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.split_request(request, this_values, **self.config)
             print(f"{adaptor_tag}, request: {request}")
             print(f"{adaptor_tag}, this_values: {this_values}")
-            print(f"{adaptor_tag}, optional_keys: {self.config.get('optional_keys', [])}")
+            print(
+                f"{adaptor_tag}, optional_keys: {self.config.get('optional_keys', [])}"
+            )
             print(f"{adaptor_tag}, this_request: {this_request}")
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
@@ -72,7 +72,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 logger.debug(Exception)
             else:
                 print(adaptor, req, this_result)
-                results+=this_result
+                results += this_result
         print(results)
 
         # TODO: Add parallelistation via multiprocessing

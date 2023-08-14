@@ -25,6 +25,7 @@ def execute_mars(request: Request, target="data.grib"):
 
     return target
 
+
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
@@ -32,7 +33,6 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
         result = execute_mars(request)
 
         return open(result)  # type: ignore
-
 
 
 class MarsCdsAdaptor(DirectMarsCdsAdaptor):
@@ -49,7 +49,7 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
         if data_format not in ["grib"]:
             # FIXME: reformat if needed
             pass
-        
+
         result = execute_mars(mapped_request)
 
         download_kwargs = {
