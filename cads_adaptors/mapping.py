@@ -2,6 +2,21 @@
 
 import copy
 
+DATE_KEYWORD_CONFIGS = [
+    {
+        "date_keyword": "date",
+        "year_keyword": "year",
+        "month_keyword": "month",
+        "day_keyword": "day",
+    },
+    {
+        "date_keyword": "hdate",
+        "year_keyword": "hyear",
+        "month_keyword": "hmonth",
+        "day_keyword": "hday",
+    },
+]
+
 
 DATE_KEYWORD_CONFIGS = [
     {
@@ -228,7 +243,6 @@ def apply_mapping(request, mapping):
 
         # Transform year/month/day in dates
         if options.get("wants_dates", False):
-
             if date in r:
                 newdates = set()
                 dates = r[date]
@@ -254,7 +268,9 @@ def apply_mapping(request, mapping):
                 days = [int(x) for x in as_list(request, day, force)]
 
                 if years and months and days:
-                    r[date] = sorted(set(date_from_years_month_days(years, months, days)))
+                    r[date] = sorted(
+                        set(date_from_years_month_days(years, months, days))
+                    )
 
                     for k in (year, month, day):
                         if k in r:
@@ -271,7 +287,9 @@ def apply_mapping(request, mapping):
             extra = options.get("add_hours_to_date", 0) * 3600
             oldvalues = r[date]
             if isinstance(oldvalues, list):
-                r[date] = [str(seconds_since_epoch(v, epoch) + extra) for v in oldvalues]
+                r[date] = [
+                    str(seconds_since_epoch(v, epoch) + extra) for v in oldvalues
+                ]
             else:
                 r[date] = str(seconds_since_epoch(oldvalues, epoch) + extra)
 
