@@ -297,5 +297,4 @@ def apply_mapping(request, mapping):
                 "",
             )
 
-    print(r)
     return r
