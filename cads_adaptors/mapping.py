@@ -216,7 +216,7 @@ def apply_mapping(request, mapping):
         r[rename.get(name, name)] = values
 
     date_keyword_configs = options.get("date_keyword_config", DATE_KEYWORD_CONFIGS)
-    if isinstance(date_keyword_config, dict):
+    if isinstance(date_keyword_configs, dict):
         date_keyword_configs = [date_keyword_configs]
 
     # Loop over potential date keyword configs:
