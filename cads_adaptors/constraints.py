@@ -228,6 +228,7 @@ def apply_constraints_in_old_cds_fashion(
     # loop over the widgets in the selection
     # as a general rule, a widget cannot decide for itself (but only for others)
     # only other widgets can enable/disable options/values in the "current" widget
+    ii = 0
     for selected_widget_name, selected_widget_options in selection.items():
         # prepare an initially empty result wrt to the currently considered widget in the selection
         per_widget_result: dict[str, set[Any]] = {}
@@ -266,10 +267,76 @@ def apply_constraints_in_old_cds_fashion(
         for widget_name, widget_values in per_widget_result.items():
             if widget_name != selected_widget_name:
                 result[widget_name] = result[widget_name] & widget_values
-
+        # print(ii, result)
+        ii += 1
+    # print('final', result)
     # make the result constraint-independent
     for widget_name in result:
         result[widget_name] = get_values(result[widget_name])
+
+    return format_to_json(result)
+
+
+def apply_constraints_alternate(
+    form: dict[str, set[Any]],
+    selection: dict[str, set[Any]],
+    constraints: list[dict[str, set[Any]]],
+) -> dict[str, list[Any]]:
+    # construct the widget-to-values map
+    # each widget entry contains a set of (constraint_index, value) pairs
+    # this is needed because the origin of a value is relevant (i.e. the constraint it originates from)
+    result: dict[str, set[Any]] = {}
+    for constraint_index, constraint in enumerate(constraints):
+        for widget_name, widget_options in constraint.items():
+            if widget_name in result:
+                result[widget_name] |= set(widget_options)
+            else:
+                result[widget_name] = set(widget_options)
+
+    # loop over the widgets in the selection
+    # as a general rule, a widget cannot decide for itself (but only for others)
+    # only other widgets can enable/disable options/values in the "current" widget
+    ii = 0
+    for selected_widget_name, selected_widget_options in selection.items():
+        # prepare an initially empty result wrt to the currently considered widget in the selection
+        per_widget_result: dict[str, set[Any]] = {}
+        for widget_name in result:
+            if widget_name != selected_widget_name:
+                per_widget_result[widget_name] = set()
+
+        # the per-selected-widget result is the union of:
+        # - all constraints containing the selected widget with at least one
+        #   value/option in common with the selected values/options (Category 1)
+        # - all constraints NOT containing the selected widget (Category 2)
+        for i_constraint, constraint in enumerate(constraints):
+            if selected_widget_name in constraint:
+                constraint_selection_intersection = (
+                    selected_widget_options & constraint[selected_widget_name]
+                )
+                if len(constraint_selection_intersection):
+                    # factoring in Category 1 constraints
+                    for widget_name, widget_options in constraint.items():
+                        if widget_name != selected_widget_name:
+                            per_widget_result[
+                                widget_name
+                            ] |= set(widget_options)
+            else:
+                # factoring in Category 2 constraints
+                for widget_name, widget_options in constraint.items():
+                    per_widget_result[widget_name] |= set(widget_options)
+
+        # perform the intersection of the result triggered by
+        # the currently considered widget with the global result
+        # it is at this intersection step where the origin of a value (in terms of constraint) matters
+        for widget_name, widget_values in per_widget_result.items():
+            if widget_name != selected_widget_name:
+                result[widget_name] = result[widget_name] & widget_values
+        # print(ii, result)
+        ii += 1
+    # print('final', result)
+    # make the result constraint-independent
+    # for widget_name in result:
+    #     result[widget_name] = get_values(result[widget_name])
 
     return format_to_json(result)
 
