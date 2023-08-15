@@ -31,7 +31,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 # if values then add to request
                 this_request[key] = these_vals
             elif key in config.get("required_keys", []):
-                # If a required key, then return an empty dictionary.
+                # If a required key is missing, then return an empty dictionary.
                 #  optional keys must be set in the adaptor.json via gecko
                 return {}
 
@@ -104,6 +104,8 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
+            logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, config: {self.config}")
+
             this_request = self.split_request(request, this_values, **self.config)
             logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}")
 
@@ -117,7 +119,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         result = execute_mars(mapped_requests)
 
         # TODO: Handle alternate data_format
-        
+
         download_kwargs = {
             "base_target": f"{self.collection_id}-{hash(tuple(request))}"
         }
