@@ -113,7 +113,6 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             )
 
             if len(this_request) > 0:
-                this_request.setdefault("download_format", "list")
                 mapped_requests.append(
                     mapping.apply_mapping(this_request, this_adaptor.mapping)
                 )
