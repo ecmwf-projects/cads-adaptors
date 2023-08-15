@@ -1,8 +1,6 @@
 import typing as T
 
-import yaml
-
-from cads_adaptors import AbstractCdsAdaptor
+from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.logger import logger
@@ -83,4 +81,47 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return download_tools.DOWNLOAD_FORMATS[download_format](
             paths, **download_kwargs
+        )
+
+
+
+class MultiMarsCdsAdaptor(MultiAdaptor):
+    def retrieve(self, request: Request):
+        """
+        For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor
+        """
+        from cads_adaptors.tools import adaptor_tools, download_tools
+        from cads_adaptors.adaptors.mars import execute_mars
+
+        download_format = request.pop("download_format", "zip")
+
+        # Format of data files, grib or netcdf
+        data_format = request.pop("format", "grib")
+        
+        mapped_requests = []
+        logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
+        for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
+            this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
+            this_values = adaptor_desc.get("values", {})
+
+            this_request = self.split_request(request, this_values, **self.config)
+            logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}")
+
+            if len(this_request) > 0:
+                this_request.setdefault("download_format", "list")
+                mapped_requests.append(
+                    mapping.apply_mapping(this_request, this_adaptor.mapping)
+                )
+
+
+        result = execute_mars(mapped_requests)
+
+        # TODO: Handle alternate data_format
+        
+        download_kwargs = {
+            "base_target": f"{self.collection_id}-{hash(tuple(request))}"
+        }
+
+        return download_tools.DOWNLOAD_FORMATS[download_format](
+            [result], **download_kwargs
         )
