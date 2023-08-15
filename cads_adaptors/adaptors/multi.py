@@ -46,12 +46,13 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         these_requests = {}
         exception_logs: T.Dict[str, str] = {}
+        logger.debug(f"MultiAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
             this_request = self.split_request(request, this_values, **self.config)
-            logger.debug(f"{adaptor_tag}, this_request: {this_request}")
+            logger.debug(f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}")
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
             #  i.e. split_request does NOT implement constraints.
