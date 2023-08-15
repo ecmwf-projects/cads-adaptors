@@ -104,7 +104,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
-            logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, config: {this_adaptor.config}")
+            # logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, config: {this_adaptor.config}")
 
             this_request = self.split_request(request, this_values, **this_adaptor.config)
             logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}")
@@ -115,7 +115,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                     mapping.apply_mapping(this_request, this_adaptor.mapping)
                 )
 
-
+        logger.debug(f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}"
         result = execute_mars(mapped_requests)
 
         # TODO: Handle alternate data_format

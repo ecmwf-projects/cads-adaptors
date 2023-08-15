@@ -11,6 +11,7 @@ def execute_mars(request: Request, target="data.grib"):
     requests = ensure_list(request)
     with open("r", "w") as fp:
         for i, req in enumerate(requests):
+            print("MARS DEBUG:", req)
             print(f"retrieve,", file=fp)
             # Add target file to first request, any extra store in same grib
             if i==0:
