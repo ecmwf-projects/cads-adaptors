@@ -18,21 +18,6 @@ DATE_KEYWORD_CONFIGS = [
 ]
 
 
-DATE_KEYWORD_CONFIGS = [
-    {
-        "date_keyword": "date",
-        "year_keyword": "year",
-        "month_keyword": "month",
-        "day_keyword": "day",
-    },
-    {
-        "date_keyword": "hdate",
-        "year_keyword": "hyear",
-        "month_keyword": "hmonth",
-        "day_keyword": "hday",
-    }
-]
-
 def julian_to_ymd(jdate):
     # only integer julian dates are supported for now, as inherited
     try:
@@ -312,5 +297,4 @@ def apply_mapping(request, mapping):
                 "",
             )
 
-    print(r)
     return r

@@ -4,7 +4,7 @@ import yaml
 
 from cads_adaptors import AbstractCdsAdaptor
 from cads_adaptors.adaptors import Request
-from cads_adaptors.tools import ensure_list
+from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.logger import logger
 
 
@@ -46,17 +46,13 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         these_requests = {}
         exception_logs: T.Dict[str, str] = {}
+        logger.debug(f"MultiAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
             this_request = self.split_request(request, this_values, **self.config)
-            print(f"{adaptor_tag}, request: {request}")
-            print(f"{adaptor_tag}, this_values: {this_values}")
-            print(
-                f"{adaptor_tag}, optional_keys: {self.config.get('optional_keys', [])}"
-            )
-            print(f"{adaptor_tag}, this_request: {this_request}")
+            logger.debug(f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}")
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
             #  i.e. split_request does NOT implement constraints.
@@ -71,9 +67,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             except Exception:
                 logger.debug(Exception)
             else:
-                print(adaptor, req, this_result)
                 results += this_result
-        print(results)
 
         # TODO: Add parallelistation via multiprocessing
         # # Allow a maximum of 2 parallel processes
