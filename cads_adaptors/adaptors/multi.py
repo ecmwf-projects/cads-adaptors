@@ -65,9 +65,12 @@ class MultiAdaptor(AbstractCdsAdaptor):
             try:
                 this_result = adaptor.retrieve(req)
             except Exception:
-                logger.debug(Exception)
+                exception_logs[adaptor] = Exception
             else:
                 results += this_result
+        
+        if len(results)==0:
+            raise Exception(logger.debug(exception_logs))
 
         # close files
         [res.close() for res in results]
