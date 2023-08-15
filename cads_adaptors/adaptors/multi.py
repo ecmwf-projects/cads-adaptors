@@ -49,7 +49,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
-            this_request = self.split_request(request, this_values, **self.config)
+            this_request = self.split_request(request, this_values, **this_adaptor.config)
             logger.debug(f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}")
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
@@ -104,9 +104,9 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
-            logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, config: {self.config}")
+            logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, config: {this_adaptor.config}")
 
-            this_request = self.split_request(request, this_values, **self.config)
+            this_request = self.split_request(request, this_values, **this_adaptor.config)
             logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}")
 
             if len(this_request) > 0:
