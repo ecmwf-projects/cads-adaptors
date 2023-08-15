@@ -60,34 +60,34 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 this_request.setdefault("download_format", "list")
                 these_requests[this_adaptor] = this_request
 
-        results = []
-        for adaptor, req in these_requests.items():
-            try:
-                this_result = adaptor.retrieve(req)
-            except Exception:
-                logger.debug(Exception)
-            else:
-                results += this_result
-
-        # TODO: Add parallelistation via multiprocessing
-        # # Allow a maximum of 2 parallel processes
-        # import multiprocessing as mp
-
-        # pool = mp.Pool(min(len(these_requests), 2))
-
-        # def apply_adaptor(args):
+        # results = []
+        # for adaptor, req in these_requests.items():
         #     try:
-        #         result = args[0](args[1])
-        #     except Exception as err:
-        #         # Catch any possible exception and store error message in case all adaptors fail
-        #         logger.debug(f"Adaptor Error ({args}): {err}")
-        #         result = []
-        #     return result
+        #         this_result = adaptor.retrieve(req)
+        #     except Exception:
+        #         logger.debug(Exception)
+        #     else:
+        #         results += this_result
+        
+        # Submit job in parallel using multiprocessing
+        import multiprocessing as mp
 
-        # results = pool.map(
-        #     apply_adaptor,
-        #     ((adaptor, request) for adaptor, request in these_requests.items()),
-        # )
+        # Allow a maximum of 2 parallel processes
+        pool = mp.Pool(min(len(these_requests), 2))
+
+        def apply_adaptor(args):
+            try:
+                result = args[0](args[1])
+            except Exception as err:
+                # Catch any possible exception and store error message in case all adaptors fail
+                logger.debug(f"Adaptor Error ({args}): {err}")
+                result = []
+            return result
+
+        results = pool.map(
+            apply_adaptor,
+            ((adaptor, request) for adaptor, request in these_requests.items()),
+        )
 
         if len(results) == 0:
             raise RuntimeError(
