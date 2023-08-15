@@ -13,7 +13,12 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Topic :: Scientific/Engineering"
 ]
-dependencies = ["cacholote", "multiurl"]
+dependencies = [
+  "cacholote",
+  "multiurl",
+  "rooki",
+  "python-dateutil"
+]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]
 license = {file = "LICENSE"}

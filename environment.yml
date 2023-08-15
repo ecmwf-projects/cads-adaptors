@@ -10,6 +10,10 @@ channels:
 dependencies:
 - pip
 - requests
+- pandas
+- python-dateutil
 - pip:
+  - rooki
   - cacholote
   - multiurl
+  - pydantic<=1.10.11
