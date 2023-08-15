@@ -49,7 +49,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
-            this_request = self.split_request(request, this_values, **this_adaptor.config)
+            this_request = self.split_request(
+                request, this_values, **this_adaptor.config
+            )
             logger.debug(f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}")
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
@@ -66,8 +68,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 exception_logs[adaptor] = Exception
             else:
                 results += this_result
-        
-        if len(results)==0:
+
+        if len(results) == 0:
             raise Exception(logger.debug(exception_logs))
 
         # close files
@@ -84,20 +86,17 @@ class MultiAdaptor(AbstractCdsAdaptor):
         )
 
 
-
 class MultiMarsCdsAdaptor(MultiAdaptor):
     def retrieve(self, request: Request):
-        """
-        For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor
-        """
-        from cads_adaptors.tools import adaptor_tools, download_tools
+        """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
         from cads_adaptors.adaptors.mars import execute_mars
+        from cads_adaptors.tools import adaptor_tools, download_tools
 
         download_format = request.pop("download_format", "zip")
 
         # Format of data files, grib or netcdf
-        data_format = request.pop("format", "grib")
-        
+        request.pop("format", "grib")
+
         mapped_requests = []
         logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
@@ -106,8 +105,12 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
             # logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, config: {this_adaptor.config}")
 
-            this_request = self.split_request(request, this_values, **this_adaptor.config)
-            logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}")
+            this_request = self.split_request(
+                request, this_values, **this_adaptor.config
+            )
+            logger.debug(
+                f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
+            )
 
             if len(this_request) > 0:
                 this_request.setdefault("download_format", "list")
@@ -115,7 +118,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                     mapping.apply_mapping(this_request, this_adaptor.mapping)
                 )
 
-        logger.debug(f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}"
+        logger.debug(f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}")
         result = execute_mars(mapped_requests)
 
         # TODO: Handle alternate data_format

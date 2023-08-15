@@ -8,13 +8,14 @@ from cads_adaptors.tools.general import ensure_list
 
 def execute_mars(request: Request, target="data.grib"):
     import subprocess
+
     requests = ensure_list(request)
     with open("r", "w") as fp:
         for i, req in enumerate(requests):
             print("MARS DEBUG:", req)
-            print(f"retrieve,", file=fp)
+            print("retrieve,", file=fp)
             # Add target file to first request, any extra store in same grib
-            if i==0:
+            if i == 0:
                 print(f"target={target}", file=fp)
             for key, value in req.items():
                 if not isinstance(value, (list, tuple)):
