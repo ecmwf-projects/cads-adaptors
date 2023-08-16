@@ -61,7 +61,7 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
         if data_format in ["netcdf", "nc"]:
             from cads_adaptors.tools.convertors import grib_to_netcdf_files
 
-            results = grib_to_netcdf_files(results)
+            results = grib_to_netcdf_files(result)
         else:
             results = [result]
 
