@@ -48,21 +48,26 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
         from cads_adaptors.tools import download_tools
 
         # Format of data files, grib or netcdf
-        data_format = request.pop("format", "grib")
+        data_format = request.pop("format", "grib")  # TODO: remove legacy syntax?
+        data_format = request.pop("data_format", data_format)
 
         # Format of download archive, as_source, zip, tar, list etc.
         download_format = request.pop("download_format", "as_source")
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
-        if data_format not in ["grib"]:
-            # FIXME: reformat if needed
-            pass
 
         result = execute_mars(mapped_request)
+
+        if data_format in ["netcdf", "nc"]:
+            from cads_adaptors.tools.convertors import grib_to_netcdf_files
+
+            results = grib_to_netcdf_files(results)
+        else:
+            results = [result]
 
         download_kwargs = {
             "base_target": f"{self.collection_id}-{hash(tuple(request))}"
         }
         return download_tools.DOWNLOAD_FORMATS[download_format](
-            [result], **download_kwargs
+            results, **download_kwargs
         )
