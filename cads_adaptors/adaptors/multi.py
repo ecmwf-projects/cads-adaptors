@@ -64,14 +64,16 @@ class MultiAdaptor(AbstractCdsAdaptor):
         for adaptor, req in these_requests.items():
             try:
                 this_result = adaptor.retrieve(req)
-            except Exception:
-                exception_logs[adaptor] = Exception
+            except Exception as err:
+                exception_logs[adaptor] = f"{err}"
             else:
                 results += this_result
 
         if len(results) == 0:
-            raise Exception(logger.debug(exception_logs))
-
+            raise RuntimeError(
+                "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
+                f"{exception_logs}"
+            )
         # close files
         [res.close() for res in results]
         # get the paths
