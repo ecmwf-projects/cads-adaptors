@@ -38,7 +38,7 @@ def targz_paths(
                 archive_name = path
             else:
                 archive_name = os.path.basename(path)
-            archive.add(path, archive_name=archive_name)
+            archive.add(path, arcname=archive_name)
 
     for path in paths:
         os.remove(path)
