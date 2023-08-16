@@ -1,8 +1,6 @@
 import typing as T
 
-import yaml
-
-from cads_adaptors import AbstractCdsAdaptor
+from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.logger import logger
@@ -33,7 +31,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 # if values then add to request
                 this_request[key] = these_vals
             elif key in config.get("required_keys", []):
-                # If a required key, then return an empty dictionary.
+                # If a required key is missing, then return an empty dictionary.
                 #  optional keys must be set in the adaptor.json via gecko
                 return {}
 
@@ -51,7 +49,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
-            this_request = self.split_request(request, this_values, **self.config)
+            this_request = self.split_request(
+                request, this_values, **this_adaptor.config
+            )
             logger.debug(f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}")
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
@@ -65,37 +65,15 @@ class MultiAdaptor(AbstractCdsAdaptor):
             try:
                 this_result = adaptor.retrieve(req)
             except Exception:
-                logger.debug(Exception)
+                exception_logs[adaptor] = Exception
             else:
                 results += this_result
-
-        # TODO: Add parallelistation via multiprocessing
-        # # Allow a maximum of 2 parallel processes
-        # import multiprocessing as mp
-
-        # pool = mp.Pool(min(len(these_requests), 2))
-
-        # def apply_adaptor(args):
-        #     try:
-        #         result = args[0](args[1])
-        #     except Exception as err:
-        #         # Catch any possible exception and store error message in case all adaptors fail
-        #         logger.debug(f"Adaptor Error ({args}): {err}")
-        #         result = []
-        #     return result
-
-        # results = pool.map(
-        #     apply_adaptor,
-        #     ((adaptor, request) for adaptor, request in these_requests.items()),
-        # )
 
         if len(results) == 0:
             raise RuntimeError(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
-                f"{yaml.safe_dump(exception_logs)}"
+                f"{exception_logs}"
             )
-
-        # return self.merge_results(results, prefix=self.collection_id)
         # close files
         [res.close() for res in results]
         # get the paths
@@ -107,4 +85,49 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return download_tools.DOWNLOAD_FORMATS[download_format](
             paths, **download_kwargs
+        )
+
+
+class MultiMarsCdsAdaptor(MultiAdaptor):
+    def retrieve(self, request: Request):
+        """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
+        from cads_adaptors.adaptors.mars import execute_mars
+        from cads_adaptors.tools import adaptor_tools, download_tools
+
+        download_format = request.pop("download_format", "zip")
+
+        # Format of data files, grib or netcdf
+        data_format = request.pop("format", "grib")
+
+        mapped_requests = []
+        logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
+        for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
+            this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
+            this_values = adaptor_desc.get("values", {})
+
+            # logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, config: {this_adaptor.config}")
+
+            this_request = self.split_request(
+                request, this_values, **this_adaptor.config
+            )
+            logger.debug(
+                f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
+            )
+
+            if len(this_request) > 0:
+                mapped_requests.append(
+                    mapping.apply_mapping(this_request, this_adaptor.mapping)
+                )
+
+        logger.debug(f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}")
+        result = execute_mars(mapped_requests)
+
+        # TODO: Handle alternate data_format
+
+        download_kwargs = {
+            "base_target": f"{self.collection_id}-{hash(tuple(request))}"
+        }
+
+        return download_tools.DOWNLOAD_FORMATS[download_format](
+            [result], **download_kwargs
         )
