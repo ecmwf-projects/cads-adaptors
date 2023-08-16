@@ -187,8 +187,11 @@ def get_possible_values(
     return result
 
 
+CONSTRAINT_VALUE_DELIMITER = ":::"
+
+
 def get_value(value_in_constraint):
-    return value_in_constraint.split(":")[1]
+    return value_in_constraint.split(CONSTRAINT_VALUE_DELIMITER)[1]
 
 
 def get_values(values_in_constraint):
@@ -198,7 +201,7 @@ def get_values(values_in_constraint):
 
 
 def get_value_from_constraint(constraint, value):
-    return f"{constraint}:{value}"
+    return f"{constraint}{CONSTRAINT_VALUE_DELIMITER}{value}"
 
 
 def get_values_from_constraint(constraint, values):
