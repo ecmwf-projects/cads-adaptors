@@ -97,7 +97,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         download_format = request.pop("download_format", "zip")
 
         # Format of data files, grib or netcdf
-        data_format = request.pop("format", "grib")
+        request.pop("format", "grib")
 
         mapped_requests = []
         logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
