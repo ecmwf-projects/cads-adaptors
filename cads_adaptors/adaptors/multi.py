@@ -64,8 +64,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
         for adaptor, req in these_requests.items():
             try:
                 this_result = adaptor.retrieve(req)
-            except Exception:
-                exception_logs[adaptor] = Exception
+            except Exception as err:
+                exception_logs[adaptor] = f"{err}"
             else:
                 results += this_result
 
