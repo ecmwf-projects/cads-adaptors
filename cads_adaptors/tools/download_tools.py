@@ -10,15 +10,15 @@ def zip_paths(paths: List[str], base_target: str = "output-data", **kwargs) -> B
 
     target = f"{base_target}.zip"
     with zipfile.ZipFile(target, mode="w") as archive:
-        for p in paths:
+        for path in paths:
             if kwargs.get("preserve_dir", False):
-                arcname = p
+                archive_name = path
             else:
-                arcname = os.path.basename(p)
-            archive.write(p, arcname)
+                archive_name = os.path.basename(path)
+            archive.write(path, archive_name)
 
-    for p in paths:
-        os.remove(p)
+    for path in paths:
+        os.remove(path)
 
     return open(target, "rb")
 
@@ -33,15 +33,15 @@ def targz_paths(
 
     target = f"{base_target}.tar.gz"
     with tarfile.open(target, "w:gz") as archive:
-        for p in paths:
+        for path in paths:
             if kwargs.get("preserve_dir", False):
-                arcname = p
+                archive_name = path
             else:
-                arcname = os.path.basename(p)
-            archive.add(p, arcname=arcname)
+                archive_name = os.path.basename(path)
+            archive.add(path, arcname=archive_name)
 
-    for p in paths:
-        os.remove(p)
+    for path in paths:
+        os.remove(path)
 
     return open(target, "rb")
 
