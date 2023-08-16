@@ -1,11 +1,11 @@
 import os
-from typing import BinaryIO
+from typing import BinaryIO, Union
 
 from cads_adaptors import mapping
 from cads_adaptors.adaptors import Request, cds
 
 
-def execute_mars(request: Request, target="data.grib"):
+def execute_mars(request: Union[Request, list], target="data.grib"):
     import subprocess
 
     with open("r", "w") as fp:
