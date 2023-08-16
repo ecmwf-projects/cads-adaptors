@@ -13,6 +13,8 @@ dependencies:
 - pandas
 - python-dateutil
 - pip:
+  - ecmwflibs
+  - cfgrib
   - rooki
   - cacholote
   - multiurl

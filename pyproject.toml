@@ -14,6 +14,8 @@ classifiers = [
   "Topic :: Scientific/Engineering"
 ]
 dependencies = [
+  "ecmwflibs",
+  "cfgrib",
   "cacholote",
   "multiurl",
   "rooki",
