@@ -22,14 +22,16 @@ except ImportError:  # pragma: no cover
     # Local copy or not installed with setuptools
     __version__ = "999"
 
-from .adaptor import AbstractAdaptor, DummyAdaptor
-from .adaptor_cds import (
-    AbstractCdsAdaptor,
-    DirectMarsCdsAdaptor,
-    LegacyCdsAdaptor,
-    MarsCdsAdaptor,
-    UrlCdsAdaptor,
+from cads_adaptors.adaptors import AbstractAdaptor, DummyAdaptor
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.adaptors.insitu import (
+    InsituDatabaseCdsAdaptor,
+    InsituGlamodCdsAdaptor,
 )
+from cads_adaptors.adaptors.legacy import LegacyCdsAdaptor
+from cads_adaptors.adaptors.mars import DirectMarsCdsAdaptor, MarsCdsAdaptor
+from cads_adaptors.adaptors.url import UrlCdsAdaptor
+
 from .tools.adaptor_tools import get_adaptor_class
 
 __all__ = [
@@ -39,6 +41,8 @@ __all__ = [
     "AbstractCdsAdaptor",
     "DirectMarsCdsAdaptor",
     "DummyAdaptor",
+    "InsituDatabaseCdsAdaptor",
+    "InsituGlamodCdsAdaptor",
     "LegacyCdsAdaptor",
     "MarsCdsAdaptor",
     "UrlCdsAdaptor",
