@@ -14,5 +14,5 @@ class LegacyCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # retrieve data
         client = cdsapi.Client(self.config["url"], self.config["key"], retry_max=1)
-        result_path = client.retrieve(collection_id, request, context).download()
+        result_path = client.retrieve(collection_id, request).download()
         return open(result_path, "rb")
