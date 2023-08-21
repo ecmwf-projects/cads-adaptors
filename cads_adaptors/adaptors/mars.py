@@ -1,11 +1,12 @@
 import os
 from typing import BinaryIO
 
+from cads_adaptors import exceptions
 from cads_adaptors import mapping
 from cads_adaptors.adaptors import Request, cds, Context
 
 
-def execute_mars(request: Request, target="data.grib"):
+def execute_mars(request: Request, context: Context, target="data.grib"):
     import subprocess
 
     with open("r", "w") as fp:
@@ -21,7 +22,11 @@ def execute_mars(request: Request, target="data.grib"):
     user_id = 0
     env["MARS_USER"] = f"{namespace}-{user_id}"
 
-    subprocess.run(["/usr/local/bin/mars", "r"], check=True, env=env)
+    output = subprocess.run(["/usr/local/bin/mars r"], shell=True, env=env, capture_output=True)
+    context.stdout = output.stdout.decode()
+    context.stderr = output.stderr.decode()
+    if output.returncode:
+        raise exceptions.AdaptorException(context.stderr)
 
     return target
 
@@ -30,7 +35,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request, context: Context) -> BinaryIO:
-        result = execute_mars(request)
+        result = execute_mars(request, context)
 
         return open(result)  # type: ignore
 
@@ -50,7 +55,7 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
             # FIXME: reformat if needed
             pass
 
-        result = execute_mars(mapped_request)
+        result = execute_mars(mapped_request, context)
 
         download_kwargs = {
             "base_target": f"{self.collection_id}-{hash(tuple(request))}"
