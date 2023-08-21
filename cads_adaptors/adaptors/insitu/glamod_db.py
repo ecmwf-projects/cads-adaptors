@@ -3,7 +3,7 @@ import zipfile
 from typing import BinaryIO
 
 from cads_adaptors import mapping
-from cads_adaptors.adaptors import Request
+from cads_adaptors.adaptors import Request, Context
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 from cads_adaptors.tools.logger import logger
 
@@ -15,7 +15,7 @@ class InsituGlamodCdsAdaptor(AbstractCdsAdaptor):
             "collection_id", self.config.get("uri", "not specified")
         )
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def retrieve(self, request: Request, context: Context) -> BinaryIO:
         from cads_adaptors.adaptors.insitu.tools import insitu_utils
 
         resource = self.config["uri"]

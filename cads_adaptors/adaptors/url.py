@@ -1,11 +1,11 @@
 from typing import BinaryIO
 
 from cads_adaptors import mapping
-from cads_adaptors.adaptors import Request, cds
+from cads_adaptors.adaptors import Request, cds, Context
 
 
 class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
+    def retrieve(self, request: Request, context: Context) -> BinaryIO:
         from cads_adaptors.tools import download_tools, url_tools
 
         download_format = request.pop("format", "zip")  # TODO: Remove legacy syntax

@@ -3,7 +3,7 @@ import typing as T
 import yaml
 
 from cads_adaptors import AbstractCdsAdaptor
-from cads_adaptors.adaptors import Request
+from cads_adaptors.adaptors import Request, Context
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.logger import logger
 
@@ -39,7 +39,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return this_request
 
-    def retrieve(self, request: Request):
+    def retrieve(self, request: Request, context: Context):
         from cads_adaptors.tools import adaptor_tools, download_tools
 
         download_format = request.pop("download_format", "zip")
@@ -63,7 +63,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         results = []
         for adaptor, req in these_requests.items():
             try:
-                this_result = adaptor.retrieve(req)
+                this_result = adaptor.retrieve(req, context)
             except Exception:
                 logger.debug(Exception)
             else:

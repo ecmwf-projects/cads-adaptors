@@ -1,10 +1,10 @@
 from typing import BinaryIO
 
-from cads_adaptors.adaptors import Request, cds
+from cads_adaptors.adaptors import Request, cds, Context
 
 
 class LegacyCdsAdaptor(cds.AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
+    def retrieve(self, request: Request, context: Context) -> BinaryIO:
         import cdsapi
 
         # parse input options
@@ -14,5 +14,5 @@ class LegacyCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # retrieve data
         client = cdsapi.Client(self.config["url"], self.config["key"], retry_max=1)
-        result_path = client.retrieve(collection_id, request).download()
+        result_path = client.retrieve(collection_id, request, context).download()
         return open(result_path, "rb")
