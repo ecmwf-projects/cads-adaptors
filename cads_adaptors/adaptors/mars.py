@@ -1,9 +1,8 @@
 import os
 from typing import BinaryIO
 
-from cads_adaptors import exceptions
-from cads_adaptors import mapping
-from cads_adaptors.adaptors import Request, cds, Context
+from cads_adaptors import exceptions, mapping
+from cads_adaptors.adaptors import Context, Request, cds
 
 
 def execute_mars(request: Request, context: Context, target="data.grib"):
@@ -22,7 +21,9 @@ def execute_mars(request: Request, context: Context, target="data.grib"):
     user_id = 0
     env["MARS_USER"] = f"{namespace}-{user_id}"
 
-    output = subprocess.run(["/usr/local/bin/mars r"], shell=True, env=env, capture_output=True)
+    output = subprocess.run(
+        ["/usr/local/bin/mars r"], shell=True, env=env, capture_output=True
+    )
     context.stdout = output.stdout.decode()
     context.stderr = output.stderr.decode()
     if output.returncode:

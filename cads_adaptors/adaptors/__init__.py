@@ -1,5 +1,5 @@
 import abc
-from typing import Any, BinaryIO, TextIO
+from typing import Any, BinaryIO
 
 Request = dict[str, Any]
 
