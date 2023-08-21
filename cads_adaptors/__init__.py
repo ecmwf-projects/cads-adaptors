@@ -22,7 +22,7 @@ except ImportError:  # pragma: no cover
     # Local copy or not installed with setuptools
     __version__ = "999"
 
-from cads_adaptors.adaptors import AbstractAdaptor, DummyAdaptor
+from cads_adaptors.adaptors import AbstractAdaptor, DummyAdaptor, Context
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 from cads_adaptors.adaptors.insitu import (
     InsituDatabaseCdsAdaptor,
