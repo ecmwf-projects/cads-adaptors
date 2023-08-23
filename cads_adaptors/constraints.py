@@ -365,37 +365,23 @@ def apply_constraints_in_old_cds_fashion3(
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
 ) -> dict[str, list[Any]]:
-    no_tagging = True
-    # construct the widget-to-values map
-    # each widget entry contains a set of (constraint_index, value) pairs
-    # this is needed because the origin of a value is relevant (i.e. the constraint it originates from)
-    all_valid: dict[str, set[Any]] = {}
-    for i,constraint in enumerate(constraints):
-        for widget_name, widget_options in constraint.items():
-            if widget_name in all_valid:
-                all_valid[widget_name] |= get_values_from_constraint(i,widget_options,no_tagging)
-            else:
-                all_valid[widget_name] = get_values_from_constraint(i,widget_options,no_tagging)
-
-    result_c1 = {}
     result = {}
-
+    
+    # if the selection is empty, return the entire form
     if len(selection) == 0:
-        # make the result constraint-independent
-        for widget_name in all_valid:
-            result[widget_name] = get_values(all_valid[widget_name],no_tagging)
+        return format_to_json(form)
 
-        return format_to_json(result)
 
-    # loop over the widgets in the selection
-    # as a general rule, a widget cannot decide for itself (but only for others)
-    # only other widgets can enable/disable options/values in the "current" widget
-    for i,constraint in enumerate(constraints):
+    for constraint in constraints:
         # the per-selected-widget result is the union of:
         # - all constraints containing the selected widget with at least one
         #   value/option in common with the selected values/options (Category 1)
         # - all constraints NOT containing the selected widget (Category 2)
-        result_c1_temp = {}
+        
+        # loop over the widgets in the selection
+        # as a general rule, a widget cannot decide for itself (but only for others)
+        # only other widgets can enable/disable options/values in the "current" widget
+        per_constraint_result = {}
         for selected_widget_name, selected_widget_options in selection.items():
             if selected_widget_name in constraint:
                 constraint_selection_intersection = (
@@ -403,76 +389,58 @@ def apply_constraints_in_old_cds_fashion3(
                 )
                 if len(constraint_selection_intersection):
                     # factoring in Category 1 constraints
-                    if not selected_widget_name in result_c1_temp:
-                        result_c1_temp[selected_widget_name] = {}
-                        for widget_name in all_valid:
+                    if not selected_widget_name in per_constraint_result:
+                        per_constraint_result[selected_widget_name] = {}
+                        for widget_name in form:
                             if widget_name != selected_widget_name:
-                                result_c1_temp[selected_widget_name][widget_name] = set()
+                                per_constraint_result[selected_widget_name][widget_name] = set()
                     for widget_name, widget_options in constraint.items():
                         if widget_name != selected_widget_name:
-                            if widget_name in result_c1_temp[selected_widget_name]:
-                                result_c1_temp[selected_widget_name][widget_name] |= get_values_from_constraint(i,widget_options,no_tagging)
+                            if widget_name in per_constraint_result[selected_widget_name]:
+                                per_constraint_result[selected_widget_name][widget_name] |= set(widget_options)
                             else:
-                                result_c1_temp[selected_widget_name][widget_name] = get_values_from_constraint(i,widget_options,no_tagging)
+                                per_constraint_result[selected_widget_name][widget_name] = set(widget_options)
             else:
-                if not selected_widget_name in result_c1_temp:
-                    result_c1_temp[selected_widget_name] = {}
-                    for widget_name in all_valid:
+                # factoring in Category 2 constraints
+                if not selected_widget_name in per_constraint_result:
+                    per_constraint_result[selected_widget_name] = {}
+                    for widget_name in form:
                         if widget_name != selected_widget_name:
-                            result_c1_temp[selected_widget_name][widget_name] = set()
+                            per_constraint_result[selected_widget_name][widget_name] = set()
                 for widget_name, widget_options in constraint.items():
-                    if widget_name in result_c1_temp[selected_widget_name]:
-                        result_c1_temp[selected_widget_name][widget_name] |= get_values_from_constraint(i,widget_options,no_tagging)
+                    if widget_name in per_constraint_result[selected_widget_name]:
+                        per_constraint_result[selected_widget_name][widget_name] |= set(widget_options)
                     else:
-                        result_c1_temp[selected_widget_name][widget_name] = get_values_from_constraint(i,widget_options,no_tagging)
+                        per_constraint_result[selected_widget_name][widget_name] = set(widget_options)
         
-        '''
-        print(f"*************************START***{i}")
-        for swn in selection:
-            if swn in result_c1_temp:
-                print(swn, result_c1_temp[swn])
-            else:
-                print(f"Missing {swn}")
-        print("*************************END***")
-        '''
-
-        result_c1_temp_agg = {}
-        for widget_name in all_valid:
-            result_c1_temp_agg[widget_name] = set()
+        for widget_name in form:
+            per_constraint_result_agg = set()
             for selected_widget_name in selection:
                 if widget_name != selected_widget_name:
-                    if selected_widget_name in result_c1_temp:
-                        if result_c1_temp_agg[widget_name]:
-                            result_c1_temp_agg[widget_name] &= result_c1_temp[selected_widget_name][widget_name]
+                    if selected_widget_name in per_constraint_result:
+                        if per_constraint_result_agg:
+                            per_constraint_result_agg &= per_constraint_result[selected_widget_name][widget_name]
                         else:
-                            result_c1_temp_agg[widget_name] = result_c1_temp[selected_widget_name][widget_name]
+                            per_constraint_result_agg = per_constraint_result[selected_widget_name][widget_name]
                     else:
-                        result_c1_temp_agg[widget_name] = set()
+                        per_constraint_result_agg = set()
                         break
-            if widget_name in result_c1:
-                result_c1[widget_name] |= result_c1_temp_agg[widget_name]
+            if widget_name in result:
+                result[widget_name] |= per_constraint_result_agg
             else:
-                result_c1[widget_name] = result_c1_temp_agg[widget_name]
-
-        #print(result_c1)
-        #print(result_c2)
-        #print("-------")
-
+                result[widget_name] = per_constraint_result_agg
    
-    for widget_name in all_valid:
-        temp = set()
-        if widget_name in result_c1:
-            temp |= result_c1[widget_name]
- 
-        result[widget_name] = temp
+    for widget_name in form:
+        if not widget_name in result:
+            result[widget_name] = set()
 
+    # as a general rule, a widget cannot decide for itself (but only for others)
+    # only other widgets can enable/disable options/values in the "current" widget
+    # when the selection contains only one widget, we need to enable all options for that widget
+    # (as an exception from the general rule)
     if len(selection) == 1:
         only_widget_in_selection = next(iter(selection))
-        result[only_widget_in_selection] = all_valid[only_widget_in_selection]
-
-    # make the result constraint-independent
-    for widget_name in all_valid:
-        result[widget_name] = get_values(result[widget_name],no_tagging)
+        result[only_widget_in_selection] = form[only_widget_in_selection]
 
     return format_to_json(result)
 
