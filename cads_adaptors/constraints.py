@@ -378,6 +378,14 @@ def apply_constraints_in_old_cds_fashion3(
                 all_valid[widget_name] = get_values_from_constraint(i,widget_options,no_tagging)
 
     result_c1 = {}
+    result = {}
+
+    if len(selection) == 0:
+        # make the result constraint-independent
+        for widget_name in all_valid:
+            result[widget_name] = get_values(all_valid[widget_name],no_tagging)
+
+        return format_to_json(result)
 
     # loop over the widgets in the selection
     # as a general rule, a widget cannot decide for itself (but only for others)
@@ -451,7 +459,6 @@ def apply_constraints_in_old_cds_fashion3(
         #print("-------")
 
    
-    result = {}
     for widget_name in all_valid:
         temp = set()
         if widget_name in result_c1:
