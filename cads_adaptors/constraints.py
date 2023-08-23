@@ -26,7 +26,7 @@ def get_unsupported_vars(
 def remove_unsupported_vars(
     constraints: list[dict[str, set[Any]]], unsupported_vars: list[str]
 ) -> list[dict[str, set[Any]]]:
-    constraints = copy.deepcopy(constraints)
+    # constraints = copy.deepcopy(constraints)
     for constraint in constraints:
         for var in unsupported_vars:
             constraint.pop(var, None)
