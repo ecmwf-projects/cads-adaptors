@@ -194,18 +194,24 @@ def get_value(value_in_constraint):
     return value_in_constraint.split(CONSTRAINT_VALUE_DELIMITER)[1]
 
 
-def get_values(values_in_constraint):
-    return set(
-        [get_value(value_in_constraint) for value_in_constraint in values_in_constraint]
-    )
+def get_values(values_in_constraint, no_tagging=False):
+    if no_tagging:
+        return set(values_in_constraint)
+    else:
+        return set(
+            [get_value(value_in_constraint) for value_in_constraint in values_in_constraint]
+        )
 
 
 def get_value_from_constraint(constraint, value):
     return f"{constraint}{CONSTRAINT_VALUE_DELIMITER}{value}"
 
 
-def get_values_from_constraint(constraint, values):
-    return set([get_value_from_constraint(constraint, value) for value in values])
+def get_values_from_constraint(constraint, values, no_tagging=False):
+    if no_tagging:
+        return set(values)
+    else:
+        return set([get_value_from_constraint(constraint, value) for value in values])
 
 
 def apply_constraints_in_old_cds_fashion(
@@ -273,6 +279,193 @@ def apply_constraints_in_old_cds_fashion(
     # make the result constraint-independent
     for widget_name in result:
         result[widget_name] = get_values(result[widget_name])
+
+    return format_to_json(result)
+
+
+def apply_constraints_in_old_cds_fashion2(
+    form: dict[str, set[Any]],
+    selection: dict[str, set[Any]],
+    constraints: list[dict[str, set[Any]]],
+) -> dict[str, list[Any]]:
+    no_tagging = False
+    # construct the widget-to-values map
+    # each widget entry contains a set of (constraint_index, value) pairs
+    # this is needed because the origin of a value is relevant (i.e. the constraint it originates from)
+    all_valid: dict[str, set[Any]] = {}
+    for i,constraint in enumerate(constraints):
+        for widget_name, widget_options in constraint.items():
+            if widget_name in all_valid:
+                all_valid[widget_name] |= get_values_from_constraint(i,widget_options,no_tagging)
+            else:
+                all_valid[widget_name] = get_values_from_constraint(i,widget_options,no_tagging)
+
+    result_c1 = {}
+    result_c2 = {}
+
+    # loop over the widgets in the selection
+    # as a general rule, a widget cannot decide for itself (but only for others)
+    # only other widgets can enable/disable options/values in the "current" widget
+    for i,constraint in enumerate(constraints):
+        # the per-selected-widget result is the union of:
+        # - all constraints containing the selected widget with at least one
+        #   value/option in common with the selected values/options (Category 1)
+        # - all constraints NOT containing the selected widget (Category 2)
+        for selected_widget_name, selected_widget_options in selection.items():
+            if selected_widget_name in constraint:
+                constraint_selection_intersection = (
+                    selected_widget_options & constraint[selected_widget_name]
+                )
+                if len(constraint_selection_intersection):
+                    # factoring in Category 1 constraints
+                    if not selected_widget_name in result_c1:
+                        result_c1[selected_widget_name] = {}
+                        for widget_name in all_valid:
+                            if widget_name != selected_widget_name:
+                                result_c1[selected_widget_name][widget_name] = set()
+                    for widget_name, widget_options in constraint.items():
+                        if widget_name != selected_widget_name:
+                            if widget_name in result_c1[selected_widget_name]:
+                                result_c1[selected_widget_name][widget_name] |= get_values_from_constraint(i,widget_options,no_tagging)
+                            else:
+                                result_c1[selected_widget_name][widget_name] = get_values_from_constraint(i,widget_options,no_tagging)
+            else:
+                if not selected_widget_name in result_c2:
+                    result_c2[selected_widget_name] = {}
+                    for widget_name in all_valid:
+                        if widget_name != selected_widget_name:
+                            result_c2[selected_widget_name][widget_name] = set()
+                for widget_name, widget_options in constraint.items():
+                    if widget_name in result_c2[selected_widget_name]:
+                        result_c2[selected_widget_name][widget_name] |= get_values_from_constraint(i,widget_options,no_tagging)
+                    else:
+                        result_c2[selected_widget_name][widget_name] = get_values_from_constraint(i,widget_options,no_tagging)
+   
+    result: dict[str, set[Any]] = {}
+    for selected_widget_name in selection:
+        for widget_name in all_valid:
+            if widget_name != selected_widget_name:
+                temp = set()
+                if selected_widget_name in result_c1 and widget_name in result_c1[selected_widget_name]:
+                    temp |= result_c1[selected_widget_name][widget_name]
+                if selected_widget_name in result_c2 and widget_name in result_c2[selected_widget_name]:
+                    temp |= result_c2[selected_widget_name][widget_name]
+                    
+                all_valid[widget_name] &= temp
+
+    # make the result constraint-independent
+    for widget_name in all_valid:
+        all_valid[widget_name] = get_values(all_valid[widget_name],no_tagging)
+
+    return format_to_json(all_valid)
+
+
+def apply_constraints_in_old_cds_fashion3(
+    form: dict[str, set[Any]],
+    selection: dict[str, set[Any]],
+    constraints: list[dict[str, set[Any]]],
+) -> dict[str, list[Any]]:
+    no_tagging = True
+    # construct the widget-to-values map
+    # each widget entry contains a set of (constraint_index, value) pairs
+    # this is needed because the origin of a value is relevant (i.e. the constraint it originates from)
+    all_valid: dict[str, set[Any]] = {}
+    for i,constraint in enumerate(constraints):
+        for widget_name, widget_options in constraint.items():
+            if widget_name in all_valid:
+                all_valid[widget_name] |= get_values_from_constraint(i,widget_options,no_tagging)
+            else:
+                all_valid[widget_name] = get_values_from_constraint(i,widget_options,no_tagging)
+
+    result_c1 = {}
+
+    # loop over the widgets in the selection
+    # as a general rule, a widget cannot decide for itself (but only for others)
+    # only other widgets can enable/disable options/values in the "current" widget
+    for i,constraint in enumerate(constraints):
+        # the per-selected-widget result is the union of:
+        # - all constraints containing the selected widget with at least one
+        #   value/option in common with the selected values/options (Category 1)
+        # - all constraints NOT containing the selected widget (Category 2)
+        result_c1_temp = {}
+        for selected_widget_name, selected_widget_options in selection.items():
+            if selected_widget_name in constraint:
+                constraint_selection_intersection = (
+                    selected_widget_options & constraint[selected_widget_name]
+                )
+                if len(constraint_selection_intersection):
+                    # factoring in Category 1 constraints
+                    if not selected_widget_name in result_c1_temp:
+                        result_c1_temp[selected_widget_name] = {}
+                        for widget_name in all_valid:
+                            if widget_name != selected_widget_name:
+                                result_c1_temp[selected_widget_name][widget_name] = set()
+                    for widget_name, widget_options in constraint.items():
+                        if widget_name != selected_widget_name:
+                            if widget_name in result_c1_temp[selected_widget_name]:
+                                result_c1_temp[selected_widget_name][widget_name] |= get_values_from_constraint(i,widget_options,no_tagging)
+                            else:
+                                result_c1_temp[selected_widget_name][widget_name] = get_values_from_constraint(i,widget_options,no_tagging)
+            else:
+                if not selected_widget_name in result_c1_temp:
+                    result_c1_temp[selected_widget_name] = {}
+                    for widget_name in all_valid:
+                        if widget_name != selected_widget_name:
+                            result_c1_temp[selected_widget_name][widget_name] = set()
+                for widget_name, widget_options in constraint.items():
+                    if widget_name in result_c1_temp[selected_widget_name]:
+                        result_c1_temp[selected_widget_name][widget_name] |= get_values_from_constraint(i,widget_options,no_tagging)
+                    else:
+                        result_c1_temp[selected_widget_name][widget_name] = get_values_from_constraint(i,widget_options,no_tagging)
+        
+        '''
+        print(f"*************************START***{i}")
+        for swn in selection:
+            if swn in result_c1_temp:
+                print(swn, result_c1_temp[swn])
+            else:
+                print(f"Missing {swn}")
+        print("*************************END***")
+        '''
+
+        result_c1_temp_agg = {}
+        for widget_name in all_valid:
+            result_c1_temp_agg[widget_name] = set()
+            for selected_widget_name in selection:
+                if widget_name != selected_widget_name:
+                    if selected_widget_name in result_c1_temp:
+                        if result_c1_temp_agg[widget_name]:
+                            result_c1_temp_agg[widget_name] &= result_c1_temp[selected_widget_name][widget_name]
+                        else:
+                            result_c1_temp_agg[widget_name] = result_c1_temp[selected_widget_name][widget_name]
+                    else:
+                        result_c1_temp_agg[widget_name] = set()
+                        break
+            if widget_name in result_c1:
+                result_c1[widget_name] |= result_c1_temp_agg[widget_name]
+            else:
+                result_c1[widget_name] = result_c1_temp_agg[widget_name]
+
+        #print(result_c1)
+        #print(result_c2)
+        #print("-------")
+
+   
+    result = {}
+    for widget_name in all_valid:
+        temp = set()
+        if widget_name in result_c1:
+            temp |= result_c1[widget_name]
+ 
+        result[widget_name] = temp
+
+    if len(selection) == 1:
+        only_widget_in_selection = next(iter(selection))
+        result[only_widget_in_selection] = all_valid[only_widget_in_selection]
+
+    # make the result constraint-independent
+    for widget_name in all_valid:
+        result[widget_name] = get_values(result[widget_name],no_tagging)
 
     return format_to_json(result)
 
