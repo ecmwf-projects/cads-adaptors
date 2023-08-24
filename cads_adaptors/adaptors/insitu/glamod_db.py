@@ -3,7 +3,7 @@ import zipfile
 from typing import BinaryIO
 
 from cads_adaptors import mapping
-from cads_adaptors.adaptors import Context, Request
+from cads_adaptors.adaptors import Request
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 from cads_adaptors.tools.logger import logger
 

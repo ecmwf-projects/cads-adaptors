@@ -1,6 +1,6 @@
 from typing import BinaryIO
 
-from cads_adaptors.adaptors import Context, Request, cds
+from cads_adaptors.adaptors import Request, cds
 
 
 class LegacyCdsAdaptor(cds.AbstractCdsAdaptor):
