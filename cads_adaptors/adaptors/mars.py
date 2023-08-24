@@ -1,7 +1,7 @@
 import os
 from typing import BinaryIO
 
-from cads_adaptors import exceptions, mapping
+from cads_adaptors import mapping
 from cads_adaptors.adaptors import Context, Request, cds
 
 
@@ -22,12 +22,14 @@ def execute_mars(request: Request, context: Context, target="data.grib"):
     env["MARS_USER"] = f"{namespace}-{user_id}"
 
     output = subprocess.run(
-        ["/usr/local/bin/mars r"], shell=True, env=env, capture_output=True
+        ["/usr/local/bin/mars", "r"], check=False, env=env, capture_output=True
     )
     context.stdout = output.stdout.decode()
     context.stderr = output.stderr.decode()
+    context.user_visible_log = output.stdout.decode()
+
     if output.returncode:
-        raise exceptions.AdaptorException(context.stderr)
+        raise RuntimeError("The MARS adaptor has crashed.")
 
     return target
 
@@ -35,14 +37,14 @@ def execute_mars(request: Request, context: Context, target="data.grib"):
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
-    def retrieve(self, request: Request, context: Context) -> BinaryIO:
-        result = execute_mars(request, context)
+    def retrieve(self, request: Request) -> BinaryIO:
+        result = execute_mars(request, self.context)
 
         return open(result)  # type: ignore
 
 
 class MarsCdsAdaptor(DirectMarsCdsAdaptor):
-    def retrieve(self, request: Request, context: Context) -> BinaryIO:
+    def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools
 
         # Format of data files, grib or netcdf
@@ -56,7 +58,7 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
             # FIXME: reformat if needed
             pass
 
-        result = execute_mars(mapped_request, context)
+        result = execute_mars(mapped_request, self.context)
 
         download_kwargs = {
             "base_target": f"{self.collection_id}-{hash(tuple(request))}"

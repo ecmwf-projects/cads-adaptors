@@ -39,7 +39,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return this_request
 
-    def retrieve(self, request: Request, context: Context):
+    def retrieve(self, request: Request):
         from cads_adaptors.tools import adaptor_tools, download_tools
 
         download_format = request.pop("download_format", "zip")

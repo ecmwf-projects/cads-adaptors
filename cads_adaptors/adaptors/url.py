@@ -5,7 +5,7 @@ from cads_adaptors.adaptors import Context, Request, cds
 
 
 class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
-    def retrieve(self, request: Request, context: Context) -> BinaryIO:
+    def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools, url_tools
 
         download_format = request.pop("format", "zip")  # TODO: Remove legacy syntax

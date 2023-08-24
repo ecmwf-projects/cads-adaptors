@@ -5,9 +5,10 @@ Request = dict[str, Any]
 
 
 class Context:
-    def __init__(self, stdout: str = "", stderr: str = ""):
-        self.stdout = stdout
-        self.stderr = stderr
+    def __init__(self):
+        self.stdout = ""
+        self.stderr = ""
+        self.user_visible_log = ""
 
 
 class AbstractAdaptor(abc.ABC):
@@ -16,6 +17,7 @@ class AbstractAdaptor(abc.ABC):
     def __init__(self, form: dict[str, Any], **config: Any) -> None:
         self.form = form
         self.config = config
+        self.context = Context()
 
     @abc.abstractmethod
     def validate(self, request: Request) -> bool:
@@ -34,7 +36,7 @@ class AbstractAdaptor(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def retrieve(self, request: Request, context: Context) -> Any:
+    def retrieve(self, request: Request) -> Any:
         pass
 
 
@@ -53,7 +55,7 @@ class DummyAdaptor(AbstractAdaptor):
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return []
 
-    def retrieve(self, request: Request, context: Context) -> BinaryIO:
+    def retrieve(self, request: Request) -> BinaryIO:
         import datetime
         import time
 

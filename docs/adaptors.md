@@ -29,7 +29,7 @@ class AbstractAdaptor(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def retrieve(self, request, context):
+    def retrieve(self, request):
         pass
 
 
@@ -42,7 +42,7 @@ class AbstractCdsAdaptor(CADSAdaptor):
 from cads_adaptors import adaptor_cds
 
 class MyAdaptor(adaptor_cds.CdsAdaptor):
-    def retrieve(self, request, context, metadata):
+    def retrieve(self, request, metadata):
         # parse input options
         with cads.add_step_metrics("process inputs", metadata):
             request, format = cads.extract_format_options(request)
