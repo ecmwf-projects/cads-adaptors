@@ -5,7 +5,7 @@ from cads_adaptors import mapping
 from cads_adaptors.adaptors import Context, Request, cds
 
 
-def execute_mars(request: Request, context: Context, target="data.grib"):
+def execute_mars(request: Request, target="data.grib"):
     import subprocess
 
     with open("r", "w") as fp:
@@ -24,21 +24,21 @@ def execute_mars(request: Request, context: Context, target="data.grib"):
     output = subprocess.run(
         ["/usr/local/bin/mars", "r"], check=False, env=env, capture_output=True
     )
-    context.stdout = output.stdout.decode()
-    context.stderr = output.stderr.decode()
-    context.user_visible_log = output.stdout.decode()
-
-    if output.returncode:
-        raise RuntimeError("The MARS adaptor has crashed.")
-
-    return target
+    return target, output
 
 
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
-        result = execute_mars(request, self.context)
+        result, output = execute_mars(request)
+
+        self.context.stdout = output.stdout.decode()
+        self.context.stderr = output.stderr.decode()
+        self.context.user_visible_log = output.stdout.decode()
+
+        if output.returncode:
+            raise RuntimeError("The Direct MARS adaptor has crashed.")
 
         return open(result)  # type: ignore
 
@@ -58,7 +58,14 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
             # FIXME: reformat if needed
             pass
 
-        result = execute_mars(mapped_request, self.context)
+        result, output = execute_mars(mapped_request)
+
+        self.context.stdout = output.stdout.decode()
+        self.context.stderr = output.stderr.decode()
+        self.context.user_visible_log = output.stdout.decode()
+
+        if output.returncode:
+            raise RuntimeError("The MARS adaptor has crashed.")
 
         download_kwargs = {
             "base_target": f"{self.collection_id}-{hash(tuple(request))}"
