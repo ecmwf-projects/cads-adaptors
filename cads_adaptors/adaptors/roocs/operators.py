@@ -1,5 +1,6 @@
 import calendar
 import typing as T
+import types
 
 DEFAULT_DATE_FORMAT = "%Y-%m-%d"
 
@@ -31,11 +32,11 @@ class Operator:
 
     @property
     def parameters(self):
-        return (
+        params = (
             getattr(self, parameter)
             for parameter in dir(self)
-            if not parameter.startswith("_")
         )
+        return (item for item in params if isinstance(item, types.MethodType))
 
     @staticmethod
     def update_kwargs(target, source):
