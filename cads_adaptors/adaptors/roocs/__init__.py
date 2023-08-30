@@ -11,6 +11,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.facets = self.config.get("facets", dict())
+        self.facet_groups = self.config.get("facet_groups", dict())
     
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools
@@ -64,6 +65,13 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = {k: v for k, v in request.items() if k in self.facets[0]}
         
         for candidate in self.facets:
+            
+            for key, groups in self.facet_groups.items():
+                if key in candidate:
+                    for group in groups:
+                        if candidate[key] in groups[group]:
+                            candidate[key] = group
+    
             if candidate.items() >= request.items():
                 break
         else:
