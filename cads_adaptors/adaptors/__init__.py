@@ -4,12 +4,20 @@ from typing import Any, BinaryIO
 Request = dict[str, Any]
 
 
+class Context:
+    def __init__(self):
+        self.stdout = ""
+        self.stderr = ""
+        self.user_visible_log = ""
+
+
 class AbstractAdaptor(abc.ABC):
     resources: dict[str, int] = {}
 
     def __init__(self, form: dict[str, Any], **config: Any) -> None:
         self.form = form
         self.config = config
+        self.context = Context()
 
     @abc.abstractmethod
     def validate(self, request: Request) -> bool:

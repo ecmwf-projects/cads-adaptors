@@ -1,25 +1,29 @@
 import os
 from typing import BinaryIO, Callable, Dict, List
 
-from cads_adaptors.tools import ensure_list
+from cads_adaptors.tools.general import ensure_list
 
 
-# TODO use targzstream
+# TODO zipstream for archive creation
 def zip_paths(paths: List[str], base_target: str = "output-data", **kwargs) -> BinaryIO:
     import zipfile
 
     target = f"{base_target}.zip"
     with zipfile.ZipFile(target, mode="w") as archive:
-        for p in paths:
-            archive.write(p)
+        for path in paths:
+            if kwargs.get("preserve_dir", False):
+                archive_name = path
+            else:
+                archive_name = os.path.basename(path)
+            archive.write(path, archive_name)
 
-    for p in paths:
-        os.remove(p)
+    for path in paths:
+        os.remove(path)
 
     return open(target, "rb")
 
 
-# TODO zipstream for archive creation
+# TODO use targzstream
 def targz_paths(
     paths: List[str],
     base_target: str = "output-data",
@@ -29,11 +33,15 @@ def targz_paths(
 
     target = f"{base_target}.tar.gz"
     with tarfile.open(target, "w:gz") as archive:
-        for p in paths:
-            archive.add(p)
+        for path in paths:
+            if kwargs.get("preserve_dir", False):
+                archive_name = path
+            else:
+                archive_name = os.path.basename(path)
+            archive.add(path, arcname=archive_name)
 
-    for p in paths:
-        os.remove(p)
+    for path in paths:
+        os.remove(path)
 
     return open(target, "rb")
 

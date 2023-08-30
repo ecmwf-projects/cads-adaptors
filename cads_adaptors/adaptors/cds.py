@@ -1,7 +1,7 @@
 from typing import Any
 
 from cads_adaptors import constraints, costing
-from cads_adaptors.adaptors import AbstractAdaptor, Request
+from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 
 
 class AbstractCdsAdaptor(AbstractAdaptor):
@@ -14,6 +14,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.mapping = config.pop("mapping", {})
         self.licences: list[tuple[str, int]] = config.pop("licences", [])
         self.config = config
+        self.context = Context()
 
     def validate(self, request: Request) -> bool:
         return True
