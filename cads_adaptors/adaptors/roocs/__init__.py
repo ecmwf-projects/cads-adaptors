@@ -64,7 +64,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = {k: v for k, v in request.items() if k in self.facets[0]}
         
         for candidate in self.facets:
-            if candidate.items() >= request.items():
+            if set(candidate.items()) >= set(request.items()):
                 break
         else:
             raise ValueError(str(candidate.items()) + " | " + str(request.items()))
