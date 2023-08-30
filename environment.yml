@@ -12,6 +12,7 @@ dependencies:
 - requests
 - pandas
 - python-dateutil
+- cfgrib
 - pip:
   - rooki
   - cacholote

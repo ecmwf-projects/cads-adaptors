@@ -27,16 +27,24 @@ def execute_mars(request: Union[Request, list], target="data.grib"):
     user_id = 0
     env["MARS_USER"] = f"{namespace}-{user_id}"
 
-    subprocess.run(["/usr/local/bin/mars", "r"], check=True, env=env)
-
-    return target
+    output = subprocess.run(
+        ["/usr/local/bin/mars", "r"], check=False, env=env, capture_output=True
+    )
+    return target, output
 
 
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
-        result = execute_mars(request)
+        result, output = execute_mars(request)
+
+        self.context.stdout = output.stdout.decode()
+        self.context.stderr = output.stderr.decode()
+        self.context.user_visible_log = output.stdout.decode()
+
+        if output.returncode:
+            raise RuntimeError("The Direct MARS adaptor has crashed.")
 
         return open(result)  # type: ignore
 
@@ -54,7 +62,14 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
 
-        result = execute_mars(mapped_request)
+        result, output = execute_mars(mapped_request)
+
+        self.context.stdout = output.stdout.decode()
+        self.context.stderr = output.stderr.decode()
+        self.context.user_visible_log = output.stdout.decode()
+
+        if output.returncode:
+            raise RuntimeError("The MARS adaptor has crashed.")
 
         if data_format in ["netcdf", "nc"]:
             from cads_adaptors.tools.convertors import grib_to_netcdf_files
