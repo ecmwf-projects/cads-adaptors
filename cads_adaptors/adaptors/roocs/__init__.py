@@ -54,10 +54,16 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         """
         facets = self.config.get("facets", dict())
         
+        request = {
+            k: (v if not isinstance(v, list) else v[0])
+            for k, v in request.items()
+        }
+        
         for candidate in facets:
             if candidate.items() >= request.items():
                 break
         else:
+            raise ValueError(str(candidate.items()) + " | " + str(request.items()))
             raise ValueError(f"No data found for request {request}")
         
         return candidate
