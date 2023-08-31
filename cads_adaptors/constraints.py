@@ -589,6 +589,7 @@ def validate_constraints(
     selection = parse_selection(request["inputs"], unsupported_vars)
 
     return apply_constraints_in_old_cds_fashion3(parsed_form, selection, constraints)
+    # return apply_constraints(parsed_form, selection, constraints)
 
 
 def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
