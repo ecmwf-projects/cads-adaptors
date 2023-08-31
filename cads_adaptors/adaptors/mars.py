@@ -33,6 +33,7 @@ def execute_mars(request: Union[Request, list], target="data.grib"):
     return target, output
 
 
+
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
