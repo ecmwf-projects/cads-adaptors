@@ -112,7 +112,7 @@ def apply_constraints(
             form.pop(key, None)
             selection.pop(key, None)
 
-    result = get_form_state(form, selection, constraints)
+    result = apply_constraints_in_old_cds_fashion3(form, selection, constraints)
     result.update(always_valid)
 
     return format_to_json(result)
@@ -588,8 +588,8 @@ def validate_constraints(
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
     selection = parse_selection(request["inputs"], unsupported_vars)
 
-    return apply_constraints_in_old_cds_fashion3(parsed_form, selection, constraints)
-    # return apply_constraints(parsed_form, selection, constraints)
+    #return apply_constraints_in_old_cds_fashion3(parsed_form, selection, constraints)
+    return apply_constraints(parsed_form, selection, constraints)
 
 
 def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
