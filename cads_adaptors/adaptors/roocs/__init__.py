@@ -7,12 +7,11 @@ os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
 
 
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
-    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.facets = self.config.get("facets", dict())
         self.facet_groups = self.config.get("facet_groups", dict())
-    
+
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools
 
@@ -56,29 +55,27 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         NOTE: This method assumes unique facets for each CDS request.
         """
         remap = self.mapping.get("remap", dict())
-        
+
         request = {
-            k: (v if not isinstance(v, list) else v[0])
-            for k, v in request.items()
+            k: (v if not isinstance(v, list) else v[0]) for k, v in request.items()
         }
         request = {k: remap.get(k, dict()).get(v, v) for k, v in request.items()}
         request = {k: v for k, v in request.items() if k in self.facets[0]}
-        
+
         for candidate in self.facets:
-            
             for key, groups in self.facet_groups.items():
                 if key in candidate:
                     for group in groups:
                         if candidate[key] in groups[group]:
                             candidate[key] = group
-    
+
             if (
-                candidate["model"]=="CAMS-CSM1-0" and
-                candidate["variable"]=="uas" and
-                candidate["experiment"]=="ssp119"
+                candidate["model"] == "CAMS-CSM1-0"
+                and candidate["variable"] == "uas"
+                and candidate["experiment"] == "ssp119"
             ):
                 raise ValueError(candidate)
-    
+
             if candidate.items() >= request.items():
                 break
         else:
