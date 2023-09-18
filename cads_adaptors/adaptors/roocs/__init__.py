@@ -77,7 +77,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                 candidate["variable"]=="uas" and
                 candidate["experiment"]=="ssp119"
             ):
-                raise ValueError(str(candidate.items()) + " | " + str(request.items()))
+                raise ValueError(str(candidate.items()) + " | " + str(request.items()) + " | " + str(self.facet_groups))
     
             if candidate.items() >= request.items():
                 break
