@@ -64,7 +64,9 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = {k: remap.get(k, dict()).get(v, v) for k, v in request.items()}
         request = {k: v for k, v in request.items() if k in self.facets[0]}
         
-        for candidate in self.facets:
+        for raw_candidate in self.facets:
+            
+            candidate = raw_candidate.copy()
             
             for key, groups in self.facet_groups.items():
                 if key in candidate:
@@ -72,17 +74,9 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                         if candidate[key] in groups[group]:
                             candidate[key] = group
     
-            if (
-                candidate["model"]=="CAMS-CSM1-0" and
-                candidate["variable"]=="uas" and
-                candidate["experiment"]=="ssp119"
-            ):
-                raise ValueError(str(candidate.items()) + " | " + str(request.items()) + " | " + str(self.facet_groups))
-    
             if candidate.items() >= request.items():
                 break
         else:
-            raise ValueError(str(candidate.items()) + " | " + str(request.items()))
             raise ValueError(f"No data found for request {request}")
 
-        return candidate
+        return raw_candidate
