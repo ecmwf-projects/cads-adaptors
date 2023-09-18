@@ -72,12 +72,12 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                         if candidate[key] in groups[group]:
                             candidate[key] = group
     
-            if (
-                candidate["model"]=="CAMS-CSM1-0" and
-                candidate["variable"]=="uas" and
-                candidate["experiment"]=="ssp119"
-            ):
-                raise ValueError(candidate)
+            # if (
+            #     candidate["model"]=="CAMS-CSM1-0" and
+            #     candidate["variable"]=="uas" and
+            #     candidate["experiment"]=="ssp119"
+            # ):
+            #     raise ValueError(candidate)
     
             if candidate.items() >= request.items():
                 break
