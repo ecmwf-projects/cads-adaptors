@@ -110,7 +110,8 @@ class Subset(Operator):
             levels = [levels]
 
         levels = [
-            list(re.finditer(r"[\d]*[.][\d]+|[\d]+", level))[0] for level in levels
+            list(re.finditer(r"[\d]*[.][\d]+|[\d]+", level))[0].string
+            for level in levels
         ]
 
         for i, level in enumerate(levels):
