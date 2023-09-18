@@ -78,7 +78,7 @@ class Subset(Operator):
         if not isinstance(years, (list, tuple)):
             years = [years]
         return {
-            **self.year_range,
+            **self.year_range(),
             **{"time_components": "year:" + ",".join(years)},
         }
 
