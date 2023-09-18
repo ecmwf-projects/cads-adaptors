@@ -12,6 +12,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         super().__init__(*args, **kwargs)
         self.facets = self.config.get("facets", dict())
         self.facet_groups = self.config.get("facet_groups", dict())
+        self.facets_order = self.config.get("facets_order", [])
     
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools
@@ -80,4 +81,4 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         else:
             raise ValueError(f"No data found for request {request}")
 
-        return raw_candidate
+        return {key: raw_candidate[key] for key in self.facets_order}
