@@ -79,6 +79,4 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         else:
             raise ValueError(f"No data found for request {request}")
 
-        raise ValueError(str(raw_candidate))
-
         return raw_candidate
