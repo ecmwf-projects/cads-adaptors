@@ -81,4 +81,6 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         else:
             raise ValueError(f"No data found for request {request}")
 
+        raise ValueError(str(raw_candidate) + " | " + str(self.facets_order))
+
         return {key: raw_candidate[key] for key in self.facets_order}
