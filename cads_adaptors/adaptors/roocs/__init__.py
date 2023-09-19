@@ -18,7 +18,6 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.tools import download_tools
 
         workflow = self.construct_workflow(request)
-        raise Exception(workflow._serialise())
         response = workflow.orchestrate()
 
         try:
