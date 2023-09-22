@@ -13,6 +13,9 @@ dependencies:
 - sphinx
 - sphinx-autoapi
 # DO NOT EDIT ABOVE THIS LINE, ADD DEPENDENCIES BELOW
+- pip
 - types-python-dateutil
 - types-pyyaml
 - types-requests
+- pip:
+  - git+https://github.com/ecmwf-projects/cacholote.git
