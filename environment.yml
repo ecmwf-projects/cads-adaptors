@@ -15,6 +15,4 @@ dependencies:
 - cfgrib
 - pip:
   - rooki
-  - cacholote
   - multiurl
-  - pydantic<=1.10.11

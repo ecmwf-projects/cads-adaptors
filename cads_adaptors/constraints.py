@@ -26,11 +26,10 @@ def get_unsupported_vars(
 def remove_unsupported_vars(
     constraints: list[dict[str, set[Any]]], unsupported_vars: list[str]
 ) -> list[dict[str, set[Any]]]:
-    constraints = copy.deepcopy(constraints)
-    for constraint in constraints:
-        for var in unsupported_vars:
-            constraint.pop(var, None)
-    return constraints
+    return [
+        {k: v for k, v in constraint.items() if k not in unsupported_vars}
+        for constraint in constraints
+    ]
 
 
 def ensure_sequence(v: Any) -> list[Any] | tuple[Any]:
