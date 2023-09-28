@@ -1,6 +1,6 @@
 import calendar
-import typing as T
 import types
+import typing as T
 
 DEFAULT_DATE_FORMAT = "%Y-%m-%d"
 
@@ -32,10 +32,7 @@ class Operator:
 
     @property
     def parameters(self):
-        params = (
-            getattr(self, parameter)
-            for parameter in dir(self)
-        )
+        params = (getattr(self, parameter) for parameter in dir(self))
         return (item for item in params if isinstance(item, types.MethodType))
 
     @staticmethod
