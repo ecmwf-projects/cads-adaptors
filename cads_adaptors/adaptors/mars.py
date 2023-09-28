@@ -76,6 +76,8 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
             from cads_adaptors.tools.convertors import grib_to_netcdf_files
 
             results = grib_to_netcdf_files(result)
+            if len(results)>1 and download_format=="as_source":
+                download_format = "zip"
         else:
             results = [result]
 
