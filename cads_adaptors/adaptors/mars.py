@@ -51,8 +51,13 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
         data_format = request.pop("format", "grib")  # TODO: remove legacy syntax?
         data_format = request.pop("data_format", data_format)
 
+        if data_format in ["netcdf", "nc"]:
+            default_download_format = "zip"
+        else:
+            default_download_format = "as_source"
+
         # Format of download archive, as_source, zip, tar, list etc.
-        download_format = request.pop("download_format", "as_source")
+        download_format = request.pop("download_format", default_download_format)
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
 
