@@ -57,7 +57,7 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
         data_format = request.pop("format", "grib")  # TODO: remove legacy syntax?
         data_format = request.pop("data_format", data_format)
 
-        if data_format in ["netcdf", "nc"]:
+        if data_format in ["netcdf", "nc", "netcdf_compressed_testing"]:
             default_download_format = "zip"
         else:
             default_download_format = "as_source"
@@ -76,10 +76,18 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
         if output.returncode:
             raise RuntimeError("The MARS adaptor has crashed.")
 
-        if data_format in ["netcdf", "nc"]:
+        if data_format in ["netcdf", "nc", "netcdf_compressed_testing"]:
+
+            if data_format in ["netcdf_compressed_testing"]:
+                to_netcdf_kwargs = {
+                    "compression_options": "default",
+                }
+            else:
+                to_netcdf_kwargs = {}
+            
             from cads_adaptors.tools.convertors import grib_to_netcdf_files
 
-            results = grib_to_netcdf_files(result)
+            results = grib_to_netcdf_files(result, **to_netcdf_kwargs)
         else:
             results = [result]
 
