@@ -12,10 +12,9 @@ dependencies:
 - requests
 - pandas
 - python-dateutil
+- cfgrib
 - pip:
   - ecmwflibs
   - cfgrib
   - rooki
-  - cacholote
   - multiurl
-  - pydantic<=1.10.11
