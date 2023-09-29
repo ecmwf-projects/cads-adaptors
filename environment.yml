@@ -15,7 +15,5 @@ dependencies:
 - cfgrib
 - h5netcdf
 - pip:
-  - ecmwflibs
-  - cfgrib
   - rooki
   - multiurl
