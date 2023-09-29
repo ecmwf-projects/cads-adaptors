@@ -54,15 +54,18 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
         from cads_adaptors.tools import download_tools
 
         # Format of data files, grib or netcdf
-        data_format = request.pop("format", "grib")
+        data_format = request.pop("format", "grib")  # TODO: remove legacy syntax?
+        data_format = request.pop("data_format", data_format)
+
+        if data_format in ["netcdf", "nc", "netcdf_compressed"]:
+            default_download_format = "zip"
+        else:
+            default_download_format = "as_source"
 
         # Format of download archive, as_source, zip, tar, list etc.
-        download_format = request.pop("download_format", "as_source")
+        download_format = request.pop("download_format", default_download_format)
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
-        if data_format not in ["grib"]:
-            # FIXME: reformat if needed
-            pass
 
         result, output = execute_mars(mapped_request)
 
@@ -73,9 +76,23 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
         if output.returncode:
             raise RuntimeError("The MARS adaptor has crashed.")
 
+        # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
+        if data_format in ["netcdf", "nc", "netcdf_compressed"]:
+            if data_format in ["netcdf_compressed"]:
+                to_netcdf_kwargs = {
+                    "compression_options": "default",
+                }
+            else:
+                to_netcdf_kwargs = {}
+            from cads_adaptors.tools.convertors import grib_to_netcdf_files
+
+            results = grib_to_netcdf_files(result, **to_netcdf_kwargs)
+        else:
+            results = [result]
+
         download_kwargs = {
             "base_target": f"{self.collection_id}-{hash(tuple(request))}"
         }
         return download_tools.DOWNLOAD_FORMATS[download_format](
-            [result], **download_kwargs
+            results, **download_kwargs
         )
