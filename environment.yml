@@ -13,6 +13,7 @@ dependencies:
 - pandas
 - python-dateutil
 - cfgrib
+- h5netcdf
 - pip:
   - ecmwflibs
   - cfgrib
