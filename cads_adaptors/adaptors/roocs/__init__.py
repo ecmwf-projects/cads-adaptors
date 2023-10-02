@@ -3,7 +3,7 @@ from typing import BinaryIO
 
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 
-os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
+os.environ["ROOK_URL"] = "http://compute.mips.copernicus-climate.eu/wps"
 
 
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
