@@ -15,10 +15,12 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools
+        import rooki
 
         workflow = self.construct_workflow(request)
-        response = workflow.orchestrate()
+        response = rooki.orchestrate(workflow = workflow._serialise())
         raise Exception(response)
+        response = workflow.orchestrate()
 
         try:
             urls = response.download_urls()
