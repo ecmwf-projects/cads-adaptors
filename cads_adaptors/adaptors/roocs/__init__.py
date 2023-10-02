@@ -18,7 +18,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         import rooki
 
         workflow = self.construct_workflow(request)
-        response = rooki.orchestrate(workflow = workflow._serialise())
+        response = rooki.rooki.orchestrate(workflow = workflow._serialise())
         raise Exception(response)
         response = workflow.orchestrate()
 
