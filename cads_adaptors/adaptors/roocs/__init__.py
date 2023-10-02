@@ -2,6 +2,7 @@ import os
 from typing import BinaryIO
 
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+from cads_adaptors.tools import logger
 
 os.environ["ROOK_URL"] = "http://compute.mips.copernicus-climate.eu/wps"
 
@@ -18,6 +19,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         import rooki
 
         workflow = self.construct_workflow(request)
+        logger.info(workflow._serialise())
         response = rooki.rooki.orchestrate(workflow = workflow._serialise())
         raise Exception(response)
         response = workflow.orchestrate()
