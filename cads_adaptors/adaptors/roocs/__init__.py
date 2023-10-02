@@ -26,7 +26,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         logger.info(type(workflow._serialise()))
         logger.info(socket.gethostbyname(socket.gethostname()))
         logger.info('My public IP address is: {}'.format(ip))
-        response = rooki.rooki.orchestrate(workflow = f"{workflow._serialise()}")
+        response = rooki.rooki.orchestrate(workflow = workflow._serialise())
         raise Exception(response)
         response = workflow.orchestrate()
 
