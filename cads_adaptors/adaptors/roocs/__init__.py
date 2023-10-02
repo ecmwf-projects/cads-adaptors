@@ -18,10 +18,14 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools
         import rooki
+        from requests import get
+
+        ip = get('https://api.ipify.org').content.decode('utf8')
 
         workflow = self.construct_workflow(request)
         logger.info(workflow._serialise())
         logger.info(socket.gethostbyname(socket.gethostname()))
+        logger.info('My public IP address is: {}'.format(ip))
         response = rooki.rooki.orchestrate(workflow = workflow._serialise())
         raise Exception(response)
         response = workflow.orchestrate()
