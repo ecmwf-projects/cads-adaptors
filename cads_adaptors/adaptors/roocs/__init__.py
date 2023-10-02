@@ -1,4 +1,5 @@
 import os
+import socket
 from typing import BinaryIO
 
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
@@ -20,6 +21,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         workflow = self.construct_workflow(request)
         logger.info(workflow._serialise())
+        logger.info(socket.gethostbyname(socket.gethostname()))
         response = rooki.rooki.orchestrate(workflow = workflow._serialise())
         raise Exception(response)
         response = workflow.orchestrate()
