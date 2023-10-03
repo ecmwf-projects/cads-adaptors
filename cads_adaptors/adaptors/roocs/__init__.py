@@ -3,9 +3,7 @@ import socket
 from typing import BinaryIO
 
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
-from cads_adaptors.tools.logger import logger
-
-os.environ["ROOK_URL"] = "http://compute.mips.copernicus-climate.eu/wps"
+from cads_adaptors.tools import logger
 
 
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
@@ -18,16 +16,14 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools
         import rooki
-        from requests import get
 
-        ip = get('https://api.ipify.org').content.decode('utf8')
-
+        os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
+        
         workflow = self.construct_workflow(request)
-        logger.info(type(workflow._serialise()))
+        logger.info(workflow._serialise())
         logger.info(socket.gethostbyname(socket.gethostname()))
-        logger.info('My public IP address is: {}'.format(ip))
         response = rooki.rooki.orchestrate(workflow = workflow._serialise())
-        raise Exception(response)
+
         response = workflow.orchestrate()
 
         try:
@@ -38,6 +34,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         return download_tools.DOWNLOAD_FORMATS["zip"](urls)
 
     def construct_workflow(self, request):
+        os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
         import rooki.operators as rookops
 
         from cads_adaptors.adaptors.roocs import operators
