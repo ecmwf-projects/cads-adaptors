@@ -3,7 +3,7 @@ import socket
 from typing import BinaryIO
 
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
-from cads_adaptors.tools import logger
+from cads_adaptors.tools.logger import logger
 
 
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
