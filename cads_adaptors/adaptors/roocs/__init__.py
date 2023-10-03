@@ -21,6 +21,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         
         workflow = self.construct_workflow(request)
         logger.info(workflow._serialise())
+        logger.info(f"ROOK_URL: {os.environ['ROOK_URL']}")
         logger.info(socket.gethostbyname(socket.gethostname()))
         response = rooki.rooki.orchestrate(workflow = workflow._serialise())
 
