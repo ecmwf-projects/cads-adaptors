@@ -15,9 +15,9 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools
+        os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
         import rooki
 
-        os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
         
         from requests import get
 
