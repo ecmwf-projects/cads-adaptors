@@ -18,7 +18,5 @@ dependencies:
 - types-python-dateutil
 - types-pyyaml
 - types-requests
-- types-pyyaml
 - pip:
-  - types-python-dateutil
   - git+https://github.com/ecmwf-projects/cacholote.git
