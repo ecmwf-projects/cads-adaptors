@@ -26,7 +26,7 @@ def requests_to_urls(
     for req in hcube_tools.unfactorise(requests):  # type: ignore
         print("requests_to_urls (request): ", req)
         print("requests_to_urls (resolved templates): ", [t.render(req).strip() for t in templates])
-    
+
         for url in [t.render(req).strip() for t in templates]:
             if url:
                 yield {"url": url, "req": req}
@@ -43,12 +43,9 @@ def try_download(urls: List[str]) -> List[str]:
         try:
             multiurl.download(url, path)
             paths.append(path)
-        except requests.exceptions.HTTPError as exc:
-            if exc.response.status_code == 404:
-                logger.warning(exc)
-                excs.append(exc)
-            else:
-                raise exc
+        except Exception as exc:
+            logger.warning(exc)
+
     if len(paths) == 0:
         raise RuntimeError(
             f"Request empty. At least one of the following {urls} "
