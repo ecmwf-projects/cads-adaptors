@@ -24,6 +24,9 @@ def requests_to_urls(
     templates = [jinja2.Template(p) for p in patterns]
 
     for req in hcube_tools.unfactorise(requests):  # type: ignore
+        print("requests_to_urls (request): ", req)
+        print("requests_to_urls (resolved templates): ", [t.render(req).strip() for t in templates])
+    
         for url in [t.render(req).strip() for t in templates]:
             if url:
                 yield {"url": url, "req": req}
