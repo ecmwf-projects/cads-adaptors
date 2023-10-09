@@ -3,6 +3,7 @@ channels:
 - conda-forge
 - nodefaults
 dependencies:
+- h5netcdf
 - make
 - mypy
 - myst-parser
