@@ -94,7 +94,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         from cads_adaptors.adaptors.mars import execute_mars
         from cads_adaptors.tools import adaptor_tools, download_tools
 
-        download_format = request.pop("download_format", "zip")
+        download_format = request.pop("download_format", "as_source")
 
         # Format of data files, grib or netcdf
         request.pop("format", "grib")
