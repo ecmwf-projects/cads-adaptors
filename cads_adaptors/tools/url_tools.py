@@ -27,9 +27,10 @@ def requests_to_urls(
         print("requests_to_urls (request): ", req)
         print("requests_to_urls (resolved templates): ", [t.render(req).strip() for t in templates])
 
-        for url in [t.render(req).strip() for t in templates]:
-            if url:
-                yield {"url": url, "req": req}
+        urls = [t.render(req).strip() for t in templates]
+        urls = [url for url in urls if url]
+        for url in urls:
+            yield {"url": url, "req": req}
 
 
 def try_download(urls: List[str]) -> List[str]:
