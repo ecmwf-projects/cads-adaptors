@@ -36,6 +36,7 @@ def try_download(urls: List[str]) -> List[str]:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
         os.makedirs(dir, exist_ok=True)
+        print("try_download, (url, path): ", url, path)
         try:
             multiurl.download(url, path)
             paths.append(path)
