@@ -51,6 +51,8 @@ def try_download(urls: List[str]) -> List[str]:
             logger.warning(exc_multiurl)
             logger.warning("Trying with wget: ")
             try:
+                os.system("pip install wget")
+                os.makedirs(os.path.dirname(path))
                 import wget
 
                 wget.download(url, path)
