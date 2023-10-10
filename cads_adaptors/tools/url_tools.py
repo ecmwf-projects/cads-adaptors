@@ -1,5 +1,6 @@
 import logging
 import os
+from sqlite3.dbapi2 import _WindowAggregateClass
 import tarfile
 import urllib
 import zipfile
@@ -44,8 +45,14 @@ def try_download(urls: List[str]) -> List[str]:
         try:
             multiurl.download(url, path)
             paths.append(path)
-        except Exception as exc:
-            logger.warning(exc)
+        except Exception as exc_multiurl:
+            logger.warning(exc_multiurl)
+            logger.warning("Trying with wget: ")
+            try:
+                import wget
+                wget.download(url, path)
+            except Exception as exc_wget:
+                logger.warnin(exc_wget)
 
     if len(paths) == 0:
         raise RuntimeError(
