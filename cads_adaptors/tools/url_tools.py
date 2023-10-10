@@ -51,10 +51,10 @@ def try_download(urls: List[str]) -> List[str]:
             logger.warning(exc_multiurl)
             logger.warning("Trying with wget: ")
             try:
-                os.makedirs(os.path.dirname(path), exist_ok=True)
+                # os.makedirs(os.path.dirname(path), exist_ok=True)
                 import wget
 
-                wget.download(url, path)
+                wget.download(url, os.path.basename(path))
             except Exception as exc_wget:
                 logger.warning(exc_wget)
                 print(exc_wget)
