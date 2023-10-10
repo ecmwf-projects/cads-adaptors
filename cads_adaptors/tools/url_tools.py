@@ -25,7 +25,10 @@ def requests_to_urls(
 
     for req in hcube_tools.unfactorise(requests):  # type: ignore
         print("requests_to_urls (request): ", req)
-        print("requests_to_urls (resolved templates): ", [t.render(req).strip() for t in templates])
+        print(
+            "requests_to_urls (resolved templates): ",
+            [t.render(req).strip() for t in templates],
+        )
 
         urls = [t.render(req).strip() for t in templates]
         urls = [url for url in urls if url]
@@ -49,6 +52,7 @@ def try_download(urls: List[str]) -> List[str]:
             logger.warning("Trying with wget: ")
             try:
                 import wget
+
                 wget.download(url, path)
             except Exception as exc_wget:
                 logger.warning(exc_wget)
