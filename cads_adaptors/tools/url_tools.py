@@ -47,18 +47,24 @@ def try_download(urls: List[str]) -> List[str]:
         try:
             multiurl.download(url, path)
             paths.append(path)
+        except requests.exceptions.HTTPError as exc:
+            excs.append(exc)
         except Exception as exc_multiurl:
-            logger.warning(exc_multiurl)
-            logger.warning("Trying with wget: ")
+            excs.append(exc_multiurl)
+            print(exc_multiurl)
+            print("Trying with wget")
+            # logger.warning(exc_multiurl)
+            # logger.warning("Trying with wget: ")
             try:
                 # os.makedirs(os.path.dirname(path), exist_ok=True)
                 import wget
 
                 wget.download(url, os.path.basename(path))
             except Exception as exc_wget:
-                logger.warning(exc_wget)
+                # logger.warning(exc_wget)
                 print(exc_wget)
-                print('marmelade')
+                print("marmelade")
+                excs.append(exc_wget)
 
     if len(paths) == 0:
         raise RuntimeError(
