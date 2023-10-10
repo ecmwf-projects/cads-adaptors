@@ -57,6 +57,8 @@ def try_download(urls: List[str]) -> List[str]:
                 wget.download(url, path)
             except Exception as exc_wget:
                 logger.warning(exc_wget)
+                print(exc_wget)
+                print('marmelade')
 
     if len(paths) == 0:
         raise RuntimeError(
