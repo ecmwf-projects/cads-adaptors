@@ -1,6 +1,5 @@
 import logging
 import os
-from sqlite3.dbapi2 import _WindowAggregateClass
 import tarfile
 import urllib
 import zipfile
