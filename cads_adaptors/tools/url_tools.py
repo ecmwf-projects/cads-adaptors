@@ -40,7 +40,7 @@ def try_download(urls: List[str]) -> List[str]:
             multiurl.download(url, path)
             paths.append(path)
         except requests.exceptions.HTTPError as exc:
-            if exc.response.status_code == 404:
+            if exc.response and exc.response.status_code == 404:
                 logger.warning(exc)
                 excs.append(exc)
             else:
