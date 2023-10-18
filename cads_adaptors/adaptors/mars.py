@@ -45,6 +45,8 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         if output.returncode:
             raise RuntimeError("The Direct MARS adaptor has crashed.")
+        if not os.path.getsize(result):
+            raise RuntimeError("The Direct MARS adaptor returned no data.")
 
         return open(result)  # type: ignore
 
@@ -75,6 +77,8 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
 
         if output.returncode:
             raise RuntimeError("The MARS adaptor has crashed.")
+        if not os.path.getsize(result):
+            raise RuntimeError("The MARS adaptor returned no data.")
 
         # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
         if data_format in ["netcdf", "nc", "netcdf_compressed"]:
