@@ -59,7 +59,8 @@ def try_download(urls: List[str]) -> List[str]:
                 # os.makedirs(os.path.dirname(path), exist_ok=True)
                 import wget
 
-                wget.download(url, os.path.basename(path))
+                wget.download(url, path)  # os.path.basename(path))
+                paths.append(path)
             except Exception as exc_wget:
                 # logger.warning(exc_wget)
                 print(exc_wget)
