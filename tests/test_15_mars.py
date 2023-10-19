@@ -18,8 +18,8 @@ def test_execute_mars_errors(tmp_path, monkeypatch, exit_code, error_msg):
         mars.execute_mars(
             {},
             context=context,
-            mars_cmd=("bash", "-c", f"echo output; echo error 1>&2; exit {exit_code}"),
+            mars_cmd=("bash", "-c", f"cat r; echo error 1>&2; exit {exit_code}"),
         )
-    assert context.stdout == "output\n"
+    assert context.stdout == "retrieve\n, target=data.grib\n"
     assert context.stderr == "error\n"
-    assert context.user_visible_log == "output\n"
+    assert context.user_visible_log == "retrieve\n, target=data.grib\n"
