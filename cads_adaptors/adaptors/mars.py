@@ -2,11 +2,16 @@ import os
 from typing import BinaryIO, Union
 
 from cads_adaptors import mapping
-from cads_adaptors.adaptors import Request, cds
+from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.tools.general import ensure_list
 
 
-def execute_mars(request: Union[Request, list], target="data.grib"):
+def execute_mars(
+    request: Union[Request, list],
+    target="data.grib",
+    context: Context | None = None,
+    mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
+):
     import subprocess
 
     requests = ensure_list(request)
@@ -28,8 +33,20 @@ def execute_mars(request: Union[Request, list], target="data.grib"):
     env["MARS_USER"] = f"{namespace}-{user_id}"
 
     output = subprocess.run(
-        ["/usr/local/bin/mars", "r"], check=False, env=env, capture_output=True
+        mars_cmd,
+        check=False,
+        env=env,
+        capture_output=True,
+        text=True,
     )
+    if context is not None:
+        context.stdout = context.user_visible_log = output.stdout
+        context.stderr = output.stderr
+    if output.returncode:
+        raise RuntimeError("MARS has crashed.")
+    if not os.path.getsize(target):
+        raise RuntimeError("MARS returned no data.")
+
     return target, output
 
 
@@ -37,15 +54,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
-        result, output = execute_mars(request)
-
-        self.context.stdout = output.stdout.decode()
-        self.context.stderr = output.stderr.decode()
-        self.context.user_visible_log = output.stdout.decode()
-
-        if output.returncode:
-            raise RuntimeError("The Direct MARS adaptor has crashed.")
-
+        result, _ = execute_mars(request, context=self.context)
         return open(result)  # type: ignore
 
 
@@ -67,14 +76,7 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
 
-        result, output = execute_mars(mapped_request)
-
-        self.context.stdout = output.stdout.decode()
-        self.context.stderr = output.stderr.decode()
-        self.context.user_visible_log = output.stdout.decode()
-
-        if output.returncode:
-            raise RuntimeError("The MARS adaptor has crashed.")
+        result, _ = execute_mars(mapped_request, context=self.context)
 
         # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
         if data_format in ["netcdf", "nc", "netcdf_compressed"]:
