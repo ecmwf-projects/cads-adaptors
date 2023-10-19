@@ -120,7 +120,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                 )
 
         logger.debug(f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}")
-        result = execute_mars(mapped_requests, context=self.context)
+        result, _ = execute_mars(mapped_requests, context=self.context)
 
         print("MultiMars result: ", result)
         # TODO: Handle alternate data_format
