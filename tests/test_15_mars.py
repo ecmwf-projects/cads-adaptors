@@ -4,21 +4,20 @@ from cads_adaptors.adaptors import mars
 
 
 @pytest.mark.parametrize(
-    "exit_code,error_msg",
+    "cmd,error_msg",
     (
-        (1, "MARS has crashed."),
-        (0, "MARS returned no data."),
+        ("cat r; echo error 1>&2; exit 1", "MARS has crashed."),
+        ("cat r; touch data.grib; echo error 1>&2", "MARS returned no data."),
     ),
 )
-def test_execute_mars_errors(tmp_path, monkeypatch, exit_code, error_msg):
+def test_execute_mars_errors(tmp_path, monkeypatch, cmd, error_msg):
     monkeypatch.chdir(tmp_path)  # execute_mars generates files in the working dir
-    open("data.grib", "w")  # fake target
     context = mars.Context()
     with pytest.raises(RuntimeError, match=error_msg):
         mars.execute_mars(
             {},
             context=context,
-            mars_cmd=("bash", "-c", f"cat r; echo error 1>&2; exit {exit_code}"),
+            mars_cmd=("bash", "-c", cmd),
         )
     assert context.stdout == "retrieve\n, target=data.grib\n"
     assert context.stderr == "error\n"
