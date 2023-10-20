@@ -8,10 +8,10 @@ from cads_adaptors.tools.general import ensure_list
 
 def execute_mars(
     request: Union[Request, list],
-    target="data.grib",
+    target: str = "data.grib",
     context: Context | None = None,
     mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
-):
+) -> str:
     import subprocess
 
     requests = ensure_list(request)
@@ -47,14 +47,14 @@ def execute_mars(
     if not os.path.getsize(target):
         raise RuntimeError("MARS returned no data.")
 
-    return target, output
+    return target
 
 
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
-        result, _ = execute_mars(request, context=self.context)
+        result = execute_mars(request, context=self.context)
         return open(result)  # type: ignore
 
 
@@ -76,7 +76,7 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
 
         mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
 
-        result, _ = execute_mars(mapped_request, context=self.context)
+        result = execute_mars(mapped_request, context=self.context)
 
         # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
         if data_format in ["netcdf", "nc", "netcdf_compressed"]:
