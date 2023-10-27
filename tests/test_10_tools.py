@@ -30,11 +30,15 @@ def test_multiurl(tmp_path, monkeypatch, ftp):
     monkeypatch.chdir(tmp_path)  # try_download generates files in the working dir
 
     host, port = ftp
+    filename = "test/foo"
+    url = f"ftp://{host}:{port}/{filename}"
+
+    # Try fsspec
     fs = fsspec.filesystem("ftp", host=host, port=port)
-    fs.download("test/foo", "foo-fsspec")
+    fs.download(filename, "foo-fsspec")
     assert (tmp_path / "foo-fsspec").read_bytes() == b"foo"
 
-    url = f"ftp://{host}:{port}/test/foo"
+    # Try wget
     subprocess.run(("wget", url, "-O", "foo-wget"), check=True)
     assert (tmp_path / "foo-wget").read_bytes() == b"foo"
 
