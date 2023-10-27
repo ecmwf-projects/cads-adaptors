@@ -17,6 +17,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.tools import download_tools
 
         os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
+        os.environ["ROOK_MODE"] = "foo"
         import rooki
         from requests import get
 
