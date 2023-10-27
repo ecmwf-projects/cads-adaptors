@@ -19,7 +19,8 @@ dependencies = [
   "cacholote",
   "multiurl",
   "rooki",
-  "python-dateutil"
+  "python-dateutil",
+  "wget"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]
