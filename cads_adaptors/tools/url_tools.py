@@ -2,17 +2,24 @@ import logging
 import os
 import tarfile
 import urllib
-import yaml
 import zipfile
 from typing import Any, Dict, Generator, List, Optional
 
 import jinja2
 import multiurl
 import requests
+import wget
+import yaml
 
 from . import hcube_tools
 
 logger = logging.Logger(__name__)
+
+DOWNLOADERS = {
+    "http": multiurl.download,
+    "https": multiurl.download,
+    "ftp": wget.download,
+}
 
 
 # copied from cdscommon/url2
@@ -34,18 +41,20 @@ def try_download(urls: List[str]) -> List[str]:
     paths = []
     excs = []
     for url in urls:
+        server_type = url.split(":")[0]
+        downloader = DOWNLOADERS.get(server_type, DOWNLOADERS["https"])
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
         os.makedirs(dir, exist_ok=True)
         try:
-            multiurl.download(url, path)
-            paths.append(path)
+            downloader(url, path)
         except Exception as exc_multiurl:
             excs.append({url: exc_multiurl})
+            logger.warning(f"Failed download for URL: {url}\nTraceback: {exc_multiurl}")
+        else:
+            paths.append(path)
+
     if len(paths) == 0:
-        logger.warning(
-            f"Complete download error logs: {yaml.safe_dump(excs, indent=2)}"
-        )
         raise RuntimeError(
             f"Request empty. At least one of the following:\n{yaml.safe_dump(urls, indent=2)} "
             "must be a valid url from which to download the data. "
