@@ -14,7 +14,7 @@ dependencies:
 - python-dateutil
 - cfgrib
 - h5netcdf
-- main
+- wget
 - pip:
   - rooki
   - multiurl
