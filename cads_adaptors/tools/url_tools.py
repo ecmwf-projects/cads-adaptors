@@ -39,12 +39,8 @@ def try_download(urls: List[str]) -> List[str]:
         try:
             multiurl.download(url, path)
             paths.append(path)
-        except requests.exceptions.HTTPError as exc:
-            if exc.response is not None and exc.response.status_code == 404:
-                logger.warning(exc)
-                excs.append(exc)
-            else:
-                raise exc
+        except Exception as exc_multiurl:
+            excs.append({url: exc_multiurl})
     if len(paths) == 0:
         raise RuntimeError(
             f"Request empty. At least one of the following {urls} "
