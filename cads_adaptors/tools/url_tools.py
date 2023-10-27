@@ -15,11 +15,26 @@ from . import hcube_tools
 
 logger = logging.Logger(__name__)
 
+
 DOWNLOADERS = {
     "http": multiurl.download,
     "https": multiurl.download,
     "ftp": wget.download,
 }
+
+
+def back_up_downloader(url: str, path: str) -> None:
+    excs = []
+    for downloader in [multiurl.download, wget.download]:
+        try:
+            downloader(url, path)
+        except Exception as exc:
+            excs.append({downloader.__name__: exc})
+        else:
+            return
+    raise urllib.error.URLError(
+        f"Unable to download URL with available downloaders:\n {yaml.safe_dump(excs, indent=2)}"
+    )
 
 
 # copied from cdscommon/url2
@@ -42,7 +57,7 @@ def try_download(urls: List[str]) -> List[str]:
     excs = []
     for url in urls:
         server_type = url.split(":")[0]
-        downloader = DOWNLOADERS.get(server_type, DOWNLOADERS["https"])
+        downloader = DOWNLOADERS.get(server_type, back_up_downloader)
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
         os.makedirs(dir, exist_ok=True)
