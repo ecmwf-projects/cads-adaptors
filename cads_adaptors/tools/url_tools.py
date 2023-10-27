@@ -2,6 +2,7 @@ import logging
 import os
 import tarfile
 import urllib
+import yaml
 import zipfile
 from typing import Any, Dict, Generator, List, Optional
 
@@ -47,31 +48,15 @@ def try_download(urls: List[str]) -> List[str]:
         try:
             multiurl.download(url, path)
             paths.append(path)
-        except requests.exceptions.HTTPError as exc:
-            excs.append(exc)
         except Exception as exc_multiurl:
-            excs.append(exc_multiurl)
-            print(exc_multiurl)
-            print("Trying with wget")
-            # logger.warning(exc_multiurl)
-            # logger.warning("Trying with wget: ")
-            try:
-                # os.makedirs(os.path.dirname(path), exist_ok=True)
-                import wget
-
-                wget.download(url, path)  # os.path.basename(path))
-                paths.append(path)
-            except Exception as exc_wget:
-                # logger.warning(exc_wget)
-                print(exc_wget)
-                print("marmelade")
-                excs.append(exc_wget)
-
+            excs.append({url: exc_multiurl})
     if len(paths) == 0:
+        logger.warning(
+            f"Complete download error logs: {yaml.safe_dump(excs, indent=2)}"
+        )
         raise RuntimeError(
-            f"Request empty. At least one of the following {urls} "
-            "must be a valid url from which to download the data "
-            f"download errors: {[str(exc) for exc in excs]}"
+            f"Request empty. At least one of the following:\n{yaml.safe_dump(urls, indent=2)} "
+            "must be a valid url from which to download the data. "
         )
     return paths
 
