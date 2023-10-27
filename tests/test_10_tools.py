@@ -33,5 +33,5 @@ def test_multiurl(tmp_path, monkeypatch, ftp):
     fs.pipe("/test-file", b"dummy")
 
     urls = [f"ftp://{host}:{port}/test-file"]
-    tools.url_tools.try_download([urls])
+    tools.url_tools.try_download(urls)
     # TODO: add assertions
