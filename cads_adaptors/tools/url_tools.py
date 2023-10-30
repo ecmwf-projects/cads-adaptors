@@ -59,7 +59,7 @@ def try_download(urls: List[str]) -> List[str]:
         server_type = url.split(":")[0]
         downloader = DOWNLOADERS.get(server_type, back_up_downloader)
         path = urllib.parse.urlparse(url).path.lstrip("/")
-        dir = os.path.dirname(path)
+        dir = os.path.join(os.getcwd(), os.path.dirname(path))
         os.makedirs(dir, exist_ok=True)
         try:
             downloader(url, path)
