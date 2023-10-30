@@ -1,4 +1,3 @@
-import contextlib
 import pathlib
 import subprocess
 import sys
@@ -8,8 +7,6 @@ import time
 import pytest
 
 from cads_adaptors.tools import url_tools
-
-contextlib.contextmanager
 
 
 @pytest.fixture(scope="module")
