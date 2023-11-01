@@ -19,32 +19,23 @@ def test_downloaders(tmp_path, monkeypatch, url, expected_nfiles):
     assert len(paths)==expected_nfiles
 
 
-@pytest.fixture()
-def ftp(tmp_path):
-    ftp_path = tmp_path / "ftp"
-    (ftp_path / "test").mkdir(parents=True)
-    (ftp_path / "test" / "foo").write_bytes(b"foo")
-    P = subprocess.Popen(
-        [sys.executable, "-m", "pyftpdlib", "-d", str(ftp_path)],
-        stderr=subprocess.STDOUT,
-        stdout=subprocess.PIPE,
-    )
-    try:
-        time.sleep(1)
-        yield "localhost", 2121
-    finally:
-        P.terminate()
-        P.wait()
 
 
-def test_try_download_ftp(tmp_path, monkeypatch, ftp):
-    monkeypatch.chdir(tmp_path)  # try_download generates files in the working dir
-    host, port = ftp
-    url = f"ftp://{host}:{port}/test/foo"
+def test_ftp_download(tmp_path, ftpserver):
+    local_test_file = os.path.join(tmp_path, "testfile.txt")
+    with open(local_test_file, "w") as f:
+        f.write("This is a test file")
 
-    # Try wget
-    subprocess.run(("wget", url, "-O", "foo-wget"), check=True)
-    assert (tmp_path / "foo-wget").read_bytes() == b"foo"
+    ftp_url = ftpserver.put_files(local_test_file, style="url", anon=True)
+    local_test_download = os.path.join(tmp_path, "testdownload.txt")
+    url_tools.try_download(ftp_url, local_test_download)
+    with open(local_test_file) as original, open(local_test_download) as downloaded:
+        assert original.read() == downloaded.read()
 
-    url_tools.try_download([url])
-    # TODO: add assertions
+    ftp_url = ftpserver.put_files(local_test_file, style="url", anon=False)
+    local_test_download = os.path.join(tmp_path, "testdownload.txt")
+    url_tools.try_download(ftp_url, local_test_download)
+    with open(local_test_file) as original, open(local_test_download) as downloaded:
+        assert original.read() == downloaded.read()
+
+

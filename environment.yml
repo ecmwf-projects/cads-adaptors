@@ -17,4 +17,4 @@ dependencies:
 - wget
 - pip:
   - rooki
-  - multiurl
+  - multiurl>=0.2.3.2

@@ -18,5 +18,6 @@ dependencies:
 - types-python-dateutil
 - types-pyyaml
 - types-requests
+- pytest-localftpserver
 - pip:
   - git+https://github.com/ecmwf-projects/cacholote.git

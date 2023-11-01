@@ -17,7 +17,7 @@ dependencies = [
   "ecmwflibs",
   "cfgrib",
   "cacholote",
-  "multiurl",
+  "multiurl>=0.2.3.2",
   "rooki",
   "python-dateutil",
   "wget"
