@@ -34,12 +34,12 @@ def try_download(urls: List[str]) -> List[str]:
     paths = []
     excs = []
     for url in urls:
-        downloader = multiurl.download
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
-        os.makedirs(dir, exist_ok=True)
+        if dir:
+            os.makedirs(dir, exist_ok=True)
         try:
-            downloader(url, path)
+            multiurl.download(url, path)
         except Exception as exc:
             excs.append({url: exc})
             logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")

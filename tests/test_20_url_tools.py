@@ -26,13 +26,11 @@ def test_ftp_download(tmp_path, ftpserver):
         f.write("This is a test file")
 
     ftp_url = ftpserver.put_files(local_test_file, style="url", anon=True)
-    local_test_download = os.path.join(tmp_path, "testdownload.txt")
-    url_tools.try_download(ftp_url, local_test_download)
+    local_test_download = url_tools.try_download(ftp_url)[0]
     with open(local_test_file) as original, open(local_test_download) as downloaded:
         assert original.read() == downloaded.read()
 
     ftp_url = ftpserver.put_files(local_test_file, style="url", anon=False)
-    local_test_download = os.path.join(tmp_path, "testdownload.txt")
-    url_tools.try_download(ftp_url, local_test_download)
+    local_test_download = url_tools.try_download(ftp_url)[0]
     with open(local_test_file) as original, open(local_test_download) as downloaded:
         assert original.read() == downloaded.read()
