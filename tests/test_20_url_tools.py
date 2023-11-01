@@ -6,17 +6,24 @@ from cads_adaptors.tools import url_tools
 
 
 @pytest.mark.parametrize(
-    "url,expected_nfiles",
+    "urls,expected_nfiles",
     (
         (
-            "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc",
+            ["https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc"],
             1,
+        ),
+        (
+            [
+                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc",
+                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.grib",
+            ],
+            2,
         ),
     ),
 )
-def test_downloaders(tmp_path, monkeypatch, url, expected_nfiles):
+def test_downloaders(tmp_path, monkeypatch, urls, expected_nfiles):
     monkeypatch.chdir(tmp_path)  # try_download generates files in the working dir
-    paths = url_tools.try_download([url])
+    paths = url_tools.try_download(urls)
     assert len(paths) == expected_nfiles
 
 
