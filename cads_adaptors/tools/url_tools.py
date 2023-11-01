@@ -14,6 +14,7 @@ from . import hcube_tools
 
 logger = logging.Logger(__name__)
 
+
 # copied from cdscommon/url2
 def requests_to_urls(
     requests: Dict[str, Any], patterns: List[str]
