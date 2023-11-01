@@ -9,7 +9,9 @@ from cads_adaptors.tools import url_tools
     "urls,expected_nfiles",
     (
         (
-            ["https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc"],
+            [
+                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc"
+            ],
             1,
         ),
         (
