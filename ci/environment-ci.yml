@@ -14,9 +14,9 @@ dependencies:
 - sphinx
 - sphinx-autoapi
 # DO NOT EDIT ABOVE THIS LINE, ADD DEPENDENCIES BELOW
+- pyftpdlib
 - types-python-dateutil
 - types-pyyaml
 - types-requests
-- pytest-localftpserver
 - pip:
   - git+https://github.com/ecmwf-projects/cacholote.git
