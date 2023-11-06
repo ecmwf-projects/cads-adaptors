@@ -8,18 +8,11 @@ from typing import Any, Dict, Generator, List, Optional
 import jinja2
 import multiurl
 import requests
-import wget
 import yaml
 
 from . import hcube_tools
 
 logger = logging.Logger(__name__)
-
-DOWNLOADERS = {
-    "http": multiurl.download,
-    "https": multiurl.download,
-    "ftp": wget.download,
-}
 
 
 # copied from cdscommon/url2
@@ -32,33 +25,22 @@ def requests_to_urls(
     templates = [jinja2.Template(p) for p in patterns]
 
     for req in hcube_tools.unfactorise(requests):  # type: ignore
-        print("requests_to_urls (request): ", req)
-        print(
-            "requests_to_urls (resolved templates): ",
-            [t.render(req).strip() for t in templates],
-        )
-
-        urls = [t.render(req).strip() for t in templates]
-        urls = [url for url in urls if url]
-        for url in urls:
-            yield {"url": url, "req": req}
+        for url in [t.render(req).strip() for t in templates]:
+            if url:
+                yield {"url": url, "req": req}
 
 
 def try_download(urls: List[str]) -> List[str]:
     paths = []
-    excs = []
     for url in urls:
-        server_type = url.split(":")[0]
-        downloader = DOWNLOADERS.get(server_type, DOWNLOADERS["https"])
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
-        os.makedirs(dir, exist_ok=True)
-        print("try_download, (url, path): ", url, path)
+        if dir:
+            os.makedirs(dir, exist_ok=True)
         try:
-            downloader(url, path)
-        except Exception as exc_multiurl:
-            excs.append({url: exc_multiurl})
-            logger.warning(f"Failed download for URL: {url}\nTraceback: {exc_multiurl}")
+            multiurl.download(url, path)
+        except Exception as exc:
+            logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")
         else:
             paths.append(path)
 

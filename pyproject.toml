@@ -17,9 +17,10 @@ dependencies = [
   "ecmwflibs",
   "cfgrib",
   "cacholote",
-  "multiurl",
+  "multiurl>=0.2.3.2",
   "rooki",
-  "python-dateutil"
+  "python-dateutil",
+  "pyyaml"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]
