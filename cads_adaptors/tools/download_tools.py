@@ -24,7 +24,7 @@ def zip_paths(
         if receipt is not None:
             archive.writestr(
                 f"receipt-{base_target}.yaml",
-                data=yaml.safe_dump(receipt, ensure_ascii=False, indent=2),
+                data=yaml.safe_dump(receipt, indent=2),
             )
 
     for path in paths:
