@@ -32,7 +32,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def make_receipt(
         self,
         request: Request,
-        download_size: [None, int] = None,
+        download_size: Any = None,
         filenames: list = [],
         **kwargs
     ) -> dict[str, Any]:
@@ -42,6 +42,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         **kwargs contains any other fields that are calculated during the runtime of the adaptor
         """
         from datetime import datetime as dt
+
         # Update kwargs with default values
         if download_size is None:
             download_size = "unknown"

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import BinaryIO
 
 from cads_adaptors import mapping
@@ -9,6 +10,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         from cads_adaptors.tools import download_tools, url_tools
 
         receipt = request.pop("receipt", True)
+        full_request = deepcopy(request)
 
         download_format = request.pop("format", "zip")  # TODO: Remove legacy syntax
         # CADS syntax over-rules legacy syntax
@@ -29,14 +31,12 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         urls = [ru["url"] for ru in requests_urls]
         paths = url_tools.try_download(urls)
 
-        download_kwargs = {
-            "base_target": f"{self.collection_id}-{hash(tuple(urls))}"
-        }
+        download_kwargs = {"base_target": f"{self.collection_id}-{hash(tuple(urls))}"}
 
         if receipt:
-            download_kwargs.update({
-                "receipt": self.make_receipt(request, filenames=paths)
-            })
+            download_kwargs.update(
+                {"receipt": self.make_receipt(full_request, filenames=paths)}
+            )
         return download_tools.DOWNLOAD_FORMATS[download_format](
             paths, **download_kwargs
         )

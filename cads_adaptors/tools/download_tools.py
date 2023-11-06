@@ -1,11 +1,15 @@
 import os
-from typing import BinaryIO, Callable, Dict, List
+from typing import Any, BinaryIO, Callable, Dict, List
+
+import yaml
 
 from cads_adaptors.tools.general import ensure_list
 
 
 # TODO zipstream for archive creation
-def zip_paths(paths: List[str], base_target: str = "output-data", **kwargs) -> BinaryIO:
+def zip_paths(
+    paths: List[str], base_target: str = "output-data", receipt: Any = None, **kwargs
+) -> BinaryIO:
     import zipfile
 
     target = f"{base_target}.zip"
@@ -16,6 +20,12 @@ def zip_paths(paths: List[str], base_target: str = "output-data", **kwargs) -> B
             else:
                 archive_name = os.path.basename(path)
             archive.write(path, archive_name)
+
+        if receipt is not None:
+            archive.writestr(
+                f"receipt-{base_target}.yaml",
+                data=yaml.safe_dump(receipt, ensure_ascii=False, indent=2),
+            )
 
     for path in paths:
         os.remove(path)
