@@ -28,3 +28,43 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
+
+    def make_receipt(
+        self,
+        request: Request,
+        download_size: [None, int] = None,
+        filenames: list = [],
+        **kwargs
+    ) -> dict[str, Any]:
+        """
+        Create a receipt to be included in the downloaded archive.
+
+        **kwargs contains any other fields that are calculated during the runtime of the adaptor
+        """
+        from datetime import datetime as dt
+        # Update kwargs with default values
+        if download_size is None:
+            download_size = "unknown"
+
+        receipt = {
+            "collection-id": self.collection_id,
+            "request": request,
+            "request-timestamp": dt.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "request-id": self.config.get("process_id"),
+            "download-size": download_size,
+            "filenames": filenames,
+            "licence": self.licences,
+            # TODO: fetch relevant information from metadata, potentially via API or populated directly
+            #   in the config opbject.
+            # "web-portal": self.???, # Need update to information available to adaptors
+            # "request-id": self.???, # Need update to information available to adaptors
+            # "citation": self.???, # Need update to information available to adaptors
+            # "api-access": "https://url-to-data-api/{self.collection_id}"
+            # "metadata-api-access": "https://url-to-metadata-api/{self.collection_id}"
+            # "user-support": "https://link/to/user/support"
+            # "privacy-policy": "https://link/to/privacy/policy"
+            **kwargs,
+            **self.config.get("additional_receipt_info", {}),
+        }
+
+        return receipt
