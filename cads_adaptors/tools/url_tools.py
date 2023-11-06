@@ -32,7 +32,6 @@ def requests_to_urls(
 
 def try_download(urls: List[str]) -> List[str]:
     paths = []
-    excs = []
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
@@ -41,7 +40,6 @@ def try_download(urls: List[str]) -> List[str]:
         try:
             multiurl.download(url, path)
         except Exception as exc:
-            excs.append({url: exc})
             logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")
         else:
             paths.append(path)

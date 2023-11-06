@@ -29,17 +29,22 @@ def test_downloaders(tmp_path, monkeypatch, urls, expected_nfiles):
     assert len(paths) == expected_nfiles
 
 
-def test_ftp_download(tmp_path, ftpserver):
+@pytest.mark.parametrize(
+    "anon",
+    (
+        True,
+        False,
+    ),
+)
+def test_ftp_download(tmp_path, ftpserver, anon):
     local_test_file = os.path.join(tmp_path, "testfile.txt")
     with open(local_test_file, "w") as f:
         f.write("This is a test file")
 
-    ftp_url = ftpserver.put_files(local_test_file, style="url", anon=True)
-    local_test_download = url_tools.try_download(ftp_url)[0]
-    with open(local_test_file) as original, open(local_test_download) as downloaded:
-        assert original.read() == downloaded.read()
-
-    ftp_url = ftpserver.put_files(local_test_file, style="url", anon=False)
+    ftp_url = ftpserver.put_files(local_test_file, style="url", anon=anon)
+    work_dir = os.path.join(tmp_path, "work_dir")
+    os.makedirs(work_dir)
+    os.chdir(work_dir)
     local_test_download = url_tools.try_download(ftp_url)[0]
     with open(local_test_file) as original, open(local_test_download) as downloaded:
         assert original.read() == downloaded.read()
