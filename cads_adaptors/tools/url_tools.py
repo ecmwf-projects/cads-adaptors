@@ -8,6 +8,7 @@ from typing import Any, Dict, Generator, List, Optional
 import jinja2
 import multiurl
 import requests
+import yaml
 
 from . import hcube_tools
 
@@ -31,25 +32,22 @@ def requests_to_urls(
 
 def try_download(urls: List[str]) -> List[str]:
     paths = []
-    excs = []
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
-        os.makedirs(dir, exist_ok=True)
+        if dir:
+            os.makedirs(dir, exist_ok=True)
         try:
             multiurl.download(url, path)
+        except Exception as exc:
+            logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")
+        else:
             paths.append(path)
-        except requests.exceptions.HTTPError as exc:
-            if exc.response is not None and exc.response.status_code == 404:
-                logger.warning(exc)
-                excs.append(exc)
-            else:
-                raise exc
+
     if len(paths) == 0:
         raise RuntimeError(
-            f"Request empty. At least one of the following {urls} "
-            "must be a valid url from which to download the data "
-            f"download errors: {[str(exc) for exc in excs]}"
+            f"Request empty. At least one of the following:\n{yaml.safe_dump(urls, indent=2)} "
+            "must be a valid url from which to download the data. "
         )
     return paths
 
