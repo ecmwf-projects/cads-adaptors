@@ -22,9 +22,10 @@ def zip_paths(
             archive.write(path, archive_name)
 
         if receipt is not None:
+            yaml_output: str = yaml.safe_dump(receipt, indent=2)
             archive.writestr(
                 f"receipt-{base_target}.yaml",
-                data=yaml.safe_dump(receipt, ensure_ascii=False, indent=2),
+                data=yaml_output,
             )
 
     for path in paths:
@@ -37,6 +38,7 @@ def zip_paths(
 def targz_paths(
     paths: List[str],
     base_target: str = "output-data",
+    receipt: Any = None,
     **kwargs,
 ) -> BinaryIO:
     import tarfile
@@ -50,6 +52,12 @@ def targz_paths(
                 archive_name = os.path.basename(path)
             archive.add(path, arcname=archive_name)
 
+        if receipt is not None:
+            receipt_fname = f"receipt-{base_target}.yaml"
+            with open(receipt_fname, "w") as receipt_file:
+                yaml.safe_dump(receipt, stream=receipt_file, indent=2)
+            archive.add(receipt_fname)
+
     for path in paths:
         os.remove(path)
 
@@ -60,6 +68,11 @@ def list_paths(
     paths: List[str],
     **kwargs,
 ) -> List:
+    if kwargs.get("receipt") is not None:
+        receipt_fname = f"receipt-{kwargs.get('base_target', hash(paths))}.yaml"
+        with open(receipt_fname, "w") as receipt_file:
+            yaml.safe_dump(kwargs.get("receipt"), stream=receipt_file, indent=2)
+        paths.append(receipt_fname)
     return [open(path, "rb") for path in ensure_list(paths)]
 
 
