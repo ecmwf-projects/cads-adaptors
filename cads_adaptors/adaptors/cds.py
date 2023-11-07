@@ -34,7 +34,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
 
-    def retrieve(self, request: Request) -> Any:
+    # This is a second __init__, but only for when we have a request at hand
+    # and currently only implemented for retrieve methods
+    def __init_retrieve__(self, request: Request):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", True)
 
@@ -50,7 +52,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         paths = ensure_list(paths)
         filenames = [os.path.basename(path) for path in paths]
-        kwargs.setdefault("base_target", f"{self.collection_id}-{hash(tuple(paths))}")
+        kwargs.setdefault("base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}")
 
         if receipt:
             if receipt_kwargs is None:

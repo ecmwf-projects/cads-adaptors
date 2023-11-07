@@ -58,8 +58,9 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
         return open(result)  # type: ignore
 
 
-class MarsCdsAdaptor(DirectMarsCdsAdaptor):
+class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
+        super().__init_retrieve__(request=request)
         from cads_adaptors.tools import download_tools
 
         # Format of data files, grib or netcdf
@@ -95,6 +96,4 @@ class MarsCdsAdaptor(DirectMarsCdsAdaptor):
         download_kwargs = {
             "base_target": f"{self.collection_id}-{hash(tuple(request))}"
         }
-        return download_tools.DOWNLOAD_FORMATS[download_format](
-            results, **download_kwargs
-        )
+        return self.make_download_object(results)

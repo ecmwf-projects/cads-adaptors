@@ -69,7 +69,7 @@ def list_paths(
     **kwargs,
 ) -> List:
     if kwargs.get("receipt") is not None:
-        receipt_fname = f"receipt-{kwargs.get('base_target', hash(paths))}.yaml"
+        receipt_fname = f"receipt-{kwargs.get('base_target', 'nohash')}.yaml"
         with open(receipt_fname, "w") as receipt_file:
             yaml.safe_dump(kwargs.get("receipt"), stream=receipt_file, indent=2)
         paths.append(receipt_fname)

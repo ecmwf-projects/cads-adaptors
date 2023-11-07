@@ -6,7 +6,7 @@ from cads_adaptors.adaptors import Request, cds
 
 class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        super().retrieve(request=request)
+        super().__init_retrieve__(request=request)
 
         from cads_adaptors.tools import url_tools
 
