@@ -6,6 +6,24 @@ from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.tools.general import ensure_list
 
 
+def convert_format(result, data_format):
+    # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
+    if data_format in ["netcdf", "nc", "netcdf_compressed"]:
+        if data_format in ["netcdf_compressed"]:
+            to_netcdf_kwargs = {
+                "compression_options": "default",
+            }
+        else:
+            to_netcdf_kwargs = {}
+        from cads_adaptors.tools.convertors import grib_to_netcdf_files
+
+        paths = grib_to_netcdf_files(result, **to_netcdf_kwargs)
+    else:
+        paths = [result]
+    
+    return paths
+
+
 def execute_mars(
     request: Union[Request, list],
     target: str = "data.grib",
@@ -78,18 +96,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         result = execute_mars(self.mapped_request, context=self.context)
 
-        # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
-        if data_format in ["netcdf", "nc", "netcdf_compressed"]:
-            if data_format in ["netcdf_compressed"]:
-                to_netcdf_kwargs = {
-                    "compression_options": "default",
-                }
-            else:
-                to_netcdf_kwargs = {}
-            from cads_adaptors.tools.convertors import grib_to_netcdf_files
-
-            paths = grib_to_netcdf_files(result, **to_netcdf_kwargs)
-        else:
-            paths = [result]
+        paths = convert_format(result, data_format)
 
         return self.make_download_object(paths)
+
