@@ -48,7 +48,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def make_download_object(
         self,
         paths: Union[str, list],
-        receipt: bool = True,
         receipt_kwargs: Union[dict, None] = None,
         **kwargs,
     ):
@@ -61,7 +60,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         filenames = [os.path.basename(path) for path in paths]
         kwargs.setdefault("base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}")
 
-        if receipt:
+        # Allow adaptor possibility of over-riding request value
+        if kwargs.get("receipt", self.receipt):
             if receipt_kwargs is None:
                 receipt_kwargs = {}
             kwargs.setdefault(
