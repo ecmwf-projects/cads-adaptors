@@ -6,6 +6,24 @@ from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.tools.general import ensure_list
 
 
+def convert_format(result, data_format):
+    # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
+    if data_format in ["netcdf", "nc", "netcdf_compressed"]:
+        if data_format in ["netcdf_compressed"]:
+            to_netcdf_kwargs = {
+                "compression_options": "default",
+            }
+        else:
+            to_netcdf_kwargs = {}
+        from cads_adaptors.tools.convertors import grib_to_netcdf_files
+
+        paths = grib_to_netcdf_files(result, **to_netcdf_kwargs)
+    else:
+        paths = [result]
+    
+    return paths
+
+
 def execute_mars(
     request: Union[Request, list],
     target: str = "data.grib",
@@ -58,43 +76,27 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
         return open(result)  # type: ignore
 
 
-class MarsCdsAdaptor(DirectMarsCdsAdaptor):
+class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        from cads_adaptors.tools import download_tools
 
-        # Format of data files, grib or netcdf
-        data_format = request.pop("format", "grib")  # TODO: remove legacy syntax?
-        data_format = request.pop("data_format", data_format)
+         # TODO: Remove legacy syntax all together
+        if "format" in request:
+            _data_format = request.pop("format")
+            request.setdefault("data_format", _data_format)
 
-        if data_format in ["netcdf", "nc", "netcdf_compressed"]:
-            default_download_format = "zip"
-        else:
-            default_download_format = "as_source"
+        data_format = request.pop("data_format", "grib")
 
-        # Format of download archive, as_source, zip, tar, list etc.
-        download_format = request.pop("download_format", default_download_format)
+        #  For now, zip is default download format for everything, options in place to change later
+        # if data_format in ["netcdf", "nc", "netcdf_compressed"]:
+        #     default_download_format = "zip"
+        # else:
+        #     default_download_format = "as_source"
 
-        mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
+        self._pre_retrieve_(request=request)
 
-        result = execute_mars(mapped_request, context=self.context)
+        result = execute_mars(self.mapped_request, context=self.context)
 
-        # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
-        if data_format in ["netcdf", "nc", "netcdf_compressed"]:
-            if data_format in ["netcdf_compressed"]:
-                to_netcdf_kwargs = {
-                    "compression_options": "default",
-                }
-            else:
-                to_netcdf_kwargs = {}
-            from cads_adaptors.tools.convertors import grib_to_netcdf_files
+        paths = convert_format(result, data_format)
 
-            results = grib_to_netcdf_files(result, **to_netcdf_kwargs)
-        else:
-            results = [result]
+        return self.make_download_object(paths)
 
-        download_kwargs = {
-            "base_target": f"{self.collection_id}-{hash(tuple(request))}"
-        }
-        return download_tools.DOWNLOAD_FORMATS[download_format](
-            results, **download_kwargs
-        )
