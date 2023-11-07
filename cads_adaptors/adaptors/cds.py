@@ -18,8 +18,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.licences: list[tuple[str, int]] = config.pop("licences", [])
         self.config = config
         self.context = Context()
+        # The following attributes are updated during the retireve method
         self.input_request: Request = Request()
         self.mapped_request: Request = Request()
+        self.download_format: str = "zip"
         self.receipt: bool = True
 
     def validate(self, request: Request) -> bool:
