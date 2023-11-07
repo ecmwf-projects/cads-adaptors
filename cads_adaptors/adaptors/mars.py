@@ -60,24 +60,23 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        super().__init_retrieve__(request=request)
-        from cads_adaptors.tools import download_tools
 
-        # Format of data files, grib or netcdf
-        data_format = request.pop("format", "grib")  # TODO: remove legacy syntax?
-        data_format = request.pop("data_format", data_format)
+         # TODO: Remove legacy syntax all together
+        if "format" in request:
+            _data_format = request.pop("format")
+            request.setdefault("data_format", _data_format)
 
-        if data_format in ["netcdf", "nc", "netcdf_compressed"]:
-            default_download_format = "zip"
-        else:
-            default_download_format = "as_source"
+        data_format = request.pop("data_format", "grib")
 
-        # Format of download archive, as_source, zip, tar, list etc.
-        download_format = request.pop("download_format", default_download_format)
+        #  For now, zip is default download format for everything, options in place to change later
+        # if data_format in ["netcdf", "nc", "netcdf_compressed"]:
+        #     default_download_format = "zip"
+        # else:
+        #     default_download_format = "as_source"
 
-        mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
+        self._pre_retrieve_(request=request)
 
-        result = execute_mars(mapped_request, context=self.context)
+        result = execute_mars(self.mapped_request, context=self.context)
 
         # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
         if data_format in ["netcdf", "nc", "netcdf_compressed"]:
@@ -89,11 +88,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 to_netcdf_kwargs = {}
             from cads_adaptors.tools.convertors import grib_to_netcdf_files
 
-            results = grib_to_netcdf_files(result, **to_netcdf_kwargs)
+            paths = grib_to_netcdf_files(result, **to_netcdf_kwargs)
         else:
-            results = [result]
+            paths = [result]
 
-        download_kwargs = {
-            "base_target": f"{self.collection_id}-{hash(tuple(request))}"
-        }
-        return self.make_download_object(results)
+        return self.make_download_object(paths)

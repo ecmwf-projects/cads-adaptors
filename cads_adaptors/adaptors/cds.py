@@ -2,7 +2,7 @@ import os
 from copy import deepcopy
 from typing import Any, Union
 
-from cads_adaptors import constraints, costing
+from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.tools.general import ensure_list
 
@@ -19,6 +19,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.config = config
         self.context = Context()
         self.input_request: Request = Request()
+        self.mapped_request: Request = Request()
         self.receipt: bool = True
 
     def validate(self, request: Request) -> bool:
@@ -34,21 +35,25 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
 
-    # This is a second __init__, but only for when we have a request at hand
+    # This is essentially a second __init__, but only for when we have a request at hand
     # and currently only implemented for retrieve methods
-    def __init_retrieve__(self, request: Request):
+    def _pre_retrieve_(self, request: Request, default_download_format="zip"):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", True)
+        self.download_format = request.pop("download_format", default_download_format)
+        self.mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
 
     def make_download_object(
         self,
         paths: Union[str, list],
-        download_format: str = "zip",
         receipt: bool = True,
         receipt_kwargs: Union[dict, None] = None,
         **kwargs,
     ):
         from cads_adaptors.tools import download_tools
+
+        # Allow possibility of over-riding the download format from the adaptor
+        download_format = kwargs.get("download_format", self.download_format)
 
         paths = ensure_list(paths)
         filenames = [os.path.basename(path) for path in paths]
@@ -89,11 +94,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "collection-id": self.collection_id,
             "request": input_request,
             "request-timestamp": dt.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "request-id": self.config.get("process_id", "Unavailable"),
             "download-size": download_size,
             "filenames": filenames,
             "licence": self.licences,
             # TODO: fetch relevant information from metadata, potentially via API or populated directly
+            # The following does not work:
+            "request-id": self.config.get("process_id", "Unavailable"),
             #   in the config opbject.
             # "web-portal": self.???, # Need update to information available to adaptors
             # "request-id": self.???, # Need update to information available to adaptors
