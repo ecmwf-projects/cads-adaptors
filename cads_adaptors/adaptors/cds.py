@@ -57,6 +57,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         paths = ensure_list(paths)
         filenames = [os.path.basename(path) for path in paths]
+        # TODO: use request-id instead of hash
         kwargs.setdefault("base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}")
 
         # Allow adaptor possibility of over-riding request value
@@ -105,7 +106,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "licence": [f"{licence[0]} (version {licence[1]})" for licence in self.licences],
 
             # TODO: Add request-id information to the context
-            # "request-id": self.config.get("process_id", "Unavailable"),
+            "request-uid": self.config.get("request_uid", "Unavailable"),
             #
             # TODO: Add URL/DNS information to the context for populating these fields:
             # "web-portal": self.???, # Need update to information available to adaptors
