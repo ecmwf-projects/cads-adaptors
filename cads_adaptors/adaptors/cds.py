@@ -97,12 +97,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "download-size": download_size,
             "filenames": filenames,
 
+            # Get static URLs:
+            "user-support": "https://support.ecmwf.int",
+            "privacy-policy": "https://cds.climate.copernicus.eu/disclaimer-privacy",
+
             # TODO: Change to URLs for licence instead of slug
             "licence": [f"{licence[0]} (version {licence[1]})" for licence in self.licences],
-
-            # TODO: Get static URLs:
-            # "user-support": "https://link/to/user/support"
-            # "privacy-policy": "https://link/to/privacy/policy"
 
             # TODO: Add request-id information to the context
             # "request-id": self.config.get("process_id", "Unavailable"),
