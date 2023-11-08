@@ -100,6 +100,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             # TODO: Change to URLs for licence instead of slug
             "licence": [f"{licence[0]} (version {licence[1]})" for licence in self.licences],
 
+            # TODO: Get static URLs:
+            # "user-support": "https://link/to/user/support"
+            # "privacy-policy": "https://link/to/privacy/policy"
+
             # TODO: Add request-id information to the context
             # "request-id": self.config.get("process_id", "Unavailable"),
             #
@@ -107,8 +111,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             # "web-portal": self.???, # Need update to information available to adaptors
             # "api-access": "https://url-to-data-api/{self.collection_id}"
             # "metadata-api-access": "https://url-to-metadata-api/{self.collection_id}"
-            # "user-support": "https://link/to/user/support"
-            # "privacy-policy": "https://link/to/privacy/policy"
             #
             # TODO: Add metadata information to config, this could also be done via the metadata api
             # "citation": self.???, # Need update to information available to adaptors
