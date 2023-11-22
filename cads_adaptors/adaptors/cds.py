@@ -58,7 +58,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         paths = ensure_list(paths)
         filenames = [os.path.basename(path) for path in paths]
         # TODO: use request-id instead of hash
-        kwargs.setdefault("base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}")
+        kwargs.setdefault(
+            "base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}"
+        )
 
         # Allow adaptor possibility of over-riding request value
         if kwargs.get("receipt", self.receipt):
@@ -97,14 +99,13 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "request-timestamp": dt.now().strftime("%Y-%m-%d %H:%M:%S"),
             "download-size": download_size,
             "filenames": filenames,
-
             # Get static URLs:
             "user-support": "https://support.ecmwf.int",
             "privacy-policy": "https://cds.climate.copernicus.eu/disclaimer-privacy",
-
             # TODO: Change to URLs for licence instead of slug
-            "licence": [f"{licence[0]} (version {licence[1]})" for licence in self.licences],
-
+            "licence": [
+                f"{licence[0]} (version {licence[1]})" for licence in self.licences
+            ],
             # TODO: Add request-id information to the context
             "request-uid": self.config.get("request_uid", "Unavailable"),
             #

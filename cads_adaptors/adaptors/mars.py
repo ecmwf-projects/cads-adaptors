@@ -1,7 +1,6 @@
 import os
 from typing import BinaryIO, Union
 
-from cads_adaptors import mapping
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.tools.general import ensure_list
 
@@ -20,7 +19,7 @@ def convert_format(result, data_format):
         paths = grib_to_netcdf_files(result, **to_netcdf_kwargs)
     else:
         paths = [result]
-    
+
     return paths
 
 
@@ -78,8 +77,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-
-         # TODO: Remove legacy syntax all together
+        # TODO: Remove legacy syntax all together
         if "format" in request:
             _data_format = request.pop("format")
             request.setdefault("data_format", _data_format)
@@ -99,4 +97,3 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         paths = convert_format(result, data_format)
 
         return self.make_download_object(paths)
-
