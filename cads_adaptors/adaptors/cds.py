@@ -22,7 +22,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.input_request: Request = Request()
         self.mapped_request: Request = Request()
         self.download_format: str = "zip"
-        self.receipt: bool = True
+        self.receipt: bool = False
 
     def validate(self, request: Request) -> bool:
         return True

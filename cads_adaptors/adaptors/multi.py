@@ -42,7 +42,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.tools import adaptor_tools
 
         self.input_request = deepcopy(request)
-        self.receipt = request.pop("receipt", True)
+        self.receipt = request.pop("receipt", False)
         self.download_format = request.pop("download_format", "zip")
 
         these_requests = {}
@@ -95,7 +95,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         from cads_adaptors.tools import adaptor_tools
 
         self.input_request = deepcopy(request)
-        self.receipt = request.pop("receipt", True)
+        self.receipt = request.pop("receipt", False)
         self.download_format = request.pop("download_format", "zip")
 
         # Format of data files, grib or netcdf
