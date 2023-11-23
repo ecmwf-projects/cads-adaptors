@@ -114,15 +114,18 @@ class Subset(Operator):
             else:
                 sanitised_levels.append(level)
 
-        for i, level in enumerate(sanitised_levels):
+        levels = []
+        for level in sanitised_levels:
             try:
-                sanitised_levels[i] = int(float(level))
+                levels.append(int(float(level)))
             except ValueError:
-                raise KeyError
+                continue
+        if not levels:
+            return {}
 
-        sanitised_levels = ",".join([str(level) for level in sanitised_levels])
+        levels = ",".join([str(level) for level in levels])
 
-        return {"level": sanitised_levels}
+        return {"level": levels}
 
     def area(self):
         """
