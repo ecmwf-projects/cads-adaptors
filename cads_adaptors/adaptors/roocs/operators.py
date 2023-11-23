@@ -106,20 +106,23 @@ class Subset(Operator):
         if not isinstance(levels, (list, tuple)):
             levels = [levels]
 
-        levels = [
-            list(re.finditer(r"[\d]*[.][\d]+|[\d]+", level))[0].string
-            for level in levels
-        ]
+        sanitised_levels = []
+        for level in levels:
+            matches = list(re.finditer(r"[\d]*[.][\d]+|[\d]+", level))
+            if matches:
+                sanitised_levels.append(matches[0].string)
+            else:
+                sanitised_levels.append(level)
 
-        for i, level in enumerate(levels):
+        for i, level in enumerate(sanitised_levels):
             try:
-                levels[i] = int(float(level))
+                sanitised_levels[i] = int(float(sanitised_levels))
             except ValueError:
                 raise KeyError
 
-        levels = ",".join([str(level) for level in levels])
+        sanitised_levels = ",".join([str(level) for level in sanitised_levels])
 
-        return {"level": levels}
+        return {"level": sanitised_levels}
 
     def area(self):
         """

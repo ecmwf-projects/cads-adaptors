@@ -2,6 +2,7 @@ import os
 import socket
 from typing import BinaryIO
 
+from cads_adaptors import mapping
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 from cads_adaptors.tools.logger import logger
 
