@@ -116,7 +116,7 @@ class Subset(Operator):
 
         for i, level in enumerate(sanitised_levels):
             try:
-                sanitised_levels[i] = int(float(sanitised_levels))
+                sanitised_levels[i] = int(float(level))
             except ValueError:
                 raise KeyError
 
