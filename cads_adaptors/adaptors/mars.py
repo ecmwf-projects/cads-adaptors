@@ -1,7 +1,6 @@
 import os
 from typing import BinaryIO, Union
 
-from cads_adaptors import mapping
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.tools.general import ensure_list
 
@@ -20,7 +19,7 @@ def convert_format(result, data_format):
         paths = grib_to_netcdf_files(result, **to_netcdf_kwargs)
     else:
         paths = [result]
-    
+
     return paths
 
 
@@ -78,19 +77,15 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-
-         # TODO: Remove legacy syntax all together
+        # TODO: Remove legacy syntax all together
         if "format" in request:
             _data_format = request.pop("format")
             request.setdefault("data_format", _data_format)
 
         data_format = request.pop("data_format", "grib")
 
-        #  For now, zip is default download format for everything, options in place to change later
-        # if data_format in ["netcdf", "nc", "netcdf_compressed"]:
-        #     default_download_format = "zip"
-        # else:
-        #     default_download_format = "as_source"
+        # To preserve existing ERA5 functionality the default download_format="as_source"
+        request.setdefault("download_format", "as_source")
 
         self._pre_retrieve_(request=request)
 
@@ -99,4 +94,3 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         paths = convert_format(result, data_format)
 
         return self.make_download_object(paths)
-
