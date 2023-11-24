@@ -1,5 +1,5 @@
 import os
-from typing import Any, BinaryIO, Callable, Dict, List
+from typing import Any, BinaryIO, Callable, Dict, List, Union
 
 import yaml
 
@@ -67,7 +67,7 @@ def targz_paths(
 def list_paths(
     paths: List[str],
     **kwargs,
-) -> List:
+) -> List[BinaryIO]:
     if kwargs.get("receipt") is not None:
         receipt_fname = f"receipt-{kwargs.get('base_target', 'nohash')}.yaml"
         with open(receipt_fname, "w") as receipt_file:
@@ -76,10 +76,12 @@ def list_paths(
     return [open(path, "rb") for path in ensure_list(paths)]
 
 
-def as_source(paths: List[str], **kwargs) -> BinaryIO:
+def as_source(paths: List[str], **kwargs) -> Union[BinaryIO, List[BinaryIO]]:
     # Only return as_source if a single path, otherwise list MUST be requested
-    assert len(paths) == 1
-    return open(paths[0], "rb")
+    if len(paths) == 1:
+        return open(paths[0], "rb")
+    else:
+        return list_paths(paths, **kwargs)
 
 
 DOWNLOAD_FORMATS: Dict[str, Callable] = {

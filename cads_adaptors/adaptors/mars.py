@@ -84,11 +84,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         data_format = request.pop("data_format", "grib")
 
-        #  For now, zip is default download format for everything, options in place to change later
-        # if data_format in ["netcdf", "nc", "netcdf_compressed"]:
-        #     default_download_format = "zip"
-        # else:
-        #     default_download_format = "as_source"
+        # To preserve existing ERA5 functionality the default download_format="as_source"
+        request.setdefault("download_format", "as_source")
 
         self._pre_retrieve_(request=request)
 
