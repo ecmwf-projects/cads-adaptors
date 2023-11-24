@@ -1,9 +1,10 @@
 from pathlib import Path
 
-from cads_adaptors import AbstractCdsAdaptor, mapping
 from cdsobs.retrieve.api import retrieve_observations
 from cdsobs.retrieve.models import RetrieveArgs
 from cdsobs.utils.utils import get_database_session
+
+from cads_adaptors import AbstractCdsAdaptor, mapping
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
