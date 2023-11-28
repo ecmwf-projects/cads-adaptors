@@ -1,14 +1,14 @@
 from pathlib import Path
 
-from cdsobs.retrieve.api import retrieve_observations
-from cdsobs.retrieve.models import RetrieveArgs
-from cdsobs.utils.utils import get_database_session
-
 from cads_adaptors import AbstractCdsAdaptor, mapping
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request):
+        from cdsobs.retrieve.api import retrieve_observations
+        from cdsobs.retrieve.models import RetrieveArgs
+        from cdsobs.utils.utils import get_database_session
+
         # Maps observation_type to source
         mapped_request = mapping.apply_mapping(request, self.mapping)
         # Catalogue credentials are in config, which is parsed from adaptor.json
