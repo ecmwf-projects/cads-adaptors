@@ -6,8 +6,6 @@ import pytest
 import xarray
 from numpy import nan
 
-from cads_adaptors import ObservationsAdaptor
-
 
 def mocked_retrieve_observations(
     session, storage_url, retrieve_args, output_dir: Path, size_limit: int
@@ -157,6 +155,8 @@ def mocked_get_session(*args):
 
 @pytest.mark.skip("Depends on cdsobs")
 def test_adaptor(tmp_path, monkeypatch):
+    from cads_adaptors import ObservationsAdaptor
+
     monkeypatch.setattr(
         "cads_adaptors.adaptors.cadsobs.retrieve_observations",
         mocked_retrieve_observations,
