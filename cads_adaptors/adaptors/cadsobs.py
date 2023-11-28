@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from cads_adaptors import AbstractCdsAdaptor, mapping
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.mapping import apply_mapping
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
@@ -10,7 +11,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         from cdsobs.utils.utils import get_database_session
 
         # Maps observation_type to source
-        mapped_request = mapping.apply_mapping(request, self.mapping)
+        mapped_request = apply_mapping(request, self.mapping)
         # Catalogue credentials are in config, which is parsed from adaptor.json
         catalogue_url = self.config["catalogue_url"]
         storage_url = self.config["storage_url"]
