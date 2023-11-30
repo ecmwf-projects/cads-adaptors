@@ -102,7 +102,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # To preserve existing ERA5 functionality the default download_format="as_source"
         request.setdefault("download_format", "as_source")
 
-        self._pre_retrieve_(request=request)
+        self._pre_retrieve(request=request)
 
         result = execute_mars(self.mapped_request, context=self.context)
 
