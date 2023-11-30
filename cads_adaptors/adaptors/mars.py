@@ -5,7 +5,12 @@ from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.tools.general import ensure_list
 
 
-def convert_format(result, data_format):
+def convert_format(
+    result: str,
+    data_format: str,
+    context: Context | None = None,
+    **kwargs,
+) -> list:
     # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
     if data_format in ["netcdf", "nc", "netcdf_compressed"]:
         if data_format in ["netcdf_compressed"]:
@@ -16,8 +21,15 @@ def convert_format(result, data_format):
             to_netcdf_kwargs = {}
         from cads_adaptors.tools.convertors import grib_to_netcdf_files
 
+        # Give the power to overwrite the to_netcdf kwargs from the request
+        to_netcdf_kwargs = {**to_netcdf_kwargs, **kwargs}
         paths = grib_to_netcdf_files(result, **to_netcdf_kwargs)
+    elif data_format in ["grib", "grib2", "grb", "grb2"]:
+        paths = [result]
     else:
+        context.stdout = (
+            context.user_visible_log
+        ) = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
         paths = [result]
 
     return paths
@@ -84,6 +96,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         data_format = request.pop("data_format", "grib")
 
+        # Allow user to provide format conversion kwargs
+        convert_kwargs = request.pop("convert_kwargs", {})
+
         # To preserve existing ERA5 functionality the default download_format="as_source"
         request.setdefault("download_format", "as_source")
 
@@ -91,6 +106,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         result = execute_mars(self.mapped_request, context=self.context)
 
-        paths = convert_format(result, data_format)
+        paths = convert_format(
+            result, data_format, context=self.context, **convert_kwargs
+        )
 
         return self.make_download_object(paths)
