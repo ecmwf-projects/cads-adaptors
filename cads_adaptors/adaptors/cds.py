@@ -39,7 +39,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     # This is essentially a second __init__, but only for when we have a request at hand
     # and currently only implemented for retrieve methods
-    def _pre_retrieve_(self, request: Request, default_download_format="zip"):
+    def _pre_retrieve(self, request: Request, default_download_format="zip"):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", True)
         self.download_format = request.pop("download_format", default_download_format)

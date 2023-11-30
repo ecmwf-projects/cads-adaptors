@@ -10,7 +10,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
             _download_format = request.pop("format")
             request.setdefault("download_format", _download_format)
 
-        self._pre_retrieve_(request=request)
+        self._pre_retrieve(request=request)
 
         from cads_adaptors.tools import url_tools
 

@@ -27,9 +27,10 @@ def convert_format(
     elif data_format in ["grib", "grib2", "grb", "grb2"]:
         paths = [result]
     else:
-        context.stdout = (
-            context.user_visible_log
-        ) = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
+        if context is not None:
+            context.stdout = (
+                context.user_visible_log
+            ) = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
         paths = [result]
 
     return paths
