@@ -1,4 +1,5 @@
 import typing as T
+from copy import deepcopy
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
@@ -38,9 +39,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
         return this_request
 
     def retrieve(self, request: Request):
-        from cads_adaptors.tools import adaptor_tools, download_tools
+        from cads_adaptors.tools import adaptor_tools
 
-        download_format = request.pop("download_format", "zip")
+        self.input_request = deepcopy(request)
+        self.receipt = request.pop("receipt", False)
+        self.download_format = request.pop("download_format", "zip")
 
         these_requests = {}
         exception_logs: T.Dict[str, str] = {}
@@ -57,7 +60,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
             # TODO: check this_request is valid for this_adaptor, or rely on try?
             #  i.e. split_request does NOT implement constraints.
             if len(this_request) > 0:
-                this_request.setdefault("download_format", "list")
+                this_request["download_format"] = "list"
+                this_request["receipt"] = False
                 these_requests[this_adaptor] = this_request
 
         results = []
@@ -79,33 +83,29 @@ class MultiAdaptor(AbstractCdsAdaptor):
         # get the paths
         paths = [res.name for res in results]
 
-        download_kwargs = dict(
-            base_target=f"{self.collection_id}-{hash(tuple(results))}"
-        )
-
-        return download_tools.DOWNLOAD_FORMATS[download_format](
-            paths, **download_kwargs
+        return self.make_download_object(
+            paths,
         )
 
 
 class MultiMarsCdsAdaptor(MultiAdaptor):
     def retrieve(self, request: Request):
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
-        from cads_adaptors.adaptors.mars import execute_mars
-        from cads_adaptors.tools import adaptor_tools, download_tools
+        from cads_adaptors.adaptors.mars import convert_format, execute_mars
+        from cads_adaptors.tools import adaptor_tools
 
-        download_format = request.pop("download_format", "as_source")
+        self.input_request = deepcopy(request)
+        self.receipt = request.pop("receipt", False)
+        self.download_format = request.pop("download_format", "zip")
 
         # Format of data files, grib or netcdf
-        request.pop("format", "grib")
+        data_format = request.pop("format", "grib")
 
         mapped_requests = []
         logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
-
-            # logger.debug(f"MultiMarsCdsAdaptor, {adaptor_tag}, config: {this_adaptor.config}")
 
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
@@ -122,12 +122,6 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         logger.debug(f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}")
         result = execute_mars(mapped_requests, context=self.context)
 
-        # TODO: Handle alternate data_format
+        paths = convert_format(result, data_format)
 
-        download_kwargs = {
-            "base_target": f"{self.collection_id}-{hash(tuple(request))}"
-        }
-
-        return download_tools.DOWNLOAD_FORMATS[download_format](
-            [result], **download_kwargs
-        )
+        return self.make_download_object(paths)
