@@ -1,6 +1,8 @@
 """Main module of the request-constraints API."""
 import copy
+import re
 from typing import Any
+from datetimerange import DateTimeRange
 
 from . import translators
 
@@ -406,10 +408,22 @@ def apply_constraints_in_old_cds_fashion3(
         per_constraint_result = {}
         for selected_widget_name, selected_widget_options in selection.items():
             if selected_widget_name in constraint:
-                constraint_selection_intersection = (
-                    selected_widget_options & constraint[selected_widget_name]
-                )
-                if len(constraint_selection_intersection):
+                constraint_is_intersected = False
+                if selected_widget_name == "date_range":
+                    assert len(selected_widget_options) == 1, "More than one selected date range!"
+                    selected_range = gen_time_range_from_string(next(iter(selected_widget_options)))
+                    valid_ranges = [
+                        gen_time_range_from_string(valid_range) for valid_range in constraint[selected_widget_name]
+                    ]
+                    if temporal_intersection_between(selected_range, valid_ranges):
+                        constraint_is_intersected = True
+                else:
+                    constraint_selection_intersection = (
+                        selected_widget_options & constraint[selected_widget_name]
+                    )
+                    if len(constraint_selection_intersection):
+                        constraint_is_intersected = True
+                if constraint_is_intersected:
                     # factoring in Category 1 constraints
                     if selected_widget_name not in per_constraint_result:
                         per_constraint_result[selected_widget_name] = {}
@@ -609,8 +623,17 @@ def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any
                         ogc_form[field_name]["schema_"]["items"]["enum"]
                     )
                 else:
-                    # FIXME: temporarely fix for making constraints working from UI
-                    form[field_name] = []  # type: ignore
+                    handled = False
+                    if ogc_form[field_name]["schema_"].get("default", None):
+                        if ogc_form[field_name]["schema_"]["default"].get("defaultStart", None) and \
+                            ogc_form[field_name]["schema_"]["default"].get("defaultEnd", None):
+                            defaultStart = ogc_form[field_name]["schema_"]["default"]["defaultStart"]
+                            defaultEnd = ogc_form[field_name]["schema_"]["default"]["defaultEnd"]
+                            form[field_name] = [f"{defaultStart}/{defaultEnd}"]
+                            handled = True
+                    if not handled:
+                        # FIXME: temporarely fix for making constraints working from UI
+                        form[field_name] = []  # type: ignore
             else:
                 form[field_name] = set(ogc_form[field_name]["schema_"]["enum"])
         except KeyError:
@@ -638,3 +661,25 @@ def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
     for constraint in constraints:
         keys |= set(constraint.keys())
     return keys
+
+
+def temporal_intersection_between(
+    selected: DateTimeRange, ranges: list[DateTimeRange]
+) -> bool:
+    for valid in ranges:
+        if selected.intersection(valid).is_valid_timerange():
+            return True
+    return False
+
+
+def gen_time_range_from_string(string: str) -> DateTimeRange:
+    dates = re.split("[;/]", string)
+    if len(dates) == 1:
+        dates *= 2
+    time_range = DateTimeRange(dates[0], dates[1])
+    time_range.start_time_format = "%Y-%m-%d"
+    time_range.end_time_format = "%Y-%m-%d"
+    if time_range.is_valid_timerange():
+        return time_range
+    else:
+        raise ValueError("Start date must be before end date")
