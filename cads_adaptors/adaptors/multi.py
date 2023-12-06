@@ -42,7 +42,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.tools import adaptor_tools
 
         self.input_request = deepcopy(request)
-        self.receipt = request.pop("receipt", True)
+        self.receipt = request.pop("receipt", False)
         self.download_format = request.pop("download_format", "zip")
 
         these_requests = {}
@@ -91,11 +91,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
 class MultiMarsCdsAdaptor(MultiAdaptor):
     def retrieve(self, request: Request):
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
-        from cads_adaptors.adaptors.mars import execute_mars, convert_format
-        from cads_adaptors.tools import adaptor_tools, download_tools
+        from cads_adaptors.adaptors.mars import convert_format, execute_mars
+        from cads_adaptors.tools import adaptor_tools
 
         self.input_request = deepcopy(request)
-        self.receipt = request.pop("receipt", True)
+        self.receipt = request.pop("receipt", False)
         self.download_format = request.pop("download_format", "zip")
 
         # Format of data files, grib or netcdf

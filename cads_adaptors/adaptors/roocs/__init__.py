@@ -1,9 +1,8 @@
 import os
-import socket
 from typing import BinaryIO
 
+from cads_adaptors import mapping
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
-from cads_adaptors.tools.logger import logger
 
 
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
@@ -22,7 +21,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         os.environ["ROOK_MODE"] = "sync"
 
         import rooki
-        from requests import get
+        
+        request = mapping.apply_mapping(request, self.mapping)
 
         workflow = self.construct_workflow(request)
         response = rooki.rooki.orchestrate(workflow=workflow._serialise())
