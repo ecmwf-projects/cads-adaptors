@@ -25,7 +25,8 @@ def estimate_granules(
     _constraints: list[dict[str, set[str]]],
     safe: bool = True,
 ) -> int:
-    always_valid = constraints.get_always_valid_params(form, _constraints)
+    constraint_keys = constraints.get_keys(_constraints)
+    always_valid = constraints.get_always_valid_params(form, constraint_keys)
     selected_but_always_valid = {
         k: v for k, v in selection.items() if k in always_valid.keys()
     }

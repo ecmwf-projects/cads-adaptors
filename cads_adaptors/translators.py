@@ -68,11 +68,26 @@ def translate_geographic_extent_map(input_cds_schema: dict[str, Any]) -> dict[st
     return input_ogc_schema
 
 
+def translate_date_range(input_cds_schema: dict[str, Any]) -> dict[str, Any]:
+    input_ogc_schema = {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": {"type": "string"},
+        "default": {
+            "defaultStart": input_cds_schema["details"].get("defaultStart", None),
+            "defaultEnd": input_cds_schema["details"].get("defaultEnd", None),
+        },
+    }
+    return input_ogc_schema
+
+
 SCHEMA_TRANSLATORS = {
     "StringListWidget": translate_string_list,
     "StringListArrayWidget": translate_string_list_array,
     "StringChoiceWidget": translate_string_choice,
     "GeographicExtentWidget": translate_geographic_extent_map,
+    "DateRangeWidget": translate_date_range,
 }
 
 
