@@ -3,10 +3,10 @@
 """Functions for processing hypercubes represented as dicts."""
 
 # dicts became ordered by default from Python 3.6
-import sys
 from itertools import product
 
 from .date_tools import expand_dates_list
+
 
 def unfactorise(hcubes, date_field="date"):
     """Generator function that, for a list of hypercubes, yields each individual
