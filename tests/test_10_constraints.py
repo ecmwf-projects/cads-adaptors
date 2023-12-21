@@ -85,7 +85,11 @@ def test_apply_constraints() -> None:
 
 
 @pytest.mark.parametrize(
-    "selections", ({"foo": {"500"}}, {"foo": {"500"}, "level": {"500"}})
+    "selections",
+    (
+        {"foo": {"500"}},
+        {"foo": {"500"}, "level": {"500"}},
+    ),
 )
 def test_apply_constraints_errors(selections: dict[str, set[Any]]) -> None:
     form = {"level": {"500", "850"}, "param": {"Z", "T"}, "number": {"1"}}
