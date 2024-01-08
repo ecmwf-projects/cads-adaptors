@@ -255,7 +255,7 @@ def apply_constraints_in_old_cds_fashion(
                                 per_constraint_result[selected_widget_name][
                                     widget_name
                                 ] = set(widget_options)
-            else:
+            elif selected_widget_name in form.keys():
                 # factoring in Category 2 constraints
                 if selected_widget_name not in per_constraint_result:
                     per_constraint_result[selected_widget_name] = {}
@@ -273,6 +273,8 @@ def apply_constraints_in_old_cds_fashion(
                         per_constraint_result[selected_widget_name][widget_name] = set(
                             widget_options
                         )
+            else:
+                raise ParameterError(f"invalid param '{selected_widget_name}'")
 
         for widget_name in form:
             per_constraint_result_agg: set[Any] = set()
