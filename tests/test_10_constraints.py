@@ -1,5 +1,7 @@
 from typing import Any
 
+import pytest
+
 from cads_adaptors import constraints
 
 
@@ -80,6 +82,24 @@ def test_apply_constraints() -> None:
     assert constraints.apply_constraints(form, {"level": {"500"}}, raw_constraints)[
         "number"
     ] == ["1"]
+
+
+@pytest.mark.parametrize(
+    "selections",
+    (
+        {"foo": {"500"}},
+        {"foo": {"500"}, "level": {"500"}},
+    ),
+)
+def test_apply_constraints_errors(selections: dict[str, set[Any]]) -> None:
+    form = {"level": {"500", "850"}, "param": {"Z", "T"}, "number": {"1"}}
+
+    raw_constraints = [
+        {"level": {"500"}, "param": {"Z"}},
+        {"level": {"850"}, "param": {"T"}},
+    ]
+    with pytest.raises(constraints.ParameterError, match="invalid param 'foo'"):
+        constraints.apply_constraints(form, selections, raw_constraints)
 
 
 def test_parse_constraints() -> None:
