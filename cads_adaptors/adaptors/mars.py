@@ -40,12 +40,12 @@ def execute_mars(
     request: Union[Request, list],
     target: str = "data.grib",
     context: Context | None = None,
-    mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
+    mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "req"),
 ) -> str:
     import subprocess
 
     requests = ensure_list(request)
-    with open("r", "w") as fp:
+    with open("req", "w") as fp:
         for i, req in enumerate(requests):
             print("retrieve", file=fp)
             # Add target file to first request, any extra store in same grib
