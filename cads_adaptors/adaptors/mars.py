@@ -1,4 +1,5 @@
 import os
+import time
 from typing import BinaryIO, Union
 
 from cads_adaptors.adaptors import Context, Request, cds
@@ -62,17 +63,27 @@ def execute_mars(
     user_id = 0
     env["MARS_USER"] = f"{namespace}-{user_id}"
 
-    output = subprocess.run(
-        mars_cmd,
-        check=False,
-        env=env,
-        capture_output=True,
-        text=True,
+    popen = subprocess.Popen(
+        mars_cmd, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    if context is not None:
-        context.stdout = context.user_visible_log = output.stdout
-        context.stderr = output.stderr
-    if output.returncode:
+    with context.session_maker() as session:
+        while popen.poll() is None:
+            if stdout := popen.stdout.read():
+                context.add_user_visible_log(
+                    message=stdout,
+                    session=session,
+                )
+                context.add_stdout(
+                    message=stdout,
+                    session=session,
+                )
+            time.sleep(1)
+    if popen.returncode:
+        stderr = popen.stderr.read()
+        context.add_stderr(
+            message=stderr,
+            session=session,
+        )
         raise RuntimeError("MARS has crashed.")
     if not os.path.getsize(target):
         raise RuntimeError("MARS returned no data.")

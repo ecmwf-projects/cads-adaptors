@@ -14,10 +14,10 @@ class Context:
 class AbstractAdaptor(abc.ABC):
     resources: dict[str, int] = {}
 
-    def __init__(self, form: dict[str, Any], **config: Any) -> None:
+    def __init__(self, form: dict[str, Any], context: Any, **config: Any) -> None:
         self.form = form
         self.config = config
-        self.context = Context()
+        self.context = context
 
     @abc.abstractmethod
     def validate(self, request: Request) -> bool:

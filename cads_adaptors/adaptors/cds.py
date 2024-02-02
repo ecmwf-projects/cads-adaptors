@@ -10,14 +10,14 @@ from cads_adaptors.tools.general import ensure_list
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
 
-    def __init__(self, form: dict[str, Any], **config: Any):
+    def __init__(self, form: dict[str, Any], context: Any = Context(), **config: Any):
         self.form = form
         self.collection_id = config.get("collection_id", "unknown-collection")
         self.constraints = config.pop("constraints", [])
         self.mapping = config.pop("mapping", {})
         self.licences: list[tuple[str, int]] = config.pop("licences", [])
         self.config = config
-        self.context = Context()
+        self.context = context
         # The following attributes are updated during the retireve method
         self.input_request: Request = Request()
         self.mapped_request: Request = Request()
