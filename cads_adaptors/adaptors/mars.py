@@ -78,15 +78,23 @@ def execute_mars(
                     session=session,
                 )
             time.sleep(1)
-    if popen.returncode:
-        stderr = popen.stderr.read()
-        context.add_stderr(
-            message=stderr,
-            session=session,
-        )
-        raise RuntimeError("MARS has crashed.")
-    if not os.path.getsize(target):
-        raise RuntimeError("MARS returned no data.")
+        if popen.returncode:
+            stderr = popen.stderr.read()
+            context.add_stderr(
+                message=stderr,
+                session=session,
+            )
+            context.add_user_visible_error(
+                message="MARS has crashed.",
+                session=session,
+            )
+            raise RuntimeError("MARS has crashed.")
+        if not os.path.getsize(target):
+            context.add_user_visible_error(
+                message="MARS returned no data.",
+                session=session,
+            )
+            raise RuntimeError("MARS returned no data.")
 
     return target
 
