@@ -12,8 +12,6 @@ import yaml
 
 from . import hcube_tools
 
-logger = logging.Logger(__name__)
-
 
 # copied from cdscommon/url2
 def requests_to_urls(
@@ -30,7 +28,7 @@ def requests_to_urls(
                 yield {"url": url, "req": req}
 
 
-def try_download(urls: List[str]) -> List[str]:
+def try_download(urls: List[str], context: Any) -> List[str]:
     paths = []
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
@@ -40,11 +38,15 @@ def try_download(urls: List[str]) -> List[str]:
         try:
             multiurl.download(url, path)
         except Exception as exc:
-            logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")
+            context.logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")
         else:
             paths.append(path)
 
     if len(paths) == 0:
+        context.add_user_visible_error(
+            f"Request empty. At least one of the following:\n{yaml.safe_dump(urls, indent=2)} "
+            "must be a valid url from which to download the data. "
+        )
         raise RuntimeError(
             f"Request empty. At least one of the following:\n{yaml.safe_dump(urls, indent=2)} "
             "must be a valid url from which to download the data. "
@@ -56,9 +58,10 @@ def try_download(urls: List[str]) -> List[str]:
 def download_zip_from_urls(
     urls: List[str],
     base_target: str,
+    context: Any,
 ) -> str:
     target = f"{base_target}.zip"
-    paths = try_download(urls)
+    paths = try_download(urls, context=context)
     with zipfile.ZipFile(target, mode="w") as archive:
         for p in paths:
             archive.write(p)
@@ -73,9 +76,10 @@ def download_zip_from_urls(
 def download_tgz_from_urls(
     urls: List[str],
     base_target: str,
+    context: Any,
 ) -> str:
     target = f"{base_target}.tar.gz"
-    paths = try_download(urls)
+    paths = try_download(urls, context=context)
     with tarfile.open(target, "w:gz") as archive:
         for p in paths:
             archive.add(p)
@@ -88,12 +92,13 @@ def download_tgz_from_urls(
 
 def download_from_urls(
     urls: List[str],
+    context: Any,
     data_format: str = "zip",
 ) -> str:
     base_target = str(hash(tuple(urls)))
 
     if data_format == "tgz":
-        target = download_tgz_from_urls(urls=urls, base_target=base_target)
+        target = download_tgz_from_urls(urls=urls, base_target=base_target, context=context)
     elif data_format == "zip":
         target = download_zip_from_urls(urls=urls, base_target=base_target)
     else:
