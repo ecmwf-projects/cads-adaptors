@@ -25,7 +25,7 @@ from cads_adaptors.tools import url_tools
 )
 def test_downloaders(tmp_path, monkeypatch, urls, expected_nfiles):
     monkeypatch.chdir(tmp_path)  # try_download generates files in the working dir
-    paths = url_tools.try_download(urls)
+    paths = url_tools.try_download(urls, context=url_tools.Context())
     assert len(paths) == expected_nfiles
 
 

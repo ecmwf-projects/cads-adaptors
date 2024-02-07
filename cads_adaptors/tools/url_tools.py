@@ -10,6 +10,7 @@ import multiurl
 import requests
 import yaml
 
+from ..adaptors import Context
 from . import hcube_tools
 
 
@@ -28,7 +29,7 @@ def requests_to_urls(
                 yield {"url": url, "req": req}
 
 
-def try_download(urls: List[str], context: Any) -> List[str]:
+def try_download(urls: List[str], context: Context) -> List[str]:
     paths = []
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
@@ -58,7 +59,7 @@ def try_download(urls: List[str], context: Any) -> List[str]:
 def download_zip_from_urls(
     urls: List[str],
     base_target: str,
-    context: Any,
+    context: Context,
 ) -> str:
     target = f"{base_target}.zip"
     paths = try_download(urls, context=context)
@@ -76,7 +77,7 @@ def download_zip_from_urls(
 def download_tgz_from_urls(
     urls: List[str],
     base_target: str,
-    context: Any,
+    context: Context,
 ) -> str:
     target = f"{base_target}.tar.gz"
     paths = try_download(urls, context=context)
@@ -92,7 +93,7 @@ def download_tgz_from_urls(
 
 def download_from_urls(
     urls: List[str],
-    context: Any,
+    context: Context,
     data_format: str = "zip",
 ) -> str:
     base_target = str(hash(tuple(urls)))

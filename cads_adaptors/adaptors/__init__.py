@@ -1,23 +1,44 @@
 import abc
+import contextlib
 from typing import Any, BinaryIO
+
+import cads_adaptors.tools.logger
 
 Request = dict[str, Any]
 
 
 class Context:
-    def __init__(self):
-        self.stdout = ""
-        self.stderr = ""
-        self.user_visible_log = ""
+    def __init__(self, job_id: str = "job_id", logger: Any = cads_adaptors.tools.logger.logger):
+        self.job_id = job_id
+        self.logger = logger
 
+    def add_user_visible_log(self, message: str, session: Any) -> None:
+        pass
 
+    def add_user_visible_error(self, message: str, session: Any) -> None:
+        pass
+
+    def add_stdout(self, message: str, session: Any) -> None:
+        self.logger.info(message)
+
+    def add_stderr(self, message: str, session: Any) -> None:
+        self.logger.exception(message)
+
+    @property
+    def session_maker(self) -> Any:
+        return contextlib.nullcontext
+
+    
 class AbstractAdaptor(abc.ABC):
     resources: dict[str, int] = {}
 
-    def __init__(self, form: dict[str, Any], context: Any, **config: Any) -> None:
+    def __init__(self, form: dict[str, Any], context: Context = None, **config: Any) -> None:
         self.form = form
         self.config = config
-        self.context = context
+        if context is None:
+            self.context = Context()
+        else:
+            self.context = context
 
     @abc.abstractmethod
     def validate(self, request: Request) -> bool:
