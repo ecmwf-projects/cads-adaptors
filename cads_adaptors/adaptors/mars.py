@@ -36,6 +36,17 @@ def convert_format(
     return paths
 
 
+
+def daily_mean(in_grib_file):
+    from earthkit.aggregate import temporal
+
+    daily_mean_data = temporal.daily_mean(in_grib_file)
+    daily_mean_data.to_netcdf('data.nc')
+
+    return 'data.nc'
+
+
+
 def execute_mars(
     request: Union[Request, list],
     target: str = "data.grib",
@@ -100,6 +111,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Allow user to provide format conversion kwargs
         convert_kwargs = request.pop("convert_kwargs", {})
 
+        daily_mean = request.pop("daily_mean", False)
+
         # To preserve existing ERA5 functionality the default download_format="as_source"
         request.setdefault("download_format", "as_source")
 
@@ -107,8 +120,11 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         result = execute_mars(self.mapped_request, context=self.context)
 
-        paths = convert_format(
-            result, data_format, context=self.context, **convert_kwargs
-        )
+        if daily_mean:
+            paths = [daily_mean(result)]
+        else:
+            paths = convert_format(
+                result, data_format, context=self.context, **convert_kwargs
+            )
 
         return self.make_download_object(paths)

@@ -19,11 +19,36 @@ def remove_duplicates(found: list[dict[str, set[str]]]) -> list[dict[str, str]]:
     return [dict(granule) for granule in granules]
 
 
+def count_combinations(
+    found: list[dict[str, set[str]]],
+    selected_but_always_valid: dict[str, int] = {},
+    weighted_keys: dict[str, int] = {},
+) -> int:
+    
+    
+    granules: list[dict[str, str]] = []
+    for d in found:
+        granules = set(granules + compute_combinations(d))
+    if len(weighted_keys)>0:
+        n_granules = 0
+        for granule in granules:
+            w_granule = 1
+            for key, weight in weighted_keys.items():
+                if key in granule or key in selected_but_always_valid:
+                    w_granules *= weight
+            n_granules += w_granule
+    else:
+        n_granules = len(granules)
+                
+    
+    return 42
+
 def estimate_granules(
     form: dict[str, set[str]],
     selection: dict[str, set[str]],
     _constraints: list[dict[str, set[str]]],
     safe: bool = True,
+    weighted_keys: dict[str, int] = {}  # Mapping of widget key to weight
 ) -> int:
     constraint_keys = constraints.get_keys(_constraints)
     always_valid = constraints.get_always_valid_params(form, constraint_keys)
@@ -53,8 +78,10 @@ def estimate_granules(
             if intersection not in found:
                 found.append(intersection)
     if safe:
-        unique_granules = remove_duplicates(found)
-        return (len(unique_granules)) * max(1, always_valid_multiplier)
+        n_granules = count_combinations(
+            found, weighted_keys, selected_but_always_valid,
+        )
+        return (n_granules) * max(1, always_valid_multiplier)
     else:
         return sum([math.prod([len(e) for e in d.values()]) for d in found]) * max(
             1, always_valid_multiplier
@@ -67,5 +94,17 @@ def estimate_size(
     _constraints: list[dict[str, set[str]]],
     safe: bool = True,
     granule_size: int = 1,
+    ignore_keys: list[str] = [
+        "area"
+    ],
+    weighted_keys: dict = {},
+    **kwargs,
 ) -> int:
-    return estimate_granules(form, selection, _constraints, safe=safe) * granule_size
+    this_selection: dict[str, set[str]] = {
+        k:v for k, v in selection.items() if k not in ignore_keys
+    }
+    return estimate_granules(
+        form, this_selection, _constraints, safe=safe,
+        ignore_keys = ignore_keys,
+        weighted_keys = weighted_keys,
+    ) * granule_size
