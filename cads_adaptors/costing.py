@@ -1,5 +1,6 @@
 import itertools
 import math
+from typing import Any
 
 from . import constraints
 
@@ -72,8 +73,8 @@ def estimate_size(
 
 
 def estimate_number_of_fields(
-    form: dict[str, set[str]],
-    selection: dict[str, set[str]],
+    form: dict[str, set[str]], request: dict[str, dict[str, Any]]
 ) -> int:
+    selection = request["inputs"]
     number_of_fields = math.prod([len(v) for v in selection.values()])
     return number_of_fields
