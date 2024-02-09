@@ -121,6 +121,6 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         self.context.logger.debug(f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}")
         result = execute_mars(mapped_requests, context=self.context)
 
-        paths = convert_format(result, data_format)
+        paths = convert_format(result, data_format, self.context)
 
         return self.make_download_object(paths)
