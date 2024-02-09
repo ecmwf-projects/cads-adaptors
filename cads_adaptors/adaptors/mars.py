@@ -64,16 +64,17 @@ def execute_mars(
         mars_cmd, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     popen.wait()
-    if stdout := popen.stdout.read():
+    if popen.stdout and (stdout := popen.stdout.read()):
         context.add_stdout(
             message=stdout,
         )
     if popen.returncode:
-        stderr = popen.stderr.read()
-        # This log is visible on the events table and Splunk
-        context.add_stderr(
-            message=stderr,
-        )
+        if popen.stderr:
+            stderr = popen.stderr.read()
+            # This log is visible on the events table and Splunk
+            context.add_stderr(
+                message=stderr,
+            )
         # This log is visible to the user on the WebPortal
         context.add_user_visible_error(
             message="MARS has crashed. Please check your request.",
