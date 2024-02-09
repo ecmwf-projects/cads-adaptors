@@ -15,16 +15,16 @@ class Context:
         else:
             self.logger = logger
 
-    def add_user_visible_log(self, message: str, session: Any) -> None:
+    def add_user_visible_log(self, message: str, session: Any | None = None) -> None:
         pass
 
-    def add_user_visible_error(self, message: str, session: Any) -> None:
+    def add_user_visible_error(self, message: str, session: Any | None = None) -> None:
         pass
 
-    def add_stdout(self, message: str, session: Any) -> None:
+    def add_stdout(self, message: str, session: Any | None = None) -> None:
         self.logger.info(message)
 
-    def add_stderr(self, message: str, session: Any) -> None:
+    def add_stderr(self, message: str, session: Any | None = None) -> None:
         self.logger.exception(message)
 
     @property
