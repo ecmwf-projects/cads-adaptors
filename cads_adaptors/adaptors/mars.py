@@ -8,7 +8,7 @@ from cads_adaptors.tools.general import ensure_list
 def convert_format(
     result: str,
     data_format: str,
-    context: Context | None = None,
+    context: Context,
     **kwargs,
 ) -> list:
     # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
@@ -36,8 +36,8 @@ def convert_format(
 
 def execute_mars(
     request: Union[Request, list],
+    context: Context,
     target: str = "data.grib",
-    context: Context | None = None,
     mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
 ) -> str:
     import subprocess
