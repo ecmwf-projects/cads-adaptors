@@ -69,3 +69,11 @@ def estimate_size(
     granule_size: int = 1,
 ) -> int:
     return estimate_granules(form, selection, _constraints, safe=safe) * granule_size
+
+
+def estimate_number_of_fields(
+    form: dict[str, set[str]],
+    selection: dict[str, set[str]],
+) -> int:
+    number_of_fields = math.prod([len(v) for v in selection.values()])
+    return number_of_fields

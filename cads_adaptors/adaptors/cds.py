@@ -31,7 +31,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return constraints.validate_constraints(self.form, request, self.constraints)
 
     def estimate_costs(self, request: Request) -> dict[str, int]:
-        costs = {"size": costing.estimate_size(self.form, request, self.constraints)}
+        costs = {
+            "number_of_fields": costing.estimate_number_of_fields(self.form, request)
+        }
         return costs
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
