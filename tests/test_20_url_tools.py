@@ -25,7 +25,7 @@ from cads_adaptors.tools import url_tools
 )
 def test_downloaders(tmp_path, monkeypatch, urls, expected_nfiles):
     monkeypatch.chdir(tmp_path)  # try_download generates files in the working dir
-    paths = url_tools.try_download(urls)
+    paths = url_tools.try_download(urls, context=url_tools.Context())
     assert len(paths) == expected_nfiles
 
 
@@ -45,6 +45,8 @@ def test_ftp_download(tmp_path, ftpserver, anon):
     work_dir = os.path.join(tmp_path, "work_dir")
     os.makedirs(work_dir)
     os.chdir(work_dir)
-    local_test_download = url_tools.try_download(ftp_url)[0]
+    local_test_download = url_tools.try_download(ftp_url, context=url_tools.Context())[
+        0
+    ]
     with open(local_test_file) as original, open(local_test_download) as downloaded:
         assert original.read() == downloaded.read()

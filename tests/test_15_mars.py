@@ -19,6 +19,3 @@ def test_execute_mars_errors(tmp_path, monkeypatch, cmd, error_msg):
             context=context,
             mars_cmd=("bash", "-c", cmd),
         )
-    assert context.stdout == "retrieve\n, target=data.grib\n"
-    assert context.stderr == "error\n"
-    assert context.user_visible_log == "retrieve\n, target=data.grib\n"

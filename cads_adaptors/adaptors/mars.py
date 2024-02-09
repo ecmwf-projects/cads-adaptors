@@ -8,7 +8,7 @@ from cads_adaptors.tools.general import ensure_list
 def convert_format(
     result: str,
     data_format: str,
-    context: Context | None = None,
+    context: Context,
     **kwargs,
 ) -> list:
     # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
@@ -27,19 +27,17 @@ def convert_format(
     elif data_format in ["grib", "grib2", "grb", "grb2"]:
         paths = [result]
     else:
-        if context is not None:
-            context.stdout = (
-                context.user_visible_log
-            ) = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
+        message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
+        context.add_user_visible_log(message=message)
+        context.add_stdout(message=message)
         paths = [result]
-
     return paths
 
 
 def execute_mars(
     request: Union[Request, list],
+    context: Context,
     target: str = "data.grib",
-    context: Context | None = None,
     mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
 ) -> str:
     import subprocess
@@ -62,19 +60,31 @@ def execute_mars(
     user_id = 0
     env["MARS_USER"] = f"{namespace}-{user_id}"
 
-    output = subprocess.run(
-        mars_cmd,
-        check=False,
-        env=env,
-        capture_output=True,
-        text=True,
+    popen = subprocess.Popen(
+        mars_cmd, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    if context is not None:
-        context.stdout = context.user_visible_log = output.stdout
-        context.stderr = output.stderr
-    if output.returncode:
+    popen.wait()
+    if popen.stdout and (stdout := popen.stdout.read()):
+        context.add_stdout(
+            message=stdout,
+        )
+    if popen.returncode:
+        if popen.stderr:
+            stderr = popen.stderr.read()
+            # This log is visible on the events table and Splunk
+            context.add_stderr(
+                message=stderr,
+            )
+        # This log is visible to the user on the WebPortal
+        context.add_user_visible_error(
+            message="MARS has crashed. Please check your request.",
+        )
+        # This exception is visible on Splunk
         raise RuntimeError("MARS has crashed.")
     if not os.path.getsize(target):
+        context.add_user_visible_error(
+            message="MARS returned no data. Please check your request.",
+        )
         raise RuntimeError("MARS returned no data.")
 
     return target
