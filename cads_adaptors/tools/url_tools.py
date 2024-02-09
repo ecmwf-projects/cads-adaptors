@@ -1,4 +1,3 @@
-import logging
 import os
 import tarfile
 import urllib
@@ -99,7 +98,9 @@ def download_from_urls(
     base_target = str(hash(tuple(urls)))
 
     if data_format == "tgz":
-        target = download_tgz_from_urls(urls=urls, base_target=base_target, context=context)
+        target = download_tgz_from_urls(
+            urls=urls, base_target=base_target, context=context
+        )
     elif data_format == "zip":
         target = download_zip_from_urls(urls=urls, base_target=base_target)
     else:

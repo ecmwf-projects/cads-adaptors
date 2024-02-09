@@ -54,7 +54,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
-            self.context.logger.debug(f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}")
+            self.context.logger.debug(
+                f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
+            )
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
             #  i.e. split_request does NOT implement constraints.
@@ -118,7 +120,9 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                     mapping.apply_mapping(this_request, this_adaptor.mapping)
                 )
 
-        self.context.logger.debug(f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}")
+        self.context.logger.debug(
+            f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}"
+        )
         result = execute_mars(mapped_requests, context=self.context)
 
         paths = convert_format(result, data_format, self.context)

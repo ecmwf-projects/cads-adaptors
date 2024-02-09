@@ -8,7 +8,9 @@ Request = dict[str, Any]
 
 
 class Context:
-    def __init__(self, job_id: str = "job_id", logger: Any = cads_adaptors.tools.logger.logger):
+    def __init__(
+        self, job_id: str = "job_id", logger: Any = cads_adaptors.tools.logger.logger
+    ):
         self.job_id = job_id
         self.logger = logger
 
@@ -28,11 +30,13 @@ class Context:
     def session_maker(self) -> Any:
         return contextlib.nullcontext
 
-    
+
 class AbstractAdaptor(abc.ABC):
     resources: dict[str, int] = {}
 
-    def __init__(self, form: dict[str, Any], context: Context = None, **config: Any) -> None:
+    def __init__(
+        self, form: dict[str, Any], context: Context = None, **config: Any
+    ) -> None:
         self.form = form
         self.config = config
         if context is None:
