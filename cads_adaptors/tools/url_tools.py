@@ -102,7 +102,9 @@ def download_from_urls(
             urls=urls, base_target=base_target, context=context
         )
     elif data_format == "zip":
-        target = download_zip_from_urls(urls=urls, base_target=base_target, context=context)
+        target = download_zip_from_urls(
+            urls=urls, base_target=base_target, context=context
+        )
     else:
         raise ValueError(f"{data_format=} is not supported")
 
