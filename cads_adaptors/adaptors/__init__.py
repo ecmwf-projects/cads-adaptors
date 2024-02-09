@@ -8,9 +8,7 @@ Request = dict[str, Any]
 
 
 class Context:
-    def __init__(
-        self, job_id: str = "job_id", logger: Any | None = None
-    ):
+    def __init__(self, job_id: str = "job_id", logger: Any | None = None):
         self.job_id = job_id
         if not logger:
             self.logger = cads_adaptors.tools.logger.logger

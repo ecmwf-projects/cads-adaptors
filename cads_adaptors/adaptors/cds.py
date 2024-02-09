@@ -10,7 +10,9 @@ from cads_adaptors.tools.general import ensure_list
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
 
-    def __init__(self, form: dict[str, Any], context: Context | None = None, **config: Any):
+    def __init__(
+        self, form: dict[str, Any], context: Context | None = None, **config: Any
+    ):
         self.form = form
         self.collection_id = config.get("collection_id", "unknown-collection")
         self.constraints = config.pop("constraints", [])

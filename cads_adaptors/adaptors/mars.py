@@ -1,5 +1,4 @@
 import os
-import time
 from typing import BinaryIO, Union
 
 from cads_adaptors.adaptors import Context, Request, cds
