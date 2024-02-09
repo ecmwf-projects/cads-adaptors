@@ -9,10 +9,13 @@ Request = dict[str, Any]
 
 class Context:
     def __init__(
-        self, job_id: str = "job_id", logger: Any = cads_adaptors.tools.logger.logger
+        self, job_id: str = "job_id", logger: Any | None = None
     ):
         self.job_id = job_id
-        self.logger = logger
+        if not logger:
+            self.logger = cads_adaptors.tools.logger.logger
+        else:
+            self.logger = logger
 
     def add_user_visible_log(self, message: str, session: Any) -> None:
         pass
@@ -35,7 +38,7 @@ class AbstractAdaptor(abc.ABC):
     resources: dict[str, int] = {}
 
     def __init__(
-        self, form: dict[str, Any], context: Context = None, **config: Any
+        self, form: dict[str, Any], context: Context | None = None, **config: Any
     ) -> None:
         self.form = form
         self.config = config
