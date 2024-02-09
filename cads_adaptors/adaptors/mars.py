@@ -64,40 +64,28 @@ def execute_mars(
     popen = subprocess.Popen(
         mars_cmd, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    with context.session_maker() as session:
-        sleep_time = 1
-        while popen.poll() is None:
-            if stdout := popen.stdout.read():
-                context.add_user_visible_log(
-                    message=f"MARS is running, polling status in {sleep_time} seconds.",
-                    session=session,
-                )
-                context.add_stdout(
-                    message=stdout,
-                    session=session,
-                )
-            time.sleep(sleep_time)
-            sleep_time *= 2
-        if popen.returncode:
-            stderr = popen.stderr.read()
-            # This log is visible on the events table and Splunk
-            context.add_stderr(
-                message=stderr,
-                session=session,
-            )
-            # This log is visible to the user on the WebPortal
-            context.add_user_visible_error(
-                message="MARS has crashed. Please check your request.",
-                session=session,
-            )
-            # This exception is visible on Splunk
-            raise RuntimeError("MARS has crashed.")
-        if not os.path.getsize(target):
-            context.add_user_visible_error(
-                message="MARS returned no data. Please check your request.",
-                session=session,
-            )
-            raise RuntimeError("MARS returned no data.")
+    popen.wait()
+    if stdout := popen.stdout.read():
+        context.add_stdout(
+            message=stdout,
+        )
+    if popen.returncode:
+        stderr = popen.stderr.read()
+        # This log is visible on the events table and Splunk
+        context.add_stderr(
+            message=stderr,
+        )
+        # This log is visible to the user on the WebPortal
+        context.add_user_visible_error(
+            message="MARS has crashed. Please check your request.",
+        )
+        # This exception is visible on Splunk
+        raise RuntimeError("MARS has crashed.")
+    if not os.path.getsize(target):
+        context.add_user_visible_error(
+            message="MARS returned no data. Please check your request.",
+        )
+        raise RuntimeError("MARS returned no data.")
 
     return target
 
