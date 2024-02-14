@@ -4,7 +4,6 @@ from copy import deepcopy
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
 from cads_adaptors.tools.general import ensure_list
-from cads_adaptors.tools.logger import logger
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
@@ -47,7 +46,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         these_requests = {}
         exception_logs: T.Dict[str, str] = {}
-        logger.debug(f"MultiAdaptor, full_request: {request}")
+        self.context.logger.debug(f"MultiAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
@@ -55,7 +54,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
-            logger.debug(f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}")
+            self.context.logger.debug(
+                f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
+            )
 
             # TODO: check this_request is valid for this_adaptor, or rely on try?
             #  i.e. split_request does NOT implement constraints.
@@ -102,7 +103,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         data_format = request.pop("format", "grib")
 
         mapped_requests = []
-        logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
+        self.context.logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
@@ -110,7 +111,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
-            logger.debug(
+            self.context.logger.debug(
                 f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
@@ -119,9 +120,11 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                     mapping.apply_mapping(this_request, this_adaptor.mapping)
                 )
 
-        logger.debug(f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}")
+        self.context.logger.debug(
+            f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}"
+        )
         result = execute_mars(mapped_requests, context=self.context)
 
-        paths = convert_format(result, data_format)
+        paths = convert_format(result, data_format, self.context)
 
         return self.make_download_object(paths)

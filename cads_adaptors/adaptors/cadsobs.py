@@ -22,6 +22,10 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         dataset_source = mapped_request["dataset_source"]
         if isinstance(dataset_source, list):
             if len(dataset_source) > 1:
+                self.context.add_user_visible_error(
+                    "Asking for more than one observation_types in the same"
+                    "request is currently unsupported."
+                )
                 raise RuntimeError(
                     "Asking for more than one observation_types in the same"
                     "request is currently unsupported."

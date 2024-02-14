@@ -21,6 +21,6 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # try to download URLs
         urls = [ru["url"] for ru in requests_urls]
-        paths = url_tools.try_download(urls)
+        paths = url_tools.try_download(urls, context=self.context)
 
         return self.make_download_object(paths)
