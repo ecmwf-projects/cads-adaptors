@@ -32,7 +32,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def estimate_costing(self, request: Request) -> dict[str, int]:
         cost = {
-            "number_of_fields": costing.estimate_number_of_fields(self.form, request)
+            "number_of_values": costing.estimate_number_of_values(self.form, request)
         }
         return cost
 
