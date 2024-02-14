@@ -35,7 +35,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
 
-    def estimate_costing(self, request: Request) -> dict[str, int]:
+    def estimate_costs(self, request: Request) -> dict[str, int]:
         cost = {
             "number_of_values": costing.estimate_number_of_values(self.form, request)
         }
