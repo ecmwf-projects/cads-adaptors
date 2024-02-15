@@ -77,7 +77,6 @@ def estimate_size(
 def get_excluded_fields(
     ogc_form: list[dict[str, Any]] | dict[str, Any] | None
 ) -> list[str]:
-    raise ValueError(ogc_form)
     if ogc_form is None:
         ogc_form = []
     if not isinstance(ogc_form, list):
