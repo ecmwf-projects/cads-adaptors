@@ -74,32 +74,33 @@ def estimate_size(
     return estimate_granules(form, selection, _constraints, safe=safe) * granule_size
 
 
-def get_excluded_fields(
+def get_excluded_variables(
     ogc_form: list[dict[str, Any]] | dict[str, Any] | None
 ) -> list[str]:
     if ogc_form is None:
         ogc_form = []
     if not isinstance(ogc_form, list):
         ogc_form = [ogc_form]
-    excluded_fields = []
+    excluded_variables = []
     for schema in ogc_form:
         if schema["type"] in EXCLUDED_WIDGETS:
-            excluded_fields.append(schema["name"])
-    return excluded_fields
+            excluded_variables.append(schema["name"])
+    return excluded_variables
 
 
-def estimate_number_of_values(
-    form: dict[str, set[str]], request: dict[str, dict[str, Any]]
+def estimate_number_of_fields(
+    form: list[dict[str, Any]] | dict[str, Any] | None,
+    request: dict[str, dict[str, Any]],
 ) -> int:
-    excluded_fields = get_excluded_fields(form)
+    excluded_variables = get_excluded_variables(form)
     selection = request["inputs"]
     number_of_values = []
-    for field_id, field_value in selection.items():
-        if not isinstance(field_value, list):
-            field_value = [
-                field_value,
+    for variable_id, variable_value in selection.items():
+        if not isinstance(variable_value, list):
+            variable_value = [
+                variable_value,
             ]
-        if field_id not in excluded_fields:
-            number_of_values.append(len(field_value))
+        if variable_id not in excluded_variables:
+            number_of_values.append(len(variable_value))
     number_of_fields = math.prod(number_of_values)
     return number_of_fields
