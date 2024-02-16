@@ -1,7 +1,10 @@
 import itertools
 import math
+from typing import Any
 
 from . import constraints
+
+EXCLUDED_WIDGETS = ["GeographicExtentWidget", "DateRangeWidget"]
 
 
 def compute_combinations(d: dict[str, set[str]]) -> list[dict[str, str]]:
@@ -69,3 +72,35 @@ def estimate_size(
     granule_size: int = 1,
 ) -> int:
     return estimate_granules(form, selection, _constraints, safe=safe) * granule_size
+
+
+def get_excluded_variables(
+    ogc_form: list[dict[str, Any]] | dict[str, Any] | None
+) -> list[str]:
+    if ogc_form is None:
+        ogc_form = []
+    if not isinstance(ogc_form, list):
+        ogc_form = [ogc_form]
+    excluded_variables = []
+    for schema in ogc_form:
+        if schema["type"] in EXCLUDED_WIDGETS:
+            excluded_variables.append(schema["name"])
+    return excluded_variables
+
+
+def estimate_number_of_fields(
+    form: list[dict[str, Any]] | dict[str, Any] | None,
+    request: dict[str, dict[str, Any]],
+) -> int:
+    excluded_variables = get_excluded_variables(form)
+    selection = request["inputs"]
+    number_of_values = []
+    for variable_id, variable_value in selection.items():
+        if not isinstance(variable_value, list):
+            variable_value = [
+                variable_value,
+            ]
+        if variable_id not in excluded_variables:
+            number_of_values.append(len(variable_value))
+    number_of_fields = math.prod(number_of_values)
+    return number_of_fields
