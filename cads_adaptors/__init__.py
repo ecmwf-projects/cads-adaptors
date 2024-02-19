@@ -53,5 +53,5 @@ __all__ = [
     "MultiAdaptor",
     "MultiMarsCdsAdaptor",
     "ObservationsAdaptor",
-    "RoocsCdsAdaptor"
+    "RoocsCdsAdaptor",
 ]
