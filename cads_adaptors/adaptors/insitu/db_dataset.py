@@ -6,7 +6,6 @@ from typing import BinaryIO
 from cads_adaptors import mapping
 from cads_adaptors.adaptors import Request
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
-from cads_adaptors.tools.logger import logger
 
 
 class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
@@ -22,11 +21,11 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
 
         from cads_adaptors.adaptors.insitu.tools import csvlev2obs, insitu_utils
 
-        logger.debug(f"{request},\n\n {self.config} \n\n {self.form}")
+        self.context.logger.debug(f"{request},\n\n {self.config} \n\n {self.form}")
         try:
-            logger.debug(f"all in:{self.config} - {dir(self)}")
+            self.context.logger.debug(f"all in:{self.config} - {dir(self)}")
         except Exception as err:
-            logger.debug(f"{err}")
+            self.context.logger.debug(f"{err}")
 
         api_url: str = self.config["api"]
 
@@ -51,30 +50,30 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
             request.setdefault("format", "nc")
             for q in request:
                 _q[q] = [request[q]] if not isinstance(request[q], list) else request[q]
-        logger.debug(request)
+        self.context.logger.debug(request)
 
         _q.get("version", ["v1"])[0]
         source = _q.get("source", ["not specified"])
 
         source = source[0] if isinstance(source, list) else source
 
-        logger.debug("REQUEST recomposed: [{}]".format(_q))
+        self.context.logger.debug("REQUEST recomposed: [{}]".format(_q))
 
         header, out_name = insitu_utils.csv_header(
             api_url, _q, self.collection_id, self.config, self.form
         )
 
-        logger.debug(f"REQUEST renamed: [{_q}]")
+        self.context.logger.debug(f"REQUEST renamed: [{_q}]")
 
         sql_equivalent = requests.get(f"{api_url}/compose", params=_q)
         table = sql_equivalent.json().lower().split(" from ")[1].split(" ")[0]
 
-        logger.debug(f"db request: [{sql_equivalent.json()}]")
-        logger.debug(f"table: [{table}]")
+        self.context.logger.debug(f"db request: [{sql_equivalent.json()}]")
+        self.context.logger.debug(f"table: [{table}]")
 
         fmt = _q["format"]
         fmt = fmt[0] if isinstance(fmt, list) else fmt
-        logger.debug(f'~~~~~~~ format requested: {fmt},  {_q["format"]}')
+        self.context.logger.debug(f'~~~~~~~ format requested: {fmt},  {_q["format"]}')
 
         engine = insitu_utils.sql_engine(api_url, source, self.config)
 
@@ -85,11 +84,11 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
 
         engine.dispose()
 
-        logger.info(
+        self.context.logger.info(
             "timing: time elapsed retrieving from db streaming to csv file %6.3f"
             % (time.time() - t0)
         )
-        logger.info(f"format requested =  {_q['format']} - {fmt}")
+        self.context.logger.info(f"format requested =  {_q['format']} - {fmt}")
         # If necessary convert to one row per observation
         if fmt not in ["csv-lev.zip", "csv.zip", ".zip", "zip"]:
             t1 = time.time()
@@ -101,7 +100,7 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
                 end_point=endpoint,
                 out_file=csv_obs_path,
             )
-            logger.info(
+            self.context.logger.info(
                 "timing: time elapsed converting to cdm-obs the file %6.3f"
                 % (time.time() - t1)
             )
@@ -122,7 +121,7 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
         output = f"{out_name}.zip"
         with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zipf:
             zipf.write(csv_path_out, out_name)
-        logger.info(
+        self.context.logger.info(
             "timing: time elapsed compressing the file %6.3f" % (time.time() - t2)
         )
         return open(output, "rb")
@@ -130,7 +129,7 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
     def csv_header(self, api_url, query):
         from cads_adaptors.adaptors.insitu.tools import insitu_utils
 
-        logger.debug(query, self.form)
+        self.context.logger.debug(query, self.form)
         source = query.get("source", ["not specified"])[0]
         variables = insitu_utils.variables_units(api_url, query.get("variable"), source)
 
