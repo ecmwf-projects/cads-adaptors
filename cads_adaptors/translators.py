@@ -32,8 +32,8 @@ def extract_groups_values(
     for group in groups:
         if "values" in group:
             values.extend(group["values"])
-        elif "groups" in group:
-            values = extract_groups_values(group["groups"], values)
+        elif "groups" in group.get("details", {}):
+            values = extract_groups_values(group["details"]["groups"], values)
     return values
 
 
