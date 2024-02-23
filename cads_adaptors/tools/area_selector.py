@@ -24,6 +24,8 @@ def get_dim_slices(ds, dim_key, start, end) -> list:
             return [slice(start, end)]
         else:
             return [slice(end, start)]
+    
+    raise NotImplementedError ("Your area selection is not yet compatible with this dataset")
 
 
 def area_selector(
