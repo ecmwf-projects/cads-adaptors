@@ -161,9 +161,6 @@ def test_adaptor(tmp_path, monkeypatch):
         "cads_adaptors.adaptors.cadsobs.retrieve_observations",
         mocked_retrieve_observations,
     )
-    monkeypatch.setattr(
-        "cads_adaptors.adaptors.cadsobs.get_database_session", mocked_get_session
-    )
     test_request = {
         "observation_type": ["vertical_profile"],
         "format": "netCDF",
