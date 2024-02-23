@@ -71,7 +71,7 @@ def area_selector(
 
     if out_format in ["nc", "netcdf"]:
         out_fname = ".".join(
-            infile.split(".")[:1] + ["area-subset"] + [str(a) for a in area] + ["nc"]
+            infile.split(".")[:-1] + ["area-subset"] + [str(a) for a in area] + ["nc"]
         )
         ds_area.to_netcdf(out_fname)
         return out_fname
