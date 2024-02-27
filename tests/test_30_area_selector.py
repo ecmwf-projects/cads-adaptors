@@ -22,9 +22,7 @@ class TestWrapLongitudes(unittest.TestCase):
         result = wrap_longitudes(dim_key, start, end, coord_range)
         self.assertEqual(result, [slice(start, end)])
 
-        result = wrap_longitudes(
-            dim_key, start, end, coord_range, spatial_info={"some_key": "some_value"}
-        )
+        result = wrap_longitudes(dim_key, start, end, coord_range)
         self.assertEqual(result, [slice(start, end)])
 
         start = -40

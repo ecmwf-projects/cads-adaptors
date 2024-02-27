@@ -11,6 +11,7 @@ def incompatible_area_error(
     end: float,
     coord_range: list,
     context: Context = Context(),
+    thisError=ValueError,
 ):
     error_message = (
         "Your area selection is not yet compatible with this dataset.\n"
@@ -18,7 +19,7 @@ def incompatible_area_error(
         f"Coord range from dataset: {coord_range}"
     )
     context.add_user_visible_error(error_message)
-    raise NotImplementedError(error_message)
+    raise thisError(error_message)
 
 
 def wrap_longitudes(
@@ -111,7 +112,9 @@ def get_dim_slices(
     if longitude:
         return wrap_longitudes(dim_key, start, end, coord_range, context)
 
-    incompatible_area_error(dim_key, start, end, coord_range, context)
+    incompatible_area_error(
+        dim_key, start, end, coord_range, context, thisError=NotImplementedError
+    )
     raise
 
 
@@ -137,11 +140,20 @@ def area_selector(
     if spatial_info["regular"]:
         # Longitudes could return multiple slice in cases where the area wraps the "other side"
         lon_slices = get_dim_slices(
-            ds, lon_key, east, west, context, longitude=True, spatial_info=spatial_info
+            ds,
+            lon_key,
+            east,
+            west,
+            context,
+            longitude=True,
         )
         # We assume that latitudes won't be wrapped
         lat_slice = get_dim_slices(
-            ds, lat_key, south, north, context, spatial_info=spatial_info
+            ds,
+            lat_key,
+            south,
+            north,
+            context,
         )[0]
 
         context.logger.debug(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
