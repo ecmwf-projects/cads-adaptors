@@ -1,4 +1,3 @@
-import numpy as np
 import xarray as xr
 from earthkit import data
 from earthkit.aggregate import tools as eka_tools
@@ -10,8 +9,9 @@ def incompatible_area_error(
     dim_key: str,
     start: float,
     end: float,
-    coord_range: np.ndarray,
+    coord_range: list,
     context: Context = Context(),
+    thisError=ValueError,
 ):
     error_message = (
         "Your area selection is not yet compatible with this dataset.\n"
@@ -19,11 +19,15 @@ def incompatible_area_error(
         f"Coord range from dataset: {coord_range}"
     )
     context.add_user_visible_error(error_message)
-    raise NotImplementedError(error_message)
+    raise thisError(error_message)
 
 
 def wrap_longitudes(
-    dim_key, start, end, coord_range, context: Context = Context(), spatial_info=dict()
+    dim_key: str,
+    start: float,
+    end: float,
+    coord_range: list,
+    context: Context = Context(),
 ) -> list:
     start_shift_east = start_shift_west = end_shift_east = end_shift_west = False
     # Check if start/end are too low for crs:
@@ -74,17 +78,21 @@ def get_dim_slices(
     end: float,
     context: Context = Context(),
     longitude: bool = False,
-    spatial_info: dict = dict(),
 ) -> list:
     da_coord = ds[dim_key]
 
     direction = bool(da_coord[0] < da_coord[1])  # True = ascending, False = descending
+    coord_del = (da_coord[1] - da_coord[0]).values
     if direction:
-        coord_del = (da_coord[1]-da_coord[0]).values
-        coord_range = [da_coord[0].values - coord_del/2., da_coord[-1].values + coord_del/2.]
+        coord_range = [
+            da_coord[0].values - coord_del / 2.0,
+            da_coord[-1].values + coord_del / 2.0,
+        ]
     else:
-        coord_del = (da_coord[0]-da_coord[1]).values
-        coord_range = [da_coord[-1].values + coord_del/2., da_coord[0].values - coord_del/2.]
+        coord_range = [
+            da_coord[-1].values + coord_del / 2.0,
+            da_coord[0].values - coord_del / 2.0,
+        ]
 
     # First see if requested range is within limits, if so, just ensure direction
     if all(
@@ -104,7 +112,9 @@ def get_dim_slices(
     if longitude:
         return wrap_longitudes(dim_key, start, end, coord_range, context)
 
-    incompatible_area_error(dim_key, start, end, coord_range, context)
+    incompatible_area_error(
+        dim_key, start, end, coord_range, context, thisError=NotImplementedError
+    )
     raise
 
 
@@ -113,7 +123,6 @@ def area_selector(
     context: Context = Context(),
     area: list = [-90, -180, -90, +180],
     to_xarray_kwargs: dict = dict(),
-    out_format: str = "netcdf",
     **kwargs,
 ):
     north, east, south, west = area
@@ -131,11 +140,20 @@ def area_selector(
     if spatial_info["regular"]:
         # Longitudes could return multiple slice in cases where the area wraps the "other side"
         lon_slices = get_dim_slices(
-            ds, lon_key, east, west, context, longitude=True, spatial_info=spatial_info
+            ds,
+            lon_key,
+            east,
+            west,
+            context,
+            longitude=True,
         )
         # We assume that latitudes won't be wrapped
         lat_slice = get_dim_slices(
-            ds, lat_key, south, north, context, spatial_info=spatial_info
+            ds,
+            lat_key,
+            south,
+            north,
+            context,
         )[0]
 
         context.logger.debug(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
@@ -154,6 +172,7 @@ def area_selector(
 
         ds_area = xr.concat(sub_selections, dim=lon_key)
         context.logger.debug(f"ds_area: {ds_area}")
+        return ds_area
 
     else:
         context.add_user_visible_error(
@@ -161,15 +180,21 @@ def area_selector(
         )
         raise NotImplementedError("Area selection not available for data projection")
 
-    if out_format in ["nc", "netcdf"]:
-        out_fname = ".".join(
-            infile.split(".")[:-1] + ["area-subset"] + [str(a) for a in area] + ["nc"]
-        )
-        context.logger.debug(f"out_fname: {out_fname}")
-        ds_area.to_netcdf(out_fname)
-        return out_fname
 
-
-def area_selector_paths(paths: list, area: list, context: Context):
+def area_selector_paths(
+    paths: list, area: list, context: Context, out_format: str = "netcdf"
+):
     # We try to select the area for all paths, if any fail we return the original paths
-    return [area_selector(path, context, area=area) for path in paths]
+    out_paths = []
+    for path in paths:
+        ds_area = area_selector(path, context, area=area)
+        if out_format in ["nc", "netcdf"]:
+            out_fname = ".".join(
+                path.split(".")[:-1] + ["area-subset"] + [str(a) for a in area] + ["nc"]
+            )
+            context.logger.debug(f"out_fname: {out_fname}")
+            ds_area.to_netcdf(out_fname)
+            out_paths.append(out_fname)
+        else:
+            raise NotImplementedError(f"Output format not recognised {out_format}")
+    return out_paths
