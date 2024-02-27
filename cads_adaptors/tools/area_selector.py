@@ -1,12 +1,17 @@
 import numpy as np
 import xarray as xr
-from earthkit import aggregate, data
+from earthkit import data
+from earthkit.aggregate import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
 
 
 def incompatible_area_error(
-    dim_key: str, start: float, end: float, coord_range: np.ndarray, context: Context
+    dim_key: str,
+    start: float,
+    end: float,
+    coord_range: np.ndarray,
+    context: Context = Context(),
 ):
     error_message = (
         "Your area selection is not yet compatible with this dataset.\n"
@@ -18,7 +23,7 @@ def incompatible_area_error(
 
 
 def wrap_longitudes(
-    dim_key, start, end, coord_range, context: Context, spatial_info=dict()
+    dim_key, start, end, coord_range, context: Context = Context(), spatial_info=dict()
 ) -> list:
     start_shift_east = start_shift_west = end_shift_east = end_shift_west = False
     # Check if start/end are too low for crs:
@@ -67,7 +72,7 @@ def get_dim_slices(
     dim_key: str,
     start: float,
     end: float,
-    context: Context,
+    context: Context = Context(),
     longitude: bool = False,
     spatial_info: dict = dict(),
 ) -> list:
@@ -103,7 +108,7 @@ def get_dim_slices(
 
 def area_selector(
     infile: str,
-    context: Context,
+    context: Context = Context(),
     area: list = [-90, -180, -90, +180],
     to_xarray_kwargs: dict = dict(),
     out_format: str = "netcdf",
@@ -116,7 +121,7 @@ def area_selector(
 
     ds = ek_d.to_xarray(**to_xarray_kwargs)
 
-    spatial_info = aggregate.tools.get_spatial_info(ds)
+    spatial_info = eka_tools.get_spatial_info(ds)
     lon_key = spatial_info["lon_key"]
     lat_key = spatial_info["lat_key"]
 
@@ -141,8 +146,8 @@ def area_selector(
             sub_selections.append(
                 ds.sel(
                     **{
-                        spatial_info["lat_key"]: lon_slice,
-                        spatial_info["lon_key"]: lat_slice,
+                        spatial_info["lat_key"]: lat_slice,
+                        spatial_info["lon_key"]: lon_slice,
                     }
                 )
             )
@@ -170,9 +175,4 @@ def area_selector(
 
 def area_selector_paths(paths: list, area: list, context: Context):
     # We try to select the area for all paths, if any fail we return the original paths
-    # try:
     return [area_selector(path, context, area=area) for path in paths]
-
-
-# except Exception:
-#     return paths
