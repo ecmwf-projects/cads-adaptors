@@ -132,7 +132,7 @@ def area_selector(
 
 def area_selector_paths(paths: list, area: list):
     # We try to select the area for all paths, if any fail we return the original paths
-    try:
+    # try:
         return [area_selector(path, area=area) for path in paths]
-    except Exception:
-        return paths
+    # except Exception:
+    #     return paths
