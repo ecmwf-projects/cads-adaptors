@@ -5,12 +5,12 @@ from cads_adaptors.adaptors import Context
 
 
 def incompatible_area_error(
-    dim_key: str, start: float, end: float, spatial_info: dict, context: Context
+    dim_key: str, start: float, end: float, coord_range: dict, context: Context
 ):
     error_message = (
         "Your area selection is not yet compatible with this dataset.\n"
         f"Range selection for {dim_key}: [{start}, {end}].\n"
-        f"Spatial definition of dataset: {spatial_info}"
+        f"Coord range from dataset: {coord_range}"
     )
     context.add_user_visible_error(error_message)
     raise NotImplementedError(error_message)
@@ -24,12 +24,12 @@ def wrap_longitudes(
     if start < coord_range[0]:
         start += 360
         if start > coord_range[1]:
-            incompatible_area_error(dim_key, start, end, spatial_info, context)
+            incompatible_area_error(dim_key, start, end, coord_range, context)
         start_shift_east = True
     if end < coord_range[0]:
         end += 360
         if end > coord_range[1]:
-            incompatible_area_error(dim_key, start, end, spatial_info, context)
+            incompatible_area_error(dim_key, start, end, coord_range, context)
         end_shift_east = True
 
     if start_shift_east and end_shift_east:
@@ -37,18 +37,18 @@ def wrap_longitudes(
     elif start_shift_east and not end_shift_east:
         return [slice(start, coord_range[-1]), slice(coord_range[0], end)]
     elif end_shift_east or start_shift_east:
-        incompatible_area_error(dim_key, start, end, spatial_info, context)
+        incompatible_area_error(dim_key, start, end, coord_range, context)
 
     # Check if start/end are too high for crs:
     if start > coord_range[1]:
         start -= 360
         if start < coord_range[0]:
-            incompatible_area_error(dim_key, start, end, spatial_info, context)
+            incompatible_area_error(dim_key, start, end, coord_range, context)
         start_shift_west = True
     if end > coord_range[1]:
         end -= 360
         if end < coord_range[0]:
-            incompatible_area_error(dim_key, start, end, spatial_info, context)
+            incompatible_area_error(dim_key, start, end, coord_range, context)
         end_shift_west = True
 
     if start_shift_west and end_shift_west:
@@ -56,7 +56,7 @@ def wrap_longitudes(
     elif end_shift_west and not start_shift_west:
         return [slice(start, coord_range[-1]), slice(coord_range[0], end)]
     elif end_shift_west or start_shift_west:
-        incompatible_area_error(dim_key, start, end, spatial_info, context)
+        incompatible_area_error(dim_key, start, end, coord_range, context)
 
     return [slice(start, end)]
 
@@ -96,7 +96,7 @@ def get_dim_slices(
     if longitude:
         return wrap_longitudes(dim_key, start, end, coord_range, context)
 
-    incompatible_area_error(dim_key, start, end, spatial_info, context)
+    incompatible_area_error(dim_key, start, end, coord_range, context)
     raise
 
 
