@@ -163,6 +163,7 @@ def area_selector(
         out_fname = ".".join(
             infile.split(".")[:-1] + ["area-subset"] + [str(a) for a in area] + ["nc"]
         )
+        context.logger.info(f"out_fname: {out_fname}")
         ds_area.to_netcdf(out_fname)
         return out_fname
 
