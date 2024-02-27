@@ -1,3 +1,4 @@
+import numpy as np
 import xarray as xr
 from earthkit import aggregate, data
 
@@ -5,7 +6,7 @@ from cads_adaptors.adaptors import Context
 
 
 def incompatible_area_error(
-    dim_key: str, start: float, end: float, coord_range: dict, context: Context
+    dim_key: str, start: float, end: float, coord_range: np.ndarray, context: Context
 ):
     error_message = (
         "Your area selection is not yet compatible with this dataset.\n"
@@ -130,8 +131,10 @@ def area_selector(
             ds, lat_key, south, north, context, spatial_info=spatial_info
         )[0]
 
-        context.logger.log(f"lat_slice: {lat_slice}\nlon_slices: {lon_slice}")
-        context.add_user_visible_log(f"lat_slice: {lat_slice}\nlon_slices: {lon_slice}")
+        context.logger.debug(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
+        context.add_user_visible_log(
+            f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}"
+        )
 
         sub_selections = []
         for lon_slice in lon_slices:
@@ -143,11 +146,11 @@ def area_selector(
                     }
                 )
             )
-        context.logger.log(f"selections: {sub_selections}")
+        context.logger.debug(f"selections: {sub_selections}")
         context.add_user_visible_log(f"selections: {sub_selections}")
 
         ds_area = xr.concat(sub_selections, dim=lon_key)
-        context.logger.log(f"ds_area: {ds_area}")
+        context.logger.debug(f"ds_area: {ds_area}")
         context.add_user_visible_log(f"ds_area: {ds_area}")
 
     else:
