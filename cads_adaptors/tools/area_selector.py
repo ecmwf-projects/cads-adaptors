@@ -129,6 +129,9 @@ def area_selector(
             ds, lat_key, south, north, context, spatial_info=spatial_info
         )[0]
 
+        context.logger.log(f"lat_slice: {lat_slice}\nlon_slices: {lon_slice}")
+        context.add_user_visible_log(f"lat_slice: {lat_slice}\nlon_slices: {lon_slice}")
+
         sub_selections = []
         for lon_slice in lon_slices:
             sub_selections.append(
@@ -139,8 +142,12 @@ def area_selector(
                     }
                 )
             )
+        context.logger.log(f"selections: {sub_selections}")
+        context.add_user_visible_log(f"selections: {sub_selections}")
 
         ds_area = xr.concat(sub_selections, dim=lon_key)
+        context.logger.log(f"ds_area: {ds_area}")
+        context.add_user_visible_log(f"ds_area: {ds_area}")
 
     else:
         context.add_user_visible_error(
