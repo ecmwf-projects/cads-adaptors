@@ -19,6 +19,7 @@ def incompatible_area_error(
 def wrap_longitudes(
     dim_key, start, end, coord_range, context: Context, spatial_info=dict()
 ) -> list:
+    start_shift_east = start_shift_west = end_shift_east = end_shift_west = False
     # Check if start/end are too low for crs:
     if start < coord_range[0]:
         start += 360
