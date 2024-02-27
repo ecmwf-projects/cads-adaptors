@@ -2,7 +2,56 @@ import xarray as xr
 from earthkit import aggregate, data
 
 
-def get_dim_slices(ds, dim_key, start, end) -> list:
+def incompatible_area_error(dim_key, start, end, spatial_info):
+    raise NotImplementedError (
+        "Your area selection is not yet compatible with this dataset.\n"
+        f"Range selection for {dim_key}: [{start}, {end}].\n"
+        f"Spatial definition of dataset: {spatial_info}"
+    )
+
+
+def wrap_longitudes(dim_key, start, end, coord_range, spatial_info=dict()) -> list:
+
+    # Check if start/end are too low for crs:
+    if start < coord_range[0]:
+        start += 360
+        if start > coord_range[1]:
+            incompatible_area_error(dim_key, start, end, spatial_info)
+        start_shift_east = True
+    if end < coord_range[0]:
+        end += 360
+        if end > coord_range[1]:
+            incompatible_area_error(dim_key, start, end, spatial_info)
+        end_shift_east = True
+    
+    if start_shift_east and end_shift_east:
+        return [slice(start, end)]
+    elif start_shift_east and not end_shift_east:
+        return [slice(start, coord_range[-1]), slice(coord_range[0], end)]
+    elif end_shift_east or start_shift_east:
+        incompatible_area_error(dim_key, start, end, spatial_info)
+
+    # Check if start/end are too high for crs:
+    if start > coord_range[1]:
+        start -= 360
+        if start < coord_range[0]:
+            incompatible_area_error(dim_key, start, end, spatial_info)
+        start_shift_west = True
+    if end > coord_range[1]:
+        end -= 360
+        if end < coord_range[0]:
+            incompatible_area_error(dim_key, start, end, spatial_info)
+        end_shift_west = True
+    
+    if start_shift_west and end_shift_west:
+        return [slice(start, end)]
+    elif end_shift_west and not start_shift_west:
+        return [slice(start, coord_range[-1]), slice(coord_range[0], end)]
+    elif end_shift_west or start_shift_west:
+        incompatible_area_error(dim_key, start, end, spatial_info)
+
+
+def get_dim_slices(ds, dim_key, start, end, longitude=False, spatial_info=dict()) -> list:
     da_coord = ds[dim_key]
 
     direction = bool(da_coord[0] < da_coord[1])  # True = ascending, False = descending
@@ -25,7 +74,11 @@ def get_dim_slices(ds, dim_key, start, end) -> list:
         else:
             return [slice(end, start)]
     
-    raise NotImplementedError ("Your area selection is not yet compatible with this dataset")
+    # If longitude, try wrapping:
+    if longitude:
+        return wrap_longitudes(dim_key, start, end, coord_range)
+    
+    incompatible_area_error(dim_key, start, end, spatial_info)
 
 
 def area_selector(
@@ -49,9 +102,9 @@ def area_selector(
     # Handle simple regular case:
     if spatial_info["regular"]:
         # Longitudes could return multiple slice in cases where the area wraps the "other side"
-        lon_slices = get_dim_slices(ds, lon_key, east, west)
+        lon_slices = get_dim_slices(ds, lon_key, east, west, longitude=True, spatial_info=spatial_info)
         # We assume that latitudes won't be wrapped
-        lat_slice = get_dim_slices(ds, lat_key, south, north)[0]
+        lat_slice = get_dim_slices(ds, lat_key, south, north, spatial_info=spatial_info)[0]
 
         sub_selections = []
         for lon_slice in lon_slices:
