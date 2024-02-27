@@ -27,7 +27,6 @@ def wrap_longitudes(
     end: float,
     coord_range: list,
     context: Context = Context(),
-    spatial_info=dict(),
 ) -> list:
     start_shift_east = start_shift_west = end_shift_east = end_shift_west = False
     # Check if start/end are too low for crs:
@@ -78,7 +77,6 @@ def get_dim_slices(
     end: float,
     context: Context = Context(),
     longitude: bool = False,
-    spatial_info: dict = dict(),
 ) -> list:
     da_coord = ds[dim_key]
 
@@ -185,4 +183,6 @@ def area_selector_paths(
             context.logger.debug(f"out_fname: {out_fname}")
             ds_area.to_netcdf(out_fname)
             out_paths.append(out_fname)
+        else:
+            raise NotImplementedError(f"Output format not recognised {out_format}")
     return out_paths
