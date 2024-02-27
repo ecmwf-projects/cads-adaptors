@@ -146,11 +146,11 @@ def area_selector(
                     }
                 )
             )
-        context.logger.info(f"selections: {sub_selections}")
+        context.logger.warning(f"selections: {sub_selections}")
         context.add_user_visible_log(f"selections: {sub_selections}")
 
         ds_area = xr.concat(sub_selections, dim=lon_key)
-        context.logger.info(f"ds_area: {ds_area}")
+        context.logger.warning(f"ds_area: {ds_area}")
         context.add_user_visible_log(f"ds_area: {ds_area}")
 
     else:
@@ -163,7 +163,7 @@ def area_selector(
         out_fname = ".".join(
             infile.split(".")[:-1] + ["area-subset"] + [str(a) for a in area] + ["nc"]
         )
-        context.logger.info(f"out_fname: {out_fname}")
+        context.logger.warning(f"out_fname: {out_fname}")
         ds_area.to_netcdf(out_fname)
         return out_fname
 
