@@ -43,6 +43,10 @@ def wrap_longitudes(
     if points_inside_range([start, end], coord_range, how=all):
         return [slice(start, end)]
 
+    # If start and end encompass the coord_range, return immedietely
+    if start < coord_range[0] and end > coord_range[1]:
+        return [slice(start, end)]
+
     start_shift_east = end_shift_east = False
     # Check if need to shift bbox east
     if start < coord_range[0] and start + 360 < coord_range[1]:
