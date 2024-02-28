@@ -1,3 +1,6 @@
+from copy import deepcopy
+
+import numpy as np
 import xarray as xr
 from earthkit import data
 from earthkit.aggregate import tools as eka_tools
@@ -22,6 +25,12 @@ def incompatible_area_error(
     raise thisError(error_message)
 
 
+def points_inside_range(points, point_range, how=any):
+    return how(
+        [point >= point_range[0] and point <= point_range[1] for point in points]
+    )
+
+
 def wrap_longitudes(
     dim_key: str,
     start: float,
@@ -29,44 +38,46 @@ def wrap_longitudes(
     coord_range: list,
     context: Context = Context(),
 ) -> list:
-    start_shift_east = start_shift_west = end_shift_east = end_shift_west = False
-    # Check if start/end are too low for crs:
-    if start < coord_range[0]:
+    start_in = deepcopy(start)
+    end_in = deepcopy(end)
+
+    start_shift_east = end_shift_east = False
+    # Check if need to shift bbox east
+    if start < coord_range[0] and start + 360 < coord_range[1]:
         start += 360
-        if start > coord_range[1]:
-            incompatible_area_error(dim_key, start, end, coord_range, context)
         start_shift_east = True
-    if end < coord_range[0]:
-        end += 360
-        if end > coord_range[1]:
-            incompatible_area_error(dim_key, start, end, coord_range, context)
-        end_shift_east = True
+        if end < coord_range[0]:
+            end += 360
+            end_shift_east = True
+        # Things have been shifted, check if at least one point is within range
+        if not points_inside_range([start, end], coord_range, how=any):
+            incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
 
     if start_shift_east and end_shift_east:
         return [slice(start, end)]
     elif start_shift_east and not end_shift_east:
         return [slice(start, coord_range[-1]), slice(coord_range[0], end)]
-    elif end_shift_east or start_shift_east:
-        incompatible_area_error(dim_key, start, end, coord_range, context)
 
-    # Check if start/end are too high for crs:
-    if start > coord_range[1]:
-        start -= 360
-        if start < coord_range[0]:
-            incompatible_area_error(dim_key, start, end, coord_range, context)
-        start_shift_west = True
-    if end > coord_range[1]:
+    start_shift_west = end_shift_west = False
+    # Check if need to shift bbox west
+    if end > coord_range[1] and end - 360 > coord_range[0]:
         end -= 360
-        if end < coord_range[0]:
-            incompatible_area_error(dim_key, start, end, coord_range, context)
         end_shift_west = True
+        if start > coord_range[1]:
+            start -= 360
+            start_shift_west = True
+        # Things have been shifted, check if at least one point is within range
+        if not points_inside_range([start, end], coord_range, how=any):
+            incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
 
     if start_shift_west and end_shift_west:
         return [slice(start, end)]
     elif end_shift_west and not start_shift_west:
         return [slice(start, coord_range[-1]), slice(coord_range[0], end)]
-    elif end_shift_west or start_shift_west:
-        incompatible_area_error(dim_key, start, end, coord_range, context)
+
+    # A final check that there is at least an overlap
+    if not points_inside_range([start, end], coord_range):
+        incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
 
     return [slice(start, end)]
 
@@ -78,6 +89,7 @@ def get_dim_slices(
     end: float,
     context: Context = Context(),
     longitude: bool = False,
+    precision: int = 2,
 ) -> list:
     da_coord = ds[dim_key]
 
@@ -85,23 +97,21 @@ def get_dim_slices(
     coord_del = (da_coord[1] - da_coord[0]).values
     if direction:
         coord_range = [
-            da_coord[0].values - coord_del / 2.0,
-            da_coord[-1].values + coord_del / 2.0,
+            np.round(da_coord[0].values - coord_del / 2.0, precision),
+            np.round(da_coord[-1].values + coord_del / 2.0, precision),
         ]
     else:
         coord_range = [
-            da_coord[-1].values + coord_del / 2.0,
-            da_coord[0].values - coord_del / 2.0,
+            np.round(da_coord[-1].values + coord_del / 2.0, precision),
+            np.round(da_coord[0].values - coord_del / 2.0, precision),
         ]
 
-    # First see if requested range is within limits, if so, just ensure direction
-    if all(
-        [
-            start >= coord_range[0],
-            start <= coord_range[1],
-            end >= coord_range[0],
-            end <= coord_range[1],
-        ]
+    if (
+        # Requested range is within limits
+        points_inside_range([start, end], coord_range, how=all)
+        or
+        # Requested range is encompasses limits
+        (start <= coord_range[0] and end >= coord_range[1])
     ):
         if direction:
             return [slice(start, end)]

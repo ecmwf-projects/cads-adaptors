@@ -20,4 +20,3 @@ dependencies:
 - DateTimeRange
 - pip:
   - rooki
-  - ek-aggregate
