@@ -26,7 +26,9 @@ def incompatible_area_error(
 
 
 def points_inside_range(points, point_range, how=any):
-    return how([point > point_range[0] and point < point_range[1] for point in points])
+    return how(
+        [point >= point_range[0] and point <= point_range[1] for point in points]
+    )
 
 
 def wrap_longitudes(
@@ -38,14 +40,6 @@ def wrap_longitudes(
 ) -> list:
     start_in = deepcopy(start)
     end_in = deepcopy(end)
-
-    # If start and end are both inside coord_range, return immedietely
-    if points_inside_range([start, end], coord_range, how=all):
-        return [slice(start, end)]
-
-    # If start and end encompass the coord_range, return immedietely
-    if start < coord_range[0] and end > coord_range[1]:
-        return [slice(start, end)]
 
     start_shift_east = end_shift_east = False
     # Check if need to shift bbox east
@@ -111,14 +105,13 @@ def get_dim_slices(
             np.round(da_coord[-1].values + coord_del / 2.0, precision),
             np.round(da_coord[0].values - coord_del / 2.0, precision),
         ]
-    # First see if requested range is within limits, if so, just ensure direction
-    if all(
-        [
-            start >= coord_range[0],
-            start <= coord_range[1],
-            end >= coord_range[0],
-            end <= coord_range[1],
-        ]
+
+    if (
+        # Requested range is within limits
+        points_inside_range([start, end], coord_range, how=all)
+        or
+        # Requested range is encompasses limits
+        (start <= coord_range[0] and end >= coord_range[1])
     ):
         if direction:
             return [slice(start, end)]
