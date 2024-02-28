@@ -89,13 +89,13 @@ def get_dim_slices(
     coord_del = (da_coord[1] - da_coord[0]).values
     if direction:
         coord_range = [
-            da_coord[0].values - coord_del / 2.0,
-            da_coord[-1].values + coord_del / 2.0,
+            da_coord[0].values - coord_del,
+            da_coord[-1].values + coord_del,
         ]
     else:
         coord_range = [
-            da_coord[-1].values + coord_del / 2.0,
-            da_coord[0].values - coord_del / 2.0,
+            da_coord[-1].values + coord_del,
+            da_coord[0].values - coord_del,
         ]
 
     # First see if requested range is within limits, if so, just ensure direction
