@@ -1,3 +1,4 @@
+from copy import deepcopy
 import xarray as xr
 from earthkit import data
 from earthkit.aggregate import tools as eka_tools
@@ -29,36 +30,39 @@ def wrap_longitudes(
     coord_range: list,
     context: Context = Context(),
 ) -> list:
+    start_in = deepcopy(start)
+    end_in = deepcopy(start)
+
     start_shift_east = start_shift_west = end_shift_east = end_shift_west = False
     # Check if start/end are too low for crs:
     if start < coord_range[0]:
         start += 360
         if start > coord_range[1]:
-            incompatible_area_error(dim_key, start, end, coord_range, context)
+            incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
         start_shift_east = True
     if end < coord_range[0]:
         end += 360
         if end > coord_range[1]:
-            incompatible_area_error(dim_key, start, end, coord_range, context)
+            incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
         end_shift_east = True
-
+        
     if start_shift_east and end_shift_east:
         return [slice(start, end)]
     elif start_shift_east and not end_shift_east:
         return [slice(start, coord_range[-1]), slice(coord_range[0], end)]
     elif end_shift_east or start_shift_east:
-        incompatible_area_error(dim_key, start, end, coord_range, context)
+        incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
 
     # Check if start/end are too high for crs:
     if start > coord_range[1]:
         start -= 360
         if start < coord_range[0]:
-            incompatible_area_error(dim_key, start, end, coord_range, context)
+            incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
         start_shift_west = True
     if end > coord_range[1]:
         end -= 360
         if end < coord_range[0]:
-            incompatible_area_error(dim_key, start, end, coord_range, context)
+            incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
         end_shift_west = True
 
     if start_shift_west and end_shift_west:
@@ -66,7 +70,7 @@ def wrap_longitudes(
     elif end_shift_west and not start_shift_west:
         return [slice(start, coord_range[-1]), slice(coord_range[0], end)]
     elif end_shift_west or start_shift_west:
-        incompatible_area_error(dim_key, start, end, coord_range, context)
+        incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
 
     return [slice(start, end)]
 
