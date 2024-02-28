@@ -1,5 +1,6 @@
 from copy import deepcopy
 import xarray as xr
+import numpy as np
 from earthkit import data
 from earthkit.aggregate import tools as eka_tools
 
@@ -82,6 +83,7 @@ def get_dim_slices(
     end: float,
     context: Context = Context(),
     longitude: bool = False,
+    precision: int = 2,
 ) -> list:
     da_coord = ds[dim_key]
 
@@ -89,13 +91,13 @@ def get_dim_slices(
     coord_del = (da_coord[1] - da_coord[0]).values
     if direction:
         coord_range = [
-            da_coord[0].values - coord_del,
-            da_coord[-1].values + coord_del,
+            np.round(da_coord[0].values - coord_del, precision),
+            np.round(da_coord[-1].values + coord_del, precision),
         ]
     else:
         coord_range = [
-            da_coord[-1].values + coord_del,
-            da_coord[0].values - coord_del,
+            np.round(da_coord[-1].values + coord_del, precision),
+            np.round(da_coord[0].values - coord_del, precision),
         ]
 
     # First see if requested range is within limits, if so, just ensure direction
