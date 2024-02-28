@@ -24,10 +24,9 @@ def incompatible_area_error(
     context.add_user_visible_error(error_message)
     raise thisError(error_message)
 
+
 def points_inside_range(points, point_range, how=any):
-    return how(
-        [point>point_range[0] and point<point_range[1] for point in points]
-    )
+    return how([point > point_range[0] and point < point_range[1] for point in points])
 
 
 def wrap_longitudes(
@@ -46,32 +45,33 @@ def wrap_longitudes(
 
     start_shift_east = end_shift_east = False
     # Check if need to shift bbox east
-    if start < coord_range[0] and start+360 < coord_range[1]:
+    if start < coord_range[0] and start + 360 < coord_range[1]:
         start += 360
         start_shift_east = True
         if end < coord_range[0]:
             end += 360
             end_shift_east = True
         # Things have been shifted, check if at least one point is within range
-        if points_inside_range([start, end], coord_range, how=any):
+        if not points_inside_range([start, end], coord_range, how=any):
             incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
 
     if start_shift_east and end_shift_east:
         return [slice(start, end)]
     elif start_shift_east and not end_shift_east:
         return [slice(start, coord_range[-1]), slice(coord_range[0], end)]
-        
+
+    start_shift_west = end_shift_west = False
     # Check if need to shift bbox west
-    if end > coord_range[1] and end-360 > coord_range[0]:
+    if end > coord_range[1] and end - 360 > coord_range[0]:
         end -= 360
         end_shift_west = True
         if start > coord_range[1]:
             start -= 360
             start_shift_west = True
         # Things have been shifted, check if at least one point is within range
-        if points_inside_range([start, end], coord_range, how=any):
+        if not points_inside_range([start, end], coord_range, how=any):
             incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
-        
+
     if start_shift_west and end_shift_west:
         return [slice(start, end)]
     elif end_shift_west and not start_shift_west:
