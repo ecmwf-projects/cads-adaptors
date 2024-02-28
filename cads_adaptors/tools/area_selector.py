@@ -31,7 +31,7 @@ def wrap_longitudes(
     context: Context = Context(),
 ) -> list:
     start_in = deepcopy(start)
-    end_in = deepcopy(start)
+    end_in = deepcopy(end)
 
     start_shift_east = start_shift_west = end_shift_east = end_shift_west = False
     # Check if start/end are too low for crs:
@@ -45,7 +45,7 @@ def wrap_longitudes(
         if end > coord_range[1]:
             incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
         end_shift_east = True
-        
+
     if start_shift_east and end_shift_east:
         return [slice(start, end)]
     elif start_shift_east and not end_shift_east:
