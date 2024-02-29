@@ -21,11 +21,11 @@ def remove_duplicates(found: list[dict[str, set[str]]]) -> list[dict[str, str]]:
 
 def count_combinations(
     found: list[dict[str, set[str]]],
-    selected_but_always_valid: dict[str, int] = {},
-    weighted_keys: dict[str, int] = {},
+    selected_but_always_valid: dict[str, int] = dict(),
+    weighted_keys: dict[str, int] = dict(),
+    weighted_values: dict[str, dict[str, int]] = dict(),
 ) -> int:
-    
-    
+        
     granules: list[dict[str, str]] = []
     for d in found:
         granules = set(granules + compute_combinations(d))
@@ -33,9 +33,16 @@ def count_combinations(
         n_granules = 0
         for granule in granules:
             w_granule = 1
+            # Weight combination by key
             for key, weight in weighted_keys.items():
                 if key in granule or key in selected_but_always_valid:
                     w_granules *= weight
+            # Weight combination by value
+            for key, w_values in weighted_values.items():
+                if key in granule or key in selected_but_always_valid:
+                    for value, weight in w_values.items():
+                        if value == granule[key]:
+                            w_granules *= weight
             n_granules += w_granule
     else:
         n_granules = len(granules)
@@ -47,8 +54,8 @@ def estimate_granules(
     form: dict[str, set[str]],
     selection: dict[str, set[str]],
     _constraints: list[dict[str, set[str]]],
-    safe: bool = True,
-    weighted_keys: dict[str, int] = {}  # Mapping of widget key to weight
+    weighted_keys: dict[str, int] = dict(),  # Mapping of widget key to weight
+    weighted_values: dict[str, dict[str, int]] = dict()  # Mapping of widget key to values-weights
 ) -> int:
     constraint_keys = constraints.get_keys(_constraints)
     always_valid = constraints.get_always_valid_params(form, constraint_keys)
@@ -60,6 +67,7 @@ def estimate_granules(
         k: v for k, v in selection.items() if k not in always_valid.keys()
     }
     found = []
+    # Apply constraints prior to ensure real cost is calculated
     for constraint in _constraints:
         intersection = {}
         ok = True
@@ -77,34 +85,31 @@ def estimate_granules(
         if ok:
             if intersection not in found:
                 found.append(intersection)
-    if safe:
-        n_granules = count_combinations(
-            found, weighted_keys, selected_but_always_valid,
-        )
-        return (n_granules) * max(1, always_valid_multiplier)
-    else:
-        return sum([math.prod([len(e) for e in d.values()]) for d in found]) * max(
-            1, always_valid_multiplier
-        )
+    n_granules = count_combinations(
+        found, selected_but_always_valid, weighted_keys, weighted_values
+    )
+    return (n_granules) * max(1, always_valid_multiplier)
 
 
 def estimate_size(
     form: dict[str, set[str]],
     selection: dict[str, set[str]],
     _constraints: list[dict[str, set[str]]],
-    safe: bool = True,
-    granule_size: int = 1,
     ignore_keys: list[str] = [
         "area"
     ],
+    weight: int = 1,
     weighted_keys: dict = {},
+    weighted_values: dict = {},
     **kwargs,
 ) -> int:
     this_selection: dict[str, set[str]] = {
         k:v for k, v in selection.items() if k not in ignore_keys
     }
+
     return estimate_granules(
-        form, this_selection, _constraints, safe=safe,
+        form, this_selection, _constraints,
         ignore_keys = ignore_keys,
         weighted_keys = weighted_keys,
-    ) * granule_size
+        weighted_values = weighted_values,
+    ) * weight
