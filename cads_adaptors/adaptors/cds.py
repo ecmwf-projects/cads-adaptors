@@ -38,8 +38,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def estimate_costs(self, request: Request) -> dict[str, int]:
         costs = {
             "size": costing.estimate_size(
-                self.form, request, self.constraints,
-                **self.config.get("costing_kwargs", dict())
+                self.form,
+                request,
+                self.constraints,
+                **self.config.get("costing_kwargs", dict()),
             )
         }
         return costs

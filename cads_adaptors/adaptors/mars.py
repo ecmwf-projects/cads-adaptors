@@ -34,21 +34,19 @@ def convert_format(
     return paths
 
 
-
 def daily_mean(in_grib_file):
     from earthkit.aggregate import temporal
 
     daily_mean_data = temporal.daily_mean(in_grib_file)
-    daily_mean_data.to_netcdf('data.nc')
+    daily_mean_data.to_netcdf("data.nc")
 
-    return 'data.nc'
-
+    return "data.nc"
 
 
 def execute_mars(
     request: Union[Request, list],
+    context: Context,
     target: str = "data.grib",
-    context: Context | None = None,
     mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "req"),
 ) -> str:
     import subprocess

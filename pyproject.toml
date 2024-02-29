@@ -22,7 +22,7 @@ dependencies = [
   "python-dateutil",
   "pyyaml",
   "DateTimeRange",
-  "ek-aggregate",
+  "ek-aggregate"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]

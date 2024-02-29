@@ -21,46 +21,50 @@ def remove_duplicates(found: list[dict[str, set[str]]]) -> list[dict[str, str]]:
 
 def count_combinations(
     found: list[dict[str, set[str]]],
-    selected_but_always_valid: dict[str, int] = dict(),
+    selected_but_always_valid: list[str] = [],
     weighted_keys: dict[str, int] = dict(),
     weighted_values: dict[str, dict[str, int]] = dict(),
 ) -> int:
-        
-    granules: list[dict[str, str]] = []
-    for d in found:
-        granules = set(granules + compute_combinations(d))
-    if len(weighted_keys)>0:
+    # granules: list[dict[str, str]] = []
+    # for d in found:
+    #     granules = granules + compute_combinations(d)
+    granules = remove_duplicates(found)
+    print(granules)
+    if len(weighted_keys) > 0:
         n_granules = 0
         for granule in granules:
             w_granule = 1
             # Weight combination by key
             for key, weight in weighted_keys.items():
                 if key in granule or key in selected_but_always_valid:
-                    w_granules *= weight
+                    w_granule *= weight
             # Weight combination by value
             for key, w_values in weighted_values.items():
                 if key in granule or key in selected_but_always_valid:
                     for value, weight in w_values.items():
                         if value == granule[key]:
-                            w_granules *= weight
+                            w_granule *= weight
             n_granules += w_granule
     else:
         n_granules = len(granules)
-                
-    
-    return 42
+
+    return n_granules
+
 
 def estimate_granules(
     form: dict[str, set[str]],
     selection: dict[str, set[str]],
     _constraints: list[dict[str, set[str]]],
     weighted_keys: dict[str, int] = dict(),  # Mapping of widget key to weight
-    weighted_values: dict[str, dict[str, int]] = dict()  # Mapping of widget key to values-weights
+    weighted_values: dict[
+        str, dict[str, int]
+    ] = dict(),  # Mapping of widget key to values-weights
+    safe: bool = True,
 ) -> int:
     constraint_keys = constraints.get_keys(_constraints)
     always_valid = constraints.get_always_valid_params(form, constraint_keys)
     selected_but_always_valid = {
-        k: v for k, v in selection.items() if k in always_valid.keys()
+        k: v for k, v in selection.items() if k in always_valid
     }
     always_valid_multiplier = math.prod(map(len, selected_but_always_valid.values()))
     selected_constrained = {
@@ -85,31 +89,40 @@ def estimate_granules(
         if ok:
             if intersection not in found:
                 found.append(intersection)
-    n_granules = count_combinations(
-        found, selected_but_always_valid, weighted_keys, weighted_values
-    )
-    return (n_granules) * max(1, always_valid_multiplier)
+    if safe:
+        n_granules = count_combinations(
+            found, list(selected_but_always_valid), weighted_keys, weighted_values
+        )
+        return (n_granules) * max(1, always_valid_multiplier)
+    else:
+        return sum([math.prod([len(e) for e in d.values()]) for d in found]) * max(
+            1, always_valid_multiplier
+        )
 
 
 def estimate_size(
     form: dict[str, set[str]],
     selection: dict[str, set[str]],
     _constraints: list[dict[str, set[str]]],
-    ignore_keys: list[str] = [
-        "area"
-    ],
+    ignore_keys: list[str] = ["area"],
     weight: int = 1,
     weighted_keys: dict = {},
     weighted_values: dict = {},
+    safe: bool = True,
     **kwargs,
 ) -> int:
     this_selection: dict[str, set[str]] = {
-        k:v for k, v in selection.items() if k not in ignore_keys
+        k: v for k, v in selection.items() if k not in ignore_keys
     }
 
-    return estimate_granules(
-        form, this_selection, _constraints,
-        ignore_keys = ignore_keys,
-        weighted_keys = weighted_keys,
-        weighted_values = weighted_values,
-    ) * weight
+    return (
+        estimate_granules(
+            form,
+            this_selection,
+            _constraints,
+            weighted_keys=weighted_keys,
+            weighted_values=weighted_values,
+            safe=safe,
+        )
+        * weight
+    )

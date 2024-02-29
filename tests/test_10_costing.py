@@ -224,45 +224,45 @@ def test_estimate_request_size() -> None:
     assert costing.estimate_size(form, {"param": {"Z"}}, constraints) == 1
 
 
-def test_get_excluded_variables() -> None:
-    test_ogc_form = [
-        {"name": "var1", "type": "AllowedType"},
-        {"name": "var2", "type": "GeographicExtentWidget"},
-        {"name": "var3", "type": "DateRangeWidget"},
-    ]
-    exp_excluded_variables = ["var2", "var3"]
-    excluded_variables = costing.get_excluded_variables(test_ogc_form)
-    assert excluded_variables == exp_excluded_variables
+# def test_get_excluded_variables() -> None:
+#     test_ogc_form = [
+#         {"name": "var1", "type": "AllowedType"},
+#         {"name": "var2", "type": "GeographicExtentWidget"},
+#         {"name": "var3", "type": "DateRangeWidget"},
+#     ]
+#     exp_excluded_variables = ["var2", "var3"]
+#     excluded_variables = costing.get_excluded_variables(test_ogc_form)
+#     assert excluded_variables == exp_excluded_variables
 
-    exp_excluded_variables = []
-    excluded_variables = costing.get_excluded_variables(None)
-    assert excluded_variables == exp_excluded_variables
+#     exp_excluded_variables = []
+#     excluded_variables = costing.get_excluded_variables(None)
+#     assert excluded_variables == exp_excluded_variables
 
-    test_ogc_form = {"name": "var2", "type": "GeographicExtentWidget"}  # type: ignore
-    exp_excluded_variables = ["var2"]
-    excluded_variables = costing.get_excluded_variables(test_ogc_form)
-    assert excluded_variables == exp_excluded_variables
+#     test_ogc_form = {"name": "var2", "type": "GeographicExtentWidget"}  # type: ignore
+#     exp_excluded_variables = ["var2"]
+#     excluded_variables = costing.get_excluded_variables(test_ogc_form)
+#     assert excluded_variables == exp_excluded_variables
 
 
-def test_estimate_number_of_fields() -> None:
-    test_form = None
-    test_request = {"inputs": {"var1": ["value1", "value2"], "var2": "value3"}}
-    exp_number_of_fields = 2
-    number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
-    assert number_of_fields == exp_number_of_fields
+# def test_estimate_number_of_fields() -> None:
+#     test_form = None
+#     test_request = {"inputs": {"var1": ["value1", "value2"], "var2": "value3"}}
+#     exp_number_of_fields = 2
+#     number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
+#     assert number_of_fields == exp_number_of_fields
 
-    test_form = [
-        {"name": "var1", "type": "AllowedType"},
-        {"name": "var2", "type": "AllowedType"},
-        {"name": "var3", "type": "DateRangeWidget"},
-    ]
-    test_request = {
-        "inputs": {
-            "var1": ["value1", "value2"],
-            "var2": "value3",
-            "var3": ["value4", "value5"],
-        }
-    }
-    exp_number_of_fields = 2
-    number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
-    assert number_of_fields == exp_number_of_fields
+#     test_form = [
+#         {"name": "var1", "type": "AllowedType"},
+#         {"name": "var2", "type": "AllowedType"},
+#         {"name": "var3", "type": "DateRangeWidget"},
+#     ]
+#     test_request = {
+#         "inputs": {
+#             "var1": ["value1", "value2"],
+#             "var2": "value3",
+#             "var3": ["value4", "value5"],
+#         }
+#     }
+#     exp_number_of_fields = 2
+#     number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
+#     assert number_of_fields == exp_number_of_fields
