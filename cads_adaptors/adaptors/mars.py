@@ -47,7 +47,6 @@ def daily_mean(in_grib_file):
 
 def execute_mars(
     request: Union[Request, list],
-    context: Context,
     target: str = "data.grib",
     context: Context | None = None,
     mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "req"),
