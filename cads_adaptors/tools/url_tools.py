@@ -9,8 +9,8 @@ import multiurl
 import requests
 import yaml
 
-from ..adaptors import Context
-from . import hcube_tools
+from cads_adaptors.adaptors import Context
+from cads_adaptors.tools import hcube_tools
 
 
 # copied from cdscommon/url2
@@ -44,12 +44,12 @@ def try_download(urls: List[str], context: Context) -> List[str]:
 
     if len(paths) == 0:
         context.add_user_visible_error(
-            f"Request empty. At least one of the following:\n{yaml.safe_dump(urls, indent=2)} "
-            "must be a valid url from which to download the data. "
+            "Your request has not found any data, please check your selection.\n\n"
+            "If you believe this to be a data store error, please contact user support."
         )
         raise RuntimeError(
-            f"Request empty. At least one of the following:\n{yaml.safe_dump(urls, indent=2)} "
-            "must be a valid url from which to download the data. "
+            f"Request empty. No data found from the following URLs:"
+            f"\n{yaml.safe_dump(urls, indent=2)} "
         )
     return paths
 

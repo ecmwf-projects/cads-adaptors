@@ -7,7 +7,6 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request):
         from cdsobs.retrieve.api import retrieve_observations
         from cdsobs.retrieve.models import RetrieveArgs
-        from cdsobs.utils.utils import get_database_session
 
         # Maps observation_type to source. This sets self.mapped_request
         self._pre_retrieve(request)
@@ -52,12 +51,11 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         # Request parameters validation happens here, not sure about how to move this to
         # validate method
         retrieve_args = RetrieveArgs(dataset=dataset_name, params=mapped_request)
-        with get_database_session(catalogue_url) as session:
-            output_file = retrieve_observations(
-                session,
-                storage_url,
-                retrieve_args,
-                Path("."),
-                size_limit=1000000000000,
-            )
-            return open(output_file, "rb")
+        output_file = retrieve_observations(
+            catalogue_url,
+            storage_url,
+            retrieve_args,
+            Path("."),
+            size_limit=1000000000000,
+        )
+        return open(output_file, "rb")

@@ -89,13 +89,13 @@ def execute_mars(
             )
         # This log is visible to the user on the WebPortal
         context.add_user_visible_error(
-            message="MARS has crashed. Please check your request.",
+            message="Your MARS request has not completed successfully, please check your selection.",
         )
         # This exception is visible on Splunk
-        raise RuntimeError("MARS has crashed.")
+        raise RuntimeError(f"MARS has crashed.\n{stderr}")
     if not os.path.getsize(target):
         context.add_user_visible_error(
-            message="MARS returned no data. Please check your request.",
+            message="MARS returned no data, please check your selection.",
         )
         raise RuntimeError("MARS returned no data.")
 
