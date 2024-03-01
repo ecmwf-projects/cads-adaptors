@@ -30,21 +30,12 @@ def count_combinations(
     selected_but_always_valid: list[str] = [],
     weighted_keys: dict[str, int] = dict(),
     weighted_values: dict[str, dict[str, int]] = dict(),
-) -> int:
-    # granules: list[dict[str, str]] = []
-    # for d in found:
-    #     granules = granules + compute_combinations(d)
+) -> int:  # TODO: integer is not strictly required
     granules = remove_duplicates(found)
-    print(granules)
-    if len(weighted_keys) > 0:
+    if len(weighted_values) > 0:
         n_granules = 0
         for granule in granules:
             w_granule = 1
-            # Weight combination by key
-            for key, weight in weighted_keys.items():
-                if key in granule or key in selected_but_always_valid:
-                    w_granule *= weight
-            # Weight combination by value
             for key, w_values in weighted_values.items():
                 if key in granule or key in selected_but_always_valid:
                     for value, weight in w_values.items():
@@ -53,6 +44,17 @@ def count_combinations(
             n_granules += w_granule
     else:
         n_granules = len(granules)
+
+    for key, weight in weighted_keys.items():
+        values = [granule[key] for granule in granules if key in granule]
+        unique_values = set(values)
+        n_unique_values = len(unique_values)
+        # Factor to account for fact that not all granules will have the weighted keys
+        included_factor = len(values) / len(granules)
+        # Need to subtract 1 from weight as weight=1 is accounted for in initial estimate
+        # n_granules += n_granules * (int(n_unique_values * (weight-1) * included_factor)-1)
+        # Equivalent to above, but simplified:
+        n_granules *= int(n_unique_values * included_factor * (weight - 1))
 
     return n_granules
 

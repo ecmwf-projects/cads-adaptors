@@ -32,7 +32,7 @@ def test_remove_duplicates() -> None:
     )
 
 
-def test_estimate_request() -> None:
+def test_estimate_granules_basic() -> None:
     form_key_values = {
         "level": {"500", "850"},
         "param": {"Z", "T"},
@@ -56,6 +56,8 @@ def test_estimate_request() -> None:
         == 3
     )
 
+
+def test_estimate_granules_safe() -> None:
     form_key_values = {
         "level": {"500", "850"},
         "param": {"Z", "T"},
@@ -86,6 +88,8 @@ def test_estimate_request() -> None:
         == 2
     )
 
+
+def test_estimate_granules_long() -> None:
     form_key_values = {
         "time": {"12:00", "00:00"},
         "param": {"Z", "T"},
@@ -222,7 +226,109 @@ def test_estimate_request() -> None:
         {"level": {"850"}, "param": {"T"}, "stat": {"daily_mean"}},
     ]
 
-    assert costing.estimate_granules(form_key_values, selection, constraints)
+    assert costing.estimate_granules(form_key_values, selection, constraints) == 32
+
+
+def test_estimate_granules_weighted_keys() -> None:
+    form_key_values = {
+        "level": {"500", "850", "1000"},
+        "param": {"Z", "T", "Q"},
+    }
+
+    constraints = [form_key_values]
+
+    weighted_keys = {"param": 2}
+
+    assert (
+        costing.estimate_granules(
+            form_key_values,
+            {"param": {"Z", "T", "Q"}, "level": {"500"}},
+            constraints,
+            weighted_keys=weighted_keys,
+        )
+        == 9
+    )
+    assert (
+        costing.estimate_granules(
+            form_key_values,
+            {"param": {"Z"}, "level": {"500", "850", "1000"}},
+            constraints,
+            weighted_keys=weighted_keys,
+        )
+        == 3
+    )
+    assert (
+        costing.estimate_granules(
+            form_key_values,
+            {"param": {"Z", "T", "Q"}, "level": {"500", "850", "1000"}},
+            constraints,
+            weighted_keys=weighted_keys,
+        )
+        == 27
+    )
+
+
+def test_estimate_granules_weighted_values() -> None:
+    form_key_values = {
+        "level": {"500", "850", "1000"},
+        "param": {"Z", "T", "Q"},
+    }
+
+    constraints = [form_key_values]
+
+    weighted_values = {"param": {"Q": 2}}
+
+    assert (
+        costing.estimate_granules(
+            form_key_values,
+            {"param": {"Z", "T"}, "level": {"500"}},
+            constraints,
+            weighted_values=weighted_values,
+        )
+        == 2
+    )
+    assert (
+        costing.estimate_granules(
+            form_key_values,
+            {"param": {"Z", "Q"}, "level": {"500"}},
+            constraints,
+            weighted_values=weighted_values,
+        )
+        == 3
+    )
+
+
+def test_estimate_granules_weighted_keys_and_values() -> None:
+    form_key_values = {
+        "level": {"500", "850", "1000"},
+        "param": {"Z", "T", "Q"},
+    }
+
+    constraints = [form_key_values]
+
+    weighted_keys = {"param": 2}
+    weighted_values = {"param": {"Q": 2}}
+
+    assert (
+        costing.estimate_granules(
+            form_key_values,
+            {"param": {"Z", "T"}, "level": {"500"}},
+            constraints,
+            weighted_values=weighted_values,
+            weighted_keys=weighted_keys,
+        )
+        == 4
+    )
+    assert (
+        costing.estimate_granules(
+            form_key_values,
+            {"param": {"Z", "Q"}, "level": {"500"}},
+            constraints,
+            weighted_values=weighted_values,
+            weighted_keys=weighted_keys,
+        )
+        == 6
+    )
 
 
 def test_estimate_request_size() -> None:
@@ -257,27 +363,3 @@ def test_get_excluded_keys() -> None:
     exp_excluded_keys = ["var2"]
     excluded_keys = costing.get_excluded_keys(test_form)
     assert excluded_keys == exp_excluded_keys
-
-
-# def test_estimate_number_of_fields() -> None:
-#     test_form = None
-#     test_request = {"inputs": {"var1": ["value1", "value2"], "var2": "value3"}}
-#     exp_number_of_fields = 2
-#     number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
-#     assert number_of_fields == exp_number_of_fields
-
-#     test_form = [
-#         {"name": "var1", "type": "AllowedType"},
-#         {"name": "var2", "type": "AllowedType"},
-#         {"name": "var3", "type": "DateRangeWidget"},
-#     ]
-#     test_request = {
-#         "inputs": {
-#             "var1": ["value1", "value2"],
-#             "var2": "value3",
-#             "var3": ["value4", "value5"],
-#         }
-#     }
-#     exp_number_of_fields = 2
-#     number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
-#     assert number_of_fields == exp_number_of_fields
