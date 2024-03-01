@@ -77,6 +77,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = {k: v for k, v in request.items() if k in self.facets[0]}
 
         print("FACETS: ", self.facets)
+        print("FACET_GROUPS: ", self.facet_groups)
         print("REQUEST: ", request)
 
         for raw_candidate in self.facets:
