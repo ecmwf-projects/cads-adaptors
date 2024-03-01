@@ -40,7 +40,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def estimate_costs(self, request: Request) -> dict[str, int]:
         costing_config: dict[dict, Any] = self.config.get("costing", dict())
-        # TODO: Only calculate relevant costs?
         costs = {
             "size": costing.estimate_size(
                 self.form,
