@@ -363,5 +363,3 @@ def test_get_excluded_keys() -> None:
     exp_excluded_keys = ["var2"]
     excluded_keys = costing.get_excluded_keys(test_form)
     assert excluded_keys == exp_excluded_keys
-
-
