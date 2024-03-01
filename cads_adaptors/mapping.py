@@ -163,13 +163,12 @@ def to_interval(x):
         return "%s/%s" % (x, x)
 
 
-def apply_mapping(request, mapping):
+def apply_mapping(request, mapping, embargo: dict[str: int] = dict()):
     request = copy.deepcopy(request)
 
     options = mapping.get("options", {})
     force = mapping.get("force", {})
     defaults = mapping.get("defaults", {})
-    selection_limit = mapping.get("selection_limit")
 
     # Set defaults
 
@@ -195,19 +194,6 @@ def apply_mapping(request, mapping):
 
     r = {}
 
-    # Apply patches
-
-    patches = mapping.get("patches", [])
-    for p in patches:
-        source = p["from"]
-        target = p["to"]
-        transform = p["mapping"]
-        values = request[source]
-        if isinstance(values, list):
-            r[target] = [transform.get(v, v) for v in values]
-        else:
-            r[target] = transform.get(values, values)
-
     # remaps param names
 
     rename = mapping.get("rename", {})
@@ -226,42 +212,42 @@ def apply_mapping(request, mapping):
         month = date_keyword_config.get("month_keyword", "month")
         day = date_keyword_config.get("day_keyword", "day")
 
+        if date in r:
+            newdates = set()
+            dates = r[date]
+            if not isinstance(dates, list):
+                dates = [dates]
+            # Expand intervals
+            for d in dates:
+                if "/" in d:
+                    start, end = d.split("/")
+                    for e in date_range(start, end):
+                        newdates.add(e)
+                else:
+                    newdates.add(d)
+
+
+        # check if all Y,M,D are in request or force values
+        elif all(
+            [(thing in request) or (thing in force) for thing in [year, month, day]]
+        ):
+            years = [int(x) for x in as_list(request, year, force)]
+            months = [int(x) for x in as_list(request, month, force)]
+            days = [int(x) for x in as_list(request, day, force)]
+
+            if years and months and days:
+                newdates = set(date_from_years_month_days(years, months, days))
+
+        # implement embargo
+
         # Transform year/month/day in dates
         if options.get("wants_dates", False):
-            if date in r:
-                newdates = set()
-                dates = r[date]
-                if not isinstance(dates, list):
-                    dates = [dates]
-                # Expand intervals
-                for d in dates:
-                    if "/" in d:
-                        start, end = d.split("/")
-                        for e in date_range(start, end):
-                            newdates.add(e)
-                    else:
-                        newdates.add(d)
-
-                r[date] = sorted(newdates)
-
-            # check if all Y,M,D are in request or force values
-            elif all(
-                [(thing in request) or (thing in force) for thing in [year, month, day]]
-            ):
-                years = [int(x) for x in as_list(request, year, force)]
-                months = [int(x) for x in as_list(request, month, force)]
-                days = [int(x) for x in as_list(request, day, force)]
-
-                if years and months and days:
-                    r[date] = sorted(
-                        set(date_from_years_month_days(years, months, days))
-                    )
-
-                    for k in (year, month, day):
-                        if k in r:
-                            del r[k]
-                        if k in force:
-                            del force[k]
+            r[date] = sorted(newdates)
+            for k in (year, month, day):
+                if k in r:
+                    del r[k]
+                if k in force:
+                    del force[k]
 
         if options.get("wants_intervals", False):
             if date in r:
@@ -282,19 +268,105 @@ def apply_mapping(request, mapping):
 
     r.update(force)
 
-    if selection_limit:
-        count = 1
-        for _, values in r.items():
-            if isinstance(values, list):
-                count *= len(values)
-
-        # print("ITEM count %s limit %s" % (count, selection_limit))
-
-        if count > selection_limit:
-            raise ValueError(
-                "Request too large. Requesting %s items, limit is %s"
-                % (count, selection_limit),
-                "",
-            )
-
     return r
+
+
+
+def months_to_days(n_months, now_date):
+    """
+    Calculate the number of days from now_date to a set number of months in the past
+    """
+    from datetime import datetime
+    from calendar import monthrange
+    if n_months==0:
+        return 0
+    elif n_months>12:
+        raise ValueError("Cannot handle embargos greater than 12 months")
+    now_month = now_date.month
+    then_year = now_date.year
+    then_day = now_date.day
+    then_month = int(now_month-n_months)
+    if then_month <1:
+        then_month = 12+then_month
+        then_year = then_year-1
+    then_date = datetime(then_year, then_month, min(then_day, monthrange(then_year, then_month)[1]))
+    delta = now_date - then_date
+    return delta.days
+
+
+
+def implement_embargo(dates, embargo, cacheable=True):
+    '''
+    Implement any embargo defined in the adaptor.yaml. The embargo should be
+    defined as the kwargs for the datetime.timedelta method, for example:
+    ```
+    embargo:
+       days: 6
+       hours: 12
+    OR
+    embargo:
+       months: 1
+       days: 5
+       hours: 0
+    ```
+    If months key is present in embargo:
+    convert months to days, taking into account a number of days in a given month,
+    then remove months key from embargo.
+    '''
+    from datetime import datetime, timedelta
+    embargo.setdefault("days", 0)
+    embargo['days'] += months_to_days(embargo.pop("months", 0), datetime.utcnow())
+    embargo_error_time_format = embargo.pop("error_time_format", "%Y-%m-%d %H:00")
+    embargo_datetime = datetime.utcnow() - timedelta(
+        **embargo
+    )
+    out_requests = []
+    for date in dates:
+            this_date = dtparse(date).date()
+            if this_date<embargo_datetime.date():
+                _out_dates.append(date)
+            elif this_date==embargo_datetime.date():
+                # Request has been effected by embargo, therefore should not be cached
+                cacheable = False
+                # create a new request for data on embargo day
+                embargo_hour = embargo_datetime.hour
+                # Times must be in correct list format to see if in or outside of embargo
+                times = ensure_and_expand_list_items(req.get("time", []), "/")
+                try:
+                    times = [
+                        t for t in times if time2seconds(t)/3600<=embargo_hour
+                    ]
+                except:
+                    raise BadRequestException(
+                        "Your request straddles the last date available for this dataset, therefore the time "
+                        "period must be provided in a format that is understandable to the CDS/ADS "
+                        "pre-processing. Please revise your request and, if necessary, use the cdsapi sample "
+                        "code provided on the catalogue entry for this dataset."
+                    )
+                # Only append embargo days request if there is at least one valid time
+                if len(times)>0:
+                    extra_request = {
+                        **req,
+                        'date': [date],
+                        'time': times
+                    }
+                    _extra_requests.append(extra_request)
+
+        if len(_out_dates)>0:
+            req['date'] = _out_dates
+            out_requests.append(req)
+        
+        # append any extra requests to the end
+        out_requests += _extra_requests
+
+    if len(out_requests)==0 and len(requests)>=1:
+        raise ValueError(
+            "None of the data you have requested is available yet, please revise the period requested. "
+            "The latest date available for this dataset is: "
+            f"{embargo_datetime.strftime(embargo_error_time_format)}", ""
+        )
+    elif len(out_requests) != len(requests):
+        # Request has been effected by embargo, therefore should not be cached
+        cacheable = False
+    return out_requests, cacheable
+
