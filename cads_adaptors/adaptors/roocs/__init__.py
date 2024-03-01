@@ -46,7 +46,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         facets = self.find_facets(request)
         
-        print("FACETS AT LAST: {facets}")
+        print(f"FACETS AT LAST: {facets}")
 
         dataset_id = ".".join(facets.values())
         variable_id = facets.get("variable", "")
