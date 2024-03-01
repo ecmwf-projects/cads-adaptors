@@ -380,6 +380,5 @@ def test_estimate_costs() -> None:
 
     request = {"inputs": {"param": {"Z", "T"}}}
     costs = adaptor.estimate_costs(request)
-    print(costs)
     assert costs["size"] == 2
     assert costs["number_of_fields"] == 2
