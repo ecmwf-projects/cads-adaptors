@@ -84,6 +84,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                 print("CHUNKS1: ", chunks)
                 
                 if "constraints" in self.config:
+                    print("CONSTRAINTS")
                     key_mapping = {
                         value: key for key, value in self.config["constraints"].items()
                         if not isinstance(value, dict)
