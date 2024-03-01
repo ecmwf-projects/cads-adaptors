@@ -292,7 +292,7 @@ def time2seconds(time):
 
 def implement_embargo(
     requests: list[dict[str, Any]], embargo: dict[str, Any], cacheable=True
-):
+) -> tuple[list[dict[str, Any]], bool]:
     """
     Implement any embargo defined in the adaptor.yaml. The embargo should be
     defined as the kwargs for the datetime.timedelta method, for example:
