@@ -75,10 +75,6 @@ def wrap_longitudes(
     elif end_shift_west and not start_shift_west:
         return [slice(start, coord_range[-1]), slice(coord_range[0], end)]
 
-    # A final check that there is at least an overlap
-    if not points_inside_range([start, end], coord_range):
-        incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
-
     return [slice(start, end)]
 
 
@@ -93,9 +89,9 @@ def get_dim_slices(
 ) -> list:
     da_coord = ds[dim_key]
 
-    direction = bool(da_coord[0] < da_coord[1])  # True = ascending, False = descending
+    ascending = bool(da_coord[0] < da_coord[1])  # True = ascending, False = descending
     coord_del = (da_coord[1] - da_coord[0]).values
-    if direction:
+    if ascending:
         coord_range = [
             np.round(da_coord[0].values - coord_del / 2.0, precision),
             np.round(da_coord[-1].values + coord_del / 2.0, precision),
@@ -113,7 +109,7 @@ def get_dim_slices(
         # Requested range is encompasses limits
         (start <= coord_range[0] and end >= coord_range[1])
     ):
-        if direction:
+        if ascending:
             return [slice(start, end)]
         else:
             return [slice(end, start)]
@@ -122,10 +118,13 @@ def get_dim_slices(
     if longitude:
         return wrap_longitudes(dim_key, start, end, coord_range, context)
 
-    incompatible_area_error(
-        dim_key, start, end, coord_range, context, thisError=NotImplementedError
-    )
-    raise
+    # A final check that there is at least an overlap
+    if not points_inside_range([start, end], coord_range):
+        incompatible_area_error(
+            dim_key, start, end, coord_range, context, thisError=NotImplementedError
+        )
+
+    return [slice(start, end)]
 
 
 def area_selector(
