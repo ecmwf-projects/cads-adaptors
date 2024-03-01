@@ -31,6 +31,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.mapped_request: Request = Request()
         self.download_format: str = "zip"
         self.receipt: bool = False
+        self.context.add_stdout(self.config)
 
     def validate(self, request: Request) -> bool:
         return True
