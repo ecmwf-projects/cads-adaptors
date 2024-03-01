@@ -1,6 +1,7 @@
 import itertools
 import math
 from typing import Any
+from cads_adaptors import Context
 
 from . import constraints
 
@@ -29,7 +30,7 @@ def count_combinations(
     found: list[dict[str, set[str]]],
     selected_but_always_valid: list[str] = [],
     weighted_keys: dict[str, int] = dict(),
-    weighted_values: dict[str, dict[str, int]] = dict(),
+    weighted_values: dict[str, dict[str, int]] = dict()
 ) -> int:  # TODO: integer is not strictly required
     granules = remove_duplicates(found)
     if len(weighted_values) > 0:
@@ -67,16 +68,17 @@ def estimate_granules(
     weighted_values: dict[
         str, dict[str, int]
     ] = dict(),  # Mapping of widget key to values-weights
-    safe: bool = True,
+    safe: bool = True
 ) -> int:
+    _constraints = [{k:set(v) for k,v in constraint.items()} for constraint in constraints]
     constraint_keys = constraints.get_keys(_constraints)
     always_valid = constraints.get_always_valid_params(form_key_values, constraint_keys)
     selected_but_always_valid = {
-        k: set(v) for k, v in selection.items() if k in always_valid
+        k: v for k, v in selection.items() if k in always_valid
     }
     always_valid_multiplier = math.prod(map(len, selected_but_always_valid.values()))
     selected_constrained = {
-        k: set(v) for k, v in selection.items() if k not in always_valid.keys()
+        k: v for k, v in selection.items() if k not in always_valid.keys()
     }
     found = []
     # Apply constraints prior to ensure real cost is calculated
@@ -135,7 +137,7 @@ def estimate_size(
             weighted_keys=weighted_keys,
             weighted_values=weighted_values,
             safe=safe,
-            **kwargs,
+            **kwargs
         )
         * weight
     )
