@@ -1,6 +1,7 @@
 import itertools
 import math
 from typing import Any
+from cads_adaptors import Context
 
 from . import constraints
 
@@ -29,7 +30,7 @@ def count_combinations(
     found: list[dict[str, set[str]]],
     selected_but_always_valid: list[str] = [],
     weighted_keys: dict[str, int] = dict(),
-    weighted_values: dict[str, dict[str, int]] = dict(),
+    weighted_values: dict[str, dict[str, int]] = dict()
 ) -> int:  # TODO: integer is not strictly required
     granules = remove_duplicates(found)
     if len(weighted_values) > 0:
@@ -67,8 +68,10 @@ def estimate_granules(
     weighted_values: dict[
         str, dict[str, int]
     ] = dict(),  # Mapping of widget key to values-weights
-    safe: bool = True,
+    safe: bool = True
 ) -> int:
+    # Ensure contraints are sets
+    _constraints = [{k:set(v) for k,v in constraint.items()} for constraint in _constraints]
     constraint_keys = constraints.get_keys(_constraints)
     always_valid = constraints.get_always_valid_params(form_key_values, constraint_keys)
     selected_but_always_valid = {
@@ -135,6 +138,7 @@ def estimate_size(
             weighted_keys=weighted_keys,
             weighted_values=weighted_values,
             safe=safe,
+            **kwargs
         )
         * weight
     )
@@ -152,3 +156,21 @@ def get_excluded_keys(
         if widget.get("type", "UnknownWidget") in EXCLUDED_WIDGETS:
             excluded_keys.append(widget["name"])
     return excluded_keys
+
+
+def estimate_number_of_fields(
+    form: list[dict[str, Any]] | dict[str, Any] | None,
+    request: dict[str, dict[str, Any]],
+) -> int:
+    excluded_variables = get_excluded_keys(form)
+    selection = request["inputs"]
+    number_of_values = []
+    for variable_id, variable_value in selection.items():
+        if not isinstance(variable_value, list):
+            variable_value = [
+                variable_value,
+            ]
+        if variable_id not in excluded_variables:
+            number_of_values.append(len(variable_value))
+    number_of_fields = math.prod(number_of_values)
+    return number_of_fields
