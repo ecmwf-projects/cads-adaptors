@@ -1,6 +1,7 @@
 import itertools
 import math
 from typing import Any
+from cads_adaptors import Context
 
 from . import constraints
 
@@ -30,7 +31,9 @@ def count_combinations(
     selected_but_always_valid: list[str] = [],
     weighted_keys: dict[str, int] = dict(),
     weighted_values: dict[str, dict[str, int]] = dict(),
+    **kwargs
 ) -> int:  # TODO: integer is not strictly required
+    context: Context = kwargs.get("context", Context())
     granules = remove_duplicates(found)
     if len(weighted_values) > 0:
         n_granules = 0
@@ -54,7 +57,7 @@ def count_combinations(
         # Need to subtract 1 from weight as weight=1 is accounted for in initial estimate
         # n_granules += n_granules * (int(n_unique_values * (weight-1) * included_factor)-1)
         # Equivalent to above, but simplified:
-        print(key, n_unique_values, included_factor, (weight - 1))
+        context.add_stdout(key, n_unique_values, included_factor, (weight - 1))
         n_granules *= int(n_unique_values * included_factor * (weight - 1))
 
     return n_granules
@@ -69,6 +72,7 @@ def estimate_granules(
         str, dict[str, int]
     ] = dict(),  # Mapping of widget key to values-weights
     safe: bool = True,
+    **kwargs
 ) -> int:
     constraint_keys = constraints.get_keys(_constraints)
     always_valid = constraints.get_always_valid_params(form_key_values, constraint_keys)
@@ -100,7 +104,7 @@ def estimate_granules(
                 found.append(intersection)
     if safe:
         n_granules = count_combinations(
-            found, list(selected_but_always_valid), weighted_keys, weighted_values
+            found, list(selected_but_always_valid), weighted_keys, weighted_values, **kwargs
         )
         return (n_granules) * max(1, always_valid_multiplier)
     else:
@@ -136,6 +140,7 @@ def estimate_size(
             weighted_keys=weighted_keys,
             weighted_values=weighted_values,
             safe=safe,
+            **kwargs
         )
         * weight
     )
