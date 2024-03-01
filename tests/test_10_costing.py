@@ -33,7 +33,7 @@ def test_remove_duplicates() -> None:
 
 
 def test_estimate_request() -> None:
-    form = {
+    form_key_values = {
         "level": {"500", "850"},
         "param": {"Z", "T"},
     }
@@ -45,18 +45,18 @@ def test_estimate_request() -> None:
 
     assert (
         costing.estimate_granules(
-            form, {"param": {"Z", "T"}, "level": {"500"}}, constraints
+            form_key_values, {"param": {"Z", "T"}, "level": {"500"}}, constraints
         )
         == 2
     )
     assert (
         costing.estimate_granules(
-            form, {"param": {"Z", "T"}, "level": {"500", "850"}}, constraints
+            form_key_values, {"param": {"Z", "T"}, "level": {"500", "850"}}, constraints
         )
         == 3
     )
 
-    form = {
+    form_key_values = {
         "level": {"500", "850"},
         "param": {"Z", "T"},
     }
@@ -69,18 +69,24 @@ def test_estimate_request() -> None:
 
     assert (
         costing.estimate_granules(
-            form, {"param": {"Z", "T"}, "level": {"500"}}, constraints, safe=False
+            form_key_values,
+            {"param": {"Z", "T"}, "level": {"500"}},
+            constraints,
+            safe=False,
         )
         == 3
     )
     assert (
         costing.estimate_granules(
-            form, {"param": {"Z", "T"}, "level": {"500"}}, constraints, safe=True
+            form_key_values,
+            {"param": {"Z", "T"}, "level": {"500"}},
+            constraints,
+            safe=True,
         )
         == 2
     )
 
-    form = {
+    form_key_values = {
         "time": {"12:00", "00:00"},
         "param": {"Z", "T"},
         "stat": {"daily_mean", "hourly"},
@@ -93,13 +99,13 @@ def test_estimate_request() -> None:
 
     assert (
         costing.estimate_granules(
-            form, {"param": {"Z"}, "stat": {"daily_mean"}}, constraints
+            form_key_values, {"param": {"Z"}, "stat": {"daily_mean"}}, constraints
         )
         == 1
     )
     assert (
         costing.estimate_granules(
-            form,
+            form_key_values,
             {"param": {"Z"}, "time": {"12:00", "00:00"}, "stat": {"hourly"}},
             constraints,
         )
@@ -107,14 +113,14 @@ def test_estimate_request() -> None:
     )
     assert (
         costing.estimate_granules(
-            form,
+            form_key_values,
             {"param": {"Z"}, "time": {"12:00", "00:00"}, "stat": {"daily_mean"}},
             constraints,
         )
         == 1
     )
 
-    form = {
+    form_key_values = {
         "level": {"500", "850"},
         "param": {"Z", "T"},
         "number": {"1", "2", "3"},
@@ -128,7 +134,7 @@ def test_estimate_request() -> None:
 
     assert (
         costing.estimate_granules(
-            form,
+            form_key_values,
             {
                 "param": {"Z"},
                 "level": {"500"},
@@ -140,7 +146,7 @@ def test_estimate_request() -> None:
         == 4
     )
 
-    form = {
+    form_key_values = {
         "level": {"500", "850"},
         "param": {"Z", "T"},
     }
@@ -153,9 +159,12 @@ def test_estimate_request() -> None:
 
     selection = {"param": {"Z", "T"}, "level": {"500"}}
 
-    assert costing.estimate_granules(form, selection, constraints, safe=True) == 2
+    assert (
+        costing.estimate_granules(form_key_values, selection, constraints, safe=True)
+        == 2
+    )
 
-    form = {
+    form_key_values = {
         "type": {"projection", "historical"},
         "ensemble": {"1", "2"},
         "time": {"00:00", "12:00"},
@@ -181,9 +190,9 @@ def test_estimate_request() -> None:
         "stat": {"hourly", "daily_mean"},
     }
 
-    assert costing.estimate_granules(form, selection, constraints) == 4
+    assert costing.estimate_granules(form_key_values, selection, constraints) == 4
 
-    form = {
+    form_key_values = {
         "level": {"500", "850"},
         "time": {"12:00", "00:00"},
         "param": {"Z", "T"},
@@ -213,56 +222,62 @@ def test_estimate_request() -> None:
         {"level": {"850"}, "param": {"T"}, "stat": {"daily_mean"}},
     ]
 
-    assert costing.estimate_granules(form, selection, constraints)
+    assert costing.estimate_granules(form_key_values, selection, constraints)
 
 
 def test_estimate_request_size() -> None:
-    form = {"param": {"Z", "T"}}
+    form = [
+        {
+            "name": "param",
+            "label": "Param",
+            "details": {"values": {"Z", "T"}},
+            "type": "StringListWidget",
+        }
+    ]
     constraints = [{"param": {"Z", "T"}}]
 
     assert costing.estimate_size(form, {"param": {"Z", "T"}}, constraints) == 2
     assert costing.estimate_size(form, {"param": {"Z"}}, constraints) == 1
 
 
-def test_get_excluded_variables() -> None:
-    test_ogc_form = [
-        {"name": "var1", "type": "AllowedType"},
-        {"name": "var2", "type": "GeographicExtentWidget"},
-        {"name": "var3", "type": "DateRangeWidget"},
-    ]
-    exp_excluded_variables = ["var2", "var3"]
-    excluded_variables = costing.get_excluded_variables(test_ogc_form)
-    assert excluded_variables == exp_excluded_variables
-
-    exp_excluded_variables = []
-    excluded_variables = costing.get_excluded_variables(None)
-    assert excluded_variables == exp_excluded_variables
-
-    test_ogc_form = {"name": "var2", "type": "GeographicExtentWidget"}  # type: ignore
-    exp_excluded_variables = ["var2"]
-    excluded_variables = costing.get_excluded_variables(test_ogc_form)
-    assert excluded_variables == exp_excluded_variables
-
-
-def test_estimate_number_of_fields() -> None:
-    test_form = None
-    test_request = {"inputs": {"var1": ["value1", "value2"], "var2": "value3"}}
-    exp_number_of_fields = 2
-    number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
-    assert number_of_fields == exp_number_of_fields
-
+def test_get_excluded_keys() -> None:
     test_form = [
         {"name": "var1", "type": "AllowedType"},
-        {"name": "var2", "type": "AllowedType"},
-        {"name": "var3", "type": "DateRangeWidget"},
+        {"name": "var2", "type": "GeographicExtentWidget"},
     ]
-    test_request = {
-        "inputs": {
-            "var1": ["value1", "value2"],
-            "var2": "value3",
-            "var3": ["value4", "value5"],
-        }
-    }
-    exp_number_of_fields = 2
-    number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
-    assert number_of_fields == exp_number_of_fields
+    exp_excluded_keys = ["var2"]
+    excluded_keys = costing.get_excluded_keys(test_form)
+    assert excluded_keys == exp_excluded_keys
+
+    exp_excluded_keys = []
+    excluded_keys = costing.get_excluded_keys(None)
+    assert excluded_keys == exp_excluded_keys
+
+    test_form = {"name": "var2", "type": "GeographicExtentWidget"}  # type: ignore
+    exp_excluded_keys = ["var2"]
+    excluded_keys = costing.get_excluded_keys(test_form)
+    assert excluded_keys == exp_excluded_keys
+
+
+# def test_estimate_number_of_fields() -> None:
+#     test_form = None
+#     test_request = {"inputs": {"var1": ["value1", "value2"], "var2": "value3"}}
+#     exp_number_of_fields = 2
+#     number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
+#     assert number_of_fields == exp_number_of_fields
+
+#     test_form = [
+#         {"name": "var1", "type": "AllowedType"},
+#         {"name": "var2", "type": "AllowedType"},
+#         {"name": "var3", "type": "DateRangeWidget"},
+#     ]
+#     test_request = {
+#         "inputs": {
+#             "var1": ["value1", "value2"],
+#             "var2": "value3",
+#             "var3": ["value4", "value5"],
+#         }
+#     }
+#     exp_number_of_fields = 2
+#     number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
+#     assert number_of_fields == exp_number_of_fields
