@@ -76,7 +76,6 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = {k: remap.get(k, dict()).get(v, v) for k, v in request.items()}
         request = {k: v for k, v in request.items() if k in self.facets[0]}
 
-        print("FACETS: ", self.facets)
         print("FACET_GROUPS: ", self.facet_groups)
         print("REQUEST: ", request)
 
