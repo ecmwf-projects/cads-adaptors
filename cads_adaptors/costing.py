@@ -1,7 +1,6 @@
 import itertools
 import math
 from typing import Any
-from cads_adaptors import Context
 
 from . import constraints
 
@@ -30,7 +29,7 @@ def count_combinations(
     found: list[dict[str, set[str]]],
     selected_but_always_valid: list[str] = [],
     weighted_keys: dict[str, int] = dict(),
-    weighted_values: dict[str, dict[str, int]] = dict()
+    weighted_values: dict[str, dict[str, int]] = dict(),
 ) -> int:  # TODO: integer is not strictly required
     granules = remove_duplicates(found)
     if len(weighted_values) > 0:
@@ -68,10 +67,12 @@ def estimate_granules(
     weighted_values: dict[
         str, dict[str, int]
     ] = dict(),  # Mapping of widget key to values-weights
-    safe: bool = True
+    safe: bool = True,
 ) -> int:
     # Ensure contraints are sets
-    _constraints = [{k:set(v) for k,v in constraint.items()} for constraint in _constraints]
+    _constraints = [
+        {k: set(v) for k, v in constraint.items()} for constraint in _constraints
+    ]
     constraint_keys = constraints.get_keys(_constraints)
     always_valid = constraints.get_always_valid_params(form_key_values, constraint_keys)
     selected_but_always_valid = {
@@ -138,7 +139,7 @@ def estimate_size(
             weighted_keys=weighted_keys,
             weighted_values=weighted_values,
             safe=safe,
-            **kwargs
+            **kwargs,
         )
         * weight
     )
@@ -166,7 +167,9 @@ def estimate_number_of_fields(
     selection = request["inputs"]
     number_of_values = []
     for variable_id, variable_value in selection.items():
-        if not isinstance(variable_value, list):
+        if isinstance(variable_value, set):
+            variable_value = list(variable_value)
+        if not isinstance(variable_value, (list, tuple)):
             variable_value = [
                 variable_value,
             ]

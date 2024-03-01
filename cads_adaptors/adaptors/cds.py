@@ -39,13 +39,14 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return constraints.validate_constraints(self.form, request, self.constraints)
 
     def estimate_costs(self, request: Request) -> dict[str, int]:
-        costing_config: dict[dict, Any] = self.config.get("costing", dict())
+        costing_config: dict[str, Any] = self.config.get("costing", dict())
+        costing_kwargs: dict[str, Any] = costing_config.get("costing_kwargs", dict())
         costs = {
             "size": costing.estimate_size(
                 self.form,
                 request.get("inputs", dict()),
                 self.constraints,
-                **costing_config.get("costing_kwargs", dict()),
+                **costing_kwargs,
             ),
             "number_of_fields": costing.estimate_number_of_fields(self.form, request),
         }
@@ -138,3 +139,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         }
 
         return receipt
+
+
+class DummyCdsAdaptor(AbstractCdsAdaptor):
+    def retrieve(self, request: Request) -> Any:
+        pass
