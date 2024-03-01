@@ -62,6 +62,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             if kwargs:
                 workflow = getattr(rookops, operator.ROOKI)(workflow, **kwargs)
 
+        print(list(workflow._serialise()))
+
         if list(workflow._serialise()) == ["inputs", "doc"]:
             workflow = rookops.Subset(workflow)
 
