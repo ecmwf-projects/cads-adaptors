@@ -89,7 +89,7 @@ def get_dim_slices(
 ) -> list:
     da_coord = ds[dim_key]
 
-    direction = bool(da_coord[0] < da_coord[1])  # True = ascending, False = descending
+    ascending = bool(da_coord[0] < da_coord[1])  # True = ascending, False = descending
     coord_del = (da_coord[1] - da_coord[0]).values
     if direction:
         coord_range = [
