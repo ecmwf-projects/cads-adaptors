@@ -70,6 +70,7 @@ def estimate_granules(
     ] = dict(),  # Mapping of widget key to values-weights
     safe: bool = True
 ) -> int:
+    # Ensure contraints are sets
     _constraints = [{k:set(v) for k,v in constraint.items()} for constraint in _constraints]
     constraint_keys = constraints.get_keys(_constraints)
     always_valid = constraints.get_always_valid_params(form_key_values, constraint_keys)
