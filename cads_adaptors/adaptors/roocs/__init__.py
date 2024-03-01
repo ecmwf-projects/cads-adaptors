@@ -75,7 +75,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         }
         request = {k: remap.get(k, dict()).get(v, v) for k, v in request.items()}
 
-        self.context.add_stdout("REQUEST1: ", request)
+        self.context.add_stdout(f"REQUEST1: {request}")
 
         for key in self.facets[0]:
             if "-" in key:
