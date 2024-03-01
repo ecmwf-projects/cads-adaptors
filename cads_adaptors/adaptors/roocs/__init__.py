@@ -75,6 +75,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         }
         request = {k: remap.get(k, dict()).get(v, v) for k, v in request.items()}
 
+        print("REQUEST1: ", request)
+
         for key in request:
             if "-" in key:
                 chunks = key.split("-")
@@ -93,8 +95,10 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                 request[key] = "-".join(request_chunks)
                 for chunk in chunks:
                     request.pop(chunk, None)
+        print("REQUEST2: ", request)
 
         request = {k: v for k, v in request.items() if k in self.facets[0]}
+        print("REQUEST3: ", request)
 
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
