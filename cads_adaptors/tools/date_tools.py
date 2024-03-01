@@ -2,6 +2,7 @@
 
 import re
 from datetime import datetime, timedelta
+from typing import Any
 
 # Character used to separate start and end dates in compressed form
 separator = "/"
@@ -224,7 +225,142 @@ def reformat_date(date, outformat, informat=None):
     return out
 
 
-if __name__ == "__main__":
-    # print(replace_current('xxxx current-1 current yyy', '%Y-%m-%d'))
-    # print(expand_dates_list(['2020-01-01/current']))
-    print(replace_current(" current-0.66 yyy", "%Y-%m-%d"))
+def ensure_and_expand_list_items(thing, split_string=None):
+    """
+    Method to ensure that an object is a list, and that all internal
+    strings are expanded to lists if they are defined as strings with separator,
+    e.g. / in Mars requests.
+    """
+    if isinstance(thing, list):
+        output_things = []
+        for _thing in thing:
+            output_things += ensure_and_expand_list_items(
+                _thing, split_string=split_string
+            )
+        return output_things
+    elif isinstance(thing, str) and split_string is not None:
+        return thing.split(split_string)
+    else:
+        return [thing]
+
+
+def months_to_days(n_months, now_date):
+    """Calculate the number of days from now_date to a set number of months in the past."""
+    from calendar import monthrange
+    from datetime import datetime
+
+    if n_months == 0:
+        return 0
+    elif n_months > 12:
+        raise ValueError("Cannot handle embargos greater than 12 months")
+    now_month = now_date.month
+    then_year = now_date.year
+    then_day = now_date.day
+    then_month = int(now_month - n_months)
+    if then_month < 1:
+        then_month = 12 + then_month
+        then_year = then_year - 1
+    then_date = datetime(
+        then_year, then_month, min(then_day, monthrange(then_year, then_month)[1])
+    )
+    delta = now_date - then_date
+    return delta.days
+
+
+def time2seconds(time):
+    """Return a time value parsed into integer seconds."""
+    if isinstance(time, (int, float)):
+        return int(time) * 3600
+
+    else:
+        time_regex1 = r"^(?P<H>\d?\d)(:(?P<M>\d\d)(:(?P<S>\d\d))?)?$"
+        time_regex2 = r"^(?P<H>\d?\d)((?P<M>\d\d)((?P<S>\d\d))?)?$"
+        if ":" in time:
+            match = re.match(time_regex1, time)
+        else:
+            match = re.match(time_regex2, time)
+        if not match:
+            raise ValueError("Unrecognised time format: " + repr(time), "")
+        hour = int(match.group("H"))
+        minute = int(match.group("M")) if match.group("M") else 0
+        second = int(match.group("S")) if match.group("S") else 0
+        if hour > 23 or minute > 59 or second > 59:
+            raise ValueError("Invalid time string: " + time, "")
+
+        return hour * 3600 + minute * 60 + second
+
+
+def implement_embargo(
+    requests: list[dict[str, Any]], embargo: dict[str, Any], cacheable=True
+):
+    """
+    Implement any embargo defined in the adaptor.yaml. The embargo should be
+    defined as the kwargs for the datetime.timedelta method, for example:
+    ```
+    embargo:
+       days: 6
+       hours: 12
+    OR
+    embargo:
+       months: 1
+       days: 5
+       hours: 0
+    ```
+    If months key is present in embargo:
+    convert months to days, taking into account a number of days in a given month,
+    then remove months key from embargo.
+    """
+    from datetime import datetime, timedelta
+
+    from dateutil.parser import parse as dtparse
+
+    embargo.setdefault("days", 0)
+    embargo["days"] += months_to_days(embargo.pop("months", 0), datetime.utcnow())
+    embargo_error_time_format: str = embargo.pop("error_time_format", "%Y-%m-%d %H:00")
+    embargo_datetime = datetime.utcnow() - timedelta(**embargo)
+    out_requests = []
+    for req in requests:
+        _out_dates = []
+        _extra_requests = []
+        for date in req.get("date", []):
+            this_date = dtparse(date).date()
+            if this_date < embargo_datetime.date():
+                _out_dates.append(date)
+            elif this_date == embargo_datetime.date():
+                # Request has been effected by embargo, therefore should not be cached
+                cacheable = False
+                # create a new request for data on embargo day
+                embargo_hour = embargo_datetime.hour
+                # Times must be in correct list format to see if in or outside of embargo
+                times = ensure_and_expand_list_items(req.get("time", []), "/")
+                try:
+                    times = [t for t in times if time2seconds(t) / 3600 <= embargo_hour]
+                except Exception:
+                    raise ValueError(
+                        "Your request straddles the last date available for this dataset, therefore the time "
+                        "period must be provided in a format that is understandable to the CDS/ADS "
+                        "pre-processing. Please revise your request and, if necessary, use the cdsapi sample "
+                        "code provided on the catalogue entry for this dataset."
+                    )
+                # Only append embargo days request if there is at least one valid time
+                if len(times) > 0:
+                    extra_request = {**req, "date": [date], "time": times}
+                    _extra_requests.append(extra_request)
+
+        if len(_out_dates) > 0:
+            req["date"] = _out_dates
+            out_requests.append(req)
+
+        # append any extra requests to the end
+        out_requests += _extra_requests
+
+    if len(out_requests) == 0 and len(requests) >= 1:
+        raise ValueError(
+            "None of the data you have requested is available yet, please revise the period requested. "
+            "The latest date available for this dataset is: "
+            f"{embargo_datetime.strftime(embargo_error_time_format)}",
+        )
+    elif len(out_requests) != len(requests):
+        # Request has been effected by embargo, therefore should not be cached
+        cacheable = False
+    return out_requests, cacheable

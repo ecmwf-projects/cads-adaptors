@@ -1,7 +1,8 @@
 import os
-from typing import BinaryIO, Union
+from typing import Any, BinaryIO, Union
 
 from cads_adaptors.adaptors import Context, Request, cds
+from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
 
 
@@ -37,12 +38,16 @@ def convert_format(
 def execute_mars(
     request: Union[Request, list],
     context: Context,
+    config: dict[str, Any] = dict(),
     target: str = "data.grib",
     mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
 ) -> str:
     import subprocess
 
     requests = ensure_list(request)
+    if config.get("embargo") is not None:
+        requests, _cacheable = implement_embargo(requests, config["embargo"])
+
     with open("r", "w") as fp:
         for i, req in enumerate(requests):
             print("retrieve", file=fp)
@@ -115,7 +120,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         self._pre_retrieve(request=request)
 
-        result = execute_mars(self.mapped_request, context=self.context)
+        result = execute_mars(
+            self.mapped_request, context=self.context, config=self.config
+        )
 
         paths = convert_format(
             result, data_format, context=self.context, **convert_kwargs
