@@ -1,10 +1,7 @@
 import itertools
 import math
-from typing import Any
 
 from . import constraints
-
-EXCLUDED_WIDGETS = ["GeographicExtentWidget", "DateRangeWidget"]
 
 
 def compute_combinations(d: dict[str, set[str]]) -> list[dict[str, str]]:
@@ -22,22 +19,59 @@ def remove_duplicates(found: list[dict[str, set[str]]]) -> list[dict[str, str]]:
     return [dict(granule) for granule in granules]
 
 
+def count_combinations(
+    found: list[dict[str, set[str]]],
+    selected_but_always_valid: list[str] = [],
+    weighted_keys: dict[str, int] = dict(),
+    weighted_values: dict[str, dict[str, int]] = dict(),
+) -> int:
+    # granules: list[dict[str, str]] = []
+    # for d in found:
+    #     granules = granules + compute_combinations(d)
+    granules = remove_duplicates(found)
+    print(granules)
+    if len(weighted_keys) > 0:
+        n_granules = 0
+        for granule in granules:
+            w_granule = 1
+            # Weight combination by key
+            for key, weight in weighted_keys.items():
+                if key in granule or key in selected_but_always_valid:
+                    w_granule *= weight
+            # Weight combination by value
+            for key, w_values in weighted_values.items():
+                if key in granule or key in selected_but_always_valid:
+                    for value, weight in w_values.items():
+                        if value == granule[key]:
+                            w_granule *= weight
+            n_granules += w_granule
+    else:
+        n_granules = len(granules)
+
+    return n_granules
+
+
 def estimate_granules(
     form: dict[str, set[str]],
     selection: dict[str, set[str]],
     _constraints: list[dict[str, set[str]]],
+    weighted_keys: dict[str, int] = dict(),  # Mapping of widget key to weight
+    weighted_values: dict[
+        str, dict[str, int]
+    ] = dict(),  # Mapping of widget key to values-weights
     safe: bool = True,
 ) -> int:
     constraint_keys = constraints.get_keys(_constraints)
     always_valid = constraints.get_always_valid_params(form, constraint_keys)
     selected_but_always_valid = {
-        k: v for k, v in selection.items() if k in always_valid.keys()
+        k: v for k, v in selection.items() if k in always_valid
     }
     always_valid_multiplier = math.prod(map(len, selected_but_always_valid.values()))
     selected_constrained = {
         k: v for k, v in selection.items() if k not in always_valid.keys()
     }
     found = []
+    # Apply constraints prior to ensure real cost is calculated
     for constraint in _constraints:
         intersection = {}
         ok = True
@@ -56,8 +90,10 @@ def estimate_granules(
             if intersection not in found:
                 found.append(intersection)
     if safe:
-        unique_granules = remove_duplicates(found)
-        return (len(unique_granules)) * max(1, always_valid_multiplier)
+        n_granules = count_combinations(
+            found, list(selected_but_always_valid), weighted_keys, weighted_values
+        )
+        return (n_granules) * max(1, always_valid_multiplier)
     else:
         return sum([math.prod([len(e) for e in d.values()]) for d in found]) * max(
             1, always_valid_multiplier
@@ -68,39 +104,25 @@ def estimate_size(
     form: dict[str, set[str]],
     selection: dict[str, set[str]],
     _constraints: list[dict[str, set[str]]],
+    ignore_keys: list[str] = ["area"],
+    weight: int = 1,
+    weighted_keys: dict = {},
+    weighted_values: dict = {},
     safe: bool = True,
-    granule_size: int = 1,
+    **kwargs,
 ) -> int:
-    return estimate_granules(form, selection, _constraints, safe=safe) * granule_size
+    this_selection: dict[str, set[str]] = {
+        k: v for k, v in selection.items() if k not in ignore_keys
+    }
 
-
-def get_excluded_variables(
-    ogc_form: list[dict[str, Any]] | dict[str, Any] | None
-) -> list[str]:
-    if ogc_form is None:
-        ogc_form = []
-    if not isinstance(ogc_form, list):
-        ogc_form = [ogc_form]
-    excluded_variables = []
-    for schema in ogc_form:
-        if schema["type"] in EXCLUDED_WIDGETS:
-            excluded_variables.append(schema["name"])
-    return excluded_variables
-
-
-def estimate_number_of_fields(
-    form: list[dict[str, Any]] | dict[str, Any] | None,
-    request: dict[str, dict[str, Any]],
-) -> int:
-    excluded_variables = get_excluded_variables(form)
-    selection = request["inputs"]
-    number_of_values = []
-    for variable_id, variable_value in selection.items():
-        if not isinstance(variable_value, list):
-            variable_value = [
-                variable_value,
-            ]
-        if variable_id not in excluded_variables:
-            number_of_values.append(len(variable_value))
-    number_of_fields = math.prod(number_of_values)
-    return number_of_fields
+    return (
+        estimate_granules(
+            form,
+            this_selection,
+            _constraints,
+            weighted_keys=weighted_keys,
+            weighted_values=weighted_values,
+            safe=safe,
+        )
+        * weight
+    )
