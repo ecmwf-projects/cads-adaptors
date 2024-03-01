@@ -365,25 +365,3 @@ def test_get_excluded_keys() -> None:
     assert excluded_keys == exp_excluded_keys
 
 
-# def test_estimate_number_of_fields() -> None:
-#     test_form = None
-#     test_request = {"inputs": {"var1": ["value1", "value2"], "var2": "value3"}}
-#     exp_number_of_fields = 2
-#     number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
-#     assert number_of_fields == exp_number_of_fields
-
-#     test_form = [
-#         {"name": "var1", "type": "AllowedType"},
-#         {"name": "var2", "type": "AllowedType"},
-#         {"name": "var3", "type": "DateRangeWidget"},
-#     ]
-#     test_request = {
-#         "inputs": {
-#             "var1": ["value1", "value2"],
-#             "var2": "value3",
-#             "var3": ["value4", "value5"],
-#         }
-#     }
-#     exp_number_of_fields = 2
-#     number_of_fields = costing.estimate_number_of_fields(test_form, test_request)
-#     assert number_of_fields == exp_number_of_fields
