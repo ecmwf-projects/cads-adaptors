@@ -54,6 +54,7 @@ def count_combinations(
         # Need to subtract 1 from weight as weight=1 is accounted for in initial estimate
         # n_granules += n_granules * (int(n_unique_values * (weight-1) * included_factor)-1)
         # Equivalent to above, but simplified:
+        print(key, n_unique_values, included_factor, (weight - 1))
         n_granules *= int(n_unique_values * included_factor * (weight - 1))
 
     return n_granules
