@@ -45,7 +45,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 request,
                 self.constraints,
                 **self.config.get("costing_kwargs", dict()),
-            )
+            ),
+            "number_of_fields": costing.estimate_number_of_fields(self.form, request)
         }
         return costs
 
