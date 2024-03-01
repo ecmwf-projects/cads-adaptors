@@ -75,25 +75,25 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         }
         request = {k: remap.get(k, dict()).get(v, v) for k, v in request.items()}
 
-        print("REQUEST1: ", request)
+        self.context.add_stdout("REQUEST1: ", request)
 
         for key in self.facets[0]:
             if "-" in key:
                 chunks = key.split("-")
                 
-                print("CHUNKS1: ", chunks)
+                self.context.add_stdout("CHUNKS1: ", chunks)
                 
-                print(self.config.keys())
+                self.context.add_stdout(self.config.keys())
                 
                 if "constraints_map" in self.config:
-                    print("CONSTRAINTS")
+                    self.context.add_stdout("CONSTRAINTS")
                     key_mapping = {
                         value: key for key, value in self.config["constraints_map"].items()
                         if not isinstance(value, dict)
                     }
                     chunks = [key_mapping.get(chunk, chunk) for chunk in chunks]
                 
-                print("CHUNKS2: ", chunks)
+                self.context.add_stdout("CHUNKS2: ", chunks)
                     
                 request_chunks = [
                     request.get(item) for item in chunks
@@ -103,10 +103,10 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                 for chunk in chunks:
                     request.pop(chunk, None)
                 
-        print("REQUEST2: ", request)
+        self.context.add_stdout("REQUEST2: ", request)
 
         request = {k: v for k, v in request.items() if k in self.facets[0]}
-        print("REQUEST3: ", request)
+        self.context.add_stdout("REQUEST3: ", request)
 
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
