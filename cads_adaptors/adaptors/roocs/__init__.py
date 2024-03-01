@@ -74,10 +74,10 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             k: (v if not isinstance(v, list) else v[0]) for k, v in request.items()
         }
         request = {k: remap.get(k, dict()).get(v, v) for k, v in request.items()}
+        print("REQUEST: ", request)
         request = {k: v for k, v in request.items() if k in self.facets[0]}
 
         print("FACET_GROUPS: ", self.facet_groups)
-        print("REQUEST: ", request)
 
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
