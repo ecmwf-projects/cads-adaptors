@@ -83,6 +83,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                 
                 print("CHUNKS1: ", chunks)
                 
+                print(self.config.keys())
+                
                 if "constraints" in self.config:
                     print("CONSTRAINTS")
                     key_mapping = {
