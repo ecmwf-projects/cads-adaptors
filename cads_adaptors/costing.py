@@ -72,11 +72,11 @@ def estimate_granules(
     constraint_keys = constraints.get_keys(_constraints)
     always_valid = constraints.get_always_valid_params(form_key_values, constraint_keys)
     selected_but_always_valid = {
-        k: v for k, v in selection.items() if k in always_valid
+        k: set(v) for k, v in selection.items() if k in always_valid
     }
     always_valid_multiplier = math.prod(map(len, selected_but_always_valid.values()))
     selected_constrained = {
-        k: v for k, v in selection.items() if k not in always_valid.keys()
+        k: set(v) for k, v in selection.items() if k not in always_valid.keys()
     }
     found = []
     # Apply constraints prior to ensure real cost is calculated
