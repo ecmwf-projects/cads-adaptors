@@ -22,7 +22,9 @@ def get_adaptor_class(
     return adaptor_class  # type: ignore
 
 
-def get_adaptor(config: dict[str, Any], form: dict[str, Any] | None = None):
+def get_adaptor(
+    config: dict[str, Any], form: list[dict[str, Any]] | dict[str, Any] | None = None
+):
     config = config.copy()
     entry_point = config.pop("entry_point")
     setup_code = config.pop("setup_code", None)

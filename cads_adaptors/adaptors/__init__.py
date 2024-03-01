@@ -36,7 +36,10 @@ class AbstractAdaptor(abc.ABC):
     resources: dict[str, int] = {}
 
     def __init__(
-        self, form: dict[str, Any], context: Context | None = None, **config: Any
+        self,
+        form: list[dict[str, Any]] | dict[str, Any] | None,
+        context: Context | None = None,
+        **config: Any,
     ) -> None:
         self.form = form
         self.config = config

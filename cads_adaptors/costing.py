@@ -1,7 +1,13 @@
 import itertools
 import math
+from typing import Any
 
 from . import constraints
+
+EXCLUDED_WIDGETS = ["GeographicExtentWidget", "UnknownWidget"]
+
+# TODO: Handle DateRangeWidget
+# , "DateRangeWidget"]
 
 
 def compute_combinations(d: dict[str, set[str]]) -> list[dict[str, str]]:
@@ -52,7 +58,7 @@ def count_combinations(
 
 
 def estimate_granules(
-    form: dict[str, set[str]],
+    form_key_values: dict[str, set[Any]],
     selection: dict[str, set[str]],
     _constraints: list[dict[str, set[str]]],
     weighted_keys: dict[str, int] = dict(),  # Mapping of widget key to weight
@@ -62,7 +68,7 @@ def estimate_granules(
     safe: bool = True,
 ) -> int:
     constraint_keys = constraints.get_keys(_constraints)
-    always_valid = constraints.get_always_valid_params(form, constraint_keys)
+    always_valid = constraints.get_always_valid_params(form_key_values, constraint_keys)
     selected_but_always_valid = {
         k: v for k, v in selection.items() if k in always_valid
     }
@@ -101,23 +107,27 @@ def estimate_granules(
 
 
 def estimate_size(
-    form: dict[str, set[str]],
+    form: list[dict[str, Any]] | dict[str, Any] | None,
     selection: dict[str, set[str]],
     _constraints: list[dict[str, set[str]]],
-    ignore_keys: list[str] = ["area"],
+    ignore_keys: list[str] = [],
     weight: int = 1,
     weighted_keys: dict = {},
     weighted_values: dict = {},
     safe: bool = True,
     **kwargs,
 ) -> int:
+    ignore_keys += get_excluded_keys(form)
+
     this_selection: dict[str, set[str]] = {
         k: v for k, v in selection.items() if k not in ignore_keys
     }
 
+    form_key_values = constraints.parse_form(form)
+
     return (
         estimate_granules(
-            form,
+            form_key_values,
             this_selection,
             _constraints,
             weighted_keys=weighted_keys,
@@ -126,3 +136,17 @@ def estimate_size(
         )
         * weight
     )
+
+
+def get_excluded_keys(
+    form: list[dict[str, Any]] | dict[str, Any] | None,
+) -> list[str]:
+    if form is None:
+        form = []
+    if not isinstance(form, list):
+        form = [form]
+    excluded_keys = []
+    for widget in form:
+        if widget.get("type", "UnknownWidget") in EXCLUDED_WIDGETS:
+            excluded_keys.append(widget["name"])
+    return excluded_keys
