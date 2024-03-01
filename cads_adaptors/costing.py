@@ -152,3 +152,21 @@ def get_excluded_keys(
         if widget.get("type", "UnknownWidget") in EXCLUDED_WIDGETS:
             excluded_keys.append(widget["name"])
     return excluded_keys
+
+
+def estimate_number_of_fields(
+    form: list[dict[str, Any]] | dict[str, Any] | None,
+    request: dict[str, dict[str, Any]],
+) -> int:
+    excluded_variables = get_excluded_variables(form)
+    selection = request["inputs"]
+    number_of_values = []
+    for variable_id, variable_value in selection.items():
+        if not isinstance(variable_value, list):
+            variable_value = [
+                variable_value,
+            ]
+        if variable_id not in excluded_variables:
+            number_of_values.append(len(variable_value))
+    number_of_fields = math.prod(number_of_values)
+    return number_of_fields
