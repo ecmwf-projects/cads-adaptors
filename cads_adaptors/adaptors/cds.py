@@ -39,7 +39,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return constraints.validate_constraints(self.form, request, self.constraints)
 
     def estimate_costs(self, request: Request) -> dict[str, int]:
-        costing_config: dict[dict, Any] = self.config.get("costing", dict())
+        if "costing" not in self.config:
+            return dict()
+        costing_config: dict[dict, Any] = self.config["costing"]
         # TODO: Only calculate relevant costs?
         costs = {
             "size": costing.estimate_size(
