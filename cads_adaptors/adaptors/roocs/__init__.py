@@ -76,8 +76,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = {k: remap.get(k, dict()).get(v, v) for k, v in request.items()}
         request = {k: v for k, v in request.items() if k in self.facets[0]}
 
-        print("FACETS: ", self.facets)
-        print("REQUEST: ", self.request)
+        print("FACET_GROUPS: ", self.facet_groups)
+        print("REQUEST: ", request)
 
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
@@ -94,5 +94,6 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             raise ValueError(f"No data found for request {request}")
 
         # raise ValueError(str(raw_candidate) + " | " + str(self.facets_order))
-
-        return {key: raw_candidate[key] for key in self.facets_order}
+        print("RESULT: ", raw_candidate)
+        return raw_candidate
+        # return {key: raw_candidate[key] for key in self.facets_order}
