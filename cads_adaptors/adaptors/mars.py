@@ -58,7 +58,7 @@ def execute_mars(
         requests, _cacheable = implement_embargo(requests, config["embargo"])
     context.add_stdout(f"{requests}")
 
-    with open("r", "w") as fp:
+    with open("req", "w") as fp:
         for i, req in enumerate(requests):
             print("retrieve", file=fp)
             # Add target file to first request, any extra store in same grib
