@@ -45,6 +45,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.adaptors.roocs import operators
 
         facets = self.find_facets(request)
+        
+        print("FACETS AT LAST: {facets}")
 
         dataset_id = ".".join(facets.values())
         variable_id = facets.get("variable", "")
@@ -59,6 +61,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     kwargs = operator.update_kwargs(kwargs, parameter())
             if kwargs:
                 workflow = getattr(rookops, operator.ROOKI)(workflow, **kwargs)
+
+        print(f"WORKFLOW: {workflow._serialise()}")
 
         return workflow
 
