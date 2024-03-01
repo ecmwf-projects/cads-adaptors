@@ -56,6 +56,7 @@ def execute_mars(
     requests = ensure_list(request)
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
+    context.add_stderr(requests)
 
     with open("r", "w") as fp:
         for i, req in enumerate(requests):
