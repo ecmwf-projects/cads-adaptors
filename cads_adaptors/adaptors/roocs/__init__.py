@@ -74,10 +74,27 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             k: (v if not isinstance(v, list) else v[0]) for k, v in request.items()
         }
         request = {k: remap.get(k, dict()).get(v, v) for k, v in request.items()}
-        print("REQUEST: ", request)
-        request = {k: v for k, v in request.items() if k in self.facets[0]}
 
-        print("FACET_GROUPS: ", self.facet_groups)
+        for key in request:
+            if "-" in key:
+                chunks = key.split("-")
+                
+                if "constraints" in self.config:
+                    key_mapping = {
+                        value: key for key, value in self.config["constraints"].items()
+                        if not isinstance(value, dict)
+                    }
+                    chunks = [key_mapping.get(chunk, chunk) for chunk in chunks]
+                    
+                request_chunks = [
+                    request.get(item) for item in chunks
+                    if request.get(item) not in [None, "None"]
+                ]
+                request[key] = "-".join(request_chunks)
+                for chunk in chunks:
+                    request.pop(chunk, None)
+
+        request = {k: v for k, v in request.items() if k in self.facets[0]}
 
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
