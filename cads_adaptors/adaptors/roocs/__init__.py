@@ -45,6 +45,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.adaptors.roocs import operators
 
         facets = self.find_facets(request)
+        
+        print(f"FACETS AT LAST: {facets}")
 
         dataset_id = ".".join(facets.values())
         variable_id = facets.get("variable", "")
@@ -60,6 +62,11 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             if kwargs:
                 workflow = getattr(rookops, operator.ROOKI)(workflow, **kwargs)
 
+        print(list(eval(workflow._serialise())))
+
+        if list(eval(workflow._serialise())) == ["inputs", "doc"]:
+            workflow = rookops.Subset(workflow)
+
         return workflow
 
     def find_facets(self, request):
@@ -74,6 +81,26 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             k: (v if not isinstance(v, list) else v[0]) for k, v in request.items()
         }
         request = {k: remap.get(k, dict()).get(v, v) for k, v in request.items()}
+
+        for key in self.facets[0]:
+            if "-" in key:
+                chunks = key.split("-")
+                
+                if "constraints_map" in self.config:
+                    key_mapping = {
+                        value: key for key, value in self.config["constraints_map"].items()
+                        if not isinstance(value, dict)
+                    }
+                    chunks = [key_mapping.get(chunk, chunk) for chunk in chunks]
+                    
+                request_chunks = [
+                    request.get(item) for item in chunks
+                    if request.get(item) not in [None, "None"]
+                ]
+                request[key] = "-".join(request_chunks)
+                for chunk in chunks:
+                    request.pop(chunk, None)
+
         request = {k: v for k, v in request.items() if k in self.facets[0]}
 
         for raw_candidate in self.facets:
@@ -91,5 +118,4 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             raise ValueError(f"No data found for request {request}")
 
         # raise ValueError(str(raw_candidate) + " | " + str(self.facets_order))
-
         return {key: raw_candidate[key] for key in self.facets_order}
