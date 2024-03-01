@@ -75,10 +75,6 @@ def wrap_longitudes(
     elif end_shift_west and not start_shift_west:
         return [slice(start, coord_range[-1]), slice(coord_range[0], end)]
 
-    # A final check that there is at least an overlap
-    if not points_inside_range([start, end], coord_range):
-        incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
-
     return [slice(start, end)]
 
 
@@ -122,10 +118,13 @@ def get_dim_slices(
     if longitude:
         return wrap_longitudes(dim_key, start, end, coord_range, context)
 
-    incompatible_area_error(
-        dim_key, start, end, coord_range, context, thisError=NotImplementedError
-    )
-    raise
+    # A final check that there is at least an overlap
+    if not points_inside_range([start, end], coord_range):
+        incompatible_area_error(
+            dim_key, start, end, coord_range, context, thisError=NotImplementedError
+        )
+
+    return [slice(start, end)]
 
 
 def area_selector(
