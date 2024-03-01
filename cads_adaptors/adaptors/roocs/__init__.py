@@ -77,7 +77,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         print("REQUEST1: ", request)
 
-        for key in request:
+        for key in self.facets[0]:
             if "-" in key:
                 chunks = key.split("-")
                 
