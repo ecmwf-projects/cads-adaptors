@@ -115,7 +115,7 @@ def string_to_datetime_with_format(string):
         return (current_to_datetime(string), None)
 
     else:
-        for fmt in ["%Y-%m-%d", "%Y%m%d"]:
+        for fmt in ["%Y-%m-%d", "%Y%m%d", "%Y_%m_%d"]:
             if len(string) < len(fmt):
                 continue
             try:
