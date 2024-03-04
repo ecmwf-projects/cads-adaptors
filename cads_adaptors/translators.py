@@ -78,6 +78,8 @@ def translate_date_range(input_cds_schema: dict[str, Any]) -> dict[str, Any]:
         "default": {
             "defaultStart": input_cds_schema["details"].get("defaultStart", None),
             "defaultEnd": input_cds_schema["details"].get("defaultEnd", None),
+            "minStart": input_cds_schema["details"].get("minStart", None),
+            "maxEnd": input_cds_schema["details"].get("maxEnd", None),
         },
     }
     return input_ogc_schema
