@@ -214,7 +214,7 @@ def apply_constraints_in_old_cds_fashion(
         for selected_widget_name, selected_widget_options in selection.items():
             if selected_widget_name in constraint:
                 constraint_is_intersected = False
-                if selected_widget_name == "date_range":
+                if selected_widget_name == "date":
                     assert (
                         len(selected_widget_options) == 1
                     ), "More than one selected date range!"
