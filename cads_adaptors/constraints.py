@@ -437,17 +437,17 @@ def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any
                     handled = False
                     if ogc_form[field_name]["schema_"].get("default", None):
                         if ogc_form[field_name]["schema_"]["default"].get(
-                            "defaultStart", None
+                            "minStart", None
                         ) and ogc_form[field_name]["schema_"]["default"].get(
-                            "defaultEnd", None
+                            "maxEnd", None
                         ):
-                            defaultStart = ogc_form[field_name]["schema_"]["default"][
-                                "defaultStart"
+                            minStart = ogc_form[field_name]["schema_"]["default"][
+                                "minStart"
                             ]
-                            defaultEnd = ogc_form[field_name]["schema_"]["default"][
-                                "defaultEnd"
+                            maxEnd = ogc_form[field_name]["schema_"]["default"][
+                                "maxEnd"
                             ]
-                            form[field_name] = set([f"{defaultStart}/{defaultEnd}"])
+                            form[field_name] = set([f"{minStart}/{maxEnd}"])
                             handled = True
                     if not handled:
                         # FIXME: temporarely fix for making constraints working from UI
