@@ -363,3 +363,22 @@ def test_get_excluded_keys() -> None:
     exp_excluded_keys = ["var2"]
     excluded_keys = costing.get_excluded_keys(test_form)
     assert excluded_keys == exp_excluded_keys
+
+
+def test_estimate_costs() -> None:
+    from cads_adaptors import DummyCdsAdaptor
+
+    form = [
+        {
+            "name": "param",
+            "label": "Param",
+            "details": {"values": {"Z", "T"}},
+            "type": "StringListWidget",
+        }
+    ]
+    adaptor = DummyCdsAdaptor(form, constraints=[{"param": {"Z", "T"}}])
+
+    request = {"inputs": {"param": {"Z", "T"}}}
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 2
+    assert costs["number_of_fields"] == 2

@@ -85,16 +85,18 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         for key in self.facets[0]:
             if "-" in key:
                 chunks = key.split("-")
-                
+
                 if "constraints_map" in self.config:
                     key_mapping = {
-                        value: key for key, value in self.config["constraints_map"].items()
+                        value: key
+                        for key, value in self.config["constraints_map"].items()
                         if not isinstance(value, dict)
                     }
                     chunks = [key_mapping.get(chunk, chunk) for chunk in chunks]
-                    
+
                 request_chunks = [
-                    request.get(item) for item in chunks
+                    request.get(item)
+                    for item in chunks
                     if request.get(item) not in [None, "None"]
                 ]
                 request[key] = "-".join(request_chunks)
