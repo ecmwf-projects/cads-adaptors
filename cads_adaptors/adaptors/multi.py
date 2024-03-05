@@ -127,4 +127,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
         paths = convert_format(result, data_format, self.context)
 
+        if len(paths) > 1 and self.download_format == "as_source":
+            self.download_format = "zip"
+
         return self.make_download_object(paths)
