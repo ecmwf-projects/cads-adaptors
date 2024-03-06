@@ -58,8 +58,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
-            if data_format is not None:
-                this_request.update({"data_format": data_format})
+            # if data_format is not None:
+            #     this_request.update({"data_format": data_format})
             self.context.logger.info(
                 f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
