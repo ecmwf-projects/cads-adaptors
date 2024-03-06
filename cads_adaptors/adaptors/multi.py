@@ -46,7 +46,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         these_requests = {}
         exception_logs: T.Dict[str, str] = {}
-        self.context.logger.debug(f"MultiAdaptor, full_request: {request}")
+        self.context.logger.info(f"MultiAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
@@ -54,7 +54,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
-            self.context.logger.debug(
+            self.context.logger.info(
                 f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
@@ -103,7 +103,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         data_format = request.pop("format", "grib")
 
         mapped_requests = []
-        self.context.logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
+        self.context.logger.info(f"MultiMarsCdsAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
@@ -111,7 +111,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
-            self.context.logger.debug(
+            self.context.logger.info(
                 f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
@@ -120,7 +120,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                     mapping.apply_mapping(this_request, this_adaptor.mapping)
                 )
 
-        self.context.logger.debug(
+        self.context.logger.info(
             f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}"
         )
         result = execute_mars(mapped_requests, context=self.context)

@@ -132,6 +132,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         self._pre_retrieve(request=request)
 
+        self.context.logger.info(f"MARS Request: {request}")
+
         result = execute_mars(
             self.mapped_request, context=self.context, config=self.config
         )
