@@ -198,7 +198,12 @@ def apply_constraints_in_old_cds_fashion(
     result: dict[str, set[Any]] = {}
 
     # if the selection is empty, return the entire form
-    if len(selection) == 0 or (len(selection) == 1 and "date" in selection and len(selection["date"]) == 1 and next(iter(selection["date"])) == ""):
+    if len(selection) == 0 or (
+        len(selection) == 1
+        and "date" in selection
+        and len(selection["date"]) == 1
+        and next(iter(selection["date"])) == ""
+    ):
         return format_to_json(form)
 
     for constraint in constraints:

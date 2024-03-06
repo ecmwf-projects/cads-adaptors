@@ -12,6 +12,9 @@ def convert_format(
     context: Context,
     **kwargs,
 ) -> list:
+    if isinstance(data_format, (list, tuple)):
+        data_format = data_format[0]
+
     # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
     if data_format in ["netcdf", "nc", "netcdf_compressed"]:
         if data_format in ["netcdf_compressed"]:

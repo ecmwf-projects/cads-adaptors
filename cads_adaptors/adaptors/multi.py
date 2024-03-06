@@ -43,7 +43,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", False)
         self.download_format = request.pop("download_format", "zip")
-        data_format = request.get("data_format", None)
 
         these_requests = {}
         exception_logs: T.Dict[str, str] = {}

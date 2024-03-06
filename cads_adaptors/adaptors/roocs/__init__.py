@@ -45,7 +45,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.adaptors.roocs import operators
 
         facets = self.find_facets(request)
-        
+
         print(f"FACETS AT LAST: {facets}")
 
         dataset_id = ".".join(facets.values())

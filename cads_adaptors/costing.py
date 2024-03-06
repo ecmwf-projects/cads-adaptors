@@ -1,7 +1,6 @@
 import itertools
 import math
 from typing import Any
-from cads_adaptors import Context
 
 from . import constraints
 
