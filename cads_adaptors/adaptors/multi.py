@@ -43,6 +43,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", False)
         self.download_format = request.pop("download_format", "zip")
+        data_format = request.get("data_format", None)
 
         these_requests = {}
         exception_logs: T.Dict[str, str] = {}
@@ -51,9 +52,14 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
+            self.context.logger.info(
+                f"MultiAdaptor, {adaptor_tag}, this_adaptor.config: {this_adaptor.config}"
+            )
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
+            if data_format is not None:
+                this_request.update({"data_format": data_format})
             self.context.logger.info(
                 f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
