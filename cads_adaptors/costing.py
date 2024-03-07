@@ -45,16 +45,17 @@ def count_combinations(
     else:
         n_granules = len(granules)
 
-    for key, weight in weighted_keys.items():
-        values = [granule[key] for granule in granules if key in granule]
-        unique_values = set(values)
-        n_unique_values = len(unique_values)
-        # Factor to account for fact that not all granules will have the weighted keys
-        included_factor = len(values) / len(granules)
-        # Need to subtract 1 from weight as weight=1 is accounted for in initial estimate
-        # n_granules += n_granules * (int(n_unique_values * (weight-1) * included_factor)-1)
-        # Equivalent to above, but simplified:
-        n_granules *= int(n_unique_values * included_factor * (weight - 1))
+    if n_granules:
+        for key, weight in weighted_keys.items():
+            values = [granule[key] for granule in granules if key in granule]
+            unique_values = set(values)
+            n_unique_values = len(unique_values)
+            # Factor to account for fact that not all granules will have the weighted keys
+            included_factor = len(values) / len(granules)
+            # Need to subtract 1 from weight as weight=1 is accounted for in initial estimate
+            # n_granules += n_granules * (int(n_unique_values * (weight-1) * included_factor)-1)
+            # Equivalent to above, but simplified:
+            n_granules *= int(n_unique_values * included_factor * (weight - 1))
 
     return n_granules
 

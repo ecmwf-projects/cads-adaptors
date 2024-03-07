@@ -1,3 +1,5 @@
+from typing import Any
+
 from cads_adaptors import costing
 
 
@@ -123,6 +125,14 @@ def test_estimate_granules_long() -> None:
         )
         == 1
     )
+    assert (
+        costing.estimate_granules(
+            form_key_values,
+            {},
+            constraints,
+        )
+        == 0
+    )
 
     form_key_values = {
         "level": {"500", "850"},
@@ -242,6 +252,15 @@ def test_estimate_granules_weighted_keys() -> None:
     assert (
         costing.estimate_granules(
             form_key_values,
+            {},
+            constraints,
+            weighted_keys=weighted_keys,
+        )
+        == 0
+    )
+    assert (
+        costing.estimate_granules(
+            form_key_values,
             {"param": {"Z", "T", "Q"}, "level": {"500"}},
             constraints,
             weighted_keys=weighted_keys,
@@ -278,6 +297,15 @@ def test_estimate_granules_weighted_values() -> None:
 
     weighted_values = {"param": {"Q": 2}}
 
+    assert (
+        costing.estimate_granules(
+            form_key_values,
+            {},
+            constraints,
+            weighted_values=weighted_values,
+        )
+        == 0
+    )
     assert (
         costing.estimate_granules(
             form_key_values,
@@ -330,6 +358,18 @@ def test_estimate_granules_weighted_keys_and_values() -> None:
         == 6
     )
 
+    # Check for empty selection
+    assert (
+        costing.estimate_granules(
+            form_key_values,
+            {},
+            constraints,
+            weighted_values=weighted_values,
+            weighted_keys=weighted_keys,
+        )
+        == 0
+    )
+
 
 def test_estimate_request_size() -> None:
     form = [
@@ -377,6 +417,12 @@ def test_estimate_costs() -> None:
         }
     ]
     adaptor = DummyCdsAdaptor(form, constraints=[{"param": {"Z", "T"}}])
+
+    # Test empty selection
+    request: dict[str, Any] = {"inputs": dict()}
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 0
+    assert costs["number_of_fields"] == 1
 
     request = {"inputs": {"param": {"Z", "T"}}}
     costs = adaptor.estimate_costs(request)
