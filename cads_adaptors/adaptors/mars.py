@@ -13,6 +13,7 @@ def convert_format(
     **kwargs,
 ) -> list:
     if isinstance(data_format, (list, tuple)):
+        assert len(data_format) == 0, "Only one value of data_format is allowed"
         data_format = data_format[0]
 
     # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
@@ -126,7 +127,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         data_format = request.pop("data_format", "grib")
 
         # Allow user to provide format conversion kwargs
-        convert_kwargs = request.pop("convert_kwargs", {})
+        convert_kwargs: dict[str, Any] = {
+            **self.config.get("format_conversion_kwargs", dict()),
+            **request.pop("format_conversion_kwargs", dict()),
+        }
 
         daily_mean = request.pop("daily_mean", False)
 
