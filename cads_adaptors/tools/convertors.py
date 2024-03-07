@@ -19,11 +19,11 @@ def grib_to_netcdf_files(
 
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {
-            "chunks": {"time": 1, "step": 1}  # Auto chunking
+            "chunks": {}  # "time": 1, "step": 1}  # Auto chunking
         }
     print(open_datasets_kwargs)
-    # datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
-    datasets = [xr.open_dataset(grib_file, **open_datasets_kwargs)]
+    datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
+    # datasets = [xr.open_dataset(grib_file, **open_datasets_kwargs)]
 
     if compression_options == "default":
         compression_options = DEFAULT_COMPRESSION_OPTIONS
