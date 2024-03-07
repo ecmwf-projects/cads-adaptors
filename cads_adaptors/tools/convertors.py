@@ -43,7 +43,4 @@ def grib_to_netcdf_files(
         dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
         out_nc_files.append(out_fname)
 
-    del dataset
-    del datasets
-
     return out_nc_files

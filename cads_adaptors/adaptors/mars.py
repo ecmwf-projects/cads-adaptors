@@ -117,7 +117,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         data_format = request.pop("data_format", "grib")
 
         # Allow user to provide format conversion kwargs
-        convert_kwargs = request.pop("convert_kwargs", {})
+        convert_kwargs: dict[str, Any] = {
+            **self.config.get("format_conversion_kwargs", dict()),
+            **request.pop("format_conversion_kwargs", dict()),
+        }
 
         # To preserve existing ERA5 functionality the default download_format="as_source"
         request.setdefault("download_format", "as_source")
