@@ -11,15 +11,14 @@ DEFAULT_COMPRESSION_OPTIONS = {
 def grib_to_netcdf_files(
     grib_file, compression_options=None, open_datasets_kwargs=None, **to_netcdf_kwargs
 ):
-    fname, extension = os.path.splitext(os.path.basename(grib_file))
+    fname, _ = os.path.splitext(os.path.basename(grib_file))
     grib_file = os.path.realpath(grib_file)
 
     import cfgrib
-    import xarray as xr
 
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {
-            "chunks": {"time": 1, "step": 1, "plev": 1}  # Auto chunking
+            "chunks": {"time": 1, "step": 1, "plev": 1}  # Auto chunk by field
         }
     print(open_datasets_kwargs)
     datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
