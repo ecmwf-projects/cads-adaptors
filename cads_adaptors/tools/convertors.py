@@ -8,10 +8,12 @@ DEFAULT_COMPRESSION_OPTIONS = {
 }
 
 
-def grib_to_netcdf_files(grib_file, compression_options=None, open_datasets_kwargs=None, **to_netcdf_kwargs):
+def grib_to_netcdf_files(
+    grib_file, compression_options=None, open_datasets_kwargs=None, **to_netcdf_kwargs
+):
     fname, extension = os.path.splitext(grib_file)
     import cfgrib
-    
+    grib_file = os.path.realpath(grib_file)
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {
             "chunks": {"time": 1}   # Auto chunking
