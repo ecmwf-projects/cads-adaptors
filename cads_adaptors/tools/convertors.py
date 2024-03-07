@@ -20,7 +20,6 @@ def grib_to_netcdf_files(
         open_datasets_kwargs = {
             "chunks": {"time": 1, "step": 1, "plev": 1}  # Auto chunk by field
         }
-    print(open_datasets_kwargs)
     datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
 
     if compression_options == "default":
@@ -30,6 +29,9 @@ def grib_to_netcdf_files(
         to_netcdf_kwargs.setdefault(
             "engine", compression_options.pop("engine", "h5netcdf")
         )
+    print("open_datasets_kwargs", open_datasets_kwargs)
+    print("to_netcdf_kwargs", to_netcdf_kwargs)
+    print("compression_options", compression_options)
 
     out_nc_files = []
     for i, dataset in enumerate(datasets):
