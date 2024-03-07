@@ -14,7 +14,7 @@ def grib_to_netcdf_files(grib_file, compression_options=None, open_datasets_kwar
     
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {
-            "chunks": {}   # Auto chunking
+            "chunks": {"time": 1}   # Auto chunking
         }
     datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
 
