@@ -13,6 +13,7 @@ def convert_format(
     **kwargs,
 ) -> list:
     if isinstance(data_format, (list, tuple)):
+        assert len(data_format)==0
         data_format = data_format[0]
 
     # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
