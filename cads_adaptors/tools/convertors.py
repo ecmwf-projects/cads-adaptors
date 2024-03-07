@@ -9,7 +9,7 @@ DEFAULT_COMPRESSION_OPTIONS = {
 
 
 def grib_to_netcdf_files(
-    grib_file, compression_options=None, open_datasets_kwargs=None, **to_netcdf_kwargs
+    grib_file, compression_options="default", open_datasets_kwargs=None, **to_netcdf_kwargs
 ):
     fname, _ = os.path.splitext(os.path.basename(grib_file))
     grib_file = os.path.realpath(grib_file)
