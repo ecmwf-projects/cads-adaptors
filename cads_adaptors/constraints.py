@@ -116,7 +116,7 @@ def apply_constraints(
             form.pop(key, None)
             selection.pop(key, None)
     result = apply_constraints_in_old_cds_fashion(
-        form, selection, constraints, widget_types
+        form, selection, constraints, widget_types=widget_types
     )
     result.update(format_to_json(always_valid))
 
@@ -196,7 +196,7 @@ def apply_constraints_in_old_cds_fashion(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
-    widget_types: dict[str, str],
+    widget_types: dict[str, str] = dict(),
 ) -> dict[str, list[Any]]:
     result: dict[str, set[Any]] = {}
 
