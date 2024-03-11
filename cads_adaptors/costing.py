@@ -10,6 +10,15 @@ EXCLUDED_WIDGETS = ["GeographicExtentWidget", "UnknownWidget"]
 # , "DateRangeWidget"]
 
 
+def ensure_set(input_item):
+    if not isinstance(input_item, set):
+        if isinstance(input_item, (list, tuple)):
+            return set(input_item)
+        else:
+            return {input_item}
+    return input_item
+
+
 def compute_combinations(d: dict[str, set[str]]) -> list[dict[str, str]]:
     if not d:
         return []
@@ -127,7 +136,7 @@ def estimate_size(
     ignore_keys += get_excluded_keys(form)
 
     this_selection: dict[str, set[str]] = {
-        k: v for k, v in selection.items() if k not in ignore_keys
+        k: ensure_set(v) for k, v in selection.items() if k not in ignore_keys
     }
 
     form_key_values = constraints.parse_form(form)
