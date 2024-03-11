@@ -115,7 +115,6 @@ def apply_constraints(
         if key not in constraint_keys:
             form.pop(key, None)
             selection.pop(key, None)
-    print(form.keys())
     result = apply_constraints_in_old_cds_fashion(
         form, selection, constraints, widget_types
     )
