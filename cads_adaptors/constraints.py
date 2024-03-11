@@ -482,7 +482,7 @@ def validate_constraints(
     if isinstance(cds_form, dict):
         cds_form = [cds_form]
     elif cds_form is None:
-        cds_form = list([])    
+        cds_form = list([])
     widget_types: dict[str, Any] = {
         widget.get("name", "unknown_widget"): widget["type"]
         for widget in cds_form
