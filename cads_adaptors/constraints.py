@@ -212,9 +212,11 @@ def apply_constraints_in_old_cds_fashion(
         # only other widgets can enable/disable options/values in the "current" widget
         per_constraint_result: dict[str, dict[str, set[Any]]] = {}
         for selected_widget_name, selected_widget_options in selection.items():
+            selected_widget_description = form.get(selected_widget_name, dict())
+            selected_widget_type = selected_widget_description.get("type", "UNKNOWN_WIDGET_TYPE")
             if selected_widget_name in constraint:
                 constraint_is_intersected = False
-                if selected_widget_name == "date_range":
+                if selected_widget_type == "DateRangeWidget":
                     assert (
                         len(selected_widget_options) == 1
                     ), "More than one selected date range!"
