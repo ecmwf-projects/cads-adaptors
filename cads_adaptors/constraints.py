@@ -114,7 +114,7 @@ def apply_constraints(
         if key not in constraint_keys:
             form.pop(key, None)
             selection.pop(key, None)
-
+    print(form.keys())
     result = apply_constraints_in_old_cds_fashion(form, selection, constraints)
     result.update(format_to_json(always_valid))
 
@@ -221,9 +221,11 @@ def apply_constraints_in_old_cds_fashion(
             selected_widget_type = selected_widget_description.get(
                 "type", "UNKNOWN_WIDGET_TYPE"
             )
+            print(selected_widget_type)
             if selected_widget_name in constraint:
                 constraint_is_intersected = False
                 if selected_widget_type == "DateRangeWidget":
+                    print("DateRangeWidget detected")
                     assert (
                         len(selected_widget_options) == 1
                     ), "More than one selected date range!"
