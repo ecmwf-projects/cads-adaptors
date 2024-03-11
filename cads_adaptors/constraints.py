@@ -94,7 +94,7 @@ def apply_constraints(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
-    widget_types: dict[str, str],
+    widget_types: dict[str, str] = dict(),
 ) -> dict[str, list[Any]]:
     """
     Apply dataset constraints to the current selection.
@@ -115,8 +115,9 @@ def apply_constraints(
         if key not in constraint_keys:
             form.pop(key, None)
             selection.pop(key, None)
-    print(form.keys())
-    result = apply_constraints_in_old_cds_fashion(form, selection, constraints, widget_types)
+    result = apply_constraints_in_old_cds_fashion(
+        form, selection, constraints, widget_types=widget_types
+    )
     result.update(format_to_json(always_valid))
 
     return result
@@ -195,11 +196,11 @@ def apply_constraints_in_old_cds_fashion(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
-    widget_types: dict[str, str],
+    widget_types: dict[str, str] = dict(),
 ) -> dict[str, list[Any]]:
     result: dict[str, set[Any]] = {}
 
-    daterange_widgets = [k for k, v in widget_types.items() if v=="DateRangeWidget"]
+    daterange_widgets = [k for k, v in widget_types.items() if v == "DateRangeWidget"]
     selected_daterange_widgets = [k for k in daterange_widgets if k in list(selection)]
     if len(selection) == 0 or (
         len(selection) == len(daterange_widgets) == len(selected_daterange_widgets)
@@ -217,7 +218,9 @@ def apply_constraints_in_old_cds_fashion(
         # only other widgets can enable/disable options/values in the "current" widget
         per_constraint_result: dict[str, dict[str, set[Any]]] = {}
         for selected_widget_name, selected_widget_options in selection.items():
-            selected_widget_type = widget_types.get(selected_widget_name,"UNKNOWN_WIDGET_TYPE")
+            selected_widget_type = widget_types.get(
+                selected_widget_name, "UNKNOWN_WIDGET_TYPE"
+            )
             if selected_widget_name in constraint:
                 constraint_is_intersected = False
                 if selected_widget_type == "DateRangeWidget":
@@ -475,11 +478,20 @@ def validate_constraints(
     constraints = parse_constraints(constraints)
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
     selection = parse_selection(request["inputs"], unsupported_vars)
-    widget_types: dict[str, str] = {
-        widget.get("name", "unknown_widget"): widget["type"] for widget in cds_form if "type" in widget
+    # The following 2 cases should not happen, but they have ben typescript, so need to include safeguard
+    if isinstance(cds_form, dict):
+        cds_form = [cds_form]
+    elif cds_form is None:
+        cds_form = list([])
+    widget_types: dict[str, Any] = {
+        widget.get("name", "unknown_widget"): widget["type"]
+        for widget in cds_form
+        if "type" in widget
     }
 
-    return apply_constraints(parsed_form, selection, constraints, widget_types)
+    return apply_constraints(
+        parsed_form, selection, constraints, widget_types=widget_types
+    )
 
 
 def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
