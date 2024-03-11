@@ -1,3 +1,5 @@
+from typing import Any
+
 from cads_adaptors import costing
 
 
@@ -417,7 +419,7 @@ def test_estimate_costs() -> None:
     adaptor = DummyCdsAdaptor(form, constraints=[{"param": {"Z", "T"}}])
 
     # Test empty selection
-    request = {"inputs": dict()}
+    request: dict[str, Any] = {"inputs": dict()}
     costs = adaptor.estimate_costs(request)
     assert costs["size"] == 0
     assert costs["number_of_fields"] == 1
