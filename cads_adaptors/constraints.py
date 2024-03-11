@@ -199,15 +199,6 @@ def apply_constraints_in_old_cds_fashion(
 ) -> dict[str, list[Any]]:
     result: dict[str, set[Any]] = {}
 
-
-    # if the selection is empty, return the entire form
-    # if len(selection) == 0 or (
-    #     len(selection) == 1
-    #     and "date" in selection
-    #     and len(selection["date"]) == 1
-    #     and next(iter(selection["date"])) == ""
-    # ):
-        
     daterange_widgets = [k for k, v in widget_types.items() if v=="DateRangeWidget"]
     selected_daterange_widgets = [k for k in daterange_widgets if k in list(selection)]
     if len(selection) == 0 or (
@@ -428,7 +419,7 @@ def get_always_valid_params(
     return result
 
 
-def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any]]:
+def parse_form(cds_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any]]:
     """
     Parse the form for a given dataset extracting the information on the possible selections.
     :param raw_form: a dictionary containing
@@ -437,9 +428,9 @@ def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any
     :rtype: dict[str, set[Any]]:
     :return: a dict[str, set[Any]] containing all possible selections.
     """
-    if raw_form is None:
-        raw_form = list()
-    ogc_form = translators.translate_cds_form(raw_form)
+    if cds_form is None:
+        cds_form = list()
+    ogc_form = translators.translate_cds_form(cds_form)
     form = {}
     for field_name in ogc_form:
         try:
