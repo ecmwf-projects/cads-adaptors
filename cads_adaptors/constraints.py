@@ -94,6 +94,7 @@ def apply_constraints(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
+    widget_types: dict[str, str],
 ) -> dict[str, list[Any]]:
     """
     Apply dataset constraints to the current selection.
@@ -115,7 +116,7 @@ def apply_constraints(
             form.pop(key, None)
             selection.pop(key, None)
     print(form.keys())
-    result = apply_constraints_in_old_cds_fashion(form, selection, constraints)
+    result = apply_constraints_in_old_cds_fashion(form, selection, constraints, widget_types)
     result.update(format_to_json(always_valid))
 
     return result
@@ -194,15 +195,23 @@ def apply_constraints_in_old_cds_fashion(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
+    widget_types: dict[str, str],
 ) -> dict[str, list[Any]]:
     result: dict[str, set[Any]] = {}
 
+
     # if the selection is empty, return the entire form
+    # if len(selection) == 0 or (
+    #     len(selection) == 1
+    #     and "date" in selection
+    #     and len(selection["date"]) == 1
+    #     and next(iter(selection["date"])) == ""
+    # ):
+        
+    daterange_widgets = [k for k, v in widget_types.items() if v=="DateRangeWidget"]
+    selected_daterange_widgets = [k for k in daterange_widgets if k in list(selection)]
     if len(selection) == 0 or (
-        len(selection) == 1
-        and "date" in selection
-        and len(selection["date"]) == 1
-        and next(iter(selection["date"])) == ""
+        len(selection) == len(daterange_widgets) == len(selected_daterange_widgets)
     ):
         return format_to_json(form)
 
@@ -217,15 +226,12 @@ def apply_constraints_in_old_cds_fashion(
         # only other widgets can enable/disable options/values in the "current" widget
         per_constraint_result: dict[str, dict[str, set[Any]]] = {}
         for selected_widget_name, selected_widget_options in selection.items():
-            selected_widget_description = form.get(selected_widget_name, dict())
-            selected_widget_type = selected_widget_description.get(
+            selected_widget_type = widget_types.get(selected_widget_name, dict()).get(
                 "type", "UNKNOWN_WIDGET_TYPE"
             )
-            print(selected_widget_type)
             if selected_widget_name in constraint:
                 constraint_is_intersected = False
                 if selected_widget_type == "DateRangeWidget":
-                    print("DateRangeWidget detected")
                     assert (
                         len(selected_widget_options) == 1
                     ), "More than one selected date range!"
@@ -471,17 +477,20 @@ def parse_form(raw_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any
 
 
 def validate_constraints(
-    ogc_form: list[dict[str, Any]] | dict[str, Any] | None,
+    cds_form: list[dict[str, Any]] | dict[str, Any] | None,
     request: dict[str, dict[str, Any]],
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
 ) -> dict[str, list[str]]:
-    parsed_form = parse_form(ogc_form)
-    unsupported_vars = get_unsupported_vars(ogc_form)
+    parsed_form = parse_form(cds_form)
+    unsupported_vars = get_unsupported_vars(cds_form)
     constraints = parse_constraints(constraints)
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
     selection = parse_selection(request["inputs"], unsupported_vars)
+    widget_types: dict[str, str] = {
+        widget.get("name", "unknown_widget"): widget["type"] for widget in cds_form if "type" in widget
+    }
 
-    return apply_constraints(parsed_form, selection, constraints)
+    return apply_constraints(parsed_form, selection, constraints, widget_types)
 
 
 def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
