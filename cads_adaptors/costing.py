@@ -4,7 +4,13 @@ from typing import Any
 
 from . import constraints
 
-EXCLUDED_WIDGETS = ["GeographicExtentWidget", "UnknownWidget"]
+EXCLUDED_WIDGETS = [
+    "GeographicExtentWidget",
+    "DateRangeWidget",
+    "UnknownWidget",
+    "FreeEditionWidget",
+    "ExclusiveGroupWidget",
+]
 
 # TODO: Handle DateRangeWidget
 # , "DateRangeWidget"]
@@ -30,6 +36,7 @@ def remove_duplicates(found: list[dict[str, set[str]]]) -> list[dict[str, str]]:
     combinations: list[dict[str, str]] = []
     for d in found:
         combinations += compute_combinations(d)
+    print(combinations)
     granules = {tuple(combination.items()) for combination in combinations}
     return [dict(granule) for granule in granules]
 
@@ -41,6 +48,7 @@ def count_combinations(
     weighted_values: dict[str, dict[str, int]] = dict(),
 ) -> int:  # TODO: integer is not strictly required
     granules = remove_duplicates(found)
+    print(granules)
     if len(weighted_values) > 0:
         n_granules = 0
         for granule in granules:
@@ -79,38 +87,43 @@ def estimate_granules(
     ] = dict(),  # Mapping of widget key to values-weights
     safe: bool = True,
 ) -> int:
-    # Ensure contraints are sets
-    _constraints = [
-        {k: set(v) for k, v in constraint.items()} for constraint in _constraints
-    ]
-    constraint_keys = constraints.get_keys(_constraints)
-    always_valid = constraints.get_always_valid_params(form_key_values, constraint_keys)
-    selected_but_always_valid = {
-        k: v for k, v in selection.items() if k in always_valid
-    }
-    always_valid_multiplier = math.prod(map(len, selected_but_always_valid.values()))
-    selected_constrained = {
-        k: v for k, v in selection.items() if k not in always_valid.keys()
-    }
-    found = []
-    # Apply constraints prior to ensure real cost is calculated
-    for constraint in _constraints:
-        intersection = {}
-        ok = True
-        for key, values in constraint.items():
-            if key in selected_constrained.keys():
-                common = values.intersection(selected_constrained[key])
-                if common:
-                    intersection.update({key: common})
+    # If no constraints, 
+    if len(_constraints)>0:
+        # Ensure contraints are sets
+        _constraints = [
+            {k: set(v) for k, v in constraint.items()} for constraint in _constraints
+        ]
+        constraint_keys = constraints.get_keys(_constraints)
+        always_valid = constraints.get_always_valid_params(form_key_values, constraint_keys)
+        selected_but_always_valid = {
+            k: v for k, v in selection.items() if k in always_valid
+        }
+        selected_constrained = {
+            k: v for k, v in selection.items() if k not in always_valid.keys()
+        }
+        found = []
+        # Apply constraints prior to ensure real cost is calculated
+        for constraint in _constraints:
+            intersection = {}
+            ok = True
+            for key, values in constraint.items():
+                if key in selected_constrained.keys():
+                    common = values.intersection(selected_constrained[key])
+                    if common:
+                        intersection.update({key: common})
+                    else:
+                        ok = False
+                        break
                 else:
                     ok = False
                     break
-            else:
-                ok = False
-                break
-        if ok:
-            if intersection not in found:
-                found.append(intersection)
+            if ok:
+                if intersection not in found:
+                    found.append(intersection)
+    else:
+        selected_but_always_valid = selection
+        found = [selection]
+    always_valid_multiplier = math.prod(map(len, selected_but_always_valid.values()))
     if safe:
         n_granules = count_combinations(
             found, list(selected_but_always_valid), weighted_keys, weighted_values
@@ -140,9 +153,12 @@ def estimate_size(
     # Build selection for calculating costs, any missing fields are filled with a DUMMY value,
     #  This may be problematic for DateRangeWidget
     this_selection: dict[str, set[str]] = {
-        widget: ensure_set(selection.get(widget, values[0]))
-        for widget, values in form_key_values.items() if widget not in ignore_keys
+        widget: ensure_set(selection.get(widget, list(values)[0]))
+        for widget, values in form_key_values.items()
+        if widget not in ignore_keys
     }
+
+    print(this_selection)
 
     return (
         estimate_granules(
