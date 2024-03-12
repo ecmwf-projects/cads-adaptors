@@ -6,10 +6,7 @@ from . import constraints
 
 EXCLUDED_WIDGETS = [
     "GeographicExtentWidget",
-    "DateRangeWidget",
     "UnknownWidget",
-    "FreeEditionWidget",
-    "ExclusiveGroupWidget",
 ]
 
 # TODO: Handle DateRangeWidget
