@@ -421,10 +421,262 @@ def test_estimate_costs() -> None:
     # Test empty selection
     request: dict[str, Any] = {"inputs": dict()}
     costs = adaptor.estimate_costs(request)
-    assert costs["size"] == 0
+    assert costs["size"] == 1
     assert costs["number_of_fields"] == 1
 
     request = {"inputs": {"param": {"Z", "T"}}}
     costs = adaptor.estimate_costs(request)
     assert costs["size"] == 2
     assert costs["number_of_fields"] == 2
+
+
+
+def test_estimate_costs_2() -> None:
+    from cads_adaptors import DummyCdsAdaptor
+
+    form = [
+        {
+            "name": "variable",
+            "label": "Variable",
+            "help": "Please, consult the product user guide in the documentation section for more information on these variables.",
+            "required": True,
+            "css": "todo",
+            "type": "StringChoiceWidget",
+            "details": {
+                "values": [
+                    "average_temperature",
+                    "maximum_temperature",
+                    "minimum_temperature"
+                ],
+                "columns": 3,
+                "labels": {
+                    "average_temperature": "Average temperature",
+                    "maximum_temperature": "Maximum temperature",
+                    "minimum_temperature": "Minimum temperature"
+                }
+            },
+            "id": 0
+        },
+        {
+            "name": "period",
+            "label": "Period",
+            "help": "Winter consists of December, January and February. Summer consists of June, July and August.",
+            "required": True,
+            "css": "todo",
+            "type": "StringChoiceWidget",
+            "details": {
+                "values": [
+                    "summer",
+                    "year",
+                    "winter"
+                ],
+                "columns": 3,
+                "labels": {
+                    "winter": "Winter",
+                    "summer": "Summer",
+                    "year": "Year"
+                }
+            },
+            "id": 1
+        },
+        {
+            "name": "statistic",
+            "label": "Statistic",
+            "help": "Statistsics are computed for the period  1971 to 2099.",
+            "required": True,
+            "css": "todo",
+            "type": "StringListArrayWidget",
+            "details": {
+                "groups": [
+                    {
+                        "label": "Mean and median",
+                        "values": [
+                            "time_average",
+                            "50th_percentile"
+                        ],
+                        "labels": {
+                            "time_average": "Time average",
+                            "50th_percentile": "50th percentile"
+                        },
+                        "columns": 3
+                    },
+                    {
+                        "label": "Percentiles",
+                        "details": {
+                            "displayaslist": False,
+                            "accordionGroups": True,
+                            "accordionOptions": {
+                                "searchable": False,
+                                "openGroups": []
+                            },
+                            "id": 10,
+                            "groups": [
+                                {   
+                                    "label": "Lower tercile",
+                                    "columns": 3,
+                                    "values": [
+                                        "10th_percentile",
+                                        "25th_percentile",
+                                        "1st_percentile",
+                                        "5th_percentile"
+                                    ],
+                                    "labels": {
+                                        "10th_percentile": "10th percentile",
+                                        "25th_percentile": "25th percentile",
+                                        "1st_percentile": "1st percentile",
+                                        "5th_percentile": "5th percentile"
+                                    }
+                                },
+                                {
+                                    "label": "Upper tercile",
+                                    "columns": 3,
+                                    "values": [
+                                        "75th_percentile",
+                                        "90th_percentile",
+                                        "95th_percentile",
+                                        "97th_percentile",
+                                        "99th_percentile"
+                                    ],
+                                    "labels": {
+                                        "75th_percentile": "75th percentile",
+                                        "90th_percentile": "90th percentile",
+                                        "95th_percentile": "95th percentile",
+                                        "97th_percentile": "97th percentile",
+                                        "99th_percentile": "99th percentile"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "displayaslist": False,
+                "accordionGroups": True,
+                "accordionOptions": {
+                    "searchable": False,
+                    "openGroups": [
+                        "Mean and median",
+                        "Percentiles"
+                    ]
+                }
+            },
+            "id": 2
+        },
+        {
+            "name": "experiment",
+            "label": "Experiment",
+            "help": "Each experiment is a simulation of the climate system under specific hypothesis. Please, consult the Documentation section to learn more about these experiments.",
+            "required": True,
+            "css": "todo",
+            "type": "StringListWidget",
+            "details": {
+                "values": [
+                    "rcp4_5",
+                    "rcp8_5"
+                ],
+                "columns": 3,
+                "labels": {
+                    "rcp4_5": "RCP4.5",
+                    "rcp8_5": "RCP8.5"
+                }
+            },
+            "id": 3
+        },
+        {
+            "name": "ensemble_statistic",
+            "label": "Ensemble_statistic",
+            "help": None,
+            "required": True,
+            "css": "todo",
+            "type": "StringListWidget",
+            "details": {
+                "values": [
+                    "ensemble_members_average",
+                    "ensemble_members_standard_deviation"
+                ],
+                "columns": 3,
+                "labels": {
+                    "ensemble_members_average": "Ensemble members average",
+                    "ensemble_members_standard_deviation": "Ensemble members standard deviation"
+                }
+            },
+            "id": 4
+        },
+        {
+            "name": "text_widget_example",
+            "type": "FreeEditionWidget",
+            "label": "Text widget example",
+            "details": {
+                "accordion": False,
+                "default-open": True,
+                "text": "This is a `FreeEditionWidget` widget. Human beings would normally call this a text or markdown widget"
+            },
+            "id": 6
+        },
+        {
+            "type": "GeographicExtentWidget",
+            "label": "Area",
+            "name": "area",
+            "help": None,
+            "details": { 
+                "precision": 2,
+                "extentLabels": {
+                    "n": "North",
+                    "e": "East",
+                    "s": "South",
+                    "w": "West"       
+                },
+                "range": {
+                    "n": 90,
+                    "e": 180,
+                    "s": -90,
+                    "w": -180
+                },
+                "default": {
+                    "n": 90,
+                    "e": 180,
+                    "s": -90,
+                    "w": -180
+                }
+            }
+        },
+        {
+            "name": "global",
+            "type": "FreeEditionWidget",
+            "label": "Whole world",
+            "details": {
+                "accordion": False,
+                "default-open": True,
+                "text": "Select whole world"
+            }
+        },
+        {
+            "type": "ExclusiveGroupWidget",
+            "label": "Geographical area",
+            "help": "Lorem ipsum dolor",
+            "name": "area_group",
+            "children": [
+                "global",
+                "area"
+                ],
+            "details": {
+                "default": "global"
+            }
+        }
+    ]
+    # constraints = []
+    adaptor = DummyCdsAdaptor(form, constraints=[])
+
+    request = {
+        "inputs": {
+            "variable": "maximum_temperature",
+            "freeform": [""],
+            "latitude": ["2"],
+            "date_range": ["2023-10-12/2023-10-24"],
+            "location[0]": ["0"],
+            "location[1]": ["0"],
+        }
+    }
+    
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 1
+    assert costs["number_of_fields"] == 1
