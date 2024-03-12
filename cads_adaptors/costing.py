@@ -135,11 +135,14 @@ def estimate_size(
 ) -> int:
     ignore_keys += get_excluded_keys(form)
 
-    this_selection: dict[str, set[str]] = {
-        k: ensure_set(v) for k, v in selection.items() if k not in ignore_keys
-    }
-
     form_key_values = constraints.parse_form(form)
+
+    # Build selection for calculating costs, any missing fields are filled with a DUMMY value,
+    #  This may be problematic for DateRangeWidget
+    this_selection: dict[str, set[str]] = {
+        widget: ensure_set(selection.get(widget, "DUMMY"))
+        for widget in form.keys() if widget not in ignore_keys
+    }
 
     return (
         estimate_granules(
