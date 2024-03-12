@@ -141,7 +141,7 @@ def estimate_size(
     #  This may be problematic for DateRangeWidget
     this_selection: dict[str, set[str]] = {
         widget: ensure_set(selection.get(widget, "DUMMY"))
-        for widget in form.keys() if widget not in ignore_keys
+        for widget in form_key_values.keys() if widget not in ignore_keys
     }
 
     return (
