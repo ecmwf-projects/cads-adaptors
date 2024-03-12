@@ -4,7 +4,7 @@ from typing import Any
 
 from . import constraints
 
-EXCLUDED_WIDGETS = ["GeographicExtentWidget", "UnknownWidget"]
+EXCLUDED_WIDGETS = ["GeographicExtentWidget", "DateRangeWidget", "UnknownWidget"]
 
 # TODO: Handle DateRangeWidget
 # , "DateRangeWidget"]
