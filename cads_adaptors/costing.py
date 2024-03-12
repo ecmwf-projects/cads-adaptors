@@ -140,7 +140,7 @@ def estimate_size(
     # Build selection for calculating costs, any missing fields are filled with a DUMMY value,
     #  This may be problematic for DateRangeWidget
     this_selection: dict[str, set[str]] = {
-        widget: ensure_set(selection.get(widget, values[0]))
+        widget: ensure_set(selection.get(widget, list(values)[0]))
         for widget, values in form_key_values.items() if widget not in ignore_keys
     }
 
