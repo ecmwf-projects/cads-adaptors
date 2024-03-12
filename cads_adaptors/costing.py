@@ -33,44 +33,38 @@ def remove_duplicates(found: list[dict[str, set[str]]]) -> list[dict[str, str]]:
     combinations: list[dict[str, str]] = []
     for d in found:
         combinations += compute_combinations(d)
-    print(combinations)
     granules = {tuple(combination.items()) for combination in combinations}
     return [dict(granule) for granule in granules]
 
 
 def count_combinations(
     found: list[dict[str, set[str]]],
-    selected_but_always_valid: list[str] = [],
     weighted_keys: dict[str, int] = dict(),
     weighted_values: dict[str, dict[str, int]] = dict(),
 ) -> int:  # TODO: integer is not strictly required
     granules = remove_duplicates(found)
-    print(granules)
+
     if len(weighted_values) > 0:
-        n_granules = 0
+        w_granules = []  # Weight of each granule
         for granule in granules:
             w_granule = 1
             for key, w_values in weighted_values.items():
-                if key in granule or key in selected_but_always_valid:
+                if key in granule:
                     for value, weight in w_values.items():
                         if value == granule[key]:
                             w_granule *= weight
-            n_granules += w_granule
+            w_granules.append(w_granule)
     else:
-        n_granules = len(granules)
+        w_granules = [1 for _ in granules]
 
-    if n_granules:
-        for key, weight in weighted_keys.items():
-            values = [granule[key] for granule in granules if key in granule]
-            unique_values = set(values)
-            n_unique_values = len(unique_values)
-            # Factor to account for fact that not all granules will have the weighted keys
-            included_factor = len(values) / len(granules)
-            # Need to subtract 1 from weight as weight=1 is accounted for in initial estimate
-            # n_granules += n_granules * (int(n_unique_values * (weight-1) * included_factor)-1)
-            # Equivalent to above, but simplified:
-            n_granules *= int(n_unique_values * included_factor * (weight - 1))
+    for key, weight in weighted_keys.items():
+        w_granules = [
+            w_granule * weight
+            for w_granule, granule in zip(w_granules, granules)
+            if key in granule
+        ]
 
+    n_granules = sum(w_granules)
     return n_granules
 
 
@@ -84,14 +78,16 @@ def estimate_granules(
     ] = dict(),  # Mapping of widget key to values-weights
     safe: bool = True,
 ) -> int:
-    # If no constraints, 
-    if len(_constraints)>0:
+    # If no constraints,
+    if len(_constraints) > 0:
         # Ensure contraints are sets
         _constraints = [
             {k: set(v) for k, v in constraint.items()} for constraint in _constraints
         ]
         constraint_keys = constraints.get_keys(_constraints)
-        always_valid = constraints.get_always_valid_params(form_key_values, constraint_keys)
+        always_valid = constraints.get_always_valid_params(
+            form_key_values, constraint_keys
+        )
         selected_but_always_valid = {
             k: v for k, v in selection.items() if k in always_valid
         }
@@ -115,21 +111,17 @@ def estimate_granules(
                     ok = False
                     break
             if ok:
+                intersection.update(selected_but_always_valid)
                 if intersection not in found:
                     found.append(intersection)
     else:
-        selected_but_always_valid = selection
+        selected_but_always_valid = {}
         found = [selection]
-    always_valid_multiplier = math.prod(map(len, selected_but_always_valid.values()))
     if safe:
-        n_granules = count_combinations(
-            found, list(selected_but_always_valid), weighted_keys, weighted_values
-        )
-        return (n_granules) * max(1, always_valid_multiplier)
+        n_granules = count_combinations(found, weighted_keys, weighted_values)
+        return n_granules
     else:
-        return sum([math.prod([len(e) for e in d.values()]) for d in found]) * max(
-            1, always_valid_multiplier
-        )
+        return sum([math.prod([len(e) for e in d.values()]) for d in found])
 
 
 def estimate_size(
@@ -154,8 +146,6 @@ def estimate_size(
         for widget, values in form_key_values.items()
         if widget not in ignore_keys
     }
-
-    print(this_selection)
 
     return (
         estimate_granules(
