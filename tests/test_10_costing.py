@@ -726,11 +726,8 @@ def test_estimate_costs_2() -> None:
         "weighted_keys": {"variable": 2},
         "weighted_values": {
             "nested_variable": {
-                "total_column_acetone": 2,
                 "total_column_acetone_product": 2,
-                "total_column_aldehydes": 2,
-                "total_column_amine": 2,
-                "total_column_ammonia": 2,
+                "ammonium_aerosol_optical_depth_550nm": 3,
             }
         },
     }
@@ -739,5 +736,24 @@ def test_estimate_costs_2() -> None:
         form, constraints=[], costing={"costing_kwargs": costing_kwargs}
     )
     costs = weighted_adaptor.estimate_costs(request)
-    assert costs["size"] == 4
+    assert costs["size"] == 8
     assert costs["number_of_fields"] == 2
+
+    request = {
+        "inputs": {
+            "variable": "maximum_temperature",
+            "nested_variable": [
+                "total_column_acetone_product",
+                "ammonium_aerosol_optical_depth_550nm",
+            ],
+            "freeform": [""],
+            "latitude": ["2"],
+            "date_range": ["2023-10-12/2023-10-24"],
+            "location[0]": ["0"],
+            "location[1]": ["0"],
+        }
+    }
+    costs = weighted_adaptor.estimate_costs(request)
+    assert costs["size"] == 10
+    assert costs["number_of_fields"] == 2
+    
