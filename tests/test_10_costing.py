@@ -756,4 +756,3 @@ def test_estimate_costs_2() -> None:
     costs = weighted_adaptor.estimate_costs(request)
     assert costs["size"] == 10
     assert costs["number_of_fields"] == 2
-    
