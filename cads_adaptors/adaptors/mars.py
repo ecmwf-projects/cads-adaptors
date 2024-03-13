@@ -12,6 +12,10 @@ def convert_format(
     context: Context,
     **kwargs,
 ) -> list:
+    if isinstance(data_format, (list, tuple)):
+        assert len(data_format) == 1, "Only one value of data_format is allowed"
+        data_format = data_format[0]
+
     # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
     if data_format in ["netcdf", "nc", "netcdf_compressed"]:
         if data_format in ["netcdf_compressed"]:
@@ -114,7 +118,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         data_format = request.pop("data_format", "grib")
 
         # Allow user to provide format conversion kwargs
-        convert_kwargs = request.pop("convert_kwargs", {})
+        convert_kwargs: dict[str, Any] = {
+            **self.config.get("format_conversion_kwargs", dict()),
+            **request.pop("format_conversion_kwargs", dict()),
+        }
 
         # To preserve existing ERA5 functionality the default download_format="as_source"
         request.setdefault("download_format", "as_source")
