@@ -27,6 +27,9 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         import os
         print('2'*100 +'\n', os.getcwd(), paths)
+        os.system("ls")
+        import glob
+        print(glob.glob("*"))
         if area is not None:
             paths = area_selector.area_selector_paths(paths, area, self.context)
 
