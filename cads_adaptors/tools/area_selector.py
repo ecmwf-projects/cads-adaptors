@@ -180,8 +180,9 @@ def area_selector(
         # context.logger.info(f"selections: {sub_selections}")
 
         ds_area = xr.concat(sub_selections, dim=lon_key)
-        ds_area = ds_area.compute()
+        # ds_area = ds_area.compute()
         # context.logger.info(f"ds_area: {ds_area}")
+        print(ds_area)
         return ds_area
 
     else:
