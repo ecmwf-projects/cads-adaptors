@@ -198,10 +198,8 @@ def area_selector_paths(
     # We try to select the area for all paths, if any fail we return the original paths
     out_paths = []
     import  os, glob
-    print('3'*100 +'\n', paths)
-    print(glob.glob(os.path.dirname(paths[0])+'/*'))
+    print('3'*100 +'\n', paths, glob.glob(os.path.dirname(paths[0])+'/*'))
     for path in paths:
-        print('4', os.getcwd(), glob.glob(os.path.dirname(path)+'/*'))
         ds_area = area_selector(path, context, area=area)
         if out_format in ["nc", "netcdf"]:
             out_fname = ".".join(
