@@ -25,7 +25,8 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         urls = [ru["url"] for ru in requests_urls]
         paths = url_tools.try_download(urls, context=self.context)
 
-        print('2'*100, paths)
+        import os
+        print('2'*100 +'\n', os.getcwd(), paths)
         if area is not None:
             paths = area_selector.area_selector_paths(paths, area, self.context)
 

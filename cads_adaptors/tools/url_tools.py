@@ -51,7 +51,6 @@ def try_download(urls: List[str], context: Context) -> List[str]:
             f"Request empty. No data found from the following URLs:"
             f"\n{yaml.safe_dump(urls, indent=2)} "
         )
-    print('#'*100, paths)
     return paths
 
 
