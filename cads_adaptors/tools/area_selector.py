@@ -175,11 +175,11 @@ def area_selector(
                         spatial_info["lat_key"]: lat_slice,
                         spatial_info["lon_key"]: lon_slice,
                     }
-                )
+                ).compute()
             )
         context.logger.debug(f"selections: {sub_selections}")
 
-        ds_area = xr.concat(sub_selections, dim=lon_key).compute()
+        ds_area = xr.concat(sub_selections, dim=lon_key)
         context.logger.debug(f"ds_area: {ds_area}")
         return ds_area
 
