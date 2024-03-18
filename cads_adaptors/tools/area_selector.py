@@ -179,7 +179,7 @@ def area_selector(
             )
         context.logger.debug(f"selections: {sub_selections}")
 
-        ds_area = xr.concat(sub_selections, dim=lon_key)
+        ds_area = xr.concat(sub_selections, dim=lon_key).compute()
         context.logger.debug(f"ds_area: {ds_area}")
         return ds_area
 
@@ -202,7 +202,7 @@ def area_selector_paths(
                 path.split(".")[:-1] + ["area-subset"] + [str(a) for a in area] + ["nc"]
             )
             context.logger.debug(f"out_fname: {out_fname}")
-            ds_area.compute().to_netcdf(out_fname)
+            ds_area.to_netcdf(out_fname)
             out_paths.append(out_fname)
         else:
             raise NotImplementedError(f"Output format not recognised {out_format}")
