@@ -142,7 +142,7 @@ def area_selector(
     # ds = ek_d.to_xarray(**to_xarray_kwargs)
     # ds.load()
 
-    ds = xr.open_dataset(infile, **to_xarray_kwargs)
+    ds = xr.open_dataset(infile, **to_xarray_kwargs, chunks={'time': 1})
 
     spatial_info = eka_tools.get_spatial_info(ds)
     lon_key = spatial_info["lon_key"]
