@@ -177,11 +177,13 @@ def area_selector(
                     }
                 )
             )
-        context.logger.info(f"selections: {sub_selections}")
+        # context.logger.info(f"selections: {sub_selections}")
 
         ds_area = xr.concat(sub_selections, dim=lon_key)
-        print(ds_area)
-        context.logger.info(f"ds_area: {ds_area}")
+        print(1, ds_area)
+        ds_area.load()
+        print(2, ds_area)
+        # context.logger.info(f"ds_area: {ds_area}")
         return ds_area
 
     else:
@@ -198,6 +200,7 @@ def area_selector_paths(
     out_paths = []
     for path in paths:
         ds_area = area_selector(path, context, area=area)
+        print(3, ds_area)
         if out_format in ["nc", "netcdf"]:
             out_fname = ".".join(
                 path.split(".")[:-1] + ["area-subset"] + [str(a) for a in area] + ["nc"]
