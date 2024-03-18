@@ -165,7 +165,7 @@ def area_selector(
             context,
         )[0]
 
-        context.logger.info(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
+        # context.logger.info(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
 
         sub_selections = []
         for lon_slice in lon_slices:
@@ -180,9 +180,7 @@ def area_selector(
         # context.logger.info(f"selections: {sub_selections}")
 
         ds_area = xr.concat(sub_selections, dim=lon_key)
-        print(1, ds_area)
-        ds_area.load()
-        print(2, ds_area)
+        ds_area = ds_area.compute()
         # context.logger.info(f"ds_area: {ds_area}")
         return ds_area
 
