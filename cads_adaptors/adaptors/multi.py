@@ -1,5 +1,5 @@
-import typing as T, Any
 from copy import deepcopy
+from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
@@ -10,8 +10,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
     @staticmethod
     def split_request(
         full_request: Request,  # User request
-        this_values: T.Dict[str, T.Any],  # key: [values] for the adaptor component
-        **config: T.Any,
+        this_values: dict[str, Any],  # key: [values] for the adaptor component
+        **config: Any,
     ) -> Request:
         """
         Basic request splitter, splits based on whether the values are relevant to
@@ -36,8 +36,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 return {}
 
         return this_request
-   
-    def _pre_retrieve(self, request: Request[str, T.Any], default_download_format="zip"):
+
+    def _pre_retrieve(self, request, default_download_format="zip"):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", False)
         self.download_format = request.pop("download_format", default_download_format)
@@ -48,7 +48,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         self._pre_retrieve(request, default_download_format="zip")
 
         these_requests = {}
-        exception_logs: T.Dict[str, str] = {}
+        exception_logs: dict[str, str] = {}
         self.context.logger.debug(f"MultiAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
@@ -108,7 +108,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             request.setdefault("download_format", "zip")
 
         # Allow user to provide format conversion kwargs
-        convert_kwargs: dict[str, Any] = {
+        convert_kwargs = {
             **self.config.get("format_conversion_kwargs", dict()),
             **request.pop("format_conversion_kwargs", dict()),
         }
