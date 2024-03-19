@@ -148,6 +148,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         if daily_mean:
             paths = [daily_mean(result)]
         else:
+            self.context.logger.info(f"Convert kwargs: {convert_kwargs}")
             paths = convert_format(
                 result, data_format, context=self.context, **convert_kwargs
             )
