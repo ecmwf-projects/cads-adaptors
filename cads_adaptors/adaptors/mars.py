@@ -155,7 +155,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # A check to ensure that if there is more than one path, and download_format
         #  is as_source, we over-ride and zip up the files
-        if len(paths) >= 1 and self.download_format == "as_source":
+        if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"
 
         return self.make_download_object(paths)
