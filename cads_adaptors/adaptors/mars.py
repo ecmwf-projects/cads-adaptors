@@ -136,4 +136,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             result, data_format, context=self.context, **convert_kwargs
         )
 
+        if len(paths) >= 1 and self.download_format == "as_source":
+            self.download_format = "zip"
+
         return self.make_download_object(paths)

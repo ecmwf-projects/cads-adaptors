@@ -60,8 +60,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def _pre_retrieve(self, request: Request, default_download_format="zip"):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", False)
-        self.download_format = request.pop("download_format", default_download_format)
         self.mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
+
+        self.download_format = self.mapped_request.pop("download_format", default_download_format)
 
     def make_download_object(
         self,
