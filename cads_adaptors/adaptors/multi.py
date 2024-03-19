@@ -1,4 +1,4 @@
-import typing as T
+import typing as T, Any
 from copy import deepcopy
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
@@ -36,13 +36,16 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 return {}
 
         return this_request
+   
+    def _pre_retrieve(self, request: Request[str, T.Any], default_download_format="zip"):
+        self.input_request = deepcopy(request)
+        self.receipt = request.pop("receipt", False)
+        self.download_format = request.pop("download_format", default_download_format)
 
     def retrieve(self, request: Request):
         from cads_adaptors.tools import adaptor_tools
 
-        self.input_request = deepcopy(request)
-        self.receipt = request.pop("receipt", False)
-        self.download_format = request.pop("download_format", "zip")
+        self._pre_retrieve(request, default_download_format="zip")
 
         these_requests = {}
         exception_logs: T.Dict[str, str] = {}
@@ -95,13 +98,22 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         from cads_adaptors.adaptors.mars import convert_format, execute_mars
         from cads_adaptors.tools import adaptor_tools
 
-        self.input_request = deepcopy(request)
-        self.receipt = request.pop("receipt", False)
-        self.download_format = request.pop("download_format", "as_source")
-
         # Format of data files, grib or netcdf
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
+
+        # Account from some horribleness from teh legacy system:
+        if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
+            data_format = "netcdf"
+            request.setdefault("download_format", "zip")
+
+        # Allow user to provide format conversion kwargs
+        convert_kwargs: dict[str, Any] = {
+            **self.config.get("format_conversion_kwargs", dict()),
+            **request.pop("format_conversion_kwargs", dict()),
+        }
+
+        self._pre_retrieve(request, default_download_format="as_source")
 
         mapped_requests = []
         self.context.logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
@@ -126,7 +138,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         )
         result = execute_mars(mapped_requests, context=self.context)
 
-        paths = convert_format(result, data_format, self.context)
+        paths = convert_format(result, data_format, self.context, **convert_kwargs)
 
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"
