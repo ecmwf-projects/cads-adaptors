@@ -119,7 +119,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-
+        # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
 

@@ -2,7 +2,6 @@ from copy import deepcopy
 
 import numpy as np
 import xarray as xr
-from earthkit import data
 from earthkit.aggregate import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
@@ -199,8 +198,10 @@ def area_selector_paths(
 ):
     # We try to select the area for all paths, if any fail we return the original paths
     out_paths = []
-    import  os, glob
-    print('3'*100 +'\n', paths, glob.glob(os.path.dirname(paths[0])+'/*'))
+    import glob
+    import os
+
+    print("3" * 100 + "\n", paths, glob.glob(os.path.dirname(paths[0]) + "/*"))
     for path in paths:
         ds_area = area_selector(path, context, area=area)
         if out_format in ["nc", "netcdf"]:

@@ -64,7 +64,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # if "embargo" in self.config:
         #     self.mapped_request = date_tools.implement_embargo(request, self.config["embargo"])
 
-        self.download_format = self.mapped_request.pop("download_format", default_download_format)
+        self.download_format = self.mapped_request.pop(
+            "download_format", default_download_format
+        )
 
     def make_download_object(
         self,
