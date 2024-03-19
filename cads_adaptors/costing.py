@@ -78,7 +78,6 @@ def estimate_granules(
     ] = dict(),  # Mapping of widget key to values-weights
     safe: bool = True,
 ) -> int:
-    # If no constraints,
     if len(_constraints) > 0:
         # Ensure contraints are sets
         _constraints = [
