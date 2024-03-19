@@ -119,12 +119,9 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        # TODO: Remove legacy syntax all together
-        if "format" in request:
-            _data_format = request.pop("format")
-            request.setdefault("data_format", _data_format)
 
-        data_format = request.pop("data_format", "grib")
+        data_format = request.pop("format", "grib")
+        data_format = request.pop("data_format", data_format)
 
         # Account from some horribleness from teh legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
