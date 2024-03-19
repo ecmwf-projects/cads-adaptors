@@ -37,7 +37,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return this_request
 
-    def _pre_retrieve(self, request: Request[str, Any], default_download_format="zip"):
+    def _pre_retrieve(self, request, default_download_format="zip"):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", False)
         self.download_format = request.pop("download_format", default_download_format)
@@ -49,7 +49,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         these_requests = {}
         exception_logs: dict[str, str] = {}
-        self.context.logger.info(f"MultiAdaptor, full_request: {request}")
+        self.context.logger.debug(f"MultiAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
@@ -113,7 +113,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             request.setdefault("download_format", "zip")
 
         # Allow user to provide format conversion kwargs
-        convert_kwargs: dict[str, Any] = {
+        convert_kwargs = {
             **self.config.get("format_conversion_kwargs", dict()),
             **request.pop("format_conversion_kwargs", dict()),
         }
