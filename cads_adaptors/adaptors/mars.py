@@ -126,6 +126,11 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         data_format = request.pop("data_format", "grib")
 
+        # Account from some horribleness from teh legacy system:
+        if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
+            data_format = "netcdf"
+            request.setdefault("download_format", "zip")
+
         # Allow user to provide format conversion kwargs
         convert_kwargs: dict[str, Any] = {
             **self.config.get("format_conversion_kwargs", dict()),
@@ -135,9 +140,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         daily_mean = request.pop("daily_mean", False)
 
         # To preserve existing ERA5 functionality the default download_format="as_source"
-        request.setdefault("download_format", "as_source")
-
-        self._pre_retrieve(request=request)
+        self._pre_retrieve(request=request, default_download_format="as_source")
 
         self.context.logger.info(f"MARS Request: {request}")
 
@@ -152,5 +155,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             paths = convert_format(
                 result, data_format, context=self.context, **convert_kwargs
             )
+
+        # A check to ensure that if there is more than one path, and download_format
+        #  is as_source, we over-ride and zip up the files
+        if len(paths) >= 1 and self.download_format == "as_source":
+            self.download_format = "zip"
 
         return self.make_download_object(paths)
