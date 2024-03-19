@@ -45,7 +45,7 @@ def daily_mean(in_grib_file):
     daily_mean_data = temporal.daily_mean(in_grib_file)
     daily_mean_data.to_netcdf("data.nc")
 
-    return "data.nc"
+    return ["data.nc"]
 
 
 def execute_mars(
