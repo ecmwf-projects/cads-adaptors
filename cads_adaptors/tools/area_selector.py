@@ -3,6 +3,7 @@ import dask
 import numpy as np
 import xarray as xr
 from earthkit.aggregate import tools as eka_tools
+from earthkit import data as ek_data
 
 from cads_adaptors.adaptors import Context
 
@@ -136,11 +137,11 @@ def area_selector(
     north, east, south, west = area
 
     # # open object as earthkit data object
-    # ek_d = data.from_source("file", infile)
+    ek_d = ek_data.from_source("file", infile)
 
-    # ds = ek_d.to_xarray(**to_xarray_kwargs)
+    ds = ek_d.to_xarray(**to_xarray_kwargs)
 
-    ds = xr.open_dataset(infile, **to_xarray_kwargs)
+    # ds = xr.open_dataset(infile, **to_xarray_kwargs)
 
     spatial_info = eka_tools.get_spatial_info(ds)
     lon_key = spatial_info["lon_key"]
