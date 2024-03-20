@@ -24,8 +24,11 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         # try to download URLs
         urls = [ru["url"] for ru in requests_urls]
         download_kwargs: dict[str, Any] = self.config.get("download_kwargs", {})
+        # Handle legacy syntax for authentication
         if "auth" in self.config:
-            download_kwargs.setdefault("auth", self.config["auth"])
+            download_kwargs.setdefault(
+                "auth", (self.config["auth"]["username"], self.config["auth"]["password"])
+        )
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
         if area is not None:
