@@ -33,11 +33,10 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
-        print(kwargs)
-        context.logger.info(kwargs)
         if dir:
             os.makedirs(dir, exist_ok=True)
         try:
+            context.logger.info(url, path, kwargs)
             multiurl.download(url, path, **kwargs)
         except Exception as exc:
             context.logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")
