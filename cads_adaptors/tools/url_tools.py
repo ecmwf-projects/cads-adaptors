@@ -28,7 +28,7 @@ def requests_to_urls(
                 yield {"url": url, "req": req}
 
 
-def try_download(urls: List[str], context: Context) -> List[str]:
+def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
     paths = []
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
@@ -36,7 +36,7 @@ def try_download(urls: List[str], context: Context) -> List[str]:
         if dir:
             os.makedirs(dir, exist_ok=True)
         try:
-            multiurl.download(url, path)
+            multiurl.download(url, path, **kwargs)
         except Exception as exc:
             context.logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")
         else:
