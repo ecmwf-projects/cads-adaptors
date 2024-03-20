@@ -36,7 +36,7 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
         if dir:
             os.makedirs(dir, exist_ok=True)
         try:
-            context.logger.info(url, path, kwargs)
+            print(url, path, kwargs)
             multiurl.download(url, path, **kwargs)
         except Exception as exc:
             context.logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")
