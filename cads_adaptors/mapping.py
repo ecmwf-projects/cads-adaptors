@@ -174,7 +174,7 @@ def apply_mapping(request, mapping):
     # Set defaults
 
     for name, values in defaults.items():
-        request.setdefaults(name, values)
+        request.setdefault(name, values)
 
     for name in options.get("wants_lists", []):
         if name in request:

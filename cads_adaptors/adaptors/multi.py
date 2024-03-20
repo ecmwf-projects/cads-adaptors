@@ -97,10 +97,11 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", False)
-        self.download_format = request.pop("download_format", "zip")
+        self.download_format = request.pop("download_format", "as_source")
 
         # Format of data files, grib or netcdf
         data_format = request.pop("format", "grib")
+        data_format = request.pop("data_format", data_format)
 
         mapped_requests = []
         self.context.logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
@@ -126,5 +127,8 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         result = execute_mars(mapped_requests, context=self.context)
 
         paths = convert_format(result, data_format, self.context)
+
+        if len(paths) > 1 and self.download_format == "as_source":
+            self.download_format = "zip"
 
         return self.make_download_object(paths)

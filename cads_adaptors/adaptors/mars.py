@@ -1,7 +1,8 @@
 import os
-from typing import BinaryIO, Union
+from typing import Any, BinaryIO, Union
 
 from cads_adaptors.adaptors import Context, Request, cds
+from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
 
 
@@ -11,6 +12,10 @@ def convert_format(
     context: Context,
     **kwargs,
 ) -> list:
+    if isinstance(data_format, (list, tuple)):
+        assert len(data_format) == 1, "Only one value of data_format is allowed"
+        data_format = data_format[0]
+
     # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
     if data_format in ["netcdf", "nc", "netcdf_compressed"]:
         if data_format in ["netcdf_compressed"]:
@@ -37,12 +42,17 @@ def convert_format(
 def execute_mars(
     request: Union[Request, list],
     context: Context,
+    config: dict[str, Any] = dict(),
     target: str = "data.grib",
     mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
 ) -> str:
     import subprocess
 
     requests = ensure_list(request)
+    if config.get("embargo") is not None:
+        requests, _cacheable = implement_embargo(requests, config["embargo"])
+    context.add_stdout(f"{requests}")
+
     with open("r", "w") as fp:
         for i, req in enumerate(requests):
             print("retrieve", file=fp)
@@ -108,14 +118,19 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         data_format = request.pop("data_format", "grib")
 
         # Allow user to provide format conversion kwargs
-        convert_kwargs = request.pop("convert_kwargs", {})
+        convert_kwargs: dict[str, Any] = {
+            **self.config.get("format_conversion_kwargs", dict()),
+            **request.pop("format_conversion_kwargs", dict()),
+        }
 
         # To preserve existing ERA5 functionality the default download_format="as_source"
         request.setdefault("download_format", "as_source")
 
         self._pre_retrieve(request=request)
 
-        result = execute_mars(self.mapped_request, context=self.context)
+        result = execute_mars(
+            self.mapped_request, context=self.context, config=self.config
+        )
 
         paths = convert_format(
             result, data_format, context=self.context, **convert_kwargs
