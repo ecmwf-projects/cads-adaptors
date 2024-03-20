@@ -18,35 +18,34 @@ def grib_to_netcdf_files(
     grib_file = os.path.realpath(grib_file)
 
     import cfgrib
+    import dask
 
-    if open_datasets_kwargs is None:
-        open_datasets_kwargs = {
-            "chunks": {"time": 1, "step": 1, "plev": 1}  # Auto chunk by field
-        }
-    datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
+    with dask.config.set(scheduler="threads"):
+        if open_datasets_kwargs is None:
+            open_datasets_kwargs = {
+                "chunks": {"time": 1, "step": 1, "plev": 1}  # Auto chunk by field
+            }
+        datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
 
-    if compression_options == "default":
-        compression_options = DEFAULT_COMPRESSION_OPTIONS
+        if compression_options == "default":
+            compression_options = DEFAULT_COMPRESSION_OPTIONS
 
-    if compression_options is not None:
-        to_netcdf_kwargs.setdefault(
-            "engine", compression_options.pop("engine", "h5netcdf")
-        )
-    print("open_datasets_kwargs", open_datasets_kwargs)
-    print("to_netcdf_kwargs", to_netcdf_kwargs)
-    print("compression_options", compression_options)
-
-    out_nc_files = []
-    for i, dataset in enumerate(datasets):
         if compression_options is not None:
-            to_netcdf_kwargs.update(
-                {
-                    "encoding": {var: compression_options for var in dataset},
-                }
+            to_netcdf_kwargs.setdefault(
+                "engine", compression_options.pop("engine", "h5netcdf")
             )
-        out_fname = f"{fname}_{i}.nc"
-        dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
-        out_nc_files.append(out_fname)
+
+        out_nc_files = []
+        for i, dataset in enumerate(datasets):
+            if compression_options is not None:
+                to_netcdf_kwargs.update(
+                    {
+                        "encoding": {var: compression_options for var in dataset},
+                    }
+                )
+            out_fname = f"{fname}_{i}.nc"
+            dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
+            out_nc_files.append(out_fname)
 
     del dataset
     del datasets
