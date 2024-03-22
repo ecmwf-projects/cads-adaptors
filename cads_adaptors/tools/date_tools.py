@@ -310,7 +310,7 @@ def implement_embargo(
     convert months to days, taking into account a number of days in a given month,
     then remove months key from embargo.
     """
-    from datetime import datetime, timedelta, UTC
+    from datetime import UTC, datetime, timedelta
 
     from dateutil.parser import parse as dtparse
 
