@@ -27,8 +27,9 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         # Handle legacy syntax for authentication
         if "auth" in self.config:
             download_kwargs.setdefault(
-                "auth", (self.config["auth"]["username"], self.config["auth"]["password"])
-        )
+                "auth",
+                (self.config["auth"]["username"], self.config["auth"]["password"]),
+            )
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
         if area is not None:
