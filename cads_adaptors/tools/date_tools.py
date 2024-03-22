@@ -310,20 +310,20 @@ def implement_embargo(
     convert months to days, taking into account a number of days in a given month,
     then remove months key from embargo.
     """
-    from datetime import datetime, timedelta
+    from datetime import UTC, datetime, timedelta
 
     from dateutil.parser import parse as dtparse
 
     embargo.setdefault("days", 0)
-    embargo["days"] += months_to_days(embargo.pop("months", 0), datetime.utcnow())
+    embargo["days"] += months_to_days(embargo.pop("months", 0), datetime.now(UTC))
     embargo_error_time_format: str = embargo.pop("error_time_format", "%Y-%m-%d %H:00")
-    embargo_datetime = datetime.utcnow() - timedelta(**embargo)
+    embargo_datetime = datetime.now(UTC) - timedelta(**embargo)
     out_requests = []
     for req in requests:
         _out_dates = []
         _extra_requests = []
         for date in req.get("date", []):
-            this_date = dtparse(date).date()
+            this_date = dtparse(str(date)).date()
             if this_date < embargo_datetime.date():
                 _out_dates.append(date)
             elif this_date == embargo_datetime.date():
