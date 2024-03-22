@@ -323,7 +323,7 @@ def implement_embargo(
         _out_dates = []
         _extra_requests = []
         for date in req.get("date", []):
-            this_date = dtparse(date).date()
+            this_date = dtparse(str(date)).date()
             if this_date < embargo_datetime.date():
                 _out_dates.append(date)
             elif this_date == embargo_datetime.date():
