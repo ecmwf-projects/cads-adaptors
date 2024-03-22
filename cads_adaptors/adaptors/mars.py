@@ -58,6 +58,8 @@ def execute_mars(
     import subprocess
 
     requests = ensure_list(request)
+    import json
+    print(f"{json.dumps(requests, indent=2)}")
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
     context.add_stdout(f"{requests}")
