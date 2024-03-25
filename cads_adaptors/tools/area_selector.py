@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+import dask
 import numpy as np
 import xarray as xr
 from earthkit import data
@@ -193,17 +194,21 @@ def area_selector(
 def area_selector_paths(
     paths: list, area: list, context: Context, out_format: str = "netcdf"
 ):
-    # We try to select the area for all paths, if any fail we return the original paths
-    out_paths = []
-    for path in paths:
-        ds_area = area_selector(path, context, area=area)
-        if out_format in ["nc", "netcdf"]:
-            out_fname = ".".join(
-                path.split(".")[:-1] + ["area-subset"] + [str(a) for a in area] + ["nc"]
-            )
-            context.logger.debug(f"out_fname: {out_fname}")
-            ds_area.to_netcdf(out_fname)
-            out_paths.append(out_fname)
-        else:
-            raise NotImplementedError(f"Output format not recognised {out_format}")
+    with dask.config.set(scheduler="threads"):
+        # We try to select the area for all paths, if any fail we return the original paths
+        out_paths = []
+        for path in paths:
+            ds_area = area_selector(path, context, area=area)
+            if out_format in ["nc", "netcdf"]:
+                out_fname = ".".join(
+                    path.split(".")[:-1]
+                    + ["area-subset"]
+                    + [str(a) for a in area]
+                    + ["nc"]
+                )
+                context.logger.debug(f"out_fname: {out_fname}")
+                ds_area.to_netcdf(out_fname)
+                out_paths.append(out_fname)
+            else:
+                raise NotImplementedError(f"Output format not recognised {out_format}")
     return out_paths
