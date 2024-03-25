@@ -111,11 +111,13 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         # TODO: Remove legacy syntax all together
-        if "format" in request:
-            _data_format = request.pop("format")
-            request.setdefault("data_format", _data_format)
+        data_format = request.pop("format", "grib")
+        data_format = request.pop("data_format", data_format)
 
-        data_format = request.pop("data_format", "grib")
+        # Account from some horribleness from teh legacy system:
+        if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
+            data_format = "netcdf"
+            request.setdefault("download_format", "zip")
 
         # Allow user to provide format conversion kwargs
         convert_kwargs: dict[str, Any] = {
@@ -124,9 +126,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         }
 
         # To preserve existing ERA5 functionality the default download_format="as_source"
-        request.setdefault("download_format", "as_source")
-
-        self._pre_retrieve(request=request)
+        self._pre_retrieve(request=request, default_download_format="as_source")
 
         result = execute_mars(
             self.mapped_request, context=self.context, config=self.config
@@ -135,5 +135,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         paths = convert_format(
             result, data_format, context=self.context, **convert_kwargs
         )
+
+        # A check to ensure that if there is more than one path, and download_format
+        #  is as_source, we over-ride and zip up the files
+        if len(paths) > 1 and self.download_format == "as_source":
+            self.download_format = "zip"
 
         return self.make_download_object(paths)
