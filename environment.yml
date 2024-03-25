@@ -15,7 +15,7 @@ dependencies:
 - cfgrib
 - h5netcdf
 - wget
-- multiurl>=0.2.3.2
+- multiurl>=0.3.1
 - pyyaml
 - DateTimeRange
 - pip:
