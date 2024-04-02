@@ -1,4 +1,5 @@
 import os
+import re
 from typing import BinaryIO
 
 from cads_adaptors import mapping
@@ -10,6 +11,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         super().__init__(*args, **kwargs)
         self.facets = self.config.get("facets", dict())
         self.facet_groups = self.config.get("facet_groups", dict())
+        self.facet_search = self.config.get("facet_search", dict())
         self.facets_order = self.config.get("facets_order", [])
 
     def retrieve(self, request: Request) -> BinaryIO:
@@ -103,14 +105,28 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
+            tmp_request = request.copy()
 
             for key, groups in self.facet_groups.items():
                 if key in candidate:
                     for group in groups:
                         if candidate[key] in groups[group]:
                             candidate[key] = group
+            
+            regex_facets = {
+                key: self.facet_search[key].format(**{key: tmp_request.pop(key)})
+                for key in self.facet_search
+            }                                
 
-            if candidate.items() >= request.items():
+            if candidate.items() <= tmp_request.items():
+                for key, value in regex_facets.items():
+                    if not re.search(value, candidate[key]):
+                        break
+                else:
+                    continue
+                break
+                    
+            elif candidate.items() >= tmp_request.items():
                 break
         else:
             raise ValueError(f"No data found for request {request}")
