@@ -130,7 +130,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                 if key in candidate:
                     for group in groups:
                         if candidate[key] in groups[group]:
-                            tmp_request[key] = group
+                            tmp_request[key] = candidate[key]
             
             regex_facets = {
                 key: self.facet_search[key].format(**{key: tmp_request.pop(key)})
