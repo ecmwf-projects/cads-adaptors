@@ -65,7 +65,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     operator_kwargs.pop(key)
                     operator_kwargs = {
                         **operator_kwargs,
-                        **getattr(getattr(operators, klass)(request), method)()
+                        **getattr(getattr(operators, klass.capitalize())(request), method)()
                     }
             workflow = getattr(rookops, operator)(workflow, **operator_kwargs)
 
