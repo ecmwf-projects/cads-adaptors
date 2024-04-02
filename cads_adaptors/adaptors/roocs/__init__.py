@@ -60,7 +60,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         
         for operator, operator_kwargs in self.operators.items():
             tmp_kwargs = operator_kwargs.copy()
-            for key, value in tmp_kwargs.items():
+            for key, value in operator_kwargs.items():
                 if "." in value:
                     klass, method = value.split(".")
                     tmp_kwargs.pop(key)
