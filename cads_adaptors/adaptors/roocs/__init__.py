@@ -27,8 +27,6 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = mapping.apply_mapping(request, self.mapping)
 
         workflow = self.construct_workflow(request)
-        
-        raise ValueError(workflow._serialise())
 
         response = workflow.orchestrate()
 
