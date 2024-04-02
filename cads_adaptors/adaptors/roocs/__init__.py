@@ -46,7 +46,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         facets = self.find_facets(request)
 
-        dataset_id = ".".join(facets.values())
+        dataset_id = ".".join(facet for facet in facets.values() if facet is not None)
         variable_id = facets.get("variable", "")
 
         workflow = rookops.Input(variable_id, [dataset_id])
@@ -59,8 +59,6 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     kwargs = operator.update_kwargs(kwargs, parameter())
             if kwargs:
                 workflow = getattr(rookops, operator.ROOKI)(workflow, **kwargs)
-
-        print(list(eval(workflow._serialise())))
 
         if list(eval(workflow._serialise())) == ["inputs", "doc"]:
             workflow = rookops.Subset(workflow)
