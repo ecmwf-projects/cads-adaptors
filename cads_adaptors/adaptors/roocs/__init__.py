@@ -13,6 +13,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         self.facet_groups = self.config.get("facet_groups", dict())
         self.facet_search = self.config.get("facet_search", dict())
         self.facets_order = self.config.get("facets_order", [])
+        self.operators = self.config.get("operators", dict())
 
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools, url_tools
@@ -51,6 +52,17 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         variable_id = facets.get("variable", "")
 
         workflow = rookops.Input(variable_id, [dataset_id])
+        
+        for operator, operator_kwargs in self.operators.items():
+            for key, value in operator_kwargs.items():
+                if "." in value:
+                    klass, method = value.split(".")
+                    operator_kwargs.pop(key)
+                    operator_kwargs = {
+                        **operator_kwargs,
+                        **getattr(getattr(operators, klass)(request), method)()
+                    }
+            workflow = getattr(rookops, operator)(workflow, **operator_kwargs)
 
         for operator_class in operators.ROOKI_OPERATORS:
             operator = operator_class(request)
