@@ -59,15 +59,16 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         workflow = rookops.Input(variable_id, dataset_ids)
         
         for operator, operator_kwargs in self.operators.items():
-            for key, value in operator_kwargs.items():
+            tmp_kwargs = operator_kwargs.copy()
+            for key, value in tmp_kwargs.items():
                 if "." in value:
                     klass, method = value.split(".")
-                    operator_kwargs.pop(key)
-                    operator_kwargs = {
-                        **operator_kwargs,
+                    tmp_kwargs.pop(key)
+                    tmp_kwargs = {
+                        **tmp_kwargs,
                         **getattr(getattr(operators, klass.capitalize())(request), method)()
                     }
-            workflow = getattr(rookops, operator)(workflow, **operator_kwargs)
+            workflow = getattr(rookops, operator)(workflow, **tmp_kwargs)
 
         for operator_class in operators.ROOKI_OPERATORS:
             operator = operator_class(request)
