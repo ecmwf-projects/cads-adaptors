@@ -154,21 +154,21 @@ class Subset(Operator):
 
 class Concat(Operator):
     
-    def time(request):
-        if not any((key in request for key in ("year", "month", "day"))):
+    def time(self):
+        if not any((key in self.request for key in ("year", "month", "day"))):
             return
         
-        years = request.get('year')
+        years = self.request.get('year')
         if not isinstance(years, (list, tuple)):
             years = [years]
         years = [int(year) for year in years]
         
-        months = request.get('month', [1, 12])
+        months = self.request.get('month', [1, 12])
         if not isinstance(months, (list, tuple)):
             months = [months]
         months = [int(month) for month in months]
         
-        days = request.get('day', [1, 31])
+        days = self.request.get('day', [1, 31])
         if not isinstance(days, (list, tuple)):
             days = [days]
         days = [int(day) for day in days]
