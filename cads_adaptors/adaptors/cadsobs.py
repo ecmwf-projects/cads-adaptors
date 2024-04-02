@@ -50,6 +50,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             mapped_request["longitude_coverage"] = [area[1], area[3]]
         # Request parameters validation happens here, not sure about how to move this to
         # validate method
+        print(mapped_request)
         retrieve_args = RetrieveArgs(dataset=dataset_name, params=mapped_request)
         output_file = retrieve_observations(
             catalogue_url,

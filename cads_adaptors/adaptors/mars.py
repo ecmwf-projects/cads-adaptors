@@ -1,7 +1,8 @@
 import os
-from typing import BinaryIO, Union
+from typing import Any, BinaryIO, Union
 
 from cads_adaptors.adaptors import Context, Request, cds
+from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
 
 
@@ -11,6 +12,10 @@ def convert_format(
     context: Context,
     **kwargs,
 ) -> list:
+    if isinstance(data_format, (list, tuple)):
+        assert len(data_format) == 1, "Only one value of data_format is allowed"
+        data_format = data_format[0]
+
     # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
     if data_format in ["netcdf", "nc", "netcdf_compressed"]:
         if data_format in ["netcdf_compressed"]:
@@ -34,16 +39,32 @@ def convert_format(
     return paths
 
 
+def daily_mean(in_grib_file):
+    from earthkit.aggregate import temporal
+
+    daily_mean_data = temporal.daily_mean(in_grib_file)
+    daily_mean_data.to_netcdf("data.nc")
+
+    return ["data.nc"]
+
+
 def execute_mars(
     request: Union[Request, list],
     context: Context,
+    config: dict[str, Any] = dict(),
     target: str = "data.grib",
-    mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
+    mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "req"),
 ) -> str:
     import subprocess
 
     requests = ensure_list(request)
-    with open("r", "w") as fp:
+    import json
+    print(f"{json.dumps(requests, indent=2)}")
+    if config.get("embargo") is not None:
+        requests, _cacheable = implement_embargo(requests, config["embargo"])
+    context.add_stdout(f"{requests}")
+
+    with open("req", "w") as fp:
         for i, req in enumerate(requests):
             print("retrieve", file=fp)
             # Add target file to first request, any extra store in same grib
@@ -101,24 +122,42 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         # TODO: Remove legacy syntax all together
-        if "format" in request:
-            _data_format = request.pop("format")
-            request.setdefault("data_format", _data_format)
+        data_format = request.pop("format", "grib")
+        data_format = request.pop("data_format", data_format)
 
-        data_format = request.pop("data_format", "grib")
+        # Account from some horribleness from teh legacy system:
+        if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
+            data_format = "netcdf"
+            request.setdefault("download_format", "zip")
 
         # Allow user to provide format conversion kwargs
-        convert_kwargs = request.pop("convert_kwargs", {})
+        convert_kwargs: dict[str, Any] = {
+            **self.config.get("format_conversion_kwargs", dict()),
+            **request.pop("format_conversion_kwargs", dict()),
+        }
+
+        daily_mean = request.pop("daily_mean", False)
 
         # To preserve existing ERA5 functionality the default download_format="as_source"
-        request.setdefault("download_format", "as_source")
+        self._pre_retrieve(request=request, default_download_format="as_source")
 
-        self._pre_retrieve(request=request)
+        self.context.logger.info(f"MARS Request: {request}")
 
-        result = execute_mars(self.mapped_request, context=self.context)
-
-        paths = convert_format(
-            result, data_format, context=self.context, **convert_kwargs
+        result = execute_mars(
+            self.mapped_request, context=self.context, config=self.config
         )
+
+        if daily_mean:
+            paths = [daily_mean(result)]
+        else:
+            self.context.logger.info(f"Convert kwargs: {convert_kwargs}")
+            paths = convert_format(
+                result, data_format, context=self.context, **convert_kwargs
+            )
+
+        # A check to ensure that if there is more than one path, and download_format
+        #  is as_source, we over-ride and zip up the files
+        if len(paths) > 1 and self.download_format == "as_source":
+            self.download_format = "zip"
 
         return self.make_download_object(paths)

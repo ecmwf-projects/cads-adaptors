@@ -47,6 +47,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         facets = self.find_facets(request)
 
         dataset_id = ".".join(facet for facet in facets.values() if facet is not None)
+
         variable_id = facets.get("variable", "")
 
         workflow = rookops.Input(variable_id, [dataset_id])
@@ -91,6 +92,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     
                 request_chunks = [
                     request.get(item) for item in chunks
+
                     if request.get(item) not in [None, "None"]
                 ]
                 request[key] = "-".join(request_chunks)

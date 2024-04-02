@@ -1,8 +1,9 @@
 from copy import deepcopy
 
+import dask
 import numpy as np
 import xarray as xr
-from earthkit import data
+from earthkit import data as ek_data
 from earthkit.aggregate import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
@@ -136,10 +137,12 @@ def area_selector(
 ):
     north, east, south, west = area
 
-    # open object as earthkit data object
-    ek_d = data.from_source("file", infile)
+    # # open object as earthkit data object
+    ek_d = ek_data.from_source("file", infile)
 
     ds = ek_d.to_xarray(**to_xarray_kwargs)
+
+    # ds = xr.open_dataset(infile, **to_xarray_kwargs)
 
     spatial_info = eka_tools.get_spatial_info(ds)
     lon_key = spatial_info["lon_key"]
@@ -165,7 +168,7 @@ def area_selector(
             context,
         )[0]
 
-        context.logger.debug(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
+        # context.logger.info(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
 
         sub_selections = []
         for lon_slice in lon_slices:
@@ -177,10 +180,12 @@ def area_selector(
                     }
                 )
             )
-        context.logger.debug(f"selections: {sub_selections}")
+        # context.logger.info(f"selections: {sub_selections}")
 
         ds_area = xr.concat(sub_selections, dim=lon_key)
-        context.logger.debug(f"ds_area: {ds_area}")
+        # ds_area = ds_area.compute()
+        # context.logger.info(f"ds_area: {ds_area}")
+        print(ds_area)
         return ds_area
 
     else:
@@ -193,17 +198,21 @@ def area_selector(
 def area_selector_paths(
     paths: list, area: list, context: Context, out_format: str = "netcdf"
 ):
-    # We try to select the area for all paths, if any fail we return the original paths
-    out_paths = []
-    for path in paths:
-        ds_area = area_selector(path, context, area=area)
-        if out_format in ["nc", "netcdf"]:
-            out_fname = ".".join(
-                path.split(".")[:-1] + ["area-subset"] + [str(a) for a in area] + ["nc"]
-            )
-            context.logger.debug(f"out_fname: {out_fname}")
-            ds_area.to_netcdf(out_fname)
-            out_paths.append(out_fname)
-        else:
-            raise NotImplementedError(f"Output format not recognised {out_format}")
+    with dask.config.set(scheduler="threads"):
+        # We try to select the area for all paths, if any fail we return the original paths
+        out_paths = []
+        for path in paths:
+            ds_area = area_selector(path, context, area=area)
+            if out_format in ["nc", "netcdf"]:
+                out_fname = ".".join(
+                    path.split(".")[:-1]
+                    + ["area-subset"]
+                    + [str(a) for a in area]
+                    + ["nc"]
+                )
+                context.logger.debug(f"out_fname: {out_fname}")
+                ds_area.to_netcdf(out_fname)
+                out_paths.append(out_fname)
+            else:
+                raise NotImplementedError(f"Output format not recognised {out_format}")
     return out_paths

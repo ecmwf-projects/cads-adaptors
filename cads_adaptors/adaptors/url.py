@@ -1,4 +1,4 @@
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Request, cds
 
@@ -23,8 +23,20 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # try to download URLs
         urls = [ru["url"] for ru in requests_urls]
-        paths = url_tools.try_download(urls, context=self.context)
+        download_kwargs: dict[str, Any] = self.config.get("download_kwargs", {})
+        # Handle legacy syntax for authentication
+        if "auth" in self.config:
+            download_kwargs.setdefault(
+                "auth",
+                (self.config["auth"]["username"], self.config["auth"]["password"]),
+            )
+        paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
+        import glob
+        import os
+
+        print("2" * 100 + "\n", os.getcwd(), paths)
+        print(glob.glob(os.path.dirname(paths[0]) + "/*"))
         if area is not None:
             paths = area_selector.area_selector_paths(paths, area, self.context)
 

@@ -17,11 +17,12 @@ dependencies = [
   "ek-aggregate",
   "cfgrib",
   "cacholote",
-  "multiurl>=0.2.3.2",
+  "multiurl>=0.3.1",
   "rooki",
   "python-dateutil",
   "pyyaml",
-  "DateTimeRange"
+  "DateTimeRange",
+  "ek-aggregate"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]
