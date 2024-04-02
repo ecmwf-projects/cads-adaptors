@@ -48,7 +48,10 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         facets = self.find_facets(request)
 
-        dataset_id = ".".join(facet for facet in facets.values() if facet is not None)
+        dataset_ids = [
+            ".".join(facet for facet in sub_facets.values() if facet is not None)
+            for sub_facets in facets
+        ]
         variable_id = facets.get("variable", "")
 
         workflow = rookops.Input(variable_id, [dataset_id])
@@ -112,6 +115,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         request = {k: v for k, v in request.items() if k in self.facets[0]}
 
+        matched_facets = []
+
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
             tmp_request = request.copy()
@@ -132,12 +137,15 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     if not re.search(value, candidate[key]):
                         break
                 else:
-                    continue
-                break
+                    matched_facets.append(candidate)
                     
             elif candidate.items() >= tmp_request.items():
-                break
-        else:
+                matched_facets.append(candidate)
+                
+        if not matched_facets:
             raise ValueError(f"No data found for request {request}")
 
-        return {key: raw_candidate[key] for key in self.facets_order}
+        return [
+            {key: final_candidate[key] for key in self.facets_order}
+            for final_candidate in matched_facets
+        ]
