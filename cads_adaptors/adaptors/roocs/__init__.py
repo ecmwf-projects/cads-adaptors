@@ -27,7 +27,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = mapping.apply_mapping(request, self.mapping)
 
         workflow = self.construct_workflow(request)
-        response = rooki.rooki.orchestrate(workflow=workflow._serialise())
+        
+        raise ValueError(workflow._serialise())
 
         response = workflow.orchestrate()
 
@@ -129,5 +130,4 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         else:
             raise ValueError(f"No data found for request {request}")
 
-        raise ValueError(str(raw_candidate) + " | " + str(self.facets_order))
         return {key: raw_candidate[key] for key in self.facets_order}
