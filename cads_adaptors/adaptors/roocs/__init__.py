@@ -28,6 +28,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = mapping.apply_mapping(request, self.mapping)
 
         workflow = self.construct_workflow(request)
+        
+        raise ValueError(workflow._serialise())
 
         response = workflow.orchestrate()
 
@@ -52,9 +54,9 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             ".".join(facet for facet in sub_facets.values() if facet is not None)
             for sub_facets in facets
         ]
-        variable_id = facets.get("variable", "")
+        variable_id = facets[0].get("variable", "")
 
-        workflow = rookops.Input(variable_id, [dataset_id])
+        workflow = rookops.Input(variable_id, dataset_ids)
         
         for operator, operator_kwargs in self.operators.items():
             for key, value in operator_kwargs.items():
