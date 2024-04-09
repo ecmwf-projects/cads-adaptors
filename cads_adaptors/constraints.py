@@ -14,7 +14,7 @@ class ParameterError(TypeError):
 
 
 def get_unsupported_vars(
-    ogc_form: list[dict[str, Any]] | dict[str, Any] | None
+    ogc_form: list[dict[str, Any]] | dict[str, Any] | None,
 ) -> list[str]:
     if ogc_form is None:
         ogc_form = []
@@ -270,9 +270,9 @@ def apply_constraints_in_old_cds_fashion(
                     per_constraint_result[selected_widget_name] = {}
                     for widget_name in form:
                         if widget_name != selected_widget_name:
-                            per_constraint_result[selected_widget_name][
-                                widget_name
-                            ] = set()
+                            per_constraint_result[selected_widget_name][widget_name] = (
+                                set()
+                            )
                 for widget_name, widget_options in constraint.items():
                     if widget_name in per_constraint_result[selected_widget_name]:
                         per_constraint_result[selected_widget_name][widget_name] |= set(
