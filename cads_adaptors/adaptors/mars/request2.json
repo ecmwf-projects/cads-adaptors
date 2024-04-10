@@ -1,0 +1,26 @@
+{
+    "time": [
+        "00:00:00"
+    ],
+    "param": [
+        "139"
+    ],
+    "dataset": [
+        "reanalysis-monthly-means-of-daily-means"
+    ],
+    "date": [
+        "1951-02-01"
+    ],
+    "class": [
+        "l5"
+    ],
+    "expect": [
+        "any"
+    ],
+    "number": [
+        "all"
+    ],
+    "levtype": [
+        "sfc"
+    ]
+}

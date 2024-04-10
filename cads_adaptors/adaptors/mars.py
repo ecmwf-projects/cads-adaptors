@@ -4,7 +4,7 @@ from typing import Any, BinaryIO, Union
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
-
+import json
 
 def convert_format(
     result: str,
@@ -39,12 +39,14 @@ def convert_format(
     return paths
 
 
+DEFAULT_REQUEST_FILE="json_r"
+DEFAULT_PYTHON_MARS_CLIENT="/src/cads-adaptors/cads_adaptors/adaptors/mars/client.py"
 def execute_mars(
     request: Union[Request, list],
     context: Context,
     config: dict[str, Any] = dict(),
-    target: str = "data.grib",
-    mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
+    target: str = "target.grib",
+    mars_cmd: tuple[str, ...] = ("python", DEFAULT_PYTHON_MARS_CLIENT, DEFAULT_REQUEST_FILE),
 ) -> str:
     import subprocess
 
@@ -53,6 +55,10 @@ def execute_mars(
         requests, _cacheable = implement_embargo(requests, config["embargo"])
     context.add_stdout(f"{requests}")
 
+    with open(DEFAULT_REQUEST_FILE, "w") as fp:
+        fp.write(json.dumps(requests))
+
+    # Some is CODE CLEANING due here!
     with open("r", "w") as fp:
         for i, req in enumerate(requests):
             print("retrieve", file=fp)
@@ -91,6 +97,7 @@ def execute_mars(
         )
         # This exception is visible on Splunk
         raise RuntimeError(f"MARS has crashed.\n{stderr}")
+    
     if not os.path.getsize(target):
         context.add_user_visible_error(
             message="MARS returned no data, please check your selection.",
