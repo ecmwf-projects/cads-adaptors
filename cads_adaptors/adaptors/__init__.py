@@ -49,6 +49,10 @@ class AbstractAdaptor(abc.ABC):
             self.context = context
 
     @abc.abstractmethod
+    def normalise_request(self, request: Request) -> dict[str, Any]:
+        pass
+
+    @abc.abstractmethod
     def validate(self, request: Request) -> bool:
         pass
 
