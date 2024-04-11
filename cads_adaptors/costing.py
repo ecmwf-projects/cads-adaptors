@@ -176,10 +176,10 @@ def get_excluded_keys(
 
 def estimate_number_of_fields(
     form: list[dict[str, Any]] | dict[str, Any] | None,
-    request: dict[str, dict[str, Any]],
+    request: dict[str, Any],
 ) -> int:
     excluded_variables = get_excluded_keys(form)
-    selection = request["inputs"]
+    selection = request
     number_of_values = []
     for variable_id, variable_value in selection.items():
         if isinstance(variable_value, set):
