@@ -417,12 +417,12 @@ def test_estimate_costs() -> None:
     adaptor = DummyCdsAdaptor(form, constraints=[{"param": {"Z", "T"}}])
 
     # Test empty selection
-    request: dict[str, Any] = {"inputs": dict()}
+    request: dict[str, Any] = dict()
     costs = adaptor.estimate_costs(request)
     assert costs["size"] == 1
     assert costs["number_of_fields"] == 1
 
-    request = {"inputs": {"param": {"Z", "T"}}}
+    request = {"param": {"Z", "T"}}
     costs = adaptor.estimate_costs(request)
     assert costs["size"] == 2
     assert costs["number_of_fields"] == 2
@@ -689,14 +689,12 @@ def test_estimate_costs_2() -> None:
     adaptor = DummyCdsAdaptor(form, constraints=[])
 
     request: dict[str, Any] = {
-        "inputs": {
-            "variable": "maximum_temperature",
-            "freeform": [""],
-            "latitude": ["2"],
-            "date_range": ["2023-10-12/2023-10-24"],
-            "location[0]": ["0"],
-            "location[1]": ["0"],
-        }
+        "variable": "maximum_temperature",
+        "freeform": [""],
+        "latitude": ["2"],
+        "date_range": ["2023-10-12/2023-10-24"],
+        "location[0]": ["0"],
+        "location[1]": ["0"],
     }
 
     costs = adaptor.estimate_costs(request)
@@ -704,18 +702,16 @@ def test_estimate_costs_2() -> None:
     assert costs["number_of_fields"] == 1
 
     request = {
-        "inputs": {
-            "variable": "maximum_temperature",
-            "nested_variable": [
-                "2m_temperature",
-                "ammonium_aerosol_optical_depth_550nm",
-            ],
-            "freeform": [""],
-            "latitude": ["2"],
-            "date_range": ["2023-10-12/2023-10-24"],
-            "location[0]": ["0"],
-            "location[1]": ["0"],
-        }
+        "variable": "maximum_temperature",
+        "nested_variable": [
+            "2m_temperature",
+            "ammonium_aerosol_optical_depth_550nm",
+        ],
+        "freeform": [""],
+        "latitude": ["2"],
+        "date_range": ["2023-10-12/2023-10-24"],
+        "location[0]": ["0"],
+        "location[1]": ["0"],
     }
 
     costs = adaptor.estimate_costs(request)
@@ -740,18 +736,16 @@ def test_estimate_costs_2() -> None:
     assert costs["number_of_fields"] == 2
 
     request = {
-        "inputs": {
-            "variable": "maximum_temperature",
-            "nested_variable": [
-                "total_column_acetone_product",
-                "ammonium_aerosol_optical_depth_550nm",
-            ],
-            "freeform": [""],
-            "latitude": ["2"],
-            "date_range": ["2023-10-12/2023-10-24"],
-            "location[0]": ["0"],
-            "location[1]": ["0"],
-        }
+        "variable": "maximum_temperature",
+        "nested_variable": [
+            "total_column_acetone_product",
+            "ammonium_aerosol_optical_depth_550nm",
+        ],
+        "freeform": [""],
+        "latitude": ["2"],
+        "date_range": ["2023-10-12/2023-10-24"],
+        "location[0]": ["0"],
+        "location[1]": ["0"],
     }
     costs = weighted_adaptor.estimate_costs(request)
     assert costs["size"] == 10
