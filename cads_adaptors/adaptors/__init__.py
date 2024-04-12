@@ -88,6 +88,9 @@ class DummyAdaptor(AbstractAdaptor):
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return []
 
+    def normalise_request(self, request: Request) -> dict[str, Any]:
+        return request
+
     def retrieve(self, request: Request) -> BinaryIO:
         import datetime
         import time
