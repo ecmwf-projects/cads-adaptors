@@ -21,7 +21,8 @@ dependencies = [
   "rooki",
   "python-dateutil",
   "pyyaml",
-  "DateTimeRange"
+  "DateTimeRange",
+  "cads-mars-server-client@git+https://github.com/ecmwf-projects/cads-mars-server-client.git"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]
