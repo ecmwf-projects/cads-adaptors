@@ -44,7 +44,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         costs = {
             "size": costing.estimate_size(
                 self.form,
-                request.get("inputs", dict()),
+                request,
                 self.constraints,
                 **costing_kwargs,
             ),
