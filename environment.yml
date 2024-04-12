@@ -21,4 +21,4 @@ dependencies:
 - pip:
   - rooki
   - earthkit-aggregate
-  - git+https://github.com/ecmwf-projects/cads-mars-server-client
+  - git+https://github.com/ecmwf-projects/cads-mars-server

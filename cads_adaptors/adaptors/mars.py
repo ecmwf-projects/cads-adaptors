@@ -47,7 +47,7 @@ def execute_mars(
     # mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
     mars_server_list: str = os.getenv("MARS_API_SERVER_LIST", "/etc/mars/mars-api-server.list"),
 ) -> str:
-    from cads_mars_server_client import client as mars_client
+    from cads_mars_server import client as mars_client
 
     requests = ensure_list(request)
     if config.get("embargo") is not None:
