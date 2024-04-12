@@ -49,6 +49,10 @@ class AbstractAdaptor(abc.ABC):
             self.context = context
 
     @abc.abstractmethod
+    def normalise_request(self, request: Request) -> dict[str, Any]:
+        pass
+
+    @abc.abstractmethod
     def validate(self, request: Request) -> bool:
         pass
 
@@ -83,6 +87,9 @@ class DummyAdaptor(AbstractAdaptor):
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return []
+
+    def normalise_request(self, request: Request) -> dict[str, Any]:
+        return request
 
     def retrieve(self, request: Request) -> BinaryIO:
         import datetime

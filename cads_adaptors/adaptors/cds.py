@@ -52,6 +52,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         }
         return costs
 
+    def normalise_request(self, request: Request) -> dict[str, Any]:
+        # TODO: cast to dict[str, list]
+        return request
+
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
 
