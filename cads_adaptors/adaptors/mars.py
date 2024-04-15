@@ -68,11 +68,11 @@ def execute_mars(
     )
 
     env = dict(**os.environ)
-    # FIXME: set with the namespace and user_id
-    hostname = config.get("hostname", "UNKNOWN-CADS-HOSTNAME")
-    user_id = config.get("user_id", "NO-USER-ID-FOUND")
-    request_id = config.get("request_id", "NO-REQUEST-ID-FOUND")
-    env["uid"] = f"{hostname}-USERID:{user_id}-REQUESTID:{request_id}"
+    # Add required fields to the env dictionary:
+    env["USER_ID"] = config.get("user_id", "NO-USER-ID-FOUND")
+    env["REQUEST_ID"] = config.get("request_id", "NO-REQUEST-ID-FOUND")
+    # env["RUNTIME_NAMESPACE"] # is the namespace and already in the env dictionary
+    # env["HOSTNAME"] # is the name of the pod and already in the env dictionary
 
     reply = cluster.execute(requests, env, target)
     if reply.error:
