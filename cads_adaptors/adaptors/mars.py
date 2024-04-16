@@ -67,13 +67,16 @@ def execute_mars(
         # timeout=None,
     )
 
-    env = dict(**os.environ)
     # Add required fields to the env dictionary:
-    env["USER_ID"] = config.get("user_id", "NO-USER-ID-FOUND")
-    env["REQUEST_ID"] = config.get("request_id", "NO-REQUEST-ID-FOUND")
-    # env["RUNTIME_NAMESPACE"] # is the namespace and already in the env dictionary
-    # env["HOSTNAME"] # is the name of the pod and already in the env dictionary
-
+    env = {}
+    env["user_id"] = config.get("user_id", "anonymous")
+    env["request_id"] = config.get("request_id", "no-request-id")
+    env["namespace"] = (
+        f"{os.getenv('OPENSTACK_PROJECT', 'OPENSTACK_PROJECT')}:"
+        f"{os.getenv('RUNTIME_NAMESPACE', 'NAMESPACE')}"
+    )
+    env["host"] = f"{os.getenv("HOSTNAME", "NO-HOSTNAME")}"
+    
     reply = cluster.execute(requests, env, target)
     if reply.error:
         raise RuntimeError(f"MARS has crashed.\n{reply.message}")
