@@ -202,8 +202,9 @@ def apply_constraints_in_old_cds_fashion(
 
     daterange_widgets = [k for k, v in widget_types.items() if v == "DateRangeWidget"]
     selected_daterange_widgets = [k for k in daterange_widgets if k in list(selection)]
+    is_selection_empty = [selection[k]=={""} for k in selected_daterange_widgets]
     if len(selection) == 0 or (
-        len(selection) == len(daterange_widgets) == len(selected_daterange_widgets)
+        len(selection) == len(daterange_widgets) == len(selected_daterange_widgets) and all(is_selection_empty)
     ):
         return format_to_json(form)
 
