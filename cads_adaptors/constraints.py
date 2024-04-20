@@ -284,7 +284,7 @@ def apply_constraints_in_old_cds_fashion(
                             widget_options
                         )
             else:
-                raise ParameterError(f"invalid param '{selected_widget_name}'")
+                raise ParameterError(f"invalid param '{selected_widget_name} in  {widget_types}'")
 
         for widget_name in form:
             per_constraint_result_agg: set[Any] = set()
