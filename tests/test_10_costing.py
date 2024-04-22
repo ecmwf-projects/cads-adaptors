@@ -417,19 +417,19 @@ def test_estimate_costs() -> None:
     adaptor = DummyCdsAdaptor(
         form,
         constraints=[{"param": {"Z", "T"}}],
-        costing={"max_costs": {"size": 10, "number_of_fields": 10}},
+        costing={"max_costs": {"size": 10, "precise_size": 10}},
     )
 
     # Test empty selection
     request: dict[str, Any] = dict()
     costs = adaptor.estimate_costs(request)
     assert costs["size"] == 1
-    assert costs["number_of_fields"] == 1
+    assert costs["precise_size"] == 1
 
     request = {"param": {"Z", "T"}}
     costs = adaptor.estimate_costs(request)
     assert costs["size"] == 2
-    assert costs["number_of_fields"] == 2
+    assert costs["precise_size"] == 2
 
 
 def test_estimate_costs_2() -> None:
@@ -693,7 +693,7 @@ def test_estimate_costs_2() -> None:
     adaptor = DummyCdsAdaptor(
         form,
         constraints=[],
-        costing={"max_costs": {"size": 10, "number_of_fields": 10}},
+        costing={"max_costs": {"size": 10, "precise_size": 10}},
     )
 
     request: dict[str, Any] = {
@@ -707,7 +707,7 @@ def test_estimate_costs_2() -> None:
 
     costs = adaptor.estimate_costs(request)
     assert costs["size"] == 1
-    assert costs["number_of_fields"] == 1
+    assert costs["precise_size"] == 1
 
     request = {
         "variable": "maximum_temperature",
@@ -724,7 +724,7 @@ def test_estimate_costs_2() -> None:
 
     costs = adaptor.estimate_costs(request)
     assert costs["size"] == 2
-    assert costs["number_of_fields"] == 2
+    assert costs["precise_size"] == 2
 
     costing_kwargs = {
         "weighted_keys": {"variable": 2},
@@ -741,12 +741,12 @@ def test_estimate_costs_2() -> None:
         constraints=[],
         costing={
             "costing_kwargs": costing_kwargs,
-            "max_costs": {"size": 10, "number_of_fields": 10},
+            "max_costs": {"precise_size": 10, "size": 10},
         },
     )
     costs = weighted_adaptor.estimate_costs(request)
-    assert costs["size"] == 8
-    assert costs["number_of_fields"] == 2
+    assert costs["precise_size"] == 8
+    assert costs["size"] == 2
 
     request = {
         "variable": "maximum_temperature",
@@ -761,5 +761,5 @@ def test_estimate_costs_2() -> None:
         "location[1]": ["0"],
     }
     costs = weighted_adaptor.estimate_costs(request)
-    assert costs["size"] == 10
-    assert costs["number_of_fields"] == 2
+    assert costs["precise_size"] == 10
+    assert costs["size"] == 2

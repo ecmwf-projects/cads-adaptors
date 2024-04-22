@@ -31,7 +31,9 @@ def compute_combinations(d: dict[str, set[str]]) -> list[dict[str, str]]:
     return [dict(zip(keys, v)) for v in itertools.product(*values)]
 
 
-def compute_combination_tuples(d: dict[str, set[str]]) -> list[tuple[tuple[Any, Any], ...]]:
+def compute_combination_tuples(
+    d: dict[str, set[str]],
+) -> list[tuple[tuple[Any, Any], ...]]:
     if not d:
         return []
     keys, values = zip(*d.items())
