@@ -192,6 +192,14 @@ def get_possible_values(
     return result
 
 
+def get_clean_selection(selection: dict[str, set[Any]]):
+    clean_selection = selection.copy()
+    NOT_INTERESTING_SELECTION = ["location_x", "location_y"]
+    for k in NOT_INTERESTING_SELECTION:
+        clean_selection.pop(k, None)
+    return clean_selection
+
+
 def apply_constraints_in_old_cds_fashion(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
@@ -202,10 +210,18 @@ def apply_constraints_in_old_cds_fashion(
 
     daterange_widgets = [k for k, v in widget_types.items() if v == "DateRangeWidget"]
     selected_daterange_widgets = [k for k in daterange_widgets if k in list(selection)]
+    is_daterange_selection_empty = [
+        selection[k] == {""} for k in selected_daterange_widgets
+    ]
+
     if len(selection) == 0 or (
-        len(selection) == len(daterange_widgets) == len(selected_daterange_widgets)
+        len(daterange_widgets) > 0
+        and len(daterange_widgets) == len(selected_daterange_widgets)
+        and all(is_daterange_selection_empty)
     ):
         return format_to_json(form)
+
+    clean_selection = get_clean_selection(selection)
 
     for constraint in constraints:
         # the per-selected-widget result is the union of:
@@ -217,7 +233,7 @@ def apply_constraints_in_old_cds_fashion(
         # as a general rule, a widget cannot decide for itself (but only for others)
         # only other widgets can enable/disable options/values in the "current" widget
         per_constraint_result: dict[str, dict[str, set[Any]]] = {}
-        for selected_widget_name, selected_widget_options in selection.items():
+        for selected_widget_name, selected_widget_options in clean_selection.items():
             selected_widget_type = widget_types.get(
                 selected_widget_name, "UNKNOWN_WIDGET_TYPE"
             )
@@ -287,7 +303,7 @@ def apply_constraints_in_old_cds_fashion(
 
         for widget_name in form:
             per_constraint_result_agg: set[Any] = set()
-            for selected_widget_name in selection:
+            for selected_widget_name in clean_selection:
                 if widget_name != selected_widget_name:
                     if selected_widget_name in per_constraint_result:
                         if per_constraint_result_agg:
@@ -314,8 +330,8 @@ def apply_constraints_in_old_cds_fashion(
     # only other widgets can enable/disable options/values in the "current" widget
     # when the selection contains only one widget, we need to enable all options for that widget
     # (as an exception from the general rule)
-    if len(selection) == 1:
-        only_widget_in_selection = next(iter(selection))
+    if len(clean_selection) == 1:
+        only_widget_in_selection = next(iter(clean_selection))
         result[only_widget_in_selection] = form[only_widget_in_selection]
 
     return format_to_json(result)
