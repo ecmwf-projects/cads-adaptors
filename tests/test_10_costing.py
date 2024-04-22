@@ -414,7 +414,11 @@ def test_estimate_costs() -> None:
             "type": "StringListWidget",
         }
     ]
-    adaptor = DummyCdsAdaptor(form, constraints=[{"param": {"Z", "T"}}])
+    adaptor = DummyCdsAdaptor(
+        form,
+        constraints=[{"param": {"Z", "T"}}],
+        costing={"max_costs": {"size": 10, "number_of_fields": 10}},
+    )
 
     # Test empty selection
     request: dict[str, Any] = dict()
@@ -686,7 +690,11 @@ def test_estimate_costs_2() -> None:
         },
     ]
     # constraints = []
-    adaptor = DummyCdsAdaptor(form, constraints=[])
+    adaptor = DummyCdsAdaptor(
+        form,
+        constraints=[],
+        costing={"max_costs": {"size": 10, "number_of_fields": 10}},
+    )
 
     request: dict[str, Any] = {
         "variable": "maximum_temperature",
@@ -729,7 +737,12 @@ def test_estimate_costs_2() -> None:
     }
 
     weighted_adaptor = DummyCdsAdaptor(
-        form, constraints=[], costing={"costing_kwargs": costing_kwargs}
+        form,
+        constraints=[],
+        costing={
+            "costing_kwargs": costing_kwargs,
+            "max_costs": {"size": 10, "number_of_fields": 10},
+        },
     )
     costs = weighted_adaptor.estimate_costs(request)
     assert costs["size"] == 8

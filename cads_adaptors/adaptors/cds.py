@@ -38,7 +38,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
 
-    def estimate_costs(self, request: Request, cost_threshold: str="max_costs") -> dict[str, int]:
+    def estimate_costs(
+        self, request: Request, cost_threshold: str = "max_costs"
+    ) -> dict[str, int]:
         costing_config: dict[str, Any] = self.config.get("costing", dict())
         costing_kwargs: dict[str, Any] = costing_config.get("costing_kwargs", dict())
         costs = {}
@@ -52,8 +54,11 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 self.constraints,
                 **costing_kwargs,
             )
-        if "number_of_fields" in costing_config.get(cost_threshold, {}):
-            costs["number_of_fields"] = costing.estimate_number_of_fields(self.form, request)
+        # TODO: Put behind an if statement, but currently used in integration tests
+        # if "number_of_fields" in costing_config.get(cost_threshold, {}):
+        costs["number_of_fields"] = costing.estimate_number_of_fields(
+            self.form, request
+        )
         return costs
 
     def normalise_request(self, request: Request) -> dict[str, Any]:
