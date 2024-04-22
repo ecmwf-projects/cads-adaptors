@@ -11,6 +11,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
     def split_request(
         full_request: Request,  # User request
         this_values: dict[str, Any],  # key: [values] for the adaptor component
+        dont_split_keys: list[str] = ["area", "grid"],
         **config: Any,
     ) -> Request:
         """
@@ -24,9 +25,12 @@ class MultiAdaptor(AbstractCdsAdaptor):
             # get request values for that key
             req_vals = full_request.get(key, [])
             # filter for values relevant to this_adaptor:
-            these_vals = [
-                v for v in ensure_list(req_vals) if v in this_values.get(key, [])
-            ]
+            if key in dont_split_keys:
+                these_vals = req_vals
+            else:
+                these_vals = [
+                    v for v in ensure_list(req_vals) if v in this_values.get(key, [])
+                ]
             if len(these_vals) > 0:
                 # if values then add to request
                 this_request[key] = these_vals
