@@ -44,58 +44,44 @@ def execute_mars(
     context: Context,
     config: dict[str, Any] = dict(),
     target: str = "data.grib",
-    mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
+    # mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
+    mars_server_list: str = os.getenv(
+        "MARS_API_SERVER_LIST", "/etc/mars/mars-api-server.list"
+    ),
 ) -> str:
-    import subprocess
+    from cads_mars_server import client as mars_client
 
     requests = ensure_list(request)
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
-    context.add_stdout(f"{requests}")
+    context.add_stdout(f"Request (after embargo implemented): {requests}")
 
-    with open("r", "w") as fp:
-        for i, req in enumerate(requests):
-            print("retrieve", file=fp)
-            # Add target file to first request, any extra store in same grib
-            if i == 0:
-                print(f", target={target}", file=fp)
-            for key, value in req.items():
-                if not isinstance(value, (list, tuple)):
-                    value = [value]
-                print(f", {key}={'/'.join(str(v) for v in value)}", file=fp)
+    if os.path.exists(mars_server_list):
+        with open(mars_server_list) as f:
+            mars_servers = f.read().splitlines()
+    else:
+        raise SystemError(
+            "MARS servers cannot be found, this is an error at the system level."
+        )
 
-    env = dict(**os.environ)
-    # FIXME: set with the namespace and user_id
-    namespace = "cads"
-    user_id = 0
-    env["MARS_USER"] = f"{namespace}-{user_id}"
+    cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers)
 
-    popen = subprocess.Popen(
-        mars_cmd, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    popen.wait()
-    if popen.stdout and (stdout := popen.stdout.read()):
-        context.add_stdout(
-            message=stdout,
-        )
-    if popen.returncode:
-        if popen.stderr:
-            stderr = popen.stderr.read()
-            # This log is visible on the events table and Splunk
-            context.add_stderr(
-                message=stderr,
-            )
-        # This log is visible to the user on the WebPortal
-        context.add_user_visible_error(
-            message="Your MARS request has not completed successfully, please check your selection.",
-        )
-        # This exception is visible on Splunk
-        raise RuntimeError(f"MARS has crashed.\n{stderr}")
-    if not os.path.getsize(target):
-        context.add_user_visible_error(
-            message="MARS returned no data, please check your selection.",
-        )
-        raise RuntimeError("MARS returned no data.")
+    # Add required fields to the env dictionary:
+    env = {
+        "user_id": config.get("user_id", "anonymous"),
+        "request_id": config.get("request_id", "no-request-id"),
+        "namespace": (
+            f"{os.getenv('OPENSTACK_PROJECT', 'NO-OSPROJECT')}:"
+            f"{os.getenv('RUNTIME_NAMESPACE', 'NO-NAMESPACE')}"
+        ),
+        "host": os.getenv("HOSTNAME", "NO-HOSTNAME"),
+    }
+
+    reply = cluster.execute(requests, env, target)
+    if reply.error:
+        raise RuntimeError(f"MARS has crashed.\n{reply.message}")
+
+    context.add_stdout(message=reply.message)
 
     return target
 

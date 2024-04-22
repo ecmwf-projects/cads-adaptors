@@ -247,7 +247,7 @@ def ensure_and_expand_list_items(thing, split_string=None):
 def months_to_days(n_months, now_date):
     """Calculate the number of days from now_date to a set number of months in the past."""
     from calendar import monthrange
-    from datetime import datetime
+    from datetime import UTC, datetime
 
     if n_months == 0:
         return 0
@@ -261,7 +261,10 @@ def months_to_days(n_months, now_date):
         then_month = 12 + then_month
         then_year = then_year - 1
     then_date = datetime(
-        then_year, then_month, min(then_day, monthrange(then_year, then_month)[1])
+        then_year,
+        then_month,
+        min(then_day, monthrange(then_year, then_month)[1]),
+        tzinfo=UTC,
     )
     delta = now_date - then_date
     return delta.days
