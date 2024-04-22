@@ -38,18 +38,22 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
 
-    def estimate_costs(self, request: Request) -> dict[str, int]:
+    def estimate_costs(self, request: Request, cost_threshold: str="max_costs") -> dict[str, int]:
         costing_config: dict[str, Any] = self.config.get("costing", dict())
         costing_kwargs: dict[str, Any] = costing_config.get("costing_kwargs", dict())
-        costs = {
-            "size": costing.estimate_size(
+        costs = {}
+        # Safety net, not all stacks have the latest version of the api:
+        if "inputs" in request:
+            request = request["inputs"]
+        if "size" in costing_config.get(cost_threshold, {}):
+            costs["size"] = costing.estimate_size(
                 self.form,
                 request,
                 self.constraints,
                 **costing_kwargs,
-            ),
-            "number_of_fields": costing.estimate_number_of_fields(self.form, request),
-        }
+            )
+        if "number_of_fields" in costing_config.get(cost_threshold, {}):
+            costs["number_of_fields"] = costing.estimate_number_of_fields(self.form, request)
         return costs
 
     def normalise_request(self, request: Request) -> dict[str, Any]:

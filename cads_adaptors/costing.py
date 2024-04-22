@@ -2,6 +2,7 @@ import itertools
 import math
 from typing import Any
 
+import warnings
 from . import constraints
 
 EXCLUDED_WIDGETS = [
@@ -23,18 +24,32 @@ def ensure_set(input_item):
 
 
 def compute_combinations(d: dict[str, set[str]]) -> list[dict[str, str]]:
+    warnings.warn("compute_combinations is deprecated", DeprecationWarning)
     if not d:
         return []
     keys, values = zip(*d.items())
     return [dict(zip(keys, v)) for v in itertools.product(*values)]
 
 
+def compute_combination_tuples(d: dict[str, set[str]]) -> list[tuple[tuple[str, str]]]:
+    if not d:
+        return []
+    keys, values = zip(*d.items())
+    return [tuple(zip(keys, v)) for v in itertools.product(*values)]
+
+
 def remove_duplicates(found: list[dict[str, set[str]]]) -> list[dict[str, str]]:
     combinations: list[dict[str, str]] = []
     for d in found:
-        combinations += compute_combinations(d)
-    granules = {tuple(combination.items()) for combination in combinations}
-    return [dict(granule) for granule in granules]
+        combinations += compute_combination_tuples(d)
+    return [dict(granule) for granule in set(combinations)]
+
+
+def n_unique_granules(found: list[dict[str, set[str]]]) -> int:
+    combinations: list[dict[str, str]] = []
+    for d in found:
+        combinations += compute_combination_tuples(d)
+    return len(set(combinations))
 
 
 def count_combinations(
@@ -42,6 +57,9 @@ def count_combinations(
     weighted_keys: dict[str, int] = dict(),
     weighted_values: dict[str, dict[str, int]] = dict(),
 ) -> int:  # TODO: integer is not strictly required
+    if len(weighted_keys) == 0 and len(weighted_values) == 0:
+        return n_unique_granules(found)
+
     granules = remove_duplicates(found)
 
     if len(weighted_values) > 0:
@@ -63,7 +81,6 @@ def count_combinations(
             for w_granule, granule in zip(w_granules, granules)
             if key in granule
         ]
-
     n_granules = sum(w_granules)
     return n_granules
 
@@ -117,8 +134,7 @@ def estimate_granules(
         selected_but_always_valid = {}
         found = [selection]
     if safe:
-        n_granules = count_combinations(found, weighted_keys, weighted_values)
-        return n_granules
+        return count_combinations(found, weighted_keys, weighted_values)
     else:
         return sum([math.prod([len(e) for e in d.values()]) for d in found])
 
@@ -145,7 +161,6 @@ def estimate_size(
         for widget, values in form_key_values.items()
         if widget not in ignore_keys
     }
-
     return (
         estimate_granules(
             form_key_values,
