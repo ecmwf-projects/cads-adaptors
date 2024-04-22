@@ -59,6 +59,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         costs["size"] = costing.estimate_number_of_fields(
             self.form, request
         )
+        # Safety net for integration tests:
+        costs["number_of_fields"] = costs["size"]
         return costs
 
     def normalise_request(self, request: Request) -> dict[str, Any]:
