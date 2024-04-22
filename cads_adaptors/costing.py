@@ -139,7 +139,7 @@ def estimate_granules(
         return sum([math.prod([len(e) for e in d.values()]) for d in found])
 
 
-def estimate_size(
+def estimate_precise_size(
     form: list[dict[str, Any]] | dict[str, Any] | None,
     selection: dict[str, set[str]],
     _constraints: list[dict[str, set[str]]],

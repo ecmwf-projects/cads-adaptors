@@ -380,8 +380,8 @@ def test_estimate_request_size() -> None:
     ]
     constraints = [{"param": {"Z", "T"}}]
 
-    assert costing.estimate_size(form, {"param": {"Z", "T"}}, constraints) == 2
-    assert costing.estimate_size(form, {"param": {"Z"}}, constraints) == 1
+    assert costing.estimate_precise_size(form, {"param": {"Z", "T"}}, constraints) == 2
+    assert costing.estimate_precise_size(form, {"param": {"Z"}}, constraints) == 1
 
 
 def test_get_excluded_keys() -> None:
