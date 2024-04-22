@@ -25,7 +25,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             # get request values for that key
             req_vals = full_request.get(key, [])
             # filter for values relevant to this_adaptor:
-            if key in dont_split_keys:
+            if key in ensure_list(dont_split_keys):
                 these_vals = req_vals
             else:
                 these_vals = [
