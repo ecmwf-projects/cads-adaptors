@@ -45,7 +45,9 @@ def execute_mars(
     config: dict[str, Any] = dict(),
     target: str = "data.grib",
     # mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
-    mars_server_list: str = os.getenv("MARS_API_SERVER_LIST", "/etc/mars/mars-api-server.list"),
+    mars_server_list: str = os.getenv(
+        "MARS_API_SERVER_LIST", "/etc/mars/mars-api-server.list"
+    ),
 ) -> str:
     from cads_mars_server import client as mars_client
 
@@ -58,29 +60,27 @@ def execute_mars(
         with open(mars_server_list) as f:
             mars_servers = f.read().splitlines()
     else:
-        raise SystemError(f"MARS servers cannot be found, this is an error at the system level.")
-    
-    cluster = mars_client.RemoteMarsClientCluster(
-        urls=mars_servers,
-        retries=3,
-        delay=10,
-        # timeout=None,
-    )
+        raise SystemError(
+            "MARS servers cannot be found, this is an error at the system level."
+        )
+
+    cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers)
 
     # Add required fields to the env dictionary:
-    env = {}
-    env["user_id"] = config.get("user_id", "anonymous")
-    env["request_id"] = config.get("request_id", "no-request-id")
-    env["namespace"] = (
-        f"{os.getenv('OPENSTACK_PROJECT', 'OPENSTACK_PROJECT')}:"
-        f"{os.getenv('RUNTIME_NAMESPACE', 'NAMESPACE')}"
-    )
-    env["host"] = f"{os.getenv("HOSTNAME", "NO-HOSTNAME")}"
-    
+    env = {
+        "user_id": config.get("user_id", "anonymous"),
+        "request_id": config.get("request_id", "no-request-id"),
+        "namespace": (
+            f"{os.getenv('OPENSTACK_PROJECT', 'NO-OSPROJECT')}:"
+            f"{os.getenv('RUNTIME_NAMESPACE', 'NO-NAMESPACE')}"
+        ),
+        "host": os.getenv("HOSTNAME", "NO-HOSTNAME"),
+    }
+
     reply = cluster.execute(requests, env, target)
     if reply.error:
         raise RuntimeError(f"MARS has crashed.\n{reply.message}")
-    
+
     context.add_stdout(message=reply.message)
 
     return target
