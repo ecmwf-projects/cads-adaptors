@@ -68,13 +68,13 @@ def execute_mars(
 
     # Add required fields to the env dictionary:
     env = {
-        "user_id": config.get("user_id", "anonymous"),
-        "request_id": config.get("request_id", "no-request-id"),
+        "user_id": config.get("user_uid"),
+        "request_id": config.get("request_uid"),
         "namespace": (
             f"{os.getenv('OPENSTACK_PROJECT', 'NO-OSPROJECT')}:"
             f"{os.getenv('RUNTIME_NAMESPACE', 'NO-NAMESPACE')}"
         ),
-        "host": os.getenv("HOSTNAME", "NO-HOSTNAME"),
+        "host": os.getenv("HOSTNAME"),
     }
 
     reply = cluster.execute(requests, env, target)
