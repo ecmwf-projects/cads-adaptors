@@ -81,6 +81,12 @@ def execute_mars(
     if reply.error:
         raise RuntimeError(f"MARS has crashed.\n{reply.message}")
 
+    if not os.path.getsize(target):
+        context.add_user_visible_error(
+            message="MARS returned no data, please check your selection.",
+        )
+        raise RuntimeError("MARS returned no data.")
+
     context.add_stdout(message=reply.message)
 
     return target
