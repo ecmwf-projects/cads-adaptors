@@ -84,9 +84,7 @@ def execute_mars(
             f"Exception: {reply.error}\n"
             f"Request submitted to the MARS server:\n{requests}\n"
         )
-        context.add_user_visible_error(
-            message=error_message
-        )
+        context.add_user_visible_error(message=error_message)
         raise reply.error
 
     if not os.path.getsize(target):
