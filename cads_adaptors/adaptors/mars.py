@@ -79,13 +79,25 @@ def execute_mars(
 
     reply = cluster.execute(requests, env, target)
     if reply.error:
-        raise RuntimeError(f"MARS has crashed.\n{reply.message}")
+        error_message = (
+            "MARS has returned an error, please check your selection.\n"
+            f"Exception: {reply.error}\n"
+            f"Request submitted to the MARS server:\n{requests}\n"
+        )
+        context.add_user_visible_error(
+            message=error_message
+        )
+        raise reply.error
 
     if not os.path.getsize(target):
-        context.add_user_visible_error(
-            message="MARS returned no data, please check your selection.",
+        error_message = (
+            "MARS returned no data, please check your selection."
+            f"Request submitted to the MARS server:\n{requests}\n"
         )
-        raise RuntimeError("MARS returned no data.")
+        context.add_user_visible_error(
+            message=error_message,
+        )
+        raise RuntimeError(error_message)
 
     context.add_stdout(message=reply.message)
 
