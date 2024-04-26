@@ -38,53 +38,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         # validate method
         object_urls = get_objects_to_retrieve(dataset_name, mapped_request, obs_api_url)
         logger.debug(f"The following objects are going to be filtered: {object_urls}")
-        output_dir = Path(tempfile.mkdtemp())
-        output_path_netcdf = _get_output_path(output_dir, dataset_name, "netCDF")
-        logger.info(f"Streaming data to {output_path_netcdf}")
-        # We first need to loop over the files to get the max size of the strings fields
-        # This way we can know the size of the output
-        # background cache will download blocks in the background ahead of time using a
-        # thread.
-        fs = fsspec.filesystem(
-            "https", cache_type="background", block_size=10 * (1024**2)
-        )
-        # Silence fsspec log as background cache does print unformatted log lines.
-        logging.getLogger("fsspec").setLevel(logging.WARNING)
-        # Get the maximum size of the character arrays
-        char_sizes = _get_char_sizes(fs, object_urls)
-        # if retrieve_args.params.variables is None:
-        #     variables = set(
-        #         itertools.chain.from_iterable([e.variables for e in entries]))
-        # else:
-        variables = mapped_request["variables"]
-        char_sizes["observed_variable"] = max([len(v) for v in variables])
-        # Open the output file and dump the data from each input file.
-        retrieve_args = RetrieveArgs(
-            dataset=dataset_name, params=RetrieveParams(**mapped_request)
-        )
-        with h5netcdf.File(output_path_netcdf, "w") as oncobj:
-            oncobj.dimensions["index"] = None
-            for url in object_urls:
-                filter_asset_and_save(fs, oncobj, retrieve_args, url, char_sizes)
-            # Check if the resulting file is empty
-            if (
-                len(oncobj.variables) == 0
-                or len(oncobj.variables["report_timestamp"]) == 0
-            ):
-                raise RuntimeError(
-                    "No data was found, try a different parameter combination."
-                )
-            # Add atributes
-            _add_attributes(oncobj, retrieve_args)
-        # If the user asked for a CSV, we transform the file to CSV
-        if retrieve_args.params.format == "netCDF":
-            output_path = output_path_netcdf
-        else:
-            try:
-                output_path = _to_csv(output_dir, output_path_netcdf, retrieve_args)
-            finally:
-                # Ensure that the netCDF is not left behind taking disk space.
-                output_path_netcdf.unlink()
+        output_path = retrieve_data(dataset_name, mapped_request, object_urls)
         return open(output_path, "rb")
 
     def adapt_parameters(self, mapped_request: dict) -> dict:
@@ -134,3 +88,47 @@ def get_objects_to_retrieve(
         f"{obs_api_url}/get_object_urls_and_check_size", json=payload
     ).json()
     return objects_to_retrieve
+
+
+def retrieve_data(
+    dataset_name: str, mapped_request: dict, object_urls: list[str]
+) -> Path:
+    output_dir = Path(tempfile.mkdtemp())
+    output_path_netcdf = _get_output_path(output_dir, dataset_name, "netCDF")
+    logger.info(f"Streaming data to {output_path_netcdf}")
+    # We first need to loop over the files to get the max size of the strings fields
+    # This way we can know the size of the output
+    # background cache will download blocks in the background ahead of time using a
+    # thread.
+    fs = fsspec.filesystem("https", cache_type="background", block_size=10 * (1024**2))
+    # Silence fsspec log as background cache does print unformatted log lines.
+    logging.getLogger("fsspec").setLevel(logging.WARNING)
+    # Get the maximum size of the character arrays
+    char_sizes = _get_char_sizes(fs, object_urls)
+    variables = mapped_request["variables"]
+    char_sizes["observed_variable"] = max([len(v) for v in variables])
+    # Open the output file and dump the data from each input file.
+    retrieve_args = RetrieveArgs(
+        dataset=dataset_name, params=RetrieveParams(**mapped_request)
+    )
+    with h5netcdf.File(output_path_netcdf, "w") as oncobj:
+        oncobj.dimensions["index"] = None
+        for url in object_urls:
+            filter_asset_and_save(fs, oncobj, retrieve_args, url, char_sizes)
+        # Check if the resulting file is empty
+        if len(oncobj.variables) == 0 or len(oncobj.variables["report_timestamp"]) == 0:
+            raise RuntimeError(
+                "No data was found, try a different parameter combination."
+            )
+        # Add atributes
+        _add_attributes(oncobj, retrieve_args)
+    # If the user asked for a CSV, we transform the file to CSV
+    if retrieve_args.params.format == "netCDF":
+        output_path = output_path_netcdf
+    else:
+        try:
+            output_path = _to_csv(output_dir, output_path_netcdf, retrieve_args)
+        finally:
+            # Ensure that the netCDF is not left behind taking disk space.
+            output_path_netcdf.unlink()
+    return output_path
