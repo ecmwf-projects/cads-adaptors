@@ -2,7 +2,6 @@ import contextlib
 import datetime
 from pathlib import Path
 
-import pytest
 import xarray
 from numpy import nan
 
@@ -153,20 +152,28 @@ def mocked_get_session(*args):
     return contextlib.nullcontext()
 
 
-@pytest.mark.skip("Depends on cdsobs")
+def mocked_get_objects(*args):
+    return [
+        "http://127.0.0.1:9000/"
+        "cds2-obs-dev-insitu-observations-woudc-ozone-total-column-and-p/"
+        "insitu-observations-woudc-ozone-total-column-and-profiles_OzoneSonde_1969_0.0_0.0.nc"
+    ]
+
+
+# @pytest.mark.skip("Depends on cdsobs")
 def test_adaptor(tmp_path, monkeypatch):
     from cads_adaptors import ObservationsAdaptor
 
     monkeypatch.setattr(
-        "cads_adaptors.adaptors.cadsobs.retrieve_observations",
-        mocked_retrieve_observations,
+        "cads_adaptors.adaptors.cadsobs.get_objects_to_retrieve",
+        mocked_get_objects,
     )
     test_request = {
-        "observation_type": ["vertical_profile"],
+        "observation_type": ["total_column"],
         "format": "netCDF",
-        "variable": ["air_temperature"],
+        "variable": ["total_ozone_column"],
         "year": ["1969"],
-        "month": ["01"],
+        "month": ["02"],
         "day": [
             "01",
             "02",
@@ -179,8 +186,7 @@ def test_adaptor(tmp_path, monkeypatch):
     test_adaptor_config = {
         "entry_point": "cads_adaptors:ObservationsAdaptor",
         "collection_id": "insitu-observations-woudc-ozone-total-column-and-profiles",
-        "catalogue_url": "https://thisisatest.host.com",
-        "storage_url": "https://thisisatest.host.com:2223",
+        "obs_api_url": "http://localhost:8000",
         "mapping": {
             "remap": {
                 "observation_type": {
