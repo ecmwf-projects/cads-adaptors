@@ -10,7 +10,6 @@ import h5netcdf
 import numpy
 import requests
 import xarray
-from cdsobs.cdm.lite import cdm_lite_variables
 from cdsobs.retrieve.filter_datasets import between, get_param_name_in_data
 from cdsobs.retrieve.models import RetrieveArgs, RetrieveParams
 from cdsobs.retrieve.retrieve_services import ezclump
@@ -119,7 +118,9 @@ def retrieve_data(
     with h5netcdf.File(output_path_netcdf, "w") as oncobj:
         oncobj.dimensions["index"] = None
         for url in object_urls:
-            filter_asset_and_save(fs, oncobj, retrieve_args, url, char_sizes)
+            filter_asset_and_save(
+                fs, oncobj, retrieve_args, url, char_sizes, obs_api_url
+            )
         # Check if the resulting file is empty
         if len(oncobj.variables) == 0 or len(oncobj.variables["report_timestamp"]) == 0:
             raise RuntimeError(
@@ -178,7 +179,7 @@ def _get_char_sizes(fs: HTTPFileSystem, object_urls: list[str]) -> dict[str, int
 
 
 def get_service_definition(dataset: str, obs_api_url: str) -> dict:
-    return requests.get(f"/{obs_api_url}/{dataset}/service_definition").json()
+    return requests.get(f"{obs_api_url}/{dataset}/service_definition").json()
 
 
 def get_url_ncobj(fs: HTTPFileSystem, url: str) -> h5netcdf.File:
@@ -232,6 +233,7 @@ def filter_asset_and_save(
     retrieve_args: RetrieveArgs,
     url: str,
     char_sizes: dict[str, int],
+    obs_api_url: str,
 ):
     """Get the filtered data from the asset and dump it to the output file."""
     with get_url_ncobj(fs, url) as incobj:
@@ -245,7 +247,7 @@ def filter_asset_and_save(
             new_size = current_size + mask.sum()
             oncobj.resize_dimension("index", new_size)
             # Get the variables in the input file that are in the CDM lite specification.
-            vars_in_cdm_lite = get_vars_in_cdm_lite(incobj)
+            vars_in_cdm_lite = get_vars_in_cdm_lite(incobj, obs_api_url)
             # Filter and save the data for each variable.
             for ivar in vars_in_cdm_lite:
                 filter_and_save_var(
@@ -429,8 +431,9 @@ def dump_char_variable(
         ovar[current_size:new_size, 0:actual_str_dim_size] = data_decoded
 
 
-def get_vars_in_cdm_lite(incobj: h5netcdf.File) -> list[str]:
+def get_vars_in_cdm_lite(incobj: h5netcdf.File, obs_api_url: str) -> list[str]:
     """Return the variables in incobj that are defined in the CDM-lite."""
+    cdm_lite_variables = get_cdm_lite_variables(obs_api_url)
     vars_in_cdm_lite = [v for v in incobj.variables if v in cdm_lite_variables]
     # This searches for variables with "|cdm_table  in their name."
     vars_with_bar_in_cdm_lite = [
@@ -440,3 +443,7 @@ def get_vars_in_cdm_lite(incobj: h5netcdf.File) -> list[str]:
     ]
     vars_in_cdm_lite += vars_with_bar_in_cdm_lite
     return vars_in_cdm_lite
+
+
+def get_cdm_lite_variables(obs_api_url: str):
+    return requests.get(f"{obs_api_url}/cdm/lite_variables").json()
