@@ -49,7 +49,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.adaptors.roocs import operators
 
         facets = self.find_facets(request)
-        print("DEBUG FACETS:", facets)
+        print("DEBUG FACETS:", len(facets))
         dataset_ids = [
             ".".join(facet for facet in sub_facets.values() if facet is not None)
             for sub_facets in facets
@@ -79,7 +79,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             if kwargs:
                 workflow = getattr(rookops, operator.ROOKI)(workflow, **kwargs)
 
-        print("DEBUG WPS REQUEST: ", str(workflow._serialise()))
+        # print("DEBUG WPS REQUEST: ", str(workflow._serialise()))
 
         if list(eval(workflow._serialise())) == ["inputs", "doc"]:
             workflow = rookops.Subset(workflow)
