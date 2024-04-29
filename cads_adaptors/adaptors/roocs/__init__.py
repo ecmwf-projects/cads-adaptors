@@ -123,14 +123,14 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = {k: v for k, v in request.items() if k in self.facets[0]}
 
         matched_facets = []
+        regex_facets = {
+            key: self.facet_search[key].format(**{key: tmp_request.pop(key)})
+            for key in self.facet_search
+        }
 
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
             tmp_request = request.copy()
-            regex_facets = {
-                key: self.facet_search[key].format(**{key: tmp_request.pop(key)})
-                for key in self.facet_search
-            }
 
             for key, groups in self.facet_groups.items():
                 if key in candidate:
@@ -141,11 +141,12 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             if candidate.items() >= tmp_request.items():
                 matched_facets.append(raw_candidate)
             elif candidate.items() < tmp_request.items():
-                for key, value in regex_facets.items():
-                    if not re.search(value, candidate[key]):
-                        break
-                else:
-                    matched_facets.append(candidate)
+                if regex_facets:
+                    for key, value in regex_facets.items():
+                        if not re.search(value, candidate[key]):
+                            break
+                    else:
+                        matched_facets.append(candidate)
         
         if not matched_facets:
             raise ValueError(f"No data found for request {request}")
