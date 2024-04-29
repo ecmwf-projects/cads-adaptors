@@ -148,7 +148,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             #         else:
             #             matched_facets.append(candidate)
         
-        raise ValueError(str(matched_facets))
+        raise ValueError(f"MATCHED: {len(matched_facets)}")
         
         if not matched_facets:
             raise ValueError(f"No data found for request {request}")
