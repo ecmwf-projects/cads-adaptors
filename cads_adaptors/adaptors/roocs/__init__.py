@@ -130,6 +130,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             key: self.facet_search[key].format(**{key: request.pop(key)})
             for key in self.facet_search
         }
+        raise ValueError(regex_facets)
 
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
