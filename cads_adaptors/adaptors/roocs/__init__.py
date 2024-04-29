@@ -45,7 +45,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.adaptors.roocs import operators
 
         facets = self.find_facets(request)
-
+        print("DEBUG FACETS:", facets)
         dataset_ids = [
             ".".join(facet for facet in sub_facets.values() if facet is not None)
             for sub_facets in facets
