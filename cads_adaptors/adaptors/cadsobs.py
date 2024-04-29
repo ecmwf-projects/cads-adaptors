@@ -1,8 +1,9 @@
 import logging
 import tempfile
 import uuid
+from datetime import datetime
 from pathlib import Path
-from typing import Tuple
+from typing import List, Literal, Tuple
 
 import cftime
 import fsspec
@@ -10,15 +11,33 @@ import h5netcdf
 import numpy
 import requests
 import xarray
-from cdsobs.retrieve.filter_datasets import between, get_param_name_in_data
-from cdsobs.retrieve.models import RetrieveArgs, RetrieveParams
-from cdsobs.retrieve.retrieve_services import ezclump
-from cdsobs.utils.utils import get_code_mapping
 from fsspec.implementations.http import HTTPFileSystem
+from pydantic import BaseModel
 
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 
 logger = logging.Logger(__name__)
+
+
+RetrieveFormat = Literal["netCDF", "csv"]
+
+
+class RetrieveParams(BaseModel, extra="forbid"):
+    dataset_source: str
+    stations: None | List[str] = None
+    variables: List[str] | None = None
+    latitude_coverage: None | tuple[float, float] = None
+    longitude_coverage: None | tuple[float, float] = None
+    time_coverage: None | tuple[datetime, datetime] = None
+    year: None | List[int] = None
+    month: None | List[int] = None
+    day: None | List[int] = None
+    format: RetrieveFormat = "netCDF"
+
+
+class RetrieveArgs(BaseModel):
+    dataset: str
+    params: RetrieveParams
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
@@ -447,3 +466,68 @@ def get_vars_in_cdm_lite(incobj: h5netcdf.File, obs_api_url: str) -> list[str]:
 
 def get_cdm_lite_variables(obs_api_url: str):
     return requests.get(f"{obs_api_url}/cdm/lite_variables").json()
+
+
+def between(index, start, end):
+    return (index >= start) & (index < end)
+
+
+def get_param_name_in_data(retrieved_dataset, param_name):
+    match param_name:
+        case "time_coverage":
+            param_name_in_data = "report_timestamp"
+        case "longitude_coverage" | "latitude_coverage":
+            coord = param_name.split("_")[0]
+            if f"{coord}|header_table" in retrieved_dataset.variables:
+                param_name_in_data = f"{coord}|header_table"
+            else:
+                param_name_in_data = f"{coord}|station_configuration"
+        case _:
+            raise RuntimeError(f"Unknown parameter name {param_name}")
+    return param_name_in_data
+
+
+def ezclump(mask) -> list[slice]:
+    """
+    Find the clumps (groups of data with the same values) for a 1D bool array.
+
+    Internal function form numpy.ma.extras
+
+    Returns a series of slices.
+    """
+    if mask.ndim > 1:
+        mask = mask.ravel()
+    idx = (mask[1:] ^ mask[:-1]).nonzero()
+    idx = idx[0] + 1
+
+    if mask[0]:
+        if len(idx) == 0:
+            return [slice(0, mask.size)]
+
+        r = [slice(0, idx[0])]
+        r.extend((slice(left, right) for left, right in zip(idx[1:-1:2], idx[2::2])))
+    else:
+        if len(idx) == 0:
+            return []
+
+        r = [slice(left, right) for left, right in zip(idx[:-1:2], idx[1::2])]
+
+    if mask[-1]:
+        r.append(slice(idx[-1], mask.size))
+    return r
+
+
+def get_code_mapping(
+    incobj: h5netcdf.File | xarray.Dataset, inverse: bool = False
+) -> dict:
+    if isinstance(incobj, h5netcdf.File):
+        attrs = incobj.variables["observed_variable"].attrs
+    elif isinstance(incobj, xarray.Dataset):
+        attrs = incobj["observed_variable"].attrs
+    else:
+        raise RuntimeError("Unsupported input type")
+    if inverse:
+        mapping = {c: v for v, c in zip(attrs["labels"], attrs["codes"])}
+    else:
+        mapping = {v: c for v, c in zip(attrs["labels"], attrs["codes"])}
+    return mapping
