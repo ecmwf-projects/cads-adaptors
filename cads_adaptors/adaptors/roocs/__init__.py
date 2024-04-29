@@ -68,6 +68,15 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     }
             workflow = getattr(rookops, operator)(workflow, **tmp_kwargs)
 
+        for operator_class in operators.ROOKI_OPERATORS:
+            operator = operator_class(request)
+            kwargs = dict()
+            for parameter in operator.parameters:
+                if parameter.__name__ in request:
+                    kwargs = operator.update_kwargs(kwargs, parameter())
+            if kwargs:
+                workflow = getattr(rookops, operator.ROOKI)(workflow, **kwargs)
+
         print("DEBUG WPS REQUEST: ", str(workflow._serialise()))
 
         if list(eval(workflow._serialise())) == ["inputs", "doc"]:
