@@ -8,17 +8,20 @@ import cftime
 import fsspec
 import h5netcdf
 import numpy
-import requests
 import xarray
 from fsspec.implementations.http import HTTPFileSystem
 
+from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs, RetrieveParams
 
 logger = logging.getLogger(__name__)
 
 
 def retrieve_data(
-    dataset_name: str, mapped_request: dict, object_urls: list[str], obs_api_url: str
+    dataset_name: str,
+    mapped_request: dict,
+    object_urls: list[str],
+    cadsobs_client: CadsobsApiClient,
 ) -> Path:
     output_dir = Path(tempfile.mkdtemp())
     output_path_netcdf = _get_output_path(output_dir, dataset_name, "netCDF")
@@ -42,7 +45,7 @@ def retrieve_data(
         oncobj.dimensions["index"] = None
         for url in object_urls:
             filter_asset_and_save(
-                fs, oncobj, retrieve_args, url, char_sizes, obs_api_url
+                fs, oncobj, retrieve_args, url, char_sizes, cadsobs_client
             )
         # Check if the resulting file is empty
         if len(oncobj.variables) == 0 or len(oncobj.variables["report_timestamp"]) == 0:
@@ -50,7 +53,7 @@ def retrieve_data(
                 "No data was found, try a different parameter combination."
             )
         # Add atributes
-        _add_attributes(oncobj, retrieve_args, obs_api_url)
+        _add_attributes(oncobj, retrieve_args, cadsobs_client)
     # If the user asked for a CSV, we transform the file to CSV
     if retrieve_args.params.format == "netCDF":
         output_path = output_path_netcdf
@@ -64,7 +67,7 @@ def retrieve_data(
 
 
 def _add_attributes(
-    oncobj: h5netcdf.File, retrieve_args: RetrieveArgs, obs_api_url: str
+    oncobj: h5netcdf.File, retrieve_args: RetrieveArgs, cadsobs_client: CadsobsApiClient
 ):
     """Add relevant attributes to the output netCDF."""
     if "height_of_station_above_sea_level" in oncobj.variables:
@@ -76,7 +79,7 @@ def _add_attributes(
     oncobj.variables["latitude"].attrs["units"] = "degrees_north"
     oncobj.attrs["featureType"] = "point"
     # Global attributes
-    service_definition = get_service_definition(retrieve_args.dataset, obs_api_url)
+    service_definition = cadsobs_client.get_service_definition(retrieve_args.dataset)
     oncobj.attrs.update(service_definition["global_attributes"])
 
 
@@ -99,10 +102,6 @@ def _get_char_sizes(fs: HTTPFileSystem, object_urls: list[str]) -> dict[str, int
                     char_sizes[var] = max(char_sizes[var], char_size)
 
     return char_sizes
-
-
-def get_service_definition(dataset: str, obs_api_url: str) -> dict:
-    return requests.get(f"{obs_api_url}/{dataset}/service_definition").json()
 
 
 def get_url_ncobj(fs: HTTPFileSystem, url: str) -> h5netcdf.File:
@@ -156,7 +155,7 @@ def filter_asset_and_save(
     retrieve_args: RetrieveArgs,
     url: str,
     char_sizes: dict[str, int],
-    obs_api_url: str,
+    cadsobs_client: CadsobsApiClient,
 ):
     """Get the filtered data from the asset and dump it to the output file."""
     with get_url_ncobj(fs, url) as incobj:
@@ -170,7 +169,7 @@ def filter_asset_and_save(
             new_size = current_size + mask.sum()
             oncobj.resize_dimension("index", new_size)
             # Get the variables in the input file that are in the CDM lite specification.
-            vars_in_cdm_lite = get_vars_in_cdm_lite(incobj, obs_api_url)
+            vars_in_cdm_lite = get_vars_in_cdm_lite(incobj, cadsobs_client)
             # Filter and save the data for each variable.
             for ivar in vars_in_cdm_lite:
                 filter_and_save_var(
@@ -354,9 +353,11 @@ def dump_char_variable(
         ovar[current_size:new_size, 0:actual_str_dim_size] = data_decoded
 
 
-def get_vars_in_cdm_lite(incobj: h5netcdf.File, obs_api_url: str) -> list[str]:
+def get_vars_in_cdm_lite(
+    incobj: h5netcdf.File, cadsobs_client: CadsobsApiClient
+) -> list[str]:
     """Return the variables in incobj that are defined in the CDM-lite."""
-    cdm_lite_variables = get_cdm_lite_variables(obs_api_url)
+    cdm_lite_variables = cadsobs_client.get_cdm_lite_variables()
     vars_in_cdm_lite = [v for v in incobj.variables if v in cdm_lite_variables]
     # This searches for variables with "|cdm_table  in their name."
     vars_with_bar_in_cdm_lite = [
@@ -366,10 +367,6 @@ def get_vars_in_cdm_lite(incobj: h5netcdf.File, obs_api_url: str) -> list[str]:
     ]
     vars_in_cdm_lite += vars_with_bar_in_cdm_lite
     return vars_in_cdm_lite
-
-
-def get_cdm_lite_variables(obs_api_url: str):
-    return requests.get(f"{obs_api_url}/cdm/lite_variables").json()
 
 
 def between(index, start, end):
@@ -435,16 +432,3 @@ def get_code_mapping(
     else:
         mapping = {v: c for v, c in zip(attrs["labels"], attrs["codes"])}
     return mapping
-
-
-def get_objects_to_retrieve(
-    dataset_name: str, mapped_request: dict, obs_api_url: str
-) -> list[str]:
-    payload = dict(
-        retrieve_args=dict(dataset=dataset_name, params=mapped_request),
-        config=dict(size_limit=100000),
-    )
-    objects_to_retrieve = requests.post(
-        f"{obs_api_url}/get_object_urls_and_check_size", json=payload
-    ).json()
-    return objects_to_retrieve

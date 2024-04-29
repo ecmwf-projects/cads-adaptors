@@ -1,6 +1,7 @@
 import logging
 
-from cads_adaptors.adaptors.cadsobs.utils import get_objects_to_retrieve, retrieve_data
+from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
+from cads_adaptors.adaptors.cadsobs.utils import retrieve_data
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 
 logger = logging.getLogger(__name__)
@@ -23,10 +24,13 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         mapped_request = self.adapt_parameters(mapped_request)
         # Request parameters validation happens here, not sure about how to move this to
         # validate method
-        object_urls = get_objects_to_retrieve(dataset_name, mapped_request, obs_api_url)
+        cadsobs_client = CadsobsApiClient(obs_api_url)
+        object_urls = cadsobs_client.get_objects_to_retrieve(
+            dataset_name, mapped_request
+        )
         logger.debug(f"The following objects are going to be filtered: {object_urls}")
         output_path = retrieve_data(
-            dataset_name, mapped_request, object_urls, obs_api_url
+            dataset_name, mapped_request, object_urls, cadsobs_client
         )
         return open(output_path, "rb")
 

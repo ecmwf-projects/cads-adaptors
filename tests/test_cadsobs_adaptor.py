@@ -164,15 +164,15 @@ def mocked_get_objects(*args):
 def test_adaptor(tmp_path, monkeypatch):
     from cads_adaptors import ObservationsAdaptor
 
-    monkeypatch.setattr(
-        "cads_adaptors.adaptors.cadsobs.adaptor.get_objects_to_retrieve",
-        mocked_get_objects,
-    )
+    # monkeypatch.setattr(
+    #     "cads_adaptors.adaptors.cadsobs.adaptor.get_objects_to_retrieve",
+    #     mocked_get_objects,
+    # )
     test_request = {
         "observation_type": ["total_column"],
         "format": "netCDF",
         "variable": ["total_ozone_column"],
-        "year": ["1969"],
+        "year": ["2011"],
         "month": ["02"],
         "day": [
             "01",
