@@ -39,13 +39,7 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
         if dir:
             os.makedirs(dir, exist_ok=True)
         try:
-            with tqdm(
-                desc=f"Downloading {url}",
-                unit="B",
-                unit_scale=True,
-                unit_divisor=1024,
-            ) as pbar:
-                multiurl.download(url, path, progress_bar=pbar, file=context, **kwargs)
+            multiurl.download(url, path, progress_bar=tqdm, file=context, **kwargs)
         except Exception:
             context.add_stdout(f"Failed download for URL: {url}\nTraceback: {traceback.format_exc()}")
         else:
