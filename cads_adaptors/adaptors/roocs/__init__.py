@@ -46,10 +46,25 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         facets = self.find_facets(request)
 
-        dataset_id = ".".join(facets.values())
-        variable_id = facets.get("variable", "")
+        dataset_ids = [
+            ".".join(facet for facet in sub_facets.values() if facet is not None)
+            for sub_facets in facets
+        ]
+        variable_id = facets[0].get("variable", "")
 
-        workflow = rookops.Input(variable_id, [dataset_id])
+        workflow = rookops.Input(variable_id, dataset_ids)
+
+        for operator, operator_kwargs in self.operators.items():
+            tmp_kwargs = operator_kwargs.copy()
+            for key, value in operator_kwargs.items():
+                if "." in value:
+                    klass, method = value.split(".")
+                    tmp_kwargs.pop(key)
+                    tmp_kwargs = {
+                        **tmp_kwargs,
+                        **getattr(getattr(operators, klass.capitalize())(request), method)()
+                    }
+            workflow = getattr(rookops, operator)(workflow, **tmp_kwargs)
 
         for operator_class in operators.ROOKI_OPERATORS:
             operator = operator_class(request)
