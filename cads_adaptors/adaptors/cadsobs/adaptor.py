@@ -1,7 +1,7 @@
 import logging
 
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
-from cads_adaptors.adaptors.cadsobs.utils import retrieve_data
+from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 
 logger = logging.getLogger(__name__)
@@ -66,5 +66,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                 )
             else:
                 # Get the string if there is only one item in the list.
-                dataset_source = dataset_source[0]
-        return dataset_source
+                dataset_source_str = dataset_source[0]
+        else:
+            dataset_source_str = dataset_source
+        return dataset_source_str

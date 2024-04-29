@@ -18,6 +18,8 @@ dependencies:
 - multiurl>=0.3.1
 - pyyaml
 - DateTimeRange
+- fsspec
+- aiohttp
 - pip:
   - rooki
   - earthkit-aggregate

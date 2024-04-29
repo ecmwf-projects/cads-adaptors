@@ -1,11 +1,9 @@
 import logging
-import tempfile
 import uuid
 from pathlib import Path
 from typing import Tuple
 
 import cftime
-import fsspec
 import h5netcdf
 import numpy
 import pandas
@@ -24,57 +22,8 @@ MAX_NUMBER_OF_GROUPS = 10
 TIME_UNITS_REFERENCE_DATE = "1900-01-01 00:00:00"
 
 
-def retrieve_data(
-    dataset_name: str,
-    mapped_request: dict,
-    object_urls: list[str],
-    cadsobs_client: CadsobsApiClient,
-) -> Path:
-    output_dir = Path(tempfile.mkdtemp())
-    output_path_netcdf = _get_output_path(output_dir, dataset_name, "netCDF")
-    logger.info(f"Streaming data to {output_path_netcdf}")
-    # We first need to loop over the files to get the max size of the strings fields
-    # This way we can know the size of the output
-    # background cache will download blocks in the background ahead of time using a
-    # thread.
-    fs = fsspec.filesystem("https", cache_type="background", block_size=10 * (1024**2))
-    # Silence fsspec log as background cache does print unformatted log lines.
-    logging.getLogger("fsspec").setLevel(logging.WARNING)
-    # Get the maximum size of the character arrays
-    char_sizes = _get_char_sizes(fs, object_urls)
-    variables = mapped_request["variables"]
-    char_sizes["observed_variable"] = max([len(v) for v in variables])
-    # Open the output file and dump the data from each input file.
-    retrieve_args = RetrieveArgs(
-        dataset=dataset_name, params=RetrieveParams(**mapped_request)
-    )
-    with h5netcdf.File(output_path_netcdf, "w") as oncobj:
-        oncobj.dimensions["index"] = None
-        for url in object_urls:
-            filter_asset_and_save(
-                fs, oncobj, retrieve_args, url, char_sizes, cadsobs_client
-            )
-        # Check if the resulting file is empty
-        if len(oncobj.variables) == 0 or len(oncobj.variables["report_timestamp"]) == 0:
-            raise RuntimeError(
-                "No data was found, try a different parameter combination."
-            )
-        # Add atributes
-        _add_attributes(oncobj, retrieve_args, cadsobs_client)
-    # If the user asked for a CSV, we transform the file to CSV
-    if retrieve_args.params.format == "netCDF":
-        output_path = output_path_netcdf
-    else:
-        try:
-            output_path = _to_csv(output_dir, output_path_netcdf, retrieve_args)
-        finally:
-            # Ensure that the netCDF is not left behind taking disk space.
-            output_path_netcdf.unlink()
-    return output_path
-
-
 def _get_output_path(output_dir: Path, dataset: str, format: RetrieveFormat) -> Path:
-    """Retuen the path of the output file."""
+    """Return the path of the output file."""
     if format == "csv":
         extension = ".csv"
     else:
@@ -100,7 +49,7 @@ def _add_attributes(
     oncobj.attrs.update(service_definition["global_attributes"])
 
 
-def get_url_ncobj(fs: HTTPFileSystem, url: str) -> h5netcdf.File:
+def _get_url_ncobj(fs: HTTPFileSystem, url: str) -> h5netcdf.File:
     """Open an URL as a netCDF file object with h5netcdf."""
     fobj = fs.open(url)
     logger.debug(f"Reading data from {url}.")
@@ -125,7 +74,7 @@ def _get_char_sizes(fs: HTTPFileSystem, object_urls: list[str]) -> dict[str, int
     """
     char_sizes = {}
     for url in object_urls:
-        with get_url_ncobj(fs, url) as incobj:
+        with _get_url_ncobj(fs, url) as incobj:
             for var, varobj in incobj.items():
                 if varobj.dtype.kind == "S":
                     char_size = varobj.shape[1]
@@ -139,7 +88,7 @@ def _get_char_sizes(fs: HTTPFileSystem, object_urls: list[str]) -> dict[str, int
     return char_sizes
 
 
-def filter_asset_and_save(
+def _filter_asset_and_save(
     fs: HTTPFileSystem,
     oncobj: h5netcdf.File,
     retrieve_args: RetrieveArgs,
@@ -148,10 +97,10 @@ def filter_asset_and_save(
     cadsobs_client: CadsobsApiClient,
 ):
     """Get the filtered data from the asset and dump it to the output file."""
-    with get_url_ncobj(fs, url) as incobj:
-        mask = get_mask(incobj, retrieve_args.params)
+    with _get_url_ncobj(fs, url) as incobj:
+        mask = _get_mask(incobj, retrieve_args.params)
         if mask.any():
-            number_of_groups = len(ezclump(mask))
+            number_of_groups = len(_ezclump(mask))
             mask_size = mask.sum()
             # We will download the full chunks in this cases, as it is way more efficient
             download_all_chunk = (
@@ -166,10 +115,10 @@ def filter_asset_and_save(
             oncobj.resize_dimension("index", new_size)
             # Get the variables in the input file that are in the CDM lite specification.
             cdm_lite_variables = cadsobs_client.get_cdm_lite_variables()
-            vars_in_cdm_lite = get_vars_in_cdm_lite(incobj, cdm_lite_variables)
+            vars_in_cdm_lite = _get_vars_in_cdm_lite(incobj, cdm_lite_variables)
             # Filter and save the data for each variable.
             for ivar in vars_in_cdm_lite:
-                filter_and_save_var(
+                _filter_and_save_var(
                     incobj,
                     ivar,
                     oncobj,
@@ -186,7 +135,7 @@ def filter_asset_and_save(
             logger.debug("No data found in asset for the query paramater.")
 
 
-def get_mask(incobj: h5netcdf.File, retrieve_params: RetrieveParams) -> numpy.ndarray:
+def _get_mask(incobj: h5netcdf.File, retrieve_params: RetrieveParams) -> numpy.ndarray:
     """Return a boolean mask with requested observation_ids."""
     logger.debug("Filtering data in retrieved chunk data.")
     retrieve_params_dict = retrieve_params.model_dump()
@@ -211,13 +160,13 @@ def get_mask(incobj: h5netcdf.File, retrieve_params: RetrieveParams) -> numpy.nd
         coverage_range = retrieve_params_dict[param_name]
         if coverage_range is not None:
             # Get the parameter we went to filter as a pandas.Index()
-            param_name_in_data = get_param_name_in_data(incobj, param_name)
+            param_name_in_data = _get_param_name_in_data(incobj, param_name)
             param_index = incobj.variables[param_name_in_data][:]
             if param_name == "time_coverage":
                 # Turn dates into integers with the same units
                 units = incobj.variables[param_name_in_data].attrs["units"]
                 coverage_range = cftime.date2num(coverage_range, units=units)
-            param_mask = between(param_index, coverage_range[0], coverage_range[1])
+            param_mask = _between(param_index, coverage_range[0], coverage_range[1])
             masks_combined = numpy.logical_and(masks_combined, param_mask)
     # Filter days (month and year not needed)
     if retrieve_params_dict["day"] is not None:
@@ -233,7 +182,7 @@ def get_mask(incobj: h5netcdf.File, retrieve_params: RetrieveParams) -> numpy.nd
     if retrieve_params.variables is not None:
         variables_asked = retrieve_params.variables
         #  Map to codes
-        var2code = get_code_mapping(incobj)
+        var2code = _get_code_mapping(incobj)
         codes_asked = [var2code[v] for v in variables_asked if v in var2code]
         variables_file = incobj.variables["observed_variable"][:]
         variable_mask = numpy.isin(variables_file, codes_asked)
@@ -242,7 +191,7 @@ def get_mask(incobj: h5netcdf.File, retrieve_params: RetrieveParams) -> numpy.nd
     return masks_combined
 
 
-def get_param_name_in_data(retrieved_dataset, param_name):
+def _get_param_name_in_data(retrieved_dataset: h5netcdf.File, param_name: str) -> str:
     match param_name:
         case "time_coverage":
             param_name_in_data = "report_timestamp"
@@ -257,7 +206,7 @@ def get_param_name_in_data(retrieved_dataset, param_name):
     return param_name_in_data
 
 
-def get_vars_in_cdm_lite(
+def _get_vars_in_cdm_lite(
     incobj: h5netcdf.File, cdm_lite_variables: list[str]
 ) -> list[str]:
     """Return the variables in incobj that are defined in the CDM-lite."""
@@ -272,7 +221,7 @@ def get_vars_in_cdm_lite(
     return vars_in_cdm_lite
 
 
-def filter_and_save_var(
+def _filter_and_save_var(
     incobj: h5netcdf.File,
     ivar: str,
     oncobj: h5netcdf.File,
@@ -306,7 +255,7 @@ def filter_and_save_var(
     # Handle character dimensions
     is_char = len(ivarobj.shape) > 1 or ivar == "observed_variable"
     if is_char:
-        chunksize, dimensions = handle_string_dims(
+        chunksize, dimensions = _handle_string_dims(
             char_sizes, chunksize, dimensions, ivar, oncobj
         )
     # Create the variable
@@ -326,7 +275,7 @@ def filter_and_save_var(
     ovar.attrs.update(attrs)
     # Dump the data to the file
     if is_char:
-        dump_char_variable(
+        _dump_char_variable(
             current_size,
             incobj,
             ivar,
@@ -344,7 +293,7 @@ def filter_and_save_var(
         ovar[current_size:new_size] = data
 
 
-def dump_char_variable(
+def _dump_char_variable(
     current_size: int,
     incobj: h5netcdf.File,
     ivar: str,
@@ -367,7 +316,7 @@ def dump_char_variable(
             data = ivarobj[:][mask]
         else:
             data = ivarobj[mask]
-        code2var = get_code_mapping(incobj, inverse=True)
+        code2var = _get_code_mapping(incobj, inverse=True)
         codes_in_data, inverse = numpy.unique(data, return_inverse=True)
         variables_in_data = numpy.array(
             [code2var[c].encode("utf-8") for c in codes_in_data]
@@ -378,7 +327,7 @@ def dump_char_variable(
         ovar[current_size:new_size, 0:actual_str_dim_size] = data_decoded
 
 
-def get_code_mapping(
+def _get_code_mapping(
     incobj: h5netcdf.File | xarray.Dataset, inverse: bool = False
 ) -> dict:
     if isinstance(incobj, h5netcdf.File):
@@ -394,7 +343,13 @@ def get_code_mapping(
     return mapping
 
 
-def handle_string_dims(char_sizes, chunksize, dimensions, ivar, oncobj):
+def _handle_string_dims(
+    char_sizes: dict[str, int],
+    chunksize: Tuple[int, ...],
+    dimensions: Tuple[str, ...],
+    ivar: str,
+    oncobj: h5netcdf.File,
+) -> Tuple[Tuple[int, ...], Tuple[str, ...]]:
     ivar_str_dim = ivar + "_stringdim"
     ivar_str_dim_size = char_sizes[ivar]
     if ivar_str_dim not in oncobj.dimensions:
@@ -420,75 +375,7 @@ def _remove_table_name_from_coordinates(
     return ovar, cdm_table
 
 
-def _to_csv(
-    output_dir: Path, output_path_netcdf: Path, retrieve_args: RetrieveArgs
-) -> Path:
-    """Transform the output netCDF to CSV format."""
-    output_path = _get_output_path(output_dir, retrieve_args.dataset, "csv")
-    cdm_lite_dataset = xarray.open_dataset(
-        output_path_netcdf, chunks=dict(observation_id=100000), decode_times=True
-    )
-    logger.info("Transforming netCDF to CSV")
-    with output_path.open("w") as ofileobj:
-        header = _get_csv_header(retrieve_args, cdm_lite_dataset)
-        ofileobj.write(header)
-    # Beware this will not work with old dask versions because of a bug
-    # https://github.com/dask/dask/issues/10414
-    cdm_lite_dataset.to_dask_dataframe().astype("str").to_csv(
-        output_path,
-        index=False,
-        single_file=True,
-        mode="a",
-        compute_kwargs={"scheduler": "single-threaded"},
-    )
-    return output_path
-
-
-def _get_csv_header(
-    retrieve_args: RetrieveArgs, cdm_lite_dataset: xarray.Dataset
-) -> str:
-    """Return the header of the CSV file."""
-    template = """
-########################################################################################
-# This file contains data retrieved from the CDS https://cds.climate.copernicus.eu/cdsapp#!/dataset/{dataset}
-# This is a C3S product under the following licences:
-#     - licence-to-use-copernicus-products
-#     - woudc-data-policy
-# This is a CSV file following the CDS convention cdm-obs
-# Data source: {dataset_source}
-# Version:
-# Time extent: {time_start} - {time_end}
-# Geographic area (minlat/maxlat/minlon/maxlon): {area}
-# Variables selected and units
-{varstr}
-########################################################################################
-"""
-    area = "{}/{}/{}/{}".format(
-        cdm_lite_dataset.latitude.min().compute().item(),
-        cdm_lite_dataset.latitude.max().compute().item(),
-        cdm_lite_dataset.longitude.min().compute().item(),
-        cdm_lite_dataset.longitude.max().compute().item(),
-    )
-    time_start = "{:%Y%m%d}".format(cdm_lite_dataset.report_timestamp.to_index()[0])
-    time_end = "{:%Y%m%d}".format(cdm_lite_dataset.report_timestamp.to_index()[-1])
-    vars_and_units = zip(
-        numpy.unique(cdm_lite_dataset.observed_variable.to_index().str.decode("utf-8")),
-        numpy.unique(cdm_lite_dataset.units.to_index().str.decode("utf-8")),
-    )
-    varstr = "\n".join([f"# {v} [{u}]" for v, u in vars_and_units])
-    header_params = dict(
-        dataset=retrieve_args.dataset,
-        dataset_source=retrieve_args.params.dataset_source,
-        area=area,
-        time_start=time_start,
-        time_end=time_end,
-        varstr=varstr,
-    )
-    header = template.format(**header_params)
-    return header
-
-
-def ezclump(mask) -> list[slice]:
+def _ezclump(mask) -> list[slice]:
     """
     Find the clumps (groups of data with the same values) for a 1D bool array.
 
@@ -518,5 +405,5 @@ def ezclump(mask) -> list[slice]:
     return r
 
 
-def between(index, start, end):
+def _between(index, start, end):
     return (index >= start) & (index < end)
