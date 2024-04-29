@@ -128,6 +128,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             for key in self.facet_search
         }
 
+        raise ValueError(regex_facets)
+
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
             tmp_request = request.copy()                
