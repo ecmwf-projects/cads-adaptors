@@ -32,6 +32,8 @@ def grib_to_netcdf_files(
         if isinstance(open_datasets_kwargs, list):
             datasets: list[xr.Dataset] = []
             for open_ds_kwargs in open_datasets_kwargs:
+                # Default engine is cfgrib
+                open_ds_kwargs.setdefault("engine", "cfgrib")
                 datasets.append(xr.open_dataset(grib_file, **open_ds_kwargs))
         else:
             datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
