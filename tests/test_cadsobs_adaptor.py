@@ -165,7 +165,7 @@ def test_adaptor(tmp_path, monkeypatch):
     from cads_adaptors import ObservationsAdaptor
 
     monkeypatch.setattr(
-        "cads_adaptors.adaptors.cadsobs.get_objects_to_retrieve",
+        "cads_adaptors.adaptors.cadsobs.adaptor.get_objects_to_retrieve",
         mocked_get_objects,
     )
     test_request = {

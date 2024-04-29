@@ -1,9 +1,8 @@
 import logging
 import tempfile
 import uuid
-from datetime import datetime
 from pathlib import Path
-from typing import List, Literal, Tuple
+from typing import Tuple
 
 import cftime
 import fsspec
@@ -12,105 +11,10 @@ import numpy
 import requests
 import xarray
 from fsspec.implementations.http import HTTPFileSystem
-from pydantic import BaseModel
 
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs, RetrieveParams
 
-logger = logging.Logger(__name__)
-
-
-RetrieveFormat = Literal["netCDF", "csv"]
-
-
-class RetrieveParams(BaseModel, extra="forbid"):
-    dataset_source: str
-    stations: None | List[str] = None
-    variables: List[str] | None = None
-    latitude_coverage: None | tuple[float, float] = None
-    longitude_coverage: None | tuple[float, float] = None
-    time_coverage: None | tuple[datetime, datetime] = None
-    year: None | List[int] = None
-    month: None | List[int] = None
-    day: None | List[int] = None
-    format: RetrieveFormat = "netCDF"
-
-
-class RetrieveArgs(BaseModel):
-    dataset: str
-    params: RetrieveParams
-
-
-class ObservationsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request):
-        # Maps observation_type to source. This sets self.mapped_request
-        self._pre_retrieve(request)
-        # Assignment to avoid repeating self too many times
-        mapped_request = self.mapped_request
-        # Catalogue credentials are in config, which is parsed from adaptor.json
-        obs_api_url = self.config["obs_api_url"]
-        # Dataset name is in this config too
-        dataset_name = self.config["collection_id"]
-        # dataset_source must be a string, asking for two sources is unsupported
-        dataset_source = mapped_request["dataset_source"]
-        dataset_source = self.handle_sources_list(dataset_source)
-        mapped_request["dataset_source"] = dataset_source
-        mapped_request = self.adapt_parameters(mapped_request)
-        # Request parameters validation happens here, not sure about how to move this to
-        # validate method
-        object_urls = get_objects_to_retrieve(dataset_name, mapped_request, obs_api_url)
-        logger.debug(f"The following objects are going to be filtered: {object_urls}")
-        output_path = retrieve_data(
-            dataset_name, mapped_request, object_urls, obs_api_url
-        )
-        return open(output_path, "rb")
-
-    def adapt_parameters(self, mapped_request: dict) -> dict:
-        # We need these changes right now to adapt the parameters to what we need
-        # Turn single values into length one lists
-        for key_to_listify in ["variables", "stations", "year", "month", "day"]:
-            if key_to_listify in mapped_request and not isinstance(
-                mapped_request[key_to_listify], list
-            ):
-                mapped_request[key_to_listify] = [mapped_request[key_to_listify]]
-        # Turn year, month, day strings into integers
-        for key_to_int in ["year", "month", "day"]:
-            mapped_request[key_to_int] = [int(v) for v in mapped_request[key_to_int]]
-        # Turn area into latitude and longitude coverage
-        if "area" in mapped_request:
-            area = mapped_request.pop("area")
-            mapped_request["latitude_coverage"] = [area[2], area[0]]
-            mapped_request["longitude_coverage"] = [area[1], area[3]]
-        return mapped_request
-
-    def handle_sources_list(self, dataset_source: list | str) -> str:
-        """Raise error if many, extract if list."""
-        if isinstance(dataset_source, list):
-            if len(dataset_source) > 1:
-                self.context.add_user_visible_error(
-                    "Asking for more than one observation_types in the same"
-                    "request is currently unsupported."
-                )
-                raise RuntimeError(
-                    "Asking for more than one observation_types in the same"
-                    "request is currently unsupported."
-                )
-            else:
-                # Get the string if there is only one item in the list.
-                dataset_source = dataset_source[0]
-        return dataset_source
-
-
-def get_objects_to_retrieve(
-    dataset_name: str, mapped_request: dict, obs_api_url: str
-) -> list[str]:
-    payload = dict(
-        retrieve_args=dict(dataset=dataset_name, params=mapped_request),
-        config=dict(size_limit=100000),
-    )
-    objects_to_retrieve = requests.post(
-        f"{obs_api_url}/get_object_urls_and_check_size", json=payload
-    ).json()
-    return objects_to_retrieve
+logger = logging.getLogger(__name__)
 
 
 def retrieve_data(
@@ -531,3 +435,16 @@ def get_code_mapping(
     else:
         mapping = {v: c for v, c in zip(attrs["labels"], attrs["codes"])}
     return mapping
+
+
+def get_objects_to_retrieve(
+    dataset_name: str, mapped_request: dict, obs_api_url: str
+) -> list[str]:
+    payload = dict(
+        retrieve_args=dict(dataset=dataset_name, params=mapped_request),
+        config=dict(size_limit=100000),
+    )
+    objects_to_retrieve = requests.post(
+        f"{obs_api_url}/get_object_urls_and_check_size", json=payload
+    ).json()
+    return objects_to_retrieve
