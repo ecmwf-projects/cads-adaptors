@@ -11,6 +11,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         self.facets = self.config.get("facets", dict())
         self.facet_groups = self.config.get("facet_groups", dict())
         self.facets_order = self.config.get("facets_order", [])
+        self.facet_search = self.config.get("facet_search", dict())
+        self.operators = self.config.get("operators", dict())
 
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools, url_tools
@@ -66,16 +68,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     }
             workflow = getattr(rookops, operator)(workflow, **tmp_kwargs)
 
-        for operator_class in operators.ROOKI_OPERATORS:
-            operator = operator_class(request)
-            kwargs = dict()
-            for parameter in operator.parameters:
-                if parameter.__name__ in request:
-                    kwargs = operator.update_kwargs(kwargs, parameter())
-            if kwargs:
-                workflow = getattr(rookops, operator.ROOKI)(workflow, **kwargs)
-
-        print(list(eval(workflow._serialise())))
+        print("DEBUG WPS REQUEST: ", str(workflow._serialise()))ß
 
         if list(eval(workflow._serialise())) == ["inputs", "doc"]:
             workflow = rookops.Subset(workflow)
