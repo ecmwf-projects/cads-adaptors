@@ -144,15 +144,6 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                         break
                 else:
                     matched_facets.append(candidate)
-            # elif candidate.items() < tmp_request.items():
-            #     if regex_facets:
-            #         for key, value in regex_facets.items():
-            #             if not re.search(value, candidate[key]):
-            #                 break
-            #         else:
-            #             matched_facets.append(candidate)
-        
-        raise ValueError(f"MATCHED: {len(matched_facets)}")
         
         if not matched_facets:
             raise ValueError(f"No data found for request {request}")
