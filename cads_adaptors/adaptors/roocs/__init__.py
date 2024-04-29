@@ -139,7 +139,11 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                             candidate[key] = group
 
             if candidate.items() >= tmp_request.items():
-                matched_facets.append(raw_candidate)
+                for key, value in regex_facets.items():
+                    if not re.search(value, candidate[key]):
+                        break
+                else:
+                    matched_facets.append(candidate)
             # elif candidate.items() < tmp_request.items():
             #     if regex_facets:
             #         for key, value in regex_facets.items():
