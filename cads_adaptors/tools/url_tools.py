@@ -45,7 +45,6 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
                 url,
                 path,
                 progress_bar=functools.partial(tqdm, file=context),
-                timeout=60,
                 **kwargs,
             )
         except Exception:
