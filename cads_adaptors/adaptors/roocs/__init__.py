@@ -68,7 +68,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     }
             workflow = getattr(rookops, operator)(workflow, **tmp_kwargs)
 
-        print("DEBUG WPS REQUEST: ", str(workflow._serialise()))ß
+        print("DEBUG WPS REQUEST: ", str(workflow._serialise()))
 
         if list(eval(workflow._serialise())) == ["inputs", "doc"]:
             workflow = rookops.Subset(workflow)
