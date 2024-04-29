@@ -124,13 +124,13 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         matched_facets = []
         regex_facets = {
-            key: self.facet_search[key].format(**{key: tmp_request.pop(key)})
+            key: self.facet_search[key].format(**{key: request.pop(key)})
             for key in self.facet_search
         }
 
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
-            tmp_request = request.copy()
+            tmp_request = request.copy()                
 
             for key, groups in self.facet_groups.items():
                 if key in candidate:
