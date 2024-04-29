@@ -111,6 +111,9 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
+    def convert_format(*args, **kwargs):
+        return convert_format(*args, **kwargs)
+
     def retrieve(self, request: Request) -> BinaryIO:
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
@@ -134,7 +137,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             self.mapped_request, context=self.context, config=self.config
         )
 
-        paths = convert_format(
+        paths = self.convert_format(
             result, data_format, context=self.context, **convert_kwargs
         )
 

@@ -97,9 +97,14 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
 
 class MultiMarsCdsAdaptor(MultiAdaptor):
+    def convert_format(*args, **kwargs):
+        from cads_adaptors.adaptors.mars import convert_format
+
+        return convert_format(*args, **kwargs)
+
     def retrieve(self, request: Request):
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
-        from cads_adaptors.adaptors.mars import convert_format, execute_mars
+        from cads_adaptors.adaptors.mars import execute_mars
         from cads_adaptors.tools import adaptor_tools
 
         # Format of data files, grib or netcdf
@@ -142,7 +147,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         )
         result = execute_mars(mapped_requests, context=self.context)
 
-        paths = convert_format(result, data_format, self.context, **convert_kwargs)
+        paths = self.convert_format(result, data_format, self.context, **convert_kwargs)
 
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"
