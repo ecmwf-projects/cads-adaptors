@@ -35,6 +35,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             urls = response.download_urls()
         except Exception:
             raise Exception(response.status)
+        urls += [response.provenance(), response.provenance_image()]
 
         paths = url_tools.try_download(urls, context=self.context)
 
