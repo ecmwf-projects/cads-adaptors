@@ -1,5 +1,6 @@
 import os
 import tarfile
+import traceback
 import urllib
 import zipfile
 from typing import Any, Dict, Generator, List, Optional
@@ -7,8 +8,8 @@ from typing import Any, Dict, Generator, List, Optional
 import jinja2
 import multiurl
 import requests
-from tqdm import tqdm
 import yaml
+from tqdm import tqdm
 
 from cads_adaptors.adaptors import Context
 from cads_adaptors.tools import hcube_tools
@@ -45,8 +46,8 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
                 unit_divisor=1024,
             ) as pbar:
                 multiurl.download(url, path, progress_bar=pbar, file=context, **kwargs)
-        except Exception as exc:
-            context.add_stdout(f"Failed download for URL: {url}\nTraceback: {exc}")
+        except Exception:
+            context.add_stdout(f"Failed download for URL: {url}\nTraceback: {traceback.format_exc()}")
         else:
             paths.append(path)
 
