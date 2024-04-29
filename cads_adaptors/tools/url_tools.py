@@ -46,7 +46,7 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             ) as pbar:
                 multiurl.download(url, path, progress_bar=pbar, file=context, **kwargs)
         except Exception as exc:
-            context.logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")
+            context.add_stdout(f"Failed download for URL: {url}\nTraceback: {exc}")
         else:
             paths.append(path)
 
