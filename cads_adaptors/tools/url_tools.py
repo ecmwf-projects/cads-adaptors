@@ -7,6 +7,7 @@ from typing import Any, Dict, Generator, List, Optional
 import jinja2
 import multiurl
 import requests
+from tqdm import tqdm
 import yaml
 
 from cads_adaptors.adaptors import Context
@@ -30,13 +31,20 @@ def requests_to_urls(
 
 def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
     paths = []
+    context.write_type = "stdout"
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
         if dir:
             os.makedirs(dir, exist_ok=True)
         try:
-            multiurl.download(url, path, **kwargs)
+            with tqdm(
+                desc=f"Downloading {url}",
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+            ) as pbar:
+                multiurl.download(url, path, progress_bar=pbar, file=context, **kwargs)
         except Exception as exc:
             context.logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")
         else:
