@@ -1,5 +1,5 @@
 import functools
-import multiprocessing
+import threading
 import os
 import tarfile
 import traceback
@@ -42,12 +42,13 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             os.makedirs(dir, exist_ok=True)
         try:
             context.add_stdout(f"Downloading {url} to {path}")
-            process = multiprocessing.Process(target=multiurl.download, args=(url, path), kwargs={
+            thread = threading.Thread(target=multiurl.download, args=(url, path), kwargs={
                 "progress_bar": functools.partial(tqdm, file=context), **kwargs
             })
-            process.start()
-            process.join(timeout=60)
-            process.terminate()
+            thread.start()
+            thread.join(timeout=60)
+            if thread.is_alive():
+                raise TimeoutError(f"Download of {url} to {path} timed out")
         except Exception:
             context.add_stdout(
                 f"Failed download for URL: {url}\nTraceback: {traceback.format_exc()}"
