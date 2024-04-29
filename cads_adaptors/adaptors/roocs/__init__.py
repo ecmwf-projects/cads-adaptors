@@ -128,8 +128,6 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             for key in self.facet_search
         }
 
-        raise ValueError(regex_facets)
-
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
             tmp_request = request.copy()                
@@ -149,6 +147,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                             break
                     else:
                         matched_facets.append(candidate)
+        
+        raise ValueError(str(matched_facets))
         
         if not matched_facets:
             raise ValueError(f"No data found for request {request}")
