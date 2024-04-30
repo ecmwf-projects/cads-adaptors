@@ -155,33 +155,7 @@ class Subset(Operator):
 class Concat(Operator):
     
     def time(self):
-        return {}
-    
-    # def time(self):
-    #     if not any((key in self.request for key in ("year", "month", "day"))):
-    #         return
-        
-    #     years = self.request.get('year')
-    #     if not isinstance(years, (list, tuple)):
-    #         years = [years]
-    #     years = [int(year) for year in years]
-        
-    #     months = self.request.get('month', [1, 12])
-    #     if not isinstance(months, (list, tuple)):
-    #         months = [months]
-    #     months = [int(month) for month in months]
-        
-    #     days = self.request.get('day', [1, 31])
-    #     if not isinstance(days, (list, tuple)):
-    #         days = [days]
-    #     days = [int(day) for day in days]
-        
-    #     time_slice = (
-    #         f"{min(years)}-{min(months):02d}-{min(days):02d}/"
-    #         f"{max(years)}-{max(months):02d}-{max(days):02d}"
-    #     )
-        
-    #     return {"time": time_slice}
+        return dict()
 
 
 ROOKI_OPERATORS = [
