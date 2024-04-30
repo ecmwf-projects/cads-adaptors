@@ -29,6 +29,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         workflow = self.construct_workflow(request)
         
+        raise ValueError(workflow._serialise())
+        
         response = rooki.rooki.orchestrate(workflow=workflow._serialise())
 
         response = workflow.orchestrate()
@@ -50,7 +52,6 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.adaptors.roocs import operators
 
         facets = self.find_facets(request)
-        print("DEBUG FACETS:", len(facets))
         dataset_ids = [
             ".".join(facet for facet in sub_facets.values() if facet is not None)
             for sub_facets in facets
