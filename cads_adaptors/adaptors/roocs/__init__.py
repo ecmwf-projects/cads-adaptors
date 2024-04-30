@@ -46,10 +46,10 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.adaptors.roocs import operators
 
         facets = self.find_facets(request)
-        dataset_ids = [
+        dataset_ids = [[
             ".".join(facet for facet in sub_facets.values() if facet is not None)
             for sub_facets in facets
-        ][0]
+        ][0]]
         variable_id = facets[0].get("variable", "")
 
         workflow = rookops.Input(variable_id, dataset_ids)
