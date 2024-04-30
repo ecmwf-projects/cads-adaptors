@@ -23,13 +23,9 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         # switch off interactive logging to avoid threading issues
         os.environ["ROOK_MODE"] = "sync"
 
-        import rooki
-
         request = mapping.apply_mapping(request, self.mapping)
 
         workflow = self.construct_workflow(request)
-                
-        response = rooki.rooki.orchestrate(workflow=workflow._serialise())
 
         response = workflow.orchestrate()
 
