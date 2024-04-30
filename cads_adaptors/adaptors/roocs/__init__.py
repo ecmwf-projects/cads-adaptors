@@ -27,6 +27,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         workflow = self.construct_workflow(request)
 
+        raise KeyError(workflow._serialise())
+
         response = workflow.orchestrate()
 
         try:
