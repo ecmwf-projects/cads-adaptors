@@ -10,7 +10,6 @@ import pandas
 import xarray
 from fsspec.implementations.http import HTTPFileSystem
 
-from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cadsobs.models import (
     RetrieveArgs,
     RetrieveFormat,
@@ -32,9 +31,7 @@ def _get_output_path(output_dir: Path, dataset: str, format: RetrieveFormat) -> 
     return output_path
 
 
-def _add_attributes(
-    oncobj: h5netcdf.File, retrieve_args: RetrieveArgs, cadsobs_client: CadsobsApiClient
-):
+def _add_attributes(oncobj: h5netcdf.File, global_attributes: dict):
     """Add relevant attributes to the output netCDF."""
     if "height_of_station_above_sea_level" in oncobj.variables:
         oncobj.variables["height_of_station_above_sea_level"].attrs["units"] = "m"
@@ -45,8 +42,7 @@ def _add_attributes(
     oncobj.variables["latitude"].attrs["units"] = "degrees_north"
     oncobj.attrs["featureType"] = "point"
     # Global attributes
-    service_definition = cadsobs_client.get_service_definition(retrieve_args.dataset)
-    oncobj.attrs.update(service_definition["global_attributes"])
+    oncobj.attrs.update(global_attributes)
 
 
 def _get_url_ncobj(fs: HTTPFileSystem, url: str) -> h5netcdf.File:
@@ -94,7 +90,7 @@ def _filter_asset_and_save(
     retrieve_args: RetrieveArgs,
     url: str,
     char_sizes: dict[str, int],
-    cadsobs_client: CadsobsApiClient,
+    cdm_lite_variables: list[str],
 ):
     """Get the filtered data from the asset and dump it to the output file."""
     with _get_url_ncobj(fs, url) as incobj:
@@ -114,7 +110,6 @@ def _filter_asset_and_save(
             new_size = output_current_size + mask.sum()
             oncobj.resize_dimension("index", new_size)
             # Get the variables in the input file that are in the CDM lite specification.
-            cdm_lite_variables = cadsobs_client.get_cdm_lite_variables()
             vars_in_cdm_lite = _get_vars_in_cdm_lite(incobj, cdm_lite_variables)
             # Filter and save the data for each variable.
             for ivar in vars_in_cdm_lite:

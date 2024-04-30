@@ -1,11 +1,9 @@
 import logging
-import tempfile
 from pathlib import Path
 
 import fsspec
 import h5netcdf
 
-from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cadsobs.csv import to_csv
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs, RetrieveParams
 from cads_adaptors.adaptors.cadsobs.utils import (
@@ -21,10 +19,11 @@ logger = logging.getLogger(__name__)
 def retrieve_data(
     dataset_name: str,
     mapped_request: dict,
+    output_dir: Path,
     object_urls: list[str],
-    cadsobs_client: CadsobsApiClient,
+    cdm_lite_variables: list[str],
+    global_attributes: dict,
 ) -> Path:
-    output_dir = Path(tempfile.mkdtemp())
     output_path_netcdf = _get_output_path(output_dir, dataset_name, "netCDF")
     logger.info(f"Streaming data to {output_path_netcdf}")
     # We first need to loop over the files to get the max size of the strings fields
@@ -46,7 +45,7 @@ def retrieve_data(
         oncobj.dimensions["index"] = None
         for url in object_urls:
             _filter_asset_and_save(
-                fs, oncobj, retrieve_args, url, char_sizes, cadsobs_client
+                fs, oncobj, retrieve_args, url, char_sizes, cdm_lite_variables
             )
         # Check if the resulting file is empty
         if len(oncobj.variables) == 0 or len(oncobj.variables["report_timestamp"]) == 0:
@@ -54,7 +53,7 @@ def retrieve_data(
                 "No data was found, try a different parameter combination."
             )
         # Add atributes
-        _add_attributes(oncobj, retrieve_args, cadsobs_client)
+        _add_attributes(oncobj, global_attributes)
     # If the user asked for a CSV, we transform the file to CSV
     if retrieve_args.params.format == "netCDF":
         output_path = output_path_netcdf

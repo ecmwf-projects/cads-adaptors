@@ -1,4 +1,6 @@
 import logging
+import tempfile
+from pathlib import Path
 
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
@@ -28,9 +30,19 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         object_urls = cadsobs_client.get_objects_to_retrieve(
             dataset_name, mapped_request
         )
+        cdm_lite_variables = cadsobs_client.get_cdm_lite_variables()
+        global_attributes = cadsobs_client.get_service_definition(dataset_name)[
+            "global_attributes"
+        ]
         logger.debug(f"The following objects are going to be filtered: {object_urls}")
+        output_dir = Path(tempfile.mkdtemp())
         output_path = retrieve_data(
-            dataset_name, mapped_request, object_urls, cadsobs_client
+            dataset_name,
+            mapped_request,
+            output_dir,
+            object_urls,
+            cdm_lite_variables,
+            global_attributes,
         )
         return open(output_path, "rb")
 
