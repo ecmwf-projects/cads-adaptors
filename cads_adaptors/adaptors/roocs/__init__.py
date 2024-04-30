@@ -21,7 +21,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
 
         # switch off interactive logging to avoid threading issues
-        os.environ["ROOK_MODE"] = "sync"
+        # os.environ["ROOK_MODE"] = "sync"
 
         request = mapping.apply_mapping(request, self.mapping)
 
@@ -46,25 +46,25 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.adaptors.roocs import operators
 
         facets = self.find_facets(request)
-        dataset_ids = [[
+        dataset_ids = [
             ".".join(facet for facet in sub_facets.values() if facet is not None)
             for sub_facets in facets
-        ][0]]
+        ]
         variable_id = facets[0].get("variable", "")
 
         workflow = rookops.Input(variable_id, dataset_ids)
 
-        # for operator, operator_kwargs in self.operators.items():
-        #     tmp_kwargs = operator_kwargs.copy()
-        #     for key, value in operator_kwargs.items():
-        #         if "." in value:
-        #             klass, method = value.split(".")
-        #             tmp_kwargs.pop(key)
-        #             tmp_kwargs = {
-        #                 **tmp_kwargs,
-        #                 **getattr(getattr(operators, klass.capitalize())(request), method)()
-        #             }
-        #     workflow = getattr(rookops, operator)(workflow, **tmp_kwargs)
+        for operator, operator_kwargs in self.operators.items():
+            tmp_kwargs = operator_kwargs.copy()
+            for key, value in operator_kwargs.items():
+                if "." in value:
+                    klass, method = value.split(".")
+                    tmp_kwargs.pop(key)
+                    tmp_kwargs = {
+                        **tmp_kwargs,
+                        **getattr(getattr(operators, klass.capitalize())(request), method)()
+                    }
+            workflow = getattr(rookops, operator)(workflow, **tmp_kwargs)
 
         for operator_class in operators.ROOKI_OPERATORS:
             operator = operator_class(request)
