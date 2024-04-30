@@ -153,7 +153,9 @@ class Subset(Operator):
 
 
 class Concat(Operator):
-    """"""
+    
+    def time(self):
+        return {}
     
     # def time(self):
     #     if not any((key in self.request for key in ("year", "month", "day"))):
