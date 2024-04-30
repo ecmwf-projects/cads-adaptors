@@ -53,10 +53,10 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             context.add_stdout(f"Downloading {url} to {path}")
             thread = threading.Thread(
                 target=sleep,
-                args=(120, context),
+                args=(30, context),
             )
             thread.start()
-            thread.join(timeout=60)
+            thread.join(timeout=10)
             if thread.is_alive():
                 raise TimeoutError(f"Download of {url} to {path} timed out")
         except Exception:
