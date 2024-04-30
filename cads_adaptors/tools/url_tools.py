@@ -32,6 +32,15 @@ def requests_to_urls(
                 yield {"url": url, "req": req}
 
 
+def sleep(seconds: int, context: Context) -> None:
+    import time
+    context.add_stdout(f"Sleeping for {seconds} seconds")
+    start = time.time()
+    while time.time() - start < seconds:
+        context.add_stdout(f"Still sleeping. Elapsed time: {time.time() - start} seconds.")
+        time.sleep(1)
+
+
 def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
     paths = []
     context.write_type = "stdout"
@@ -42,9 +51,10 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             os.makedirs(dir, exist_ok=True)
         try:
             context.add_stdout(f"Downloading {url} to {path}")
-            thread = threading.Thread(target=multiurl.download, args=(url, path), kwargs={
-                "progress_bar": functools.partial(tqdm, file=context), **kwargs
-            })
+            thread = threading.Thread(
+                target=sleep,
+                args=(60, context),
+            )
             thread.start()
             thread.join(timeout=60)
             if thread.is_alive():
