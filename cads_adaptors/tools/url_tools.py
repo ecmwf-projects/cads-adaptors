@@ -1,5 +1,4 @@
 import functools
-import threading
 import os
 import tarfile
 import traceback
@@ -32,15 +31,6 @@ def requests_to_urls(
                 yield {"url": url, "req": req}
 
 
-def sleep(seconds: int, context: Context) -> None:
-    import time
-    context.add_stdout(f"Sleeping for {seconds} seconds")
-    start = time.time()
-    while time.time() - start < seconds:
-        context.add_stdout(f"Still sleeping. Elapsed time: {time.time() - start} seconds.")
-        time.sleep(1)
-
-
 def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
     paths = []
     context.write_type = "stdout"
@@ -51,14 +41,9 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             os.makedirs(dir, exist_ok=True)
         try:
             context.add_stdout(f"Downloading {url} to {path}")
-            thread = threading.Thread(
-                target=sleep,
-                args=(30, context),
+            multiurl.download(
+                url, path, progress_bar=functools.partial(tqdm, file=context), **kwargs
             )
-            thread.start()
-            thread.join(timeout=10)
-            if thread.is_alive():
-                raise TimeoutError(f"Download of {url} to {path} timed out")
         except Exception:
             context.add_stdout(
                 f"Failed download for URL: {url}\nTraceback: {traceback.format_exc()}"
