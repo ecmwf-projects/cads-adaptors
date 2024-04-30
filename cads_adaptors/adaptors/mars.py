@@ -18,12 +18,10 @@ def convert_format(
 
     # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
     if data_format in ["netcdf", "nc", "netcdf_compressed"]:
+        to_netcdf_kwargs: dict[str, Any] = {}
         if data_format in ["netcdf_compressed"]:
-            to_netcdf_kwargs = {
-                "compression_options": "default",
-            }
-        else:
-            to_netcdf_kwargs = {}
+            to_netcdf_kwargs["compression_options"] = "default"
+
         from cads_adaptors.tools.convertors import grib_to_netcdf_files
 
         # Give the power to overwrite the to_netcdf kwargs from the request
@@ -111,7 +109,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
-    def convert_format(*args, **kwargs):
+    def convert_format(self, *args, **kwargs):
         return convert_format(*args, **kwargs)
 
     def retrieve(self, request: Request) -> BinaryIO:

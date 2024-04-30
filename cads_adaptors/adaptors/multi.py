@@ -97,7 +97,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
 
 class MultiMarsCdsAdaptor(MultiAdaptor):
-    def convert_format(*args, **kwargs):
+    def convert_format(self, *args, **kwargs):
         from cads_adaptors.adaptors.mars import convert_format
 
         return convert_format(*args, **kwargs)

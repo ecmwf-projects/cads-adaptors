@@ -1,11 +1,13 @@
 import os
 from typing import Any
 
-DEFAULT_COMPRESSION_OPTIONS = {
-    "compression": "gzip",
-    "compression_opts": 9,
-    "shuffle": True,
-    "engine": "h5netcdf",
+STANDARD_COMPRESSION_OPTIONS = {
+    "default": {
+        "compression": "gzip",
+        "compression_opts": 9,
+        "shuffle": True,
+        "engine": "h5netcdf",
+    }
 }
 
 
@@ -38,8 +40,10 @@ def grib_to_netcdf_files(
         else:
             datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
 
-        if compression_options == "default":
-            compression_options = DEFAULT_COMPRESSION_OPTIONS
+        if isinstance(compression_options, str):
+            compression_options = STANDARD_COMPRESSION_OPTIONS.get(
+                compression_options, {}
+            )
 
         if compression_options is not None:
             to_netcdf_kwargs.setdefault(
