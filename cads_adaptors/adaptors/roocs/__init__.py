@@ -17,6 +17,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools, url_tools
+        import threading
 
         os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
 
@@ -26,7 +27,13 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = mapping.apply_mapping(request, self.mapping)
 
         workflow = self.construct_workflow(request)
-
+        
+        thread = threading.Thread(
+            target=self.run_request,
+            args=(workflow,),
+        )
+        thread.start()
+        thread.join()
         response = workflow.orchestrate()
 
         try:
@@ -149,3 +156,17 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             {key: final_candidate[key] for key in self.facets_order}
             for final_candidate in matched_facets
         ]
+
+    def run_request(self, workflow):
+        from cads_adaptors.tools import download_tools, url_tools
+        response = workflow.orchestrate()
+
+        try:
+            urls = response.download_urls()
+        except Exception:
+            raise Exception(response.status)
+        urls += [response.provenance(), response.provenance_image()]
+
+        paths = url_tools.try_download(urls, context=self.context)
+
+        return download_tools.DOWNLOAD_FORMATS["zip"](paths)
