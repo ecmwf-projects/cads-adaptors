@@ -53,7 +53,7 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             context.add_stdout(f"Downloading {url} to {path}")
             thread = threading.Thread(
                 target=sleep,
-                args=(60, context),
+                args=(120, context),
             )
             thread.start()
             thread.join(timeout=60)
