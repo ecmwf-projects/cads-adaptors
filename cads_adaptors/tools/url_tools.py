@@ -34,6 +34,7 @@ def requests_to_urls(
 def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
     paths = []
     context.write_type = "stdout"
+    kwargs.setdefault("verify", False)
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
