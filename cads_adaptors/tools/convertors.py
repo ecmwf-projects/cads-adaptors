@@ -1,5 +1,6 @@
 import os
 from typing import Any
+from cads_adaptors.adaptors import Context
 
 STANDARD_COMPRESSION_OPTIONS = {
     "default": {
@@ -15,6 +16,7 @@ def grib_to_netcdf_files(
     grib_file: str,
     compression_options: None | str | dict[str, Any] = None,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
+    context: Context = Context(),
     **to_netcdf_kwargs,
 ):
     fname, _ = os.path.splitext(os.path.basename(grib_file))
@@ -36,9 +38,20 @@ def grib_to_netcdf_files(
             for open_ds_kwargs in open_datasets_kwargs:
                 # Default engine is cfgrib
                 open_ds_kwargs.setdefault("engine", "cfgrib")
-                datasets.append(xr.open_dataset(grib_file, **open_ds_kwargs))
+                ds = xr.open_dataset(grib_file, **open_ds_kwargs)
+                if ds:
+                    datasets.append(ds)
         else:
             datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
+
+        if len(datasets) == 0:
+            message = (
+                "We are unable to convert this GRIB data to netCDF, "
+                "please download as GRIB and convert to netCDF locally.\n"
+            )
+            context.add_user_visible_error(message=message)
+            context.add_stderr(message=message)
+            raise RuntimeError(message)
 
         if isinstance(compression_options, str):
             compression_options = STANDARD_COMPRESSION_OPTIONS.get(
