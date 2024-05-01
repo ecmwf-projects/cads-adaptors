@@ -17,16 +17,25 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools, url_tools
+        import threading
 
-        os.environ["ROOK_URL"] = "'http://compute.mips.copernicus-climate.eu/wps'"
+        os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
 
         # switch off interactive logging to avoid threading issues
-        os.environ["ROOK_MODE"] = self.config.get("ROOK_MODE", "sync")
+        # os.environ["ROOK_MODE"] = "sync"
 
         request = mapping.apply_mapping(request, self.mapping)
 
         workflow = self.construct_workflow(request)
         response = workflow.orchestrate()
+        
+        # thread = threading.Thread(
+        #     target=self.run_request,
+        #     args=(workflow,),
+        # )
+        # thread.start()
+        # thread.join()
+        # response = workflow.orchestrate()
 
         try:
             urls = response.download_urls()
