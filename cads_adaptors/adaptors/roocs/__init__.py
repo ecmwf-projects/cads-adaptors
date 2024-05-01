@@ -5,8 +5,7 @@ from typing import BinaryIO
 from cads_adaptors import mapping
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 
-
-ROOK_URL = 'http://compute.mips.copernicus-climate.eu/wps'
+ROOK_URL = "http://compute.mips.copernicus-climate.eu/wps"
 
 
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
@@ -64,7 +63,9 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     tmp_kwargs.pop(key)
                     tmp_kwargs = {
                         **tmp_kwargs,
-                        **getattr(getattr(operators, klass.capitalize())(request), method)()
+                        **getattr(
+                            getattr(operators, klass.capitalize())(request), method
+                        )(),
                     }
             workflow = getattr(rookops, operator)(workflow, **tmp_kwargs)
 
@@ -126,7 +127,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
-            tmp_request = request.copy()                
+            tmp_request = request.copy()
 
             for key, groups in self.facet_groups.items():
                 if key in candidate:
@@ -140,7 +141,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                         break
                 else:
                     matched_facets.append(raw_candidate)
-        
+
         if not matched_facets:
             raise ValueError(f"No data found for request {request}")
 

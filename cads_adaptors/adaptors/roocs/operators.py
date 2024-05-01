@@ -153,7 +153,6 @@ class Subset(Operator):
 
 
 class Concat(Operator):
-    
     def time(self):
         return dict()
 
