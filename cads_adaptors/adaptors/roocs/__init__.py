@@ -6,6 +6,9 @@ from cads_adaptors import mapping
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 
 
+ROOK_URL = 'http://compute.mips.copernicus-climate.eu/wps'
+
+
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -18,7 +21,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools, url_tools
 
-        os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
+        os.environ["ROOK_URL"] = self.config.get("ROOK_URL", ROOK_URL)
 
         # switch off interactive logging to avoid threading issues
         os.environ["ROOK_MODE"] = self.config.get("ROOK_MODE", "sync")
@@ -39,7 +42,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         return download_tools.DOWNLOAD_FORMATS["zip"](paths)
 
     def construct_workflow(self, request):
-        os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
+        os.environ["ROOK_URL"] = self.config.get("ROOK_URL", ROOK_URL)
         import rooki.operators as rookops
 
         from cads_adaptors.adaptors.roocs import operators
@@ -73,8 +76,6 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     kwargs = operator.update_kwargs(kwargs, parameter())
             if kwargs:
                 workflow = getattr(rookops, operator.ROOKI)(workflow, **kwargs)
-
-        # print("DEBUG WPS REQUEST: ", str(workflow._serialise()))
 
         if list(eval(workflow._serialise())) == ["inputs", "doc"]:
             workflow = rookops.Subset(workflow)
