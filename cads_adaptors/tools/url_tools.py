@@ -33,7 +33,7 @@ def requests_to_urls(
 
 def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
     # Ensure that URLs are unique to prevent downloading the same file multiple times
-    urls = sorted(list(set(urls)))
+    urls = sorted(set(urls))
 
     paths = []
     context.write_type = "stdout"
