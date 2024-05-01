@@ -26,7 +26,7 @@ def convert_format(
 
         # Give the power to overwrite the to_netcdf kwargs from the request
         to_netcdf_kwargs = {**to_netcdf_kwargs, **kwargs}
-        paths = grib_to_netcdf_files(result, **to_netcdf_kwargs)
+        paths = grib_to_netcdf_files(result, context=context, **to_netcdf_kwargs)
     elif data_format in ["grib", "grib2", "grb", "grb2"]:
         paths = [result]
     else:
