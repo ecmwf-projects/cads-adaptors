@@ -74,7 +74,7 @@ def execute_mars(
         ),
         "host": os.getenv("HOSTNAME"),
     }
-    env["username"] = env["namespace"]+":"+env["user_id"].split("-")[-1]
+    env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
 
     reply = cluster.execute(requests, env, target)
     if reply.error:
