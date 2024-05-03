@@ -85,7 +85,7 @@ def execute_mars(
         error_message = (
             "MARS has returned an error, please check your selection.\n"
             f"Request submitted to the MARS server:\n{requests}\n"
-            f"Full error message: {error_lines}"
+            f"Full error message:\n{error_lines}\n"
         )
         context.add_user_visible_error(message=error_message)
 
