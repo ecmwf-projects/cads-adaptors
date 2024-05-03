@@ -62,7 +62,7 @@ def execute_mars(
             "MARS servers cannot be found, this is an error at the system level."
         )
 
-    cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers)
+    cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
 
     # Add required fields to the env dictionary:
     env = {
