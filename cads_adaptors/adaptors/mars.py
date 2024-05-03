@@ -77,14 +77,20 @@ def execute_mars(
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
 
     reply = cluster.execute(requests, env, target)
+    reply_message = str(reply.message)
     if reply.error:
+        error_lines = "\n".join(
+            [message for message in reply_message.split("\n") if "ERROR" in message]
+        )
         error_message = (
             "MARS has returned an error, please check your selection.\n"
-            f"Exception: {reply.error}\n"
             f"Request submitted to the MARS server:\n{requests}\n"
+            f"Full error message: {error_lines}"
         )
         context.add_user_visible_error(message=error_message)
-        raise reply.error
+
+        error_message += f"Exception: {reply.error}\n"
+        raise RuntimeError(error_message)
 
     if not os.path.getsize(target):
         error_message = (
@@ -96,7 +102,7 @@ def execute_mars(
         )
         raise RuntimeError(error_message)
 
-    context.add_stdout(message=reply.message)
+    context.add_stdout(message=reply_message)
 
     return target
 
