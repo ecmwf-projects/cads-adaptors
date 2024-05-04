@@ -77,6 +77,8 @@ def execute_mars(
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
 
     reply = cluster.execute(requests, env, target)
+    context.add_stdout(message=reply.message)
+
     if reply.error:
         error_message = (
             "MARS has returned an error, please check your selection.\n"
@@ -95,8 +97,6 @@ def execute_mars(
             message=error_message,
         )
         raise RuntimeError(error_message)
-
-    context.add_stdout(message=reply.message)
 
     return target
 
