@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+import dask
 import fsspec
 import h5netcdf
 
@@ -59,7 +60,8 @@ def retrieve_data(
         output_path = output_path_netcdf
     else:
         try:
-            output_path = to_csv(output_dir, output_path_netcdf, retrieve_args)
+            with dask.config.set(scheduler="threads"):
+                output_path = to_csv(output_dir, output_path_netcdf, retrieve_args)
         finally:
             # Ensure that the netCDF is not left behind taking disk space.
             output_path_netcdf.unlink()
