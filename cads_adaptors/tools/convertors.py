@@ -5,7 +5,8 @@ from cads_adaptors.adaptors import Context
 
 STANDARD_COMPRESSION_OPTIONS = {
     "default": {
-        "compression": "lzf",
+        "zlib": True,
+        "complevel": 1,
         "engine": "h5netcdf",
     }
 }
@@ -34,7 +35,7 @@ def grib_to_netcdf_files(
                     "step": 1,
                     "plev": 1,
                     "valid_time": 12,
-                }  # Auto vy 12 time steps
+                }  # Auto chunk 12 time steps
             }
 
         # Option for manual split of the grib file into list of xr.Datasets using list of open_ds_kwargs
