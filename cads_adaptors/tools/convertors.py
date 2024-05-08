@@ -13,7 +13,7 @@ STANDARD_COMPRESSION_OPTIONS = {
 
 def grib_to_netcdf_files(
     grib_file: str,
-    compression_options: None | str | dict[str, Any] = None,
+    compression_options: None | str | dict[str, Any] = "default",
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
     context: Context = Context(),
     out_fname_tag: str = "",
