@@ -119,6 +119,11 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def convert_format(self, *args, **kwargs):
         return convert_format(*args, **kwargs)
 
+    def daily_statistics(self, *args, **kwargs):
+        from cads_adaptors.tools.temporal_statistics import daily_statistics
+
+        return daily_statistics(*args, **kwargs)
+
     def retrieve(self, request: Request) -> BinaryIO:
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
@@ -135,6 +140,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             **request.pop("format_conversion_kwargs", dict()),
         }
 
+        daily_statistics_kwargs: dict[str, Any] | None = request.pop(
+            "daily_statistics", None
+        )
+
         # To preserve existing ERA5 functionality the default download_format="as_source"
         self._pre_retrieve(request=request, default_download_format="as_source")
 
@@ -143,11 +152,16 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         )
 
         # Daily statistics are returned as netcdf, so format conversion is not allowed
-        if "daily_statistics" in self.mapped_request:
+        if daily_statistics_kwargs is not None:
             data_format = "netcdf"
-            paths = self.daily_statistics(
-                result, self.mapped_request["daily_statistics"], context=self.context
-            )
+            try:
+                paths = self.daily_statistics(
+                    result, daily_statistics_kwargs, context=self.context
+                )
+            except Exception:
+                paths = self.convert_format(
+                    result, data_format, context=self.context, **convert_kwargs
+                )
         else:
             paths = self.convert_format(
                 result, data_format, context=self.context, **convert_kwargs
