@@ -29,7 +29,12 @@ def grib_to_netcdf_files(
     with dask.config.set(scheduler="threads"):
         if open_datasets_kwargs is None:
             open_datasets_kwargs = {
-                "chunks": {"time": 12, "step": 1, "plev": 1, "valid_time": 12}  # Auto vy 12 time steps
+                "chunks": {
+                    "time": 12,
+                    "step": 1,
+                    "plev": 1,
+                    "valid_time": 12,
+                }  # Auto vy 12 time steps
             }
 
         # Option for manual split of the grib file into list of xr.Datasets using list of open_ds_kwargs
