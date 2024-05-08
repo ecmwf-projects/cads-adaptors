@@ -5,9 +5,7 @@ from cads_adaptors.adaptors import Context
 
 STANDARD_COMPRESSION_OPTIONS = {
     "default": {
-        "compression": "gzip",
-        "compression_opts": 9,
-        "shuffle": True,
+        "compression": "lzf",
         "engine": "h5netcdf",
     }
 }
@@ -18,6 +16,7 @@ def grib_to_netcdf_files(
     compression_options: None | str | dict[str, Any] = None,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
     context: Context = Context(),
+    out_fname_tag: str = "",
     **to_netcdf_kwargs,
 ):
     fname, _ = os.path.splitext(os.path.basename(grib_file))
@@ -30,7 +29,7 @@ def grib_to_netcdf_files(
     with dask.config.set(scheduler="threads"):
         if open_datasets_kwargs is None:
             open_datasets_kwargs = {
-                "chunks": {"time": 1, "step": 1, "plev": 1}  # Auto chunk by field
+                "chunks": {"time": 12, "step": 1, "plev": 1, "valid_time": 12}  # Auto vy 12 time steps
             }
 
         # Option for manual split of the grib file into list of xr.Datasets using list of open_ds_kwargs
@@ -72,7 +71,7 @@ def grib_to_netcdf_files(
                         "encoding": {var: compression_options for var in dataset},
                     }
                 )
-            out_fname = f"{fname}_{i}.nc"
+            out_fname = f"{fname}_{i}{out_fname_tag}.nc"
             dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
             out_nc_files.append(out_fname)
 
