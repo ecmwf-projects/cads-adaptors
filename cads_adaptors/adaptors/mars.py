@@ -142,9 +142,16 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             self.mapped_request, context=self.context, config=self.config
         )
 
-        paths = self.convert_format(
-            result, data_format, context=self.context, **convert_kwargs
-        )
+        # Daily statistics are returned as netcdf, so format conversion is not allowed
+        if "daily_statistics" in self.mapped_request:
+            data_format = "netcdf"
+            paths = self.daily_statistics(
+                result, self.mapped_request["daily_statistics"], context=self.context
+            )
+        else:
+            paths = self.convert_format(
+                result, data_format, context=self.context, **convert_kwargs
+            )
 
         # A check to ensure that if there is more than one path, and download_format
         #  is as_source, we over-ride and zip up the files
