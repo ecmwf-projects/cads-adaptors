@@ -53,15 +53,19 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         these_requests = {}
         exception_logs: dict[str, str] = {}
-        self.context.logger.debug(f"MultiAdaptor, full_request: {request}")
+        self.context.add_stdout(f"MultiAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
-            this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
+            this_adaptor = adaptor_tools.get_adaptor(
+                {**adaptor_desc}, self.form,
+            )
+            # Set the sub-adaptor context to the MultiAdaptor context
+            this_adaptor.context = self.context
             this_values = adaptor_desc.get("values", {})
 
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
-            self.context.logger.debug(
+            self.context.add_stdout(
                 f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
@@ -125,7 +129,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         self._pre_retrieve(request, default_download_format="as_source")
 
         mapped_requests = []
-        self.context.logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
+        self.context.add_stdout(f"MultiMarsCdsAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
@@ -133,7 +137,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
-            self.context.logger.debug(
+            self.context.add_stdout(
                 f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
@@ -142,7 +146,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                     mapping.apply_mapping(this_request, this_adaptor.mapping)
                 )
 
-        self.context.logger.debug(
+        self.context.add_stdout(
             f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}"
         )
         result = execute_mars(mapped_requests, context=self.context)
