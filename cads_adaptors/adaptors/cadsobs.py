@@ -1,4 +1,4 @@
-from pathlib import Path
+import tempfile
 
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 
@@ -50,12 +50,19 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             mapped_request["longitude_coverage"] = [area[1], area[3]]
         # Request parameters validation happens here, not sure about how to move this to
         # validate method
-        retrieve_args = RetrieveArgs(dataset=dataset_name, params=mapped_request)
-        output_file = retrieve_observations(
-            catalogue_url,
-            storage_url,
-            retrieve_args,
-            Path("."),
-            size_limit=1000000000000,
-        )
+        try:
+            retrieve_args = RetrieveArgs(dataset=dataset_name, params=mapped_request)
+            tempdir = tempfile.mkdtemp()
+            output_file = retrieve_observations(
+                catalogue_url,
+                storage_url,
+                retrieve_args,
+                tempdir,
+                size_limit=1000000000000,
+            )
+        except Exception as e:
+            message = f"The adaptor failed with the following error: {e}"
+            self.context.add_user_visible_error(message=message)
+            self.context.add_stderr(message=message)
+            raise
         return open(output_file, "rb")
