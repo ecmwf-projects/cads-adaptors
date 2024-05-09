@@ -56,7 +56,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
         self.context.add_stdout(f"MultiAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(
-                {**adaptor_desc}, self.form,
+                {**adaptor_desc},
+                self.form,
             )
             # Set the sub-adaptor context to the MultiAdaptor context
             this_adaptor.context = self.context
