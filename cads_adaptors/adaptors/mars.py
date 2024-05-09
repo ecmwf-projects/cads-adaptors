@@ -123,8 +123,14 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
+        if isinstance(data_format, (list, tuple, set)):
+            assert len(data_format) == 1, "Only one value of data_format is allowed"
+            if isinstance(data_format, set):
+                data_format = data_format.pop()
+            else:
+                data_format = data_format[0]
 
-        # Account from some horribleness from teh legacy system:
+        # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
