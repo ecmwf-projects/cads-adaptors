@@ -41,19 +41,10 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return this_request
 
-    def _pre_retrieve(self, request, default_download_format="zip"):
-        self.input_request = deepcopy(request)
-        self.receipt = request.pop("receipt", False)
-        self.download_format = request.pop("download_format", default_download_format)
-
-    def retrieve(self, request: Request):
+    def split_adaptors(self, request: Request) -> dict[AbstractCdsAdaptor, Request]:
         from cads_adaptors.tools import adaptor_tools
 
-        self._pre_retrieve(request, default_download_format="zip")
-
-        these_requests = {}
-        exception_logs: dict[str, str] = {}
-        self.context.add_stdout(f"MultiAdaptor, full_request: {request}")
+        sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(
                 {**adaptor_desc},
@@ -70,19 +61,38 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
-            # TODO: check this_request is valid for this_adaptor, or rely on try?
-            #  i.e. split_request does NOT implement constraints.
             if len(this_request) > 0:
                 this_request["download_format"] = "list"
                 this_request["receipt"] = False
-                these_requests[this_adaptor] = this_request
+                # Now try to normalise the request
+                try:
+                    sub_adaptors[this_adaptor] = this_adaptor.normalise_request(
+                        this_request
+                    )
+                except Exception:
+                    sub_adaptors[this_adaptor] = this_request
+
+        return sub_adaptors
+
+    def _pre_retrieve(self, request, default_download_format="zip"):
+        self.input_request = deepcopy(request)
+        self.receipt = request.pop("receipt", False)
+        self.download_format = request.pop("download_format", default_download_format)
+
+    def retrieve(self, request: Request):
+        self._pre_retrieve(request, default_download_format="zip")
+
+        self.context.add_stdout(f"MultiAdaptor, full_request: {request}")
+
+        sub_adaptors = self.split_adaptors(request)
 
         results = []
-        for adaptor, req in these_requests.items():
+        exception_logs: dict[str, str] = {}
+        for adaptor, req in sub_adaptors.items():
             try:
                 this_result = adaptor.retrieve(req)
             except Exception as err:
-                exception_logs[adaptor] = f"{err}"
+                exception_logs[str(adaptor)] = f"{err}"
             else:
                 results += this_result
 

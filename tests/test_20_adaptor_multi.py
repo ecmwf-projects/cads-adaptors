@@ -33,7 +33,7 @@ ADAPTOR_CONFIG = {
 }
 
 
-def test_multi_adaptor_split():
+def test_multi_adaptor_split_requests():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
     split_mean = multi_adaptor.split_request(
@@ -45,3 +45,14 @@ def test_multi_adaptor_split():
         REQUEST, multi_adaptor.config["adaptors"]["max"]["values"]
     )
     assert split_max == ADAPTOR_CONFIG["adaptors"]["max"]["values"]
+
+
+def test_multi_adaptor_split_adaptors():
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
+
+    sub_adaptors = multi_adaptor.split_adaptors(
+        REQUEST,
+    )
+
+    for s_a in list(sub_adaptors):
+        assert s_a.context is multi_adaptor.context
