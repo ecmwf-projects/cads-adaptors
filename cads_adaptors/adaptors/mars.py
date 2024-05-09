@@ -78,6 +78,8 @@ def execute_mars(
 
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
+    context.add_stdout(message=reply_message)
+
     if reply.error:
         error_lines = "\n".join(
             [message for message in reply_message.split("\n") if "ERROR" in message]
@@ -101,8 +103,6 @@ def execute_mars(
             message=error_message,
         )
         raise RuntimeError(error_message)
-
-    context.add_stdout(message=reply_message)
 
     return target
 
