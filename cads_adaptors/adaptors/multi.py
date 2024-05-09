@@ -41,7 +41,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return this_request
 
-    def split_adaptors(self, request: Request) -> dict[AbstractCdsAdaptor, Request]:
+    def split_adaptors(
+        self, request: Request
+    ) -> dict[str, tuple[AbstractCdsAdaptor, Request]]:
         from cads_adaptors.tools import adaptor_tools
 
         sub_adaptors = {}
@@ -65,12 +67,14 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 this_request["download_format"] = "list"
                 this_request["receipt"] = False
                 # Now try to normalise the request
+
                 try:
-                    sub_adaptors[this_adaptor] = this_adaptor.normalise_request(
-                        this_request
-                    )
+                    this_request = this_adaptor.normalise_request(this_request)
                 except Exception:
-                    sub_adaptors[this_adaptor] = this_request
+                    self.context.add_stdout(
+                        f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
+                    )
+                sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
 
         return sub_adaptors
 
@@ -88,11 +92,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         results = []
         exception_logs: dict[str, str] = {}
-        for adaptor, req in sub_adaptors.items():
+        for adaptor_tag, [adaptor, req] in sub_adaptors.items():
             try:
                 this_result = adaptor.retrieve(req)
             except Exception as err:
-                exception_logs[str(adaptor)] = f"{err}"
+                exception_logs[adaptor_tag] = f"{err}"
             else:
                 results += this_result
 
