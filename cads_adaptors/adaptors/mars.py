@@ -120,7 +120,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         return convert_format(*args, **kwargs)
 
     def retrieve(self, request: Request) -> BinaryIO:
-        # TODO: Remove legacy syntax all together
+        # TODO: Generalise this code into the AbstractCdsAdaptor
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
         if isinstance(data_format, (list, tuple, set)):
