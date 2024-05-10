@@ -7,7 +7,7 @@ STANDARD_COMPRESSION_OPTIONS = {
     "default": {
         "zlib": True,
         "complevel": 1,
-        "engine": "h5netcdf",
+        "engine": "netcdf4",
     }
 }
 
@@ -66,7 +66,7 @@ def grib_to_netcdf_files(
 
         if compression_options is not None:
             to_netcdf_kwargs.setdefault(
-                "engine", compression_options.pop("engine", "h5netcdf")
+                "engine", compression_options.pop("engine", "netcdf4")
             )
 
         out_nc_files = []
