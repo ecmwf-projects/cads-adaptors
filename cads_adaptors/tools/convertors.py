@@ -14,7 +14,7 @@ STANDARD_COMPRESSION_OPTIONS = {
 
 def grib_to_netcdf_files(
     grib_file: str,
-    compression_options: None | str | dict[str, Any] = "default",
+    compression_options: str | dict[str, Any] = "default",
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
     context: Context = Context(),
     out_fname_tag: str = "",
@@ -64,19 +64,17 @@ def grib_to_netcdf_files(
                 compression_options, {}
             )
 
-        if compression_options is not None:
-            to_netcdf_kwargs.setdefault(
-                "engine", compression_options.pop("engine", "netcdf4")
-            )
+        to_netcdf_kwargs.setdefault(
+            "engine", compression_options.pop("engine", "netcdf4")
+        )
 
         out_nc_files = []
         for i, dataset in enumerate(datasets):
-            if compression_options is not None:
-                to_netcdf_kwargs.update(
-                    {
-                        "encoding": {var: compression_options for var in dataset},
-                    }
-                )
+            to_netcdf_kwargs.update(
+                {
+                    "encoding": {var: compression_options for var in dataset},
+                }
+            )
             out_fname = f"{fname}_{i}{out_fname_tag}.nc"
             dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
             out_nc_files.append(out_fname)
