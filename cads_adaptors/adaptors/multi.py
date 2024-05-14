@@ -20,10 +20,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
         More complex constraints may need a more detailed splitter.
         """
         this_request = {}
-        # loop over keys in this_values, i.e. the keys relevant to this_adaptor
-        for key in list(this_values):
-            # get request values for that key
-            req_vals = full_request.get(key, [])
+        # loop over keys in the full_request
+        for key, req_vals in full_request.items():
             # filter for values relevant to this_adaptor:
             if key in ensure_list(dont_split_keys):
                 these_vals = req_vals
@@ -39,6 +37,10 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 #  optional keys must be set in the adaptor.json via gecko
                 return {}
 
+        # Our request may not have included all keys, so do a final check that all required keys are present
+        if not all([key in this_request for key in config.get("required_keys", [])]):
+            return {}
+                    
         return this_request
 
     def split_adaptors(
