@@ -40,7 +40,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         # Our request may not have included all keys, so do a final check that all required keys are present
         if not all([key in this_request for key in config.get("required_keys", [])]):
             return {}
-                    
+
         return this_request
 
     def split_adaptors(
