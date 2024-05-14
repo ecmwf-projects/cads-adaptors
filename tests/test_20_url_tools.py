@@ -21,6 +21,15 @@ from cads_adaptors.tools import url_tools
             ],
             2,
         ),
+        # Check duplicate URLs are not downloaded twice
+        (
+            [
+                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc",
+                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc",
+                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.grib",
+            ],
+            2,
+        ),
     ),
 )
 def test_downloaders(tmp_path, monkeypatch, urls, expected_nfiles):

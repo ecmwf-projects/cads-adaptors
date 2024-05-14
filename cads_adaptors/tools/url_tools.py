@@ -1,5 +1,7 @@
+import functools
 import os
 import tarfile
+import traceback
 import urllib
 import zipfile
 from typing import Any, Dict, Generator, List, Optional
@@ -8,6 +10,7 @@ import jinja2
 import multiurl
 import requests
 import yaml
+from tqdm import tqdm
 
 from cads_adaptors.adaptors import Context
 from cads_adaptors.tools import hcube_tools
@@ -29,16 +32,25 @@ def requests_to_urls(
 
 
 def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
+    # Ensure that URLs are unique to prevent downloading the same file multiple times
+    urls = sorted(set(urls))
+
     paths = []
+    context.write_type = "stdout"
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
         if dir:
             os.makedirs(dir, exist_ok=True)
         try:
-            multiurl.download(url, path, **kwargs)
-        except Exception as exc:
-            context.logger.warning(f"Failed download for URL: {url}\nTraceback: {exc}")
+            context.add_stdout(f"Downloading {url} to {path}")
+            multiurl.download(
+                url, path, progress_bar=functools.partial(tqdm, file=context), **kwargs
+            )
+        except Exception:
+            context.add_stdout(
+                f"Failed download for URL: {url}\nTraceback: {traceback.format_exc()}"
+            )
         else:
             paths.append(path)
 

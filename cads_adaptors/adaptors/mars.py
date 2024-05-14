@@ -16,19 +16,14 @@ def convert_format(
         assert len(data_format) == 1, "Only one value of data_format is allowed"
         data_format = data_format[0]
 
-    # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
-    if data_format in ["netcdf", "nc", "netcdf_compressed"]:
-        if data_format in ["netcdf_compressed"]:
-            to_netcdf_kwargs = {
-                "compression_options": "default",
-            }
-        else:
-            to_netcdf_kwargs = {}
+    if data_format in ["netcdf4", "netcdf", "nc"]:
+        to_netcdf_kwargs: dict[str, Any] = {}
+
         from cads_adaptors.tools.convertors import grib_to_netcdf_files
 
         # Give the power to overwrite the to_netcdf kwargs from the request
         to_netcdf_kwargs = {**to_netcdf_kwargs, **kwargs}
-        paths = grib_to_netcdf_files(result, **to_netcdf_kwargs)
+        paths = grib_to_netcdf_files(result, context=context, **to_netcdf_kwargs)
     elif data_format in ["grib", "grib2", "grb", "grb2"]:
         paths = [result]
     else:
@@ -44,58 +39,67 @@ def execute_mars(
     context: Context,
     config: dict[str, Any] = dict(),
     target: str = "data.grib",
-    mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
+    # mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
+    mars_server_list: str = os.getenv(
+        "MARS_API_SERVER_LIST", "/etc/mars/mars-api-server.list"
+    ),
 ) -> str:
-    import subprocess
+    from cads_mars_server import client as mars_client
 
     requests = ensure_list(request)
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
-    context.add_stdout(f"{requests}")
+    context.add_stdout(f"Request (after embargo implemented): {requests}")
 
-    with open("r", "w") as fp:
-        for i, req in enumerate(requests):
-            print("retrieve", file=fp)
-            # Add target file to first request, any extra store in same grib
-            if i == 0:
-                print(f", target={target}", file=fp)
-            for key, value in req.items():
-                if not isinstance(value, (list, tuple)):
-                    value = [value]
-                print(f", {key}={'/'.join(str(v) for v in value)}", file=fp)
-
-    env = dict(**os.environ)
-    # FIXME: set with the namespace and user_id
-    namespace = "cads"
-    user_id = 0
-    env["MARS_USER"] = f"{namespace}-{user_id}"
-
-    popen = subprocess.Popen(
-        mars_cmd, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    popen.wait()
-    if popen.stdout and (stdout := popen.stdout.read()):
-        context.add_stdout(
-            message=stdout,
+    if os.path.exists(mars_server_list):
+        with open(mars_server_list) as f:
+            mars_servers = f.read().splitlines()
+    else:
+        raise SystemError(
+            "MARS servers cannot be found, this is an error at the system level."
         )
-    if popen.returncode:
-        if popen.stderr:
-            stderr = popen.stderr.read()
-            # This log is visible on the events table and Splunk
-            context.add_stderr(
-                message=stderr,
-            )
-        # This log is visible to the user on the WebPortal
-        context.add_user_visible_error(
-            message="Your MARS request has not completed successfully, please check your selection.",
+
+    cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
+
+    # Add required fields to the env dictionary:
+    env = {
+        "user_id": config.get("user_uid"),
+        "request_id": config.get("request_uid"),
+        "namespace": (
+            f"{os.getenv('OPENSTACK_PROJECT', 'NO-OSPROJECT')}:"
+            f"{os.getenv('RUNTIME_NAMESPACE', 'NO-NAMESPACE')}"
+        ),
+        "host": os.getenv("HOSTNAME"),
+    }
+    env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
+
+    reply = cluster.execute(requests, env, target)
+    reply_message = str(reply.message)
+    context.add_stdout(message=reply_message)
+
+    if reply.error:
+        error_lines = "\n".join(
+            [message for message in reply_message.split("\n") if "ERROR" in message]
         )
-        # This exception is visible on Splunk
-        raise RuntimeError(f"MARS has crashed.\n{stderr}")
+        error_message = (
+            "MARS has returned an error, please check your selection.\n"
+            f"Request submitted to the MARS server:\n{requests}\n"
+            f"Full error message:\n{error_lines}\n"
+        )
+        context.add_user_visible_error(message=error_message)
+
+        error_message += f"Exception: {reply.error}\n"
+        raise RuntimeError(error_message)
+
     if not os.path.getsize(target):
-        context.add_user_visible_error(
-            message="MARS returned no data, please check your selection.",
+        error_message = (
+            "MARS returned no data, please check your selection."
+            f"Request submitted to the MARS server:\n{requests}\n"
         )
-        raise RuntimeError("MARS returned no data.")
+        context.add_user_visible_error(
+            message=error_message,
+        )
+        raise RuntimeError(error_message)
 
     return target
 
@@ -109,6 +113,9 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
+    def convert_format(self, *args, **kwargs):
+        return convert_format(*args, **kwargs)
+
     def retrieve(self, request: Request) -> BinaryIO:
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
@@ -132,7 +139,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             self.mapped_request, context=self.context, config=self.config
         )
 
-        paths = convert_format(
+        paths = self.convert_format(
             result, data_format, context=self.context, **convert_kwargs
         )
 

@@ -41,43 +41,60 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return this_request
 
+    def split_adaptors(
+        self, request: Request
+    ) -> dict[str, tuple[AbstractCdsAdaptor, Request]]:
+        from cads_adaptors.tools import adaptor_tools
+
+        sub_adaptors = {}
+        for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
+            this_adaptor = adaptor_tools.get_adaptor(
+                adaptor_desc | {"context": self.context},
+                self.form,
+            )
+            this_values = adaptor_desc.get("values", {})
+
+            this_request = self.split_request(
+                request, this_values, **this_adaptor.config
+            )
+            self.context.add_stdout(
+                f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
+            )
+
+            if len(this_request) > 0:
+                this_request["download_format"] = "list"
+                this_request["receipt"] = False
+                # Now try to normalise the request
+
+                try:
+                    this_request = this_adaptor.normalise_request(this_request)
+                except Exception:
+                    self.context.add_stdout(
+                        f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
+                    )
+                sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
+
+        return sub_adaptors
+
     def _pre_retrieve(self, request, default_download_format="zip"):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", False)
         self.download_format = request.pop("download_format", default_download_format)
 
     def retrieve(self, request: Request):
-        from cads_adaptors.tools import adaptor_tools
-
         self._pre_retrieve(request, default_download_format="zip")
 
-        these_requests = {}
-        exception_logs: dict[str, str] = {}
-        self.context.logger.debug(f"MultiAdaptor, full_request: {request}")
-        for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
-            this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
-            this_values = adaptor_desc.get("values", {})
+        self.context.add_stdout(f"MultiAdaptor, full_request: {request}")
 
-            this_request = self.split_request(
-                request, this_values, **this_adaptor.config
-            )
-            self.context.logger.debug(
-                f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
-            )
-
-            # TODO: check this_request is valid for this_adaptor, or rely on try?
-            #  i.e. split_request does NOT implement constraints.
-            if len(this_request) > 0:
-                this_request["download_format"] = "list"
-                this_request["receipt"] = False
-                these_requests[this_adaptor] = this_request
+        sub_adaptors = self.split_adaptors(request)
 
         results = []
-        for adaptor, req in these_requests.items():
+        exception_logs: dict[str, str] = {}
+        for adaptor_tag, [adaptor, req] in sub_adaptors.items():
             try:
                 this_result = adaptor.retrieve(req)
             except Exception as err:
-                exception_logs[adaptor] = f"{err}"
+                exception_logs[adaptor_tag] = f"{err}"
             else:
                 results += this_result
 
@@ -97,9 +114,14 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
 
 class MultiMarsCdsAdaptor(MultiAdaptor):
+    def convert_format(self, *args, **kwargs):
+        from cads_adaptors.adaptors.mars import convert_format
+
+        return convert_format(*args, **kwargs)
+
     def retrieve(self, request: Request):
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
-        from cads_adaptors.adaptors.mars import convert_format, execute_mars
+        from cads_adaptors.adaptors.mars import execute_mars
         from cads_adaptors.tools import adaptor_tools
 
         # Format of data files, grib or netcdf
@@ -120,7 +142,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         self._pre_retrieve(request, default_download_format="as_source")
 
         mapped_requests = []
-        self.context.logger.debug(f"MultiMarsCdsAdaptor, full_request: {request}")
+        self.context.add_stdout(f"MultiMarsCdsAdaptor, full_request: {request}")
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
@@ -128,7 +150,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
-            self.context.logger.debug(
+            self.context.add_stdout(
                 f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
@@ -137,12 +159,12 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                     mapping.apply_mapping(this_request, this_adaptor.mapping)
                 )
 
-        self.context.logger.debug(
+        self.context.add_stdout(
             f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}"
         )
         result = execute_mars(mapped_requests, context=self.context)
 
-        paths = convert_format(result, data_format, self.context, **convert_kwargs)
+        paths = self.convert_format(result, data_format, self.context, **convert_kwargs)
 
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"

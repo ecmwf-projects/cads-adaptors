@@ -8,12 +8,32 @@ Request = dict[str, Any]
 
 
 class Context:
-    def __init__(self, job_id: str = "job_id", logger: Any | None = None):
+    def __init__(
+        self,
+        job_id: str = "job_id",
+        logger: Any | None = None,
+        write_type: str = "stdout",
+    ):
         self.job_id = job_id
         if not logger:
             self.logger = cads_adaptors.tools.logger.logger
         else:
             self.logger = logger
+        self.write_type = write_type
+        self.messages_buffer = ""
+
+    def write(self, message: str) -> None:
+        """Use the logger as a file-like object. Needed by tqdm progress bar."""
+        self.messages_buffer += message
+
+    def flush(self) -> None:
+        """Write to the logger the content of the buffer."""
+        if self.messages_buffer:
+            if self.write_type == "stdout":
+                self.add_stdout(self.messages_buffer)
+            elif self.write_type == "stderr":
+                self.add_stderr(self.messages_buffer)
+            self.messages_buffer = ""
 
     def add_user_visible_log(self, message: str, session: Any | None = None) -> None:
         pass
@@ -21,15 +41,41 @@ class Context:
     def add_user_visible_error(self, message: str, session: Any | None = None) -> None:
         pass
 
-    def add_stdout(self, message: str, session: Any | None = None) -> None:
+    def add_stdout(
+        self, message: str, log_type: str = "info", session: Any | None = None, **kwargs
+    ) -> None:
         self.logger.info(message)
 
-    def add_stderr(self, message: str, session: Any | None = None) -> None:
+    def add_stderr(
+        self,
+        message: str,
+        log_type: str = "exception",
+        session: Any | None = None,
+        **kwargs,
+    ) -> None:
         self.logger.exception(message)
 
     @property
     def session_maker(self) -> Any:
         return contextlib.nullcontext
+
+    def info(self, *args, **kwargs):
+        self.add_stdout(*args, log_type="info", **kwargs)
+
+    def debug(self, *args, **kwargs):
+        self.add_stdout(*args, log_type="debug", **kwargs)
+
+    def warn(self, *args, **kwargs):
+        self.add_stdout(*args, log_type="warn", **kwargs)
+
+    def warning(self, *args, **kwargs):
+        self.add_stdout(*args, log_type="warning", **kwargs)
+
+    def error(self, *args, **kwargs):
+        self.add_stderr(*args, log_type="error", **kwargs)
+
+    def exception(self, *args, **kwargs):
+        self.add_stderr(*args, log_type="exception", **kwargs)
 
 
 class AbstractAdaptor(abc.ABC):

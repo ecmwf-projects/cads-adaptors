@@ -17,7 +17,9 @@ dependencies:
 - wget
 - multiurl>=0.3.1
 - pyyaml
+- tqdm
 - DateTimeRange
 - pip:
   - rooki
-  - ek-aggregate
+  - earthkit-aggregate
+  - git+https://github.com/ecmwf-projects/cads-mars-server

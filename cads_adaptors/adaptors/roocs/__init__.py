@@ -1,8 +1,11 @@
 import os
+import re
 from typing import BinaryIO
 
 from cads_adaptors import mapping
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+
+ROOK_URL = "http://compute.mips.copernicus-climate.eu/wps"
 
 
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
@@ -11,45 +14,60 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         self.facets = self.config.get("facets", dict())
         self.facet_groups = self.config.get("facet_groups", dict())
         self.facets_order = self.config.get("facets_order", [])
+        self.facet_search = self.config.get("facet_search", dict())
+        self.operators = self.config.get("operators", dict())
 
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import download_tools, url_tools
 
-        os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
+        os.environ["ROOK_URL"] = self.config.get("ROOK_URL", ROOK_URL)
 
         # switch off interactive logging to avoid threading issues
-        os.environ["ROOK_MODE"] = "sync"
-
-        import rooki
+        os.environ["ROOK_MODE"] = self.config.get("ROOK_MODE", "sync")
 
         request = mapping.apply_mapping(request, self.mapping)
 
         workflow = self.construct_workflow(request)
-        response = rooki.rooki.orchestrate(workflow=workflow._serialise())
-
         response = workflow.orchestrate()
 
         try:
             urls = response.download_urls()
         except Exception:
             raise Exception(response.status)
+        urls += [response.provenance(), response.provenance_image()]
 
         paths = url_tools.try_download(urls, context=self.context)
 
         return download_tools.DOWNLOAD_FORMATS["zip"](paths)
 
     def construct_workflow(self, request):
-        os.environ["ROOK_URL"] = "http://rook.dkrz.de/wps"
+        os.environ["ROOK_URL"] = self.config.get("ROOK_URL", ROOK_URL)
         import rooki.operators as rookops
 
         from cads_adaptors.adaptors.roocs import operators
 
         facets = self.find_facets(request)
+        dataset_ids = [
+            ".".join(facet for facet in sub_facets.values() if facet is not None)
+            for sub_facets in facets
+        ]
+        variable_id = facets[0].get("variable", "")
 
-        dataset_id = ".".join(facets.values())
-        variable_id = facets.get("variable", "")
+        workflow = rookops.Input(variable_id, dataset_ids)
 
-        workflow = rookops.Input(variable_id, [dataset_id])
+        for operator, operator_kwargs in self.operators.items():
+            tmp_kwargs = operator_kwargs.copy()
+            for key, value in operator_kwargs.items():
+                if "." in value:
+                    klass, method = value.split(".")
+                    tmp_kwargs.pop(key)
+                    tmp_kwargs = {
+                        **tmp_kwargs,
+                        **getattr(
+                            getattr(operators, klass.capitalize())(request), method
+                        )(),
+                    }
+            workflow = getattr(rookops, operator)(workflow, **tmp_kwargs)
 
         for operator_class in operators.ROOKI_OPERATORS:
             operator = operator_class(request)
@@ -59,8 +77,6 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     kwargs = operator.update_kwargs(kwargs, parameter())
             if kwargs:
                 workflow = getattr(rookops, operator.ROOKI)(workflow, **kwargs)
-
-        print(list(eval(workflow._serialise())))
 
         if list(eval(workflow._serialise())) == ["inputs", "doc"]:
             workflow = rookops.Subset(workflow)
@@ -103,8 +119,15 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
 
         request = {k: v for k, v in request.items() if k in self.facets[0]}
 
+        matched_facets = []
+        regex_facets = {
+            key: self.facet_search[key].format(**{key: request.pop(key)})
+            for key in self.facet_search
+        }
+
         for raw_candidate in self.facets:
             candidate = raw_candidate.copy()
+            tmp_request = request.copy()
 
             for key, groups in self.facet_groups.items():
                 if key in candidate:
@@ -112,10 +135,18 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                         if candidate[key] in groups[group]:
                             candidate[key] = group
 
-            if candidate.items() >= request.items():
-                break
-        else:
+            if candidate.items() >= tmp_request.items():
+                for key, value in regex_facets.items():
+                    if not re.search(value, candidate[key]):
+                        break
+                else:
+                    matched_facets.append(raw_candidate)
+
+        if not matched_facets:
             raise ValueError(f"No data found for request {request}")
 
         # raise ValueError(str(raw_candidate) + " | " + str(self.facets_order))
-        return {key: raw_candidate[key] for key in self.facets_order}
+        return [
+            {key: final_candidate[key] for key in self.facets_order}
+            for final_candidate in matched_facets
+        ]
