@@ -73,7 +73,8 @@ def grib_to_netcdf_files(
         out_nc_files = []
         for i, dataset in enumerate(datasets):
             for old_name, new_name in rename.items():
-                dataset = dataset.rename({old_name: new_name})
+                if old_name in dataset:
+                    dataset = dataset.rename({old_name: new_name})
             if squeeze:
                 dataset = dataset.squeeze(drop=True)
             to_netcdf_kwargs.update(
