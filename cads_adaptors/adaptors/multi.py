@@ -151,9 +151,8 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
-            self.context.add_stdout(
-                f"MultiAdaptor, {adaptor_tag}, this_adpator.config: {this_adaptor.config}"
-            )
+            print(f"MultiAdaptor, {adaptor_tag}, this_adpator.config: {this_adaptor.config}")
+            # print()
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
