@@ -169,7 +169,6 @@ def apply_mapping(request, mapping):
     options = mapping.get("options", {})
     force = mapping.get("force", {})
     defaults = mapping.get("defaults", {})
-    selection_limit = mapping.get("selection_limit")
 
     # Set defaults
 

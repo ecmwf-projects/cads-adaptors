@@ -43,6 +43,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     ) -> dict[str, int]:
         costing_config: dict[str, Any] = self.config.get("costing", dict())
         costing_kwargs: dict[str, Any] = costing_config.get("costing_kwargs", dict())
+        cost_threshold = cost_threshold if cost_threshold in costing_config else "max_costs"
         costs = {}
         # Safety net, not all stacks have the latest version of the api:
         if "inputs" in request:
