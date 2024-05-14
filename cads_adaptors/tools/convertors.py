@@ -23,7 +23,7 @@ def grib_to_netcdf_files(
     fname, _ = os.path.splitext(os.path.basename(grib_file))
     grib_file = os.path.realpath(grib_file)
     rename: dict[str, str] = to_netcdf_kwargs.pop("rename", {})
-    squeeze: bool = to_netcdf_kwargs.pop("squeeze", True)
+    squeeze: bool = to_netcdf_kwargs.pop("squeeze", False)
 
     import cfgrib
     import dask
