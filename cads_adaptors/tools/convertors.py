@@ -22,6 +22,8 @@ def grib_to_netcdf_files(
 ):
     fname, _ = os.path.splitext(os.path.basename(grib_file))
     grib_file = os.path.realpath(grib_file)
+    renames: dict[str, str] = to_netcdf_kwargs.pop("renames", {})
+    squeeze: bool = to_netcdf_kwargs.pop("squeeze", True)
 
     import cfgrib
     import dask
@@ -70,6 +72,10 @@ def grib_to_netcdf_files(
 
         out_nc_files = []
         for i, dataset in enumerate(datasets):
+            for old_name, new_name in renames.items():
+                dataset = dataset.rename({old_name: new_name})
+            if squeeze:
+                dataset = dataset.squeeze(drop=True)
             to_netcdf_kwargs.update(
                 {
                     "encoding": {var: compression_options for var in dataset},
