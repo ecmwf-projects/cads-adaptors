@@ -21,7 +21,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         """
         this_request = {}
         # loop over keys in this_values, i.e. the keys relevant to this_adaptor
-        for key in list(this_values):
+        for key in list(full_request):
             # get request values for that key
             req_vals = full_request.get(key, [])
             # filter for values relevant to this_adaptor:
