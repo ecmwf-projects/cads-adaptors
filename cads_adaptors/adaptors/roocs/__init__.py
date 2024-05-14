@@ -5,7 +5,7 @@ from typing import BinaryIO
 from cads_adaptors import mapping
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 
-ROOK_URL = "http://rook.dkrz.de/wps"
+ROOK_URL = "http://compute.mips.copernicus-climate.eu/wps"
 
 
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
@@ -23,7 +23,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         os.environ["ROOK_URL"] = self.config.get("ROOK_URL", ROOK_URL)
 
         # switch off interactive logging to avoid threading issues
-        os.environ["ROOK_MODE"] = self.config.get("ROOK_MODE", "async")
+        os.environ["ROOK_MODE"] = self.config.get("ROOK_MODE", "sync")
 
         request = mapping.apply_mapping(request, self.mapping)
 
