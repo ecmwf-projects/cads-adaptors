@@ -37,11 +37,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
             elif key in required_keys:
                 # If a required key is missing, then return an empty dictionary.
                 #  optional keys must be set in the adaptor.json via gecko
-                return {}
+                return dict()
 
         # Our request may not have included all keys, so do a final check that all required keys are present
         if not all([key in this_request for key in required_keys]):
-            return {}
+            return dict()
 
         return this_request
 
