@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import attrs
 
-
-@attrs.define
 class InvalidRequest(Exception):
     """Raised when an invalid request is sent to the adaptor."""
-
-    message: str = "Invalid request"
