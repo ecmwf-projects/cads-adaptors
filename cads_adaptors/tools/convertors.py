@@ -20,6 +20,11 @@ def grib_to_netcdf_files(
     out_fname_tag: str = "",
     **to_netcdf_kwargs,
 ):
+    context.add_stdout(
+        f"Converting {grib_file} to netCDF files with:\nto_netcdf_kwargs: {to_netcdf_kwargs}\n"
+        f"compression_options: {compression_options}\n"
+        f"open_datasets_kwargs: {open_datasets_kwargs}\n"
+    )
     fname, _ = os.path.splitext(os.path.basename(grib_file))
     grib_file = os.path.realpath(grib_file)
     rename: dict[str, str] = to_netcdf_kwargs.pop("rename", {})
