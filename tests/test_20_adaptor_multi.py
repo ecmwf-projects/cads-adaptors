@@ -49,22 +49,24 @@ def test_multi_adaptor_split_requests():
     assert split_max == ADAPTOR_CONFIG["adaptors"]["max"]["values"]
 
 
-
 def test_multi_adaptor_split_requests_required_keys():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
     request = REQUEST.copy()
     del request["level"]
     split_mean_required_missing = multi_adaptor.split_request(
-        request, multi_adaptor.config["adaptors"]["mean"]["values"], required_keys=["level"]
+        request,
+        multi_adaptor.config["adaptors"]["mean"]["values"],
+        required_keys=["level"],
     )
     assert split_mean_required_missing == dict()
 
     split_max_required_present = multi_adaptor.split_request(
-        REQUEST, multi_adaptor.config["adaptors"]["max"]["values"], required_keys=["level"]
+        REQUEST,
+        multi_adaptor.config["adaptors"]["max"]["values"],
+        required_keys=["level"],
     )
     assert split_max_required_present == ADAPTOR_CONFIG["adaptors"]["max"]["values"]
-
 
 
 def test_multi_adaptor_split_adaptors():
