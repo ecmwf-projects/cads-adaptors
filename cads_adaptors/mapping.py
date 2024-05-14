@@ -169,7 +169,6 @@ def apply_mapping(request, mapping):
     options = mapping.get("options", {})
     force = mapping.get("force", {})
     defaults = mapping.get("defaults", {})
-    selection_limit = mapping.get("selection_limit")
 
     # Set defaults
 
@@ -281,20 +280,5 @@ def apply_mapping(request, mapping):
     # Set forced values
 
     r.update(force)
-
-    if selection_limit:
-        count = 1
-        for _, values in r.items():
-            if isinstance(values, list):
-                count *= len(values)
-
-        # print("ITEM count %s limit %s" % (count, selection_limit))
-
-        if count > selection_limit:
-            raise ValueError(
-                "Request too large. Requesting %s items, limit is %s"
-                % (count, selection_limit),
-                "",
-            )
 
     return r
