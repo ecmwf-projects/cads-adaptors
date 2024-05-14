@@ -49,11 +49,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
         sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(
-                {**adaptor_desc},
+                adaptor_desc | {"context": self.context},
                 self.form,
             )
-            # Set the sub-adaptor context to the MultiAdaptor context
-            this_adaptor.context = self.context
             this_values = adaptor_desc.get("values", {})
 
             this_request = self.split_request(
