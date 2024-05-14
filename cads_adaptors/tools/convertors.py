@@ -82,6 +82,7 @@ def grib_to_netcdf_files(
                 }
             )
             out_fname = f"{fname}_{i}{out_fname_tag}.nc"
+            context.add_stdout(f"Writing {out_fname} with kwargs: {to_netcdf_kwargs}")
             dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
             out_nc_files.append(out_fname)
 
