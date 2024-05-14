@@ -20,6 +20,7 @@ ADAPTOR_CONFIG = {
                 "param": ["Z", "T"],
                 "stat": ["mean"],
             },
+            "required_keys": ["level"],
         },
         "max": {
             "entry_point": "cads_adaptors:DummyAdaptor",
@@ -48,6 +49,24 @@ def test_multi_adaptor_split_requests():
     assert split_max == ADAPTOR_CONFIG["adaptors"]["max"]["values"]
 
 
+
+def test_multi_adaptor_split_requests_required_keys():
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
+
+    request = REQUEST.copy()
+    del request["level"]
+    split_mean_required_missing = multi_adaptor.split_request(
+        request, multi_adaptor.config["adaptors"]["mean"]["values"], required_keys=["level"]
+    )
+    assert split_mean_required_missing == dict()
+
+    split_max_required_present = multi_adaptor.split_request(
+        REQUEST, multi_adaptor.config["adaptors"]["max"]["values"], required_keys=["level"]
+    )
+    assert split_max_required_present == ADAPTOR_CONFIG["adaptors"]["max"]["values"]
+
+
+
 def test_multi_adaptor_split_adaptors():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
@@ -69,3 +88,16 @@ def test_multi_adaptor_split_adaptors():
 
         # Check context is inherited from parent
         assert adaptor.context is multi_adaptor.context
+
+
+def test_multi_adaptor_split_adaptors_required_keys():
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
+
+    request = REQUEST.copy()
+    del request["level"]
+    sub_adaptors = multi_adaptor.split_adaptors(
+        request,
+    )
+
+    assert "mean" not in sub_adaptors.keys()
+    assert "max" in sub_adaptors.keys()
