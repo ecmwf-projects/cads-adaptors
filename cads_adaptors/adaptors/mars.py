@@ -16,11 +16,8 @@ def convert_format(
         assert len(data_format) == 1, "Only one value of data_format is allowed"
         data_format = data_format[0]
 
-    # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
-    if data_format in ["netcdf", "nc", "netcdf_compressed"]:
+    if data_format in ["netcdf4", "netcdf", "nc"]:
         to_netcdf_kwargs: dict[str, Any] = {}
-        if data_format in ["netcdf_compressed"]:
-            to_netcdf_kwargs["compression_options"] = "default"
 
         from cads_adaptors.tools.convertors import grib_to_netcdf_files
 
