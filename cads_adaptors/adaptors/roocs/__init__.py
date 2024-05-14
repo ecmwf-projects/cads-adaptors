@@ -5,7 +5,7 @@ from typing import BinaryIO
 from cads_adaptors import mapping
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 
-ROOK_URL = "http://compute.mips.copernicus-climate.eu/wps"
+ROOK_URL = "http://rook.dkrz.de/wps"
 
 
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
