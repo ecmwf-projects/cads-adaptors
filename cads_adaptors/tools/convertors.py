@@ -5,9 +5,8 @@ from cads_adaptors.adaptors import Context
 
 STANDARD_COMPRESSION_OPTIONS = {
     "default": {
-        "zlib": True,
-        "complevel": 1,
-        "engine": "netcdf4",
+        "compression": "lzf",
+        "engine": "h5netcdf",
     }
 }
 
