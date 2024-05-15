@@ -78,7 +78,7 @@ def grib_to_netcdf_files(
             )
 
         to_netcdf_kwargs.setdefault(
-            "engine", compression_options.pop("engine", "netcdf4")
+            "engine", compression_options.pop("engine", "h5netcdf")
         )
 
         out_nc_files = []
