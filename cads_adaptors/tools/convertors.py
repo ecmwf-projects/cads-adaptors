@@ -5,9 +5,8 @@ from cads_adaptors.adaptors import Context
 
 STANDARD_COMPRESSION_OPTIONS = {
     "default": {
-        "zlib": True,
-        "complevel": 1,
-        "engine": "netcdf4",
+        "compression": "lzf",
+        "engine": "h5netcdf",
     }
 }
 
@@ -21,7 +20,8 @@ def grib_to_netcdf_files(
     **to_netcdf_kwargs,
 ):
     context.add_stdout(
-        f"Converting {grib_file} to netCDF files with:\nto_netcdf_kwargs: {to_netcdf_kwargs}\n"
+        f"Converting {grib_file} to netCDF files with:\n"
+        f"to_netcdf_kwargs: {to_netcdf_kwargs}\n"
         f"compression_options: {compression_options}\n"
         f"open_datasets_kwargs: {open_datasets_kwargs}\n"
     )
@@ -51,6 +51,7 @@ def grib_to_netcdf_files(
             }
 
         # Option for manual split of the grib file into list of xr.Datasets using list of open_ds_kwargs
+        context.add_stdout(f"Opening {grib_file} with kwargs: {open_datasets_kwargs}")
         if isinstance(open_datasets_kwargs, list):
             datasets: list[xr.Dataset] = []
             for open_ds_kwargs in open_datasets_kwargs:
@@ -77,7 +78,7 @@ def grib_to_netcdf_files(
             )
 
         to_netcdf_kwargs.setdefault(
-            "engine", compression_options.pop("engine", "netcdf4")
+            "engine", compression_options.pop("engine", "h5netcdf")
         )
 
         out_nc_files = []
