@@ -27,8 +27,13 @@ def grib_to_netcdf_files(
     )
     fname, _ = os.path.splitext(os.path.basename(grib_file))
     grib_file = os.path.realpath(grib_file)
+    # Allow renaming of variables from what cfgrib decides
     rename: dict[str, str] = to_netcdf_kwargs.pop("rename", {})
+    # Squeeze any unused dimensions
     squeeze: bool = to_netcdf_kwargs.pop("squeeze", False)
+    # Allow expanding of dimensionality, e.g. to ensure that time is always a dimension
+    # (this is applied after squeezing)
+    expand_dims: list[str] = to_netcdf_kwargs.pop("expand_dims", [])
 
     import cfgrib
     import dask
@@ -77,11 +82,14 @@ def grib_to_netcdf_files(
 
         out_nc_files = []
         for i, dataset in enumerate(datasets):
+            if squeeze:
+                dataset = dataset.squeeze(drop=True)
             for old_name, new_name in rename.items():
                 if old_name in dataset:
                     dataset = dataset.rename({old_name: new_name})
-            if squeeze:
-                dataset = dataset.squeeze(drop=True)
+            for dim in expand_dims:
+                if dim in dataset:
+                    dataset = dataset.expand_dims(dim)
             to_netcdf_kwargs.update(
                 {
                     "encoding": {var: compression_options for var in dataset},
