@@ -12,6 +12,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         full_request: Request,  # User request
         this_values: dict[str, Any],  # key: [values] for the adaptor component
         dont_split_keys: list[str] = ["area", "grid"],
+        required_keys: list[str] = [],
         **config: Any,
     ) -> Request:
         """
@@ -19,11 +20,10 @@ class MultiAdaptor(AbstractCdsAdaptor):
         the specific adaptor.
         More complex constraints may need a more detailed splitter.
         """
+        required_keys = ensure_list(required_keys)
         this_request = {}
-        # loop over keys in this_values, i.e. the keys relevant to this_adaptor
-        for key in list(this_values):
-            # get request values for that key
-            req_vals = full_request.get(key, [])
+        # loop over keys in the full_request
+        for key, req_vals in full_request.items():
             # filter for values relevant to this_adaptor:
             if key in ensure_list(dont_split_keys):
                 these_vals = req_vals
@@ -34,10 +34,14 @@ class MultiAdaptor(AbstractCdsAdaptor):
             if len(these_vals) > 0:
                 # if values then add to request
                 this_request[key] = these_vals
-            elif key in config.get("required_keys", []):
+            elif key in required_keys:
                 # If a required key is missing, then return an empty dictionary.
                 #  optional keys must be set in the adaptor.json via gecko
-                return {}
+                return dict()
+
+        # Our request may not have included all keys, so do a final check that all required keys are present
+        if not all([key in this_request for key in required_keys]):
+            return dict()
 
         return this_request
 

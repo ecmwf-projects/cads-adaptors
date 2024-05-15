@@ -20,6 +20,8 @@ ADAPTOR_CONFIG = {
                 "param": ["Z", "T"],
                 "stat": ["mean"],
             },
+            "required_keys": ["level"],
+            "dont_split_keys": ["dont_split"],
         },
         "max": {
             "entry_point": "cads_adaptors:DummyAdaptor",
@@ -48,6 +50,48 @@ def test_multi_adaptor_split_requests():
     assert split_max == ADAPTOR_CONFIG["adaptors"]["max"]["values"]
 
 
+def test_multi_adaptor_split_requests_required_keys():
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
+
+    request = REQUEST.copy()
+    del request["level"]
+    split_mean_required_missing = multi_adaptor.split_request(
+        request,
+        multi_adaptor.config["adaptors"]["mean"]["values"],
+        required_keys=["level"],
+    )
+    assert split_mean_required_missing == dict()
+
+    split_max_required_present = multi_adaptor.split_request(
+        REQUEST,
+        multi_adaptor.config["adaptors"]["max"]["values"],
+        required_keys=["level"],
+    )
+    assert split_max_required_present == ADAPTOR_CONFIG["adaptors"]["max"]["values"]
+
+
+def test_multi_adaptor_split_requests_dont_split_keys():
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
+
+    request = REQUEST.copy()
+    request["dont_split"] = [1, 2, 3, 4]
+    split_mean_dont_split_area = multi_adaptor.split_request(
+        request,
+        multi_adaptor.config["adaptors"]["mean"]["values"],
+        dont_split_keys=["dont_split"],
+    )
+    assert "dont_split" in split_mean_dont_split_area
+
+    # Area is dont_split as default
+    request["area"] = [1, 2, 3, 4]
+    split_max_split_area = multi_adaptor.split_request(
+        request,
+        multi_adaptor.config["adaptors"]["max"]["values"],
+    )
+    assert "dont_split" not in split_max_split_area
+    assert "area" in split_max_split_area
+
+
 def test_multi_adaptor_split_adaptors():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
@@ -69,3 +113,32 @@ def test_multi_adaptor_split_adaptors():
 
         # Check context is inherited from parent
         assert adaptor.context is multi_adaptor.context
+
+
+def test_multi_adaptor_split_adaptors_required_keys():
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
+
+    request = REQUEST.copy()
+    del request["level"]
+    sub_adaptors = multi_adaptor.split_adaptors(
+        request,
+    )
+
+    assert "mean" not in sub_adaptors.keys()
+    assert "max" in sub_adaptors.keys()
+
+
+def test_multi_adaptor_split_adaptors_dont_split_keys():
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
+
+    request = REQUEST.copy()
+    request["dont_split"] = [1, 2, 3, 4]
+    # Area is dont_split as default
+    request["area"] = [1, 2, 3, 4]
+    sub_adaptors = multi_adaptor.split_adaptors(
+        request,
+    )
+
+    assert "dont_split" in sub_adaptors["mean"][1].keys()
+    assert "dont_split" not in sub_adaptors["max"][1].keys()
+    assert "area" in sub_adaptors["max"][1].keys()
