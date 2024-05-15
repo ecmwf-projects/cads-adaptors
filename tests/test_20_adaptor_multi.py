@@ -74,7 +74,7 @@ def test_multi_adaptor_split_requests_dont_split_keys():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
     request = REQUEST.copy()
-    request["dont_split"] = [1,2,3,4]
+    request["dont_split"] = [1, 2, 3, 4]
     split_mean_dont_split_area = multi_adaptor.split_request(
         request,
         multi_adaptor.config["adaptors"]["mean"]["values"],
@@ -83,7 +83,7 @@ def test_multi_adaptor_split_requests_dont_split_keys():
     assert "dont_split" in split_mean_dont_split_area
 
     # Area is dont_split as default
-    request["area"] = [1,2,3,4]
+    request["area"] = [1, 2, 3, 4]
     split_max_split_area = multi_adaptor.split_request(
         request,
         multi_adaptor.config["adaptors"]["max"]["values"],
@@ -132,9 +132,9 @@ def test_multi_adaptor_split_adaptors_dont_split_keys():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
     request = REQUEST.copy()
-    request["dont_split"] = [1,2,3,4]
+    request["dont_split"] = [1, 2, 3, 4]
     # Area is dont_split as default
-    request["area"] = [1,2,3,4]
+    request["area"] = [1, 2, 3, 4]
     sub_adaptors = multi_adaptor.split_adaptors(
         request,
     )
