@@ -23,7 +23,19 @@ def convert_format(
 
         # Give the power to overwrite the to_netcdf kwargs from the request
         to_netcdf_kwargs = {**to_netcdf_kwargs, **kwargs}
-        paths = grib_to_netcdf_files(result, context=context, **to_netcdf_kwargs)
+        try:
+            paths = grib_to_netcdf_files(result, context=context, **to_netcdf_kwargs)
+        except Exception as e:
+            message = (
+                "There was an error converting the GRIB data to netCDF.\n"
+                "It may be that the selection you made was too complex, "
+                "in which case you could try reducing your selection. "
+                "For further help, or if you believe this to be a problem with the dataset, "
+                "please contact user support."
+            )
+            context.add_user_visible_error(message=message)
+            context.add_stderr(message=f"Exception: {e}")
+            raise e
     elif data_format in ["grib", "grib2", "grb", "grb2"]:
         paths = [result]
     else:
