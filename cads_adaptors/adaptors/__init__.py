@@ -95,7 +95,24 @@ class AbstractAdaptor(abc.ABC):
             self.context = context
 
     @abc.abstractmethod
-    def normalise_request(self, request: Request) -> dict[str, Any]:
+    def normalise_request(self, request: Request) -> Request:
+        """Apply any normalisation to the request before validation.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+
+        Returns
+        -------
+        Request
+            Normalised request.
+
+        Raises
+        ------
+        cads_adaptors.exceptions.InvalidRequest
+            If the request is invalid.
+        """
         pass
 
     @abc.abstractmethod
