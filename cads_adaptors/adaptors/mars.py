@@ -30,7 +30,7 @@ def convert_format(
                 "There was an error converting the GRIB data to netCDF.\n"
                 "It may be that the selection you made was too complex, "
                 "in which case you could try reducing your selection. "
-                "For further help, or you belive this to be a problem with the dataset, "
+                "For further help, or you believe this to be a problem with the dataset, "
                 "please contact user support."
             )
             context.add_user_visible_error(message=message)
