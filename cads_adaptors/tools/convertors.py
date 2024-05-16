@@ -90,7 +90,7 @@ def grib_to_netcdf_files(
             for old_name, new_name in rename.items():
                 if old_name in dataset:
                     dataset = dataset.rename({old_name: new_name})
-            for dim in expand_dims:
+            for dim in expand_dims and dim not in dataset.dims:
                 if dim in dataset:
                     dataset = dataset.expand_dims(dim)
             to_netcdf_kwargs.update(
