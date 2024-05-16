@@ -47,7 +47,8 @@ def grib_to_netcdf_files(
                 "chunks": {
                     "time": 12,
                     "step": 1,
-                    "plev": 1,
+                    "isobaricInhPa": 1,
+                    "hybrid": 1,
                     "valid_time": 12,
                 }  # Auto chunk 12 time steps
             }
