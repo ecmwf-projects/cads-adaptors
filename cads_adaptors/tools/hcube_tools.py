@@ -620,7 +620,8 @@ def unfactorise_right(hcubes, constraints=None, date_field="date"):
             for _sub_cube in constraints:
                 _hc_tmp = {k: v for k, v in zip(hcube.keys(), values) if k in _sub_cube}
                 if all([v in _sub_cube[k] for k, v in _hc_tmp.items()]):
-                    yield {k: v for k, v in zip(hcube.keys(), values)}
+                    print(_hc_tmp)
+                    yield _hc_tmp
 
 def unfactorise(hcubes, date_field="date"):
     """Generator function that, for a list of hypercubes, yields each individual
