@@ -6,11 +6,7 @@ from typing import Any
 
 from datetimerange import DateTimeRange
 
-from . import adaptors, translators
-
-
-class ParameterError(TypeError):
-    pass
+from . import adaptors, exceptions, translators
 
 
 def get_unsupported_vars(
@@ -184,7 +180,7 @@ def get_possible_values(
                 ok = False
                 break
             else:
-                raise ParameterError(f"invalid param '{field_name}'")
+                raise exceptions.ParameterError(f"invalid param '{field_name}'")
         if ok:
             for field_name, valid_values in combination.items():
                 result[field_name] |= set(valid_values)
@@ -299,7 +295,9 @@ def apply_constraints_in_old_cds_fashion(
                             widget_options
                         )
             else:
-                raise ParameterError(f"invalid param '{selected_widget_name}'")
+                raise exceptions.ParameterError(
+                    f"invalid param '{selected_widget_name}'"
+                )
 
         for widget_name in form:
             per_constraint_result_agg: set[Any] = set()
