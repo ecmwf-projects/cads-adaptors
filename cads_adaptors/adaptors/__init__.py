@@ -121,6 +121,26 @@ class AbstractAdaptor(abc.ABC):
 
     @abc.abstractmethod
     def apply_constraints(self, request: Request) -> dict[str, Any]:
+        """Apply constraints to the request.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+
+        Returns
+        -------
+        dict[str, Any]
+            Further parameters' values compatible with the submitted request.
+
+        Raises
+        ------
+        cads_adaptors.exceptions.ParameterError
+            If a request's parameter is invalid.
+        cads_adaptors.exceptions.InvalidRequest
+            If the request is invalid.
+
+        """
         pass
 
     @abc.abstractmethod
