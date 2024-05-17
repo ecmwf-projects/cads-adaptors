@@ -20,7 +20,7 @@ from cads_adaptors.tools import hcube_tools
 def requests_to_urls(
         requests: Dict[str, Any],
         patterns: List[str],
-        constraints: List[Dict[List]],
+        constraints: List[dict],
         date_filed: str="date"
 ) -> Generator[Dict[str, Any], None, None]:
     """Given a list of requests and a list of URL patterns with Jinja2
