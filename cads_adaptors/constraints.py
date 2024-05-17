@@ -6,7 +6,7 @@ from typing import Any
 
 from datetimerange import DateTimeRange
 
-from . import translators
+from . import adaptors, translators
 
 
 class ParameterError(TypeError):
@@ -286,9 +286,9 @@ def apply_constraints_in_old_cds_fashion(
                     per_constraint_result[selected_widget_name] = {}
                     for widget_name in form:
                         if widget_name != selected_widget_name:
-                            per_constraint_result[selected_widget_name][widget_name] = (
-                                set()
-                            )
+                            per_constraint_result[selected_widget_name][
+                                widget_name
+                            ] = set()
                 for widget_name, widget_options in constraint.items():
                     if widget_name in per_constraint_result[selected_widget_name]:
                         per_constraint_result[selected_widget_name][widget_name] |= set(
@@ -486,14 +486,14 @@ def parse_form(cds_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any
 
 def validate_constraints(
     cds_form: list[dict[str, Any]] | dict[str, Any] | None,
-    request: dict[str, dict[str, Any]],
+    request: adaptors.Request,
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
 ) -> dict[str, list[str]]:
     parsed_form = parse_form(cds_form)
     unsupported_vars = get_unsupported_vars(cds_form)
     constraints = parse_constraints(constraints)
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
-    selection = parse_selection(request["inputs"], unsupported_vars)
+    selection = parse_selection(request, unsupported_vars)
     # The following 2 cases should not happen, but they have ben typescript, so need to include safeguard
     if isinstance(cds_form, dict):
         cds_form = [cds_form]
