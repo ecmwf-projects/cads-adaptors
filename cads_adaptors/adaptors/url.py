@@ -18,7 +18,9 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # Convert request to list of URLs
         requests_urls = url_tools.requests_to_urls(
-            self.mapped_request, patterns=self.config["patterns"]
+            self.mapped_request,
+            constraints=self.constraints,
+            patterns=self.config["patterns"]
         )
 
         # try to download URLs
