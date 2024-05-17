@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 from cads_adaptors.adaptors import Context
 from cads_adaptors.tools import hcube_tools
+from cads_adaptors.mapping import apply_mapping
 
 
 # copied from cdscommon/url2
@@ -21,6 +22,7 @@ def requests_to_urls(
         requests: Dict[str, Any],
         patterns: List[str],
         constraints: List[dict],
+        mapping: Dict,
         date_filed: str="date"
 ) -> Generator[Dict[str, Any], None, None]:
     """Given a list of requests and a list of URL patterns with Jinja2
@@ -28,8 +30,8 @@ def requests_to_urls(
     """
     templates = [jinja2.Template(p) for p in patterns]
 
-    for req in hcube_tools.unfactorise_right(requests, constraints=constraints, date_field=date_filed):  # type: ignore
-        for url in [t.render(req).strip() for t in templates]:
+    for req in hcube_tools.unfactorise_right(requests, constraints=constraints,  date_field=date_filed):  # type: ignore
+        for url in [t.render(apply_mapping(req, mapping)).strip() for t in templates]:
             if url:
                 yield {"url": url, "req": req}
 
