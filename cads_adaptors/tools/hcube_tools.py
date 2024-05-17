@@ -604,9 +604,28 @@ def check_no_shared_lists(reqs):
                 )
 
 
+def unfactorise_right(hcubes, constraints=None, date_field="date"):
+    """Generator function that, for a list of hypercubes, yields each individual
+    field as a dict in order.
+    Using only valid granules
+    """
+    if constraints is None:
+        return unfactorise(hcubes, date_field=date_field)
+
+    expanders = {date_field: expand_dates_list}
+
+    for hcube in _ensure_list(hcubes):
+        value_lists = [expanders.get(k, _ensure_list)(v) for k, v in hcube.items()]
+        for values in product(*value_lists):
+            for _sub_cube in constraints:
+                _hc_tmp = {k: v for k, v in zip(hcube.keys(), values) if k in _sub_cube}
+                if all([v in _sub_cube[k] for k, v in _hc_tmp]):
+                    yield {k: v for k, v in zip(hcube.keys(), values)}
+
 def unfactorise(hcubes, date_field="date"):
     """Generator function that, for a list of hypercubes, yields each individual
     field as a dict in order.
+    This method assumes uniform constraints
     """
     expanders = {date_field: expand_dates_list}
 
