@@ -47,7 +47,8 @@ def grib_to_netcdf_files(
                 "chunks": {
                     "time": 12,
                     "step": 1,
-                    "plev": 1,
+                    "isobaricInhPa": 1,
+                    "hybrid": 1,
                     "valid_time": 12,
                 }  # Auto chunk 12 time steps
             }
@@ -91,7 +92,7 @@ def grib_to_netcdf_files(
                 if old_name in dataset:
                     dataset = dataset.rename({old_name: new_name})
             for dim in expand_dims:
-                if dim in dataset:
+                if dim in dataset and dim not in dataset.dims:
                     dataset = dataset.expand_dims(dim)
             to_netcdf_kwargs.update(
                 {
