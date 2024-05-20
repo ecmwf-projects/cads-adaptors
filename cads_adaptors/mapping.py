@@ -2,6 +2,7 @@
 
 import copy
 import datetime
+from typing import Any
 
 DATE_KEYWORD_CONFIGS = [
     {
@@ -223,7 +224,7 @@ def expand_dates(r, request, date, year, month, day, date_format):
                     del r[k]
 
 
-def apply_mapping(request, mapping):
+def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
     request = copy.deepcopy(request)
     mapping = copy.deepcopy(mapping)
 
