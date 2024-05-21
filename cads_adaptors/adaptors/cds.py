@@ -91,6 +91,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # Allow possibility of over-riding the download format from the adaptor
         download_format = kwargs.get("download_format", self.download_format)
+        if isinstance(download_format, (list, tuple)):
+            download_format = download_format[0]
+        elif isinstance(download_format, set):
+            download_format = list(download_format)[0]
 
         paths = ensure_list(paths)
         filenames = [os.path.basename(path) for path in paths]
