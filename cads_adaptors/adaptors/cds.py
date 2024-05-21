@@ -84,14 +84,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def make_download_object(
         self,
-        paths: Union[str, list],
+        paths: str | list[str],
         **kwargs,
     ):
         from cads_adaptors.tools import download_tools
 
-        # Allow possibility of over-riding the download format from the adaptor
-        download_format = kwargs.get("download_format", self.download_format)
-
+        # Ensure paths and filenames are lists
         paths = ensure_list(paths)
         filenames = [os.path.basename(path) for path in paths]
         # TODO: use request-id instead of hash
@@ -99,14 +97,44 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}"
         )
 
+        # Allow possibility of over-riding the download format from the adaptor
+        download_format = kwargs.get("download_format", self.download_format)
+        download_format = list(download_format)[0]
+
+        # If length of paths is greater than 1, then we cannot provide as_source, therefore we zip
+        if len(paths) > 1 and download_format == "as_source":
+            download_format = "zip"
+
         # Allow adaptor possibility of over-riding request value
         if kwargs.get("receipt", self.receipt):
             receipt_kwargs = kwargs.pop("receipt_kwargs", {})
             kwargs.setdefault(
                 "receipt", self.make_receipt(filenames=filenames, **receipt_kwargs)
             )
-
-        return download_tools.DOWNLOAD_FORMATS[download_format](paths, **kwargs)
+        self.context.add_stdout(
+            f"Creating download object as {download_format} with paths:\n{paths}\n and kwargs:\n{kwargs}"
+        )
+        self.context.add_user_visible_log(
+            f"Creating download object as {download_format} with files:\n{filenames}"
+        )
+        try:
+            return download_tools.DOWNLOAD_FORMATS[download_format](paths, **kwargs)
+        except Exception as err:
+            self.context.add_user_visible_error(
+                message=(
+                    "There was an error whilst preparing your data for download, "
+                    "please try submitting you request again. "
+                    "If the problem persists, please contact user support. "
+                    f"Files being prepared for download: {filenames}\n"
+                )
+            )
+            self.context.add_stderr(
+                f"Error whilst preparing download object: {err}\n"
+                f"Paths: {paths}\n"
+                f"Download format: {download_format}\n"
+                f"kwargs: {kwargs}\n"
+            )
+            raise err
 
     def make_receipt(
         self,
