@@ -89,6 +89,14 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     ):
         from cads_adaptors.tools import download_tools
 
+        # Ensre paths and filenames are lists
+        paths = ensure_list(paths)
+        filenames = [os.path.basename(path) for path in paths]
+        # TODO: use request-id instead of hash
+        kwargs.setdefault(
+            "base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}"
+        )
+
         # Allow possibility of over-riding the download format from the adaptor
         download_format = kwargs.get("download_format", self.download_format)
         if isinstance(download_format, (list, tuple)):
@@ -96,12 +104,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         elif isinstance(download_format, set):
             download_format = list(download_format)[0]
 
-        paths = ensure_list(paths)
-        filenames = [os.path.basename(path) for path in paths]
-        # TODO: use request-id instead of hash
-        kwargs.setdefault(
-            "base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}"
-        )
+        # If length of paths is greater than 1, then we cannot provide as_source, therefore we zip
+        if len(paths) > 1 and download_format == "as_source":
+            download_format = "zip"
 
         # Allow adaptor possibility of over-riding request value
         if kwargs.get("receipt", self.receipt):
