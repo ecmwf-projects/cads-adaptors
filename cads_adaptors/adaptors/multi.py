@@ -108,11 +108,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
                 f"{exception_logs}"
             )
-        
 
         # close files
         [res.close() for res in results]
-        self.context.add_stdout(f"MultiAdaptor, result objects:\n{results}")
         # get the paths
         paths = [res.name for res in results]
         self.context.add_stdout(f"MultiAdaptor, result paths:\n{paths}")
