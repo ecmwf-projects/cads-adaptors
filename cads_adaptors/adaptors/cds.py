@@ -117,7 +117,24 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.context.add_stdout(
             f"Creating download object as {download_format} with paths:\n{paths}\n and kwargs:\n{kwargs}"
         )
-        return download_tools.DOWNLOAD_FORMATS[download_format](paths, **kwargs)
+        try:
+            return download_tools.DOWNLOAD_FORMATS[download_format](paths, **kwargs)
+        except Exception as err:
+            self.context.add_user_visible_error(
+                message=(
+                    "There was an error whilst preparing your data for download, "
+                    "please try submitting you request again. "
+                    "If the problem persists, please contact user support. "
+                    f"Files being prepared for download: {filenames}\n"
+                )
+            )
+            self.context.add_stderr(
+                f"Error whilst preparing download object: {err}\n"
+                f"Paths: {paths}\n"
+                f"Download format: {download_format}\n"
+                f"kwargs: {kwargs}\n"
+            )
+            raise err
 
     def make_receipt(
         self,
