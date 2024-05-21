@@ -84,7 +84,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def make_download_object(
         self,
-        paths: Union[str, list],
+        paths: str | list[str],
         **kwargs,
     ):
         from cads_adaptors.tools import download_tools
