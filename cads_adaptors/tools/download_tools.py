@@ -1,4 +1,5 @@
 import os
+import zipfile
 from typing import Any, BinaryIO, Callable, Dict, List, Union
 
 import yaml
@@ -8,13 +9,16 @@ from cads_adaptors.tools.general import ensure_list
 
 # TODO zipstream for archive creation
 def zip_paths(
-    paths: List[str], base_target: str = "output-data", receipt: Any = None, **kwargs
+    paths: List[str],
+    base_target: str = "output-data",
+    receipt: Any = None,
+    compression=zipfile.ZIP_DEFLATED,
+    compresslevel=6,
+    **kwargs,
 ) -> BinaryIO:
-    import zipfile
-
     target = f"{base_target}.zip"
     with zipfile.ZipFile(
-        target, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=6
+        target, mode="w", compression=compression, compresslevel=compresslevel
     ) as archive:
         for path in paths:
             if kwargs.get("preserve_dir", False):
