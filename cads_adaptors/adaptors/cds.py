@@ -89,7 +89,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     ):
         from cads_adaptors.tools import download_tools
 
-        # Ensre paths and filenames are lists
+        # Ensure paths and filenames are lists
         paths = ensure_list(paths)
         filenames = [os.path.basename(path) for path in paths]
         # TODO: use request-id instead of hash
