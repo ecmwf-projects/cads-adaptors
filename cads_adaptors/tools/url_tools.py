@@ -27,9 +27,14 @@ def requests_to_urls(
     templates = [jinja_env.from_string(p) for p in patterns]
 
     for req in hcube_tools.unfactorise(requests):  # type: ignore
-        for url in [t.render(req).strip() for t in templates]:
-            if url:
-                yield {"url": url, "req": req}
+        for template in templates:
+            try:
+                url = template.render(req).strip()
+            except jinja2.TemplateError:
+                pass
+            else:
+                if url:
+                    yield {"url": url, "req": req}
 
 
 def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
