@@ -109,7 +109,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             kwargs.setdefault(
                 "receipt", self.make_receipt(filenames=filenames, **receipt_kwargs)
             )
-
+        self.context.add_stdout(f"Creating download object with paths:\n{paths}\n and kwargs:\n{kwargs}")
         return download_tools.DOWNLOAD_FORMATS[download_format](paths, **kwargs)
 
     def make_receipt(
