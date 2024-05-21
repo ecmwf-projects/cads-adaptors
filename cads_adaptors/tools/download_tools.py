@@ -12,8 +12,8 @@ def zip_paths(
     paths: List[str],
     base_target: str = "output-data",
     receipt: Any = None,
-    compression=zipfile.ZIP_DEFLATED,
-    compresslevel=6,
+    compression: int = zipfile.ZIP_DEFLATED,
+    compresslevel: int = 6,
     **kwargs,
 ) -> BinaryIO:
     target = f"{base_target}.zip"
