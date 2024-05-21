@@ -13,7 +13,9 @@ def zip_paths(
     import zipfile
 
     target = f"{base_target}.zip"
-    with zipfile.ZipFile(target, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
+    with zipfile.ZipFile(
+        target, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=6
+    ) as archive:
         for path in paths:
             if kwargs.get("preserve_dir", False):
                 archive_name = path
