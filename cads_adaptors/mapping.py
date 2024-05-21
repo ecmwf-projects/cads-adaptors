@@ -214,8 +214,7 @@ def expand_dates(r, request, date, year, month, day, date_format):
 
             if len(r[date]) == 0:
                 raise ValueError(
-                    "No valid dates from year=%s month=%s day=%s"
-                    % (years, months, days),
+                    f"No valid dates from year={years} month={months} day={days}",
                     "",
                 )
 
