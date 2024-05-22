@@ -99,7 +99,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # Allow possibility of over-riding the download format from the adaptor
         download_format = kwargs.get("download_format", self.download_format)
-        download_format = list(download_format)[0]
+        download_format = download_format[0] if isinstance(download_format, list) else download_format
 
         # If length of paths is greater than 1, then we cannot provide as_source, therefore we zip
         if len(paths) > 1 and download_format == "as_source":
