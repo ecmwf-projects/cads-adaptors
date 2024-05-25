@@ -10,11 +10,13 @@ import logging
 from copy import deepcopy
 from datetime import datetime, timedelta
 
+from cdscompute.errors import NoDataException
+
 from cds_common.cams.regional_fc_api import regional_fc_api
 from cds_common.system import cds_forms_dir
 from cds_common import hcube_tools, tree_tools, date_tools
 
-from .exceptions import NoDataException
+
 
 class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
