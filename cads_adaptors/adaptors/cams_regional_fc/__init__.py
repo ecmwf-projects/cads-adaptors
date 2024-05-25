@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from cdscompute.errors import NoDataException
 
 from cds_common.cams.regional_fc_api import regional_fc_api
+from cds_common.url2.downloader import Downloader
 from cds_common.system import cds_forms_dir
 from cds_common import hcube_tools, tree_tools, date_tools
 
