@@ -11,7 +11,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 
 import traceback
-from cdscompute.decorators import configure
+# from cdscompute.decorators import configure
 from cdscompute.errors import NoDataException
 from cds_common.cams.regional_fc_api import regional_fc_api
 from .cams_regional_fc import cams_regional_fc
