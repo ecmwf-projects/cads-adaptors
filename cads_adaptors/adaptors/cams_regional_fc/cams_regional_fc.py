@@ -34,6 +34,10 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     regapi = regional_fc_api(
         integration_server=config.get('integration_server', False),
         logger=context)
+    
+    context.add_stdout(f"----------> integration_server: {config.get('integration_server', False)}")
+    
+    requests, info = preprocess_requests(context, requests, regapi)
     return None
 
 
