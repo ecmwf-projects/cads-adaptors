@@ -28,6 +28,10 @@ from .assert_valid_grib import assert_valid_grib
 # when too many archived requests are blocking access to latest data
 ARCHIVED_OFF = False
 
+def new_cams_regional_fc(context, requests, forms_dir=None):
+    context.add_stdout("========================> Message from new_cams_regional_fc!")
+    return None
+
 
 def cams_regional_fc(context, requests, forms_dir=None):
     """Main work routine for handling a request for CAMS regional forecast
