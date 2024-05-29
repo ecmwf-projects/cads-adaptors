@@ -31,6 +31,8 @@ ARCHIVED_OFF = False
 def new_cams_regional_fc(context, config, requests, forms_dir=None):
     context.add_stdout("----------> Entering new_cams_regional_fc...")
     
+    # Get an object which will give us information/functionality associated
+    # with the Meteo France regional forecast API
     regapi = regional_fc_api(
         integration_server=config.get('integration_server', False),
         logger=context)
@@ -87,7 +89,22 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
         }
     }
     
+    # Pre-process requests
     requests, info = preprocess_requests(context, requests, regapi)
+    
+    # If converting to NetCDF then different groups of grib files may need to be
+    # converted separately. Split and group the requests into groups that can be
+    # converted together.
+    if 'convert' in info['stages']:
+        grps = nc_request_groups(context, requests, info)
+        req_groups = [{'group_id': k, 'requests': v} for k, v in grps.items()]
+    else:
+        req_groups = [{'group_id': None, 'requests': requests}]
+        
+    # Output a zip file if creating >1 NetCDF file. netcdf_cdm format files
+    # are always zipped.
+    if len(req_groups) > 1 or info['format'] == Formats.netcdf_cdm:
+        info['stages'].append('zip')
     return None
 
 
