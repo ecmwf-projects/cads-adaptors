@@ -171,8 +171,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "licence": [
                 f"{licence[0]} (version {licence[1]})" for licence in self.licences
             ],
-            # TODO: Add request-id information to the context
-            "request-uid": self.config.get("request_uid", "Unavailable"),
+            "user_uid": self.config.get("user_uid"),
+            "request_uid": self.config.get("request_uid"),
             #
             # TODO: Add URL/DNS information to the context for populating these fields:
             # "web-portal": self.???, # Need update to information available to adaptors
