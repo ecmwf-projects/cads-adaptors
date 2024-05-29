@@ -81,9 +81,9 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
                     "pm2_5_total_organic_matter_only": "pm2.5_total_organic_matter"
                 }
             },
-            "rename": {
-                "leadtime_hour": "step"
-            }
+            # "rename": {
+            #     "leadtime_hour": "step"
+            # }
         }
     }
     
