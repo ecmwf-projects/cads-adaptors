@@ -30,5 +30,7 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
             fp.write(json.dumps(self.config))
             fp.write("\n\n\n")
             fp.write(json.dumps(request))
+            fp.write("\n\n\n")
+            fp.write(json.dumps(result_file))
             
         return open("dummy.grib", "rb")

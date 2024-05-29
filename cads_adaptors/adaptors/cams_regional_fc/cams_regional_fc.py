@@ -105,7 +105,7 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     # are always zipped.
     if len(req_groups) > 1 or info['format'] == Formats.netcdf_cdm:
         info['stages'].append('zip')
-    return None
+    return req_groups
 
 
 def cams_regional_fc(context, requests, forms_dir=None):
