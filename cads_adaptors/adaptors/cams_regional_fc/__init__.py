@@ -21,6 +21,7 @@ from .api_retrieve import api_retrieve
 
 class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
+        request["type"] = [t.upper() for t in request["type"]]
         result_file = new_cams_regional_fc(self.context, self.config, [request])
 
         # dumping the config and request
