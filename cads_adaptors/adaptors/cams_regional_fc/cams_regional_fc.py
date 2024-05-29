@@ -37,9 +37,9 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     
     context.add_stdout(f"----------> integration_server: {config.get('integration_server', False)}")
     
-    context.request = {"mapping": config["mapping"]}
+    # context.request = {"mapping": config["mapping"]}
     
-    requests, info = preprocess_requests(context, requests, regapi)
+    # requests, info = preprocess_requests(context, requests, regapi)
     return None
 
 
