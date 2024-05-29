@@ -13,5 +13,9 @@
 # limitations under the License.
 
 
+class ParameterError(TypeError):
+    """Raised when a request parameter is invalid."""
+
+
 class InvalidRequest(Exception):
     """Raised when an invalid request is sent to the adaptor."""
