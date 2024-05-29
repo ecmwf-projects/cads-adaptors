@@ -1,5 +1,5 @@
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
-from cads_adaptors.adaptors import Request
+from cads_adaptors.adaptors.cds import Request
 from typing import Any, BinaryIO
 import logging
 import json
