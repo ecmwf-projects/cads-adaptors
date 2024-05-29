@@ -6,11 +6,7 @@ from typing import Any
 
 from datetimerange import DateTimeRange
 
-from . import translators
-
-
-class ParameterError(TypeError):
-    pass
+from . import adaptors, exceptions, translators
 
 
 def get_unsupported_vars(
@@ -184,7 +180,7 @@ def get_possible_values(
                 ok = False
                 break
             else:
-                raise ParameterError(f"invalid param '{field_name}'")
+                raise exceptions.ParameterError(f"invalid param '{field_name}'")
         if ok:
             for field_name, valid_values in combination.items():
                 result[field_name] |= set(valid_values)
@@ -299,7 +295,9 @@ def apply_constraints_in_old_cds_fashion(
                             widget_options
                         )
             else:
-                raise ParameterError(f"invalid param '{selected_widget_name}'")
+                raise exceptions.ParameterError(
+                    f"invalid param '{selected_widget_name}'"
+                )
 
         for widget_name in form:
             per_constraint_result_agg: set[Any] = set()
@@ -486,14 +484,14 @@ def parse_form(cds_form: list[Any] | dict[str, Any] | None) -> dict[str, set[Any
 
 def validate_constraints(
     cds_form: list[dict[str, Any]] | dict[str, Any] | None,
-    request: dict[str, dict[str, Any]],
+    request: adaptors.Request,
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
 ) -> dict[str, list[str]]:
     parsed_form = parse_form(cds_form)
     unsupported_vars = get_unsupported_vars(cds_form)
     constraints = parse_constraints(constraints)
     constraints = remove_unsupported_vars(constraints, unsupported_vars)
-    selection = parse_selection(request["inputs"], unsupported_vars)
+    selection = parse_selection(request, unsupported_vars)
     # The following 2 cases should not happen, but they have ben typescript, so need to include safeguard
     if isinstance(cds_form, dict):
         cds_form = [cds_form]
