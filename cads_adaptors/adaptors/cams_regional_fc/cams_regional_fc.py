@@ -36,6 +36,7 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
         logger=context)
     
     context.add_stdout(f"----------> integration_server: {config.get('integration_server', False)}")
+    context.add_stdout(f"----------> CONFIG: {config}")
     
     # context.request = {"mapping": config["mapping"]}
     
