@@ -113,6 +113,9 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     
     # Get locally stored fields
     # get_local(req_groups, context)
+    
+    # Divide non-local fields betwen latest and archived
+    set_backend(req_groups, regapi, dataset_dir, context)
     return req_groups
 
 
