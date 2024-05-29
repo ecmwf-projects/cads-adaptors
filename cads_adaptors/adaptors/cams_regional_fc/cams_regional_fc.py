@@ -112,7 +112,7 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     grib2request_init(dataset_dir)
     
     # Get locally stored fields
-    get_local(req_groups, context)
+    # get_local(req_groups, context)
     return req_groups
 
 
