@@ -112,10 +112,10 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     grib2request_init(dataset_dir)
     
     # Get locally stored fields
-    # get_local(req_groups, context)
+    get_local(req_groups, context)
     
-    # Divide non-local fields betwen latest and archived
-    set_backend(req_groups, regapi, dataset_dir, context)
+    # # Divide non-local fields betwen latest and archived
+    # set_backend(req_groups, regapi, dataset_dir, context)
     return req_groups
 
 
@@ -306,22 +306,23 @@ def _get_local(req_group, cacher, context):
     urls = ({'url': cacher.cache_file_url(field),
              'req': field}
             for field in hcube_tools.unfactorise(reqs))
-    downloader = Downloader(context,
-                            max_rate=50,
-                            max_simultaneous=15,
-                            combine_method='cat',
-                            target_suffix='.grib',
-                            response_checker=assert_valid_grib,
-                            response_checker_threadsafe=False,
-                            combine_in_order=False,
-                            write_to_temp=True,
-                            request_timeout=[60, 300],
-                            max_attempts={404: 1, 'default': 3},
-                            nonfatal_codes=[404, 'exception'],
-                            retry_wait=5,
-                            allow_no_data=True,
-                            min_log_level=logging.INFO)
-    grib_file = downloader.execute(urls)
+    # downloader = Downloader(context,
+    #                         max_rate=50,
+    #                         max_simultaneous=15,
+    #                         combine_method='cat',
+    #                         target_suffix='.grib',
+    #                         response_checker=assert_valid_grib,
+    #                         response_checker_threadsafe=False,
+    #                         combine_in_order=False,
+    #                         write_to_temp=True,
+    #                         request_timeout=[60, 300],
+    #                         max_attempts={404: 1, 'default': 3},
+    #                         nonfatal_codes=[404, 'exception'],
+    #                         retry_wait=5,
+    #                         allow_no_data=True,
+    #                         min_log_level=logging.INFO)
+    # grib_file = downloader.execute(urls)
+    grib_file = None
 
     # Identify uncached fields - the ones not present in the file
     cached, uncached = which_fields_in_file(reqs, grib_file, context)
