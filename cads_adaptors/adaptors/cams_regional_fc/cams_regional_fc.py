@@ -105,6 +105,11 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     # are always zipped.
     if len(req_groups) > 1 or info['format'] == Formats.netcdf_cdm:
         info['stages'].append('zip')
+        
+    dataset_dir = "/src/cads-adaptors/cads_adaptors/adaptors/cams_regional_fc/config"
+
+    # Initialisation for function that can understand GRIB file contents
+    grib2request_init(dataset_dir)
     return req_groups
 
 
