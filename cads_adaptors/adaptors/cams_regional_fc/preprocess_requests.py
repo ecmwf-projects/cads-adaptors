@@ -75,7 +75,7 @@ def apply_schema(requests, context):
     """Enforce basic type conformance of the requests according to a schema"""
 
     mandatory_keys = ['variable', 'model', 'level', 'date', 'type', 'time',
-                      'step', 'format']
+                      'leadtime_hour', 'format']
     recognised_keys = sorted(set(mandatory_keys).union(
         ['area', 'no_cache', '_local_subarea']))
 
