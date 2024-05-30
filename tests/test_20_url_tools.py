@@ -139,3 +139,7 @@ def test_find_all_urls():
         "gcm": ["hadgem2_es", "mpi_esm_lr"],
     }
 
+    requests_urls = url_tools.requests_to_urls(request)
+
+    assert len(requests_urls) == 4
+
