@@ -128,7 +128,7 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     get_latest(req_groups, regapi, dataset_dir, context)
     
     # Retrieve non-local archived (slow-access) fields
-    #get_archived(req_groups, regapi, dataset_dir, context)
+    get_archived(req_groups, regapi, dataset_dir, context)
     return req_groups
 
 
