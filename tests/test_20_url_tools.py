@@ -131,7 +131,7 @@ CONSTRAINTS = [
 
 def test_find_all_urls():
     request = {
-        "variable": ["surface_downwelling_shortwave_radiation", "electricity_demand"],
+        "variable": ["surface_downwelling_shortwave_radiation", "electricity_demand",],
         "spatial_aggregation": ["country_level"],
         "temporal_aggregation": ["monthly"],
         "energy_product_type": ["energy"],

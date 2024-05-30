@@ -18,7 +18,7 @@ from cads_adaptors.tools import hcube_tools
 
 # copied from cdscommon/url2
 def requests_to_urls(
-    requests: Dict[str, Any], patterns: List[str]
+    valid_requests: List[Dict[str, Any]], patterns: List[str]
 ) -> Generator[Dict[str, Any], None, None]:
     """Given a list of requests and a list of URL patterns with Jinja2
     formatting, yield the associated URLs to download.
@@ -26,15 +26,16 @@ def requests_to_urls(
     jinja_env = jinja2.Environment(undefined=jinja2.StrictUndefined)
     templates = [jinja_env.from_string(p) for p in patterns]
 
-    for req in hcube_tools.unfactorise(requests):  # type: ignore
-        for template in templates:
-            try:
-                url = template.render(req).strip()
-            except jinja2.TemplateError:
-                pass
-            else:
-                if url:
-                    yield {"url": url, "req": req}
+    for requests in valid_requests:
+        for req in hcube_tools.unfactorise(requests):  # type: ignore
+            for template in templates:
+                try:
+                    url = template.render(req).strip()
+                except jinja2.TemplateError:
+                    pass
+                else:
+                    if url:
+                        yield {"url": url, "req": req}
 
 
 def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:

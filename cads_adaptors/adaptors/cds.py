@@ -63,6 +63,16 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
         return costs
+    
+    def intersect_constraints(self, request: Request | list[Request]) -> list[Request]:
+        request = ensure_list(request)
+        valid_requests = []
+        for req in request:
+            intersect = intersection(req, constraints)
+            if intersect is not None:
+                valid_requests.append(intersect)
+        return valid_requests
+
 
     def normalise_request(self, request: Request) -> dict[str, Any]:
         # TODO: cast to dict[str, list]
