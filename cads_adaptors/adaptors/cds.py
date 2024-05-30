@@ -198,14 +198,15 @@ class GetEnvCdsAdaptor(AbstractCdsAdaptor):
         import json
         import os
 
-        if str(request.get("dask", "True")).lower() == "true":
+        if "true" in str(request.get("dask", "False")).lower():
             import dask
 
             with dask.config.set(scheduler="threaded"):
                 with open("dummy_output.json", "w") as f:
                     json.dump(dict(os.environ), f, indent=2)
-        else:
-            with open("dummy_output.json", "w") as f:
-                json.dump(dict(os.environ), f, indent=2)
+            return open("dummy_output.json")
+        
+        with open("dummy_output.json", "w") as f:
+            json.dump(dict(os.environ), f, indent=2)
 
         return open("dummy_output.json")
