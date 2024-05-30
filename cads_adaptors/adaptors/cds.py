@@ -198,7 +198,7 @@ class GetEnvCdsAdaptor(AbstractCdsAdaptor):
         import json
         import os
 
-        if request.get("dask", True):
+        if str(request.get("dask", "True")).lower() == "true":
             import dask
 
             with dask.config.set(scheduler="threaded"):
