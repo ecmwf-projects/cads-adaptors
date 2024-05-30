@@ -195,8 +195,10 @@ class DummyCdsAdaptor(AbstractCdsAdaptor):
 
 class GetEnvCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request, *arg, **kwargs) -> Any:
-        import json, os
+        import json
+        import os
+
         with open("dummy_output.json", "w") as f:
             json.dump(os.environ, f)
-        
+
         return open("dummy_output.json")
