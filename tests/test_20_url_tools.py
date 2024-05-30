@@ -3,6 +3,7 @@ import os
 import pytest
 
 from cads_adaptors.tools import url_tools
+from cads_adaptors.mapping import apply_mapping
 
 
 @pytest.mark.parametrize(
@@ -139,7 +140,10 @@ def test_find_all_urls():
         "gcm": ["hadgem2_es", "mpi_esm_lr"],
     }
 
-    requests_urls = url_tools.requests_to_urls(request)
+    mapped_request = apply_mapping(request, ADAPTOR_CONFIG["mapping"])
+
+    requests_urls = url_tools.requests_to_urls(mapped_request, ADAPTOR_CONFIG["patterns"])
+    requests_urls = list(requests_urls)
 
     assert len(requests_urls) == 4
 
