@@ -91,6 +91,7 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     
     # Pre-process requests
     requests, info = preprocess_requests(context, requests, regapi)
+    context.add_stdout(f"----------> REQUESTS: {requests}")
     
     # If converting to NetCDF then different groups of grib files may need to be
     # converted separately. Split and group the requests into groups that can be
