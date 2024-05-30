@@ -24,6 +24,8 @@ from .formats import Formats
 from .cacher import Cacher
 from .assert_valid_grib import assert_valid_grib
 
+from .api_retrieve import api_retrieve
+
 # Used to temporarily disable access to archived data in an emergency, e.g.
 # when too many archived requests are blocking access to latest data
 ARCHIVED_OFF = False
@@ -121,6 +123,12 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     
     # Divide non-local fields betwen latest and archived
     set_backend(req_groups, regapi, dataset_dir, context)
+    
+    # Retrieve non-local latest (fast-access) fields
+    get_latest(req_groups, regapi, dataset_dir, context)
+    
+    # Retrieve non-local archived (slow-access) fields
+    #get_archived(req_groups, regapi, dataset_dir, context)
     return req_groups
 
 
@@ -355,7 +363,7 @@ def get_latest(req_groups, regapi, dataset_dir, context):
         for reqs in hcube_tools.hcubes_chunk(
                 req_group['uncached_latest_requests'], 5000):
 
-            grib_file = retrieve_subrequest(reqs, req_group, regapi,
+            grib_file = new_retrieve_subrequest(reqs, req_group, regapi,
                                             dataset_dir, context)
 
             # Fields may have expired from the latest backend by the time the
@@ -383,7 +391,88 @@ def get_archived(req_groups, regapi, dataset_dir, context):
         for reqs in hcube_tools.hcubes_chunk(
                 req_group['uncached_archived_requests'], 900):
 
-            retrieve_subrequest(reqs, req_group, regapi, dataset_dir, context)
+            new_retrieve_subrequest(reqs, req_group, regapi, dataset_dir, context)
+
+
+def retrieve_latest(*args):
+    """Adaptor only intended to be called as a sub-request from the main
+       adaptor to retrieve uncached latest fields only. The separate entry
+       point from retrieve_archived allows a different QOS to be applied."""
+    return retrieve_xxx(*args)
+
+
+def retrieve_archived(*args):
+    """Adaptor only intended to be called as a sub-request from the main
+       adaptor to retrieve uncached archived fields only. The separate entry
+       point from retrieve_latest allows a different QOS to be applied."""
+
+    if ARCHIVED_OFF:
+        raise Exception('Access to archived data is temporarily ' +
+                        'suspended. Only the latest few days are available')
+
+    try:
+        return retrieve_xxx(*args)
+
+    except Exception:
+        maintenance_end_time = datetime(2021, 3, 3, 18, 0)
+        if datetime.utcnow() < maintenance_end_time: 
+            #raise Exception(
+            #    'Apologies: your request requires data from a remote server '
+            #    'which is currently undergoing maintenance. Normal service is '
+            #    'expected to be resumed by ' +
+            #    maintenance_end_time.strftime('%A %d %B %H:%M UTC')) from None
+            raise Exception(
+                'Apologies: your request requires data from a remote server '
+                'which is undergoing a maintenance session that is taking '
+                'longer than expected. Please try again later.')
+        else:
+            raise
+
+
+def retrieve_xxx(context, requests, dataset_dir, integration_server):
+
+    # Get an object which will give us information/functionality associated
+    # with the Meteo France regional forecast API
+    regapi = regional_fc_api(integration_server=integration_server,
+                             logger=context)
+
+    file = api_retrieve(context, requests, regapi, dataset_dir)
+
+    context.info('Sub-request completed')
+
+    return file
+
+
+def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
+    """Retrieve chunk of uncached fields in a sub-request"""
+
+    backend = requests[0]['_backend'][0]
+    assert backend in ['latest', 'archived']
+
+    # Retrieve uncached fields in sub-requests to allow a different QOS to be
+    # applied to avoid overloading the Meteo France API.
+    context.info('Executing sub-request to retrieve uncached fields: ' +
+                 repr(requests))
+    t0 = time.time()
+    # result = context.call('adaptor.cams_regional_fc.retrieve_' + backend,
+    #                       requests, dataset_dir, regapi.integration_server)
+    if backend == "latest":
+        result = retrieve_latest(context, requests, dataset_dir, regapi.integration_server)
+    else:
+        result = retrieve_archived(context, requests, dataset_dir, regapi.integration_server)
+    context.info('... sub-request succeeded after ' +
+                 str(time.time() - t0) + 's')
+
+    if result is not None:
+        # Download result to a local file
+        grib_file = context.get_data(result)
+        req_group['retrieved_files'] = req_group.get('retrieved_files', []) + \
+                                       [grib_file]
+    else:
+        context.info('... but found no data')
+        grib_file = None
+
+    return grib_file
 
 
 def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
