@@ -140,10 +140,21 @@ def test_find_all_urls():
         "gcm": ["hadgem2_es", "mpi_esm_lr"],
     }
 
+    expected_urls = [
+        "http://energy-tools.copernicus-climate.eu/C3S_ENERGY/PROJ/CLIM/RAMO/RCP85/GHI/NUT0/P_CMI5_RAMO_CM20_GHI_0000m_Euro_NUT0_S195101010130_E209812312230_INS_TIM_01m_NA-_cdf_org_01_RCP85_NA---_NA---.csv"
+        "http://energy-tools.copernicus-climate.eu/C3S_ENERGY/PROJ/ENER/RAMO/RCP45/EDM/NUT0/P_CMI5_RAMO_CM20_EDM_0000m_Euro_NUT0_S197001010000_E209812310000_NRG_TIM_01m_NA-_noc_org_01_RCP45_NA---_GamNT.csv",
+        "http://energy-tools.copernicus-climate.eu/C3S_ENERGY/PROJ/ENER/CCMP/RCP45/EDM/NUT0/P_CMI5_CCMP_CM20_EDM_0000m_Euro_NUT0_S197001010000_E210012310000_NRG_TIM_01m_NA-_noc_org_01_RCP45_NA---_GamNT.csv",
+        "http://energy-tools.copernicus-climate.eu/C3S_ENERGY/PROJ/ENER/RAMO/RCP85/EDM/NUT0/P_CMI5_RAMO_CM20_EDM_0000m_Euro_NUT0_S197001010000_E209812310000_NRG_TIM_01m_NA-_noc_org_01_RCP85_NA---_GamNT.csv",
+    ]
     mapped_request = apply_mapping(request, ADAPTOR_CONFIG["mapping"])
 
     requests_urls = url_tools.requests_to_urls(mapped_request, ADAPTOR_CONFIG["patterns"])
-    requests_urls = list(requests_urls)
+    requests_urls = [req_url["url"] for req_url in requests_urls]
 
     assert len(requests_urls) == 4
+    # At first, we just want the expected_urls to be in the requests urls
+    assert all(url in requests_urls for url in expected_urls)
+
+    #in the future, we may expect that the requests urls are exactly the expected urls
+    # assert requests_urls == expected_urls
 
