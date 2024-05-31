@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from cads_adaptors import constraints
+from cads_adaptors import constraints, exceptions
 
 
 def test_get_possible_values() -> None:
@@ -98,7 +98,7 @@ def test_apply_constraints_errors(selections: dict[str, set[Any]]) -> None:
         {"level": {"500"}, "param": {"Z"}},
         {"level": {"850"}, "param": {"T"}},
     ]
-    with pytest.raises(constraints.ParameterError, match="invalid param 'foo'"):
+    with pytest.raises(exceptions.ParameterError, match="invalid param 'foo'"):
         constraints.apply_constraints(form, selections, raw_constraints)
 
 
@@ -282,9 +282,7 @@ def test_validate_constraints() -> None:
         },
     ]
 
-    selections: dict[str, Any] = {
-        "inputs": {"param1": "1", "param2": "1", "param4": "1"}
-    }
+    selections: dict[str, Any] = {"param1": "1", "param2": "1", "param4": "1"}
 
     raw_constraints: list[dict[str, list[Any]]] = [
         {"param1": ["1"], "param2": ["1", "2", "3"], "param3": ["1", "2", "3"]},
