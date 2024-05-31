@@ -4,7 +4,7 @@ import tarfile
 import traceback
 import urllib
 import zipfile
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Generator, Optional
 
 import jinja2
 import multiurl
@@ -18,8 +18,8 @@ from cads_adaptors.tools import hcube_tools
 
 # copied from cdscommon/url2
 def requests_to_urls(
-    requests: Dict[str, Any], patterns: List[str]
-) -> Generator[Dict[str, Any], None, None]:
+    requests: dict[str, Any] | list[dict[str, Any]], patterns: list[str]
+) -> Generator[dict[str, Any], None, None]:
     """Given a list of requests and a list of URL patterns with Jinja2
     formatting, yield the associated URLs to download.
     """
@@ -37,7 +37,7 @@ def requests_to_urls(
                     yield {"url": url, "req": req}
 
 
-def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
+def try_download(urls: list[str], context: Context, **kwargs) -> list[str]:
     # Ensure that URLs are unique to prevent downloading the same file multiple times
     urls = sorted(set(urls))
 
@@ -74,7 +74,7 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
 
 # TODO use targzstream
 def download_zip_from_urls(
-    urls: List[str],
+    urls: list[str],
     base_target: str,
     context: Context,
 ) -> str:
@@ -92,7 +92,7 @@ def download_zip_from_urls(
 
 # TODO zipstream for archive creation
 def download_tgz_from_urls(
-    urls: List[str],
+    urls: list[str],
     base_target: str,
     context: Context,
 ) -> str:
@@ -109,7 +109,7 @@ def download_tgz_from_urls(
 
 
 def download_from_urls(
-    urls: List[str],
+    urls: list[str],
     context: Context,
     data_format: str = "zip",
 ) -> str:
@@ -130,7 +130,7 @@ def download_from_urls(
 
 
 def download_zip_from_urls_in_memory(
-    urls: List[str], target: Optional[str] = None
+    urls: list[str], target: Optional[str] = None
 ) -> str:
     if target is None:
         target = str(hash(tuple(urls)))

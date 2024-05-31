@@ -65,6 +65,8 @@ def test_apply_constraints():
         "experiment": ["rcp_8_5"],
         "rcm": ["racmo22e"],
         "gcm": ["hadgem2_es"],
+        "data_format": ["netcdf"],
+        "download_format": ["zip"],
     }
     expected = [
         {
@@ -74,6 +76,8 @@ def test_apply_constraints():
             "experiment": ["rcp_8_5"],
             "rcm": ["racmo22e"],
             "gcm": ["hadgem2_es"],
+            "data_format": ["netcdf"],
+            "download_format": ["zip"],
         },
         {
             "variable": ["electricity_demand"],
@@ -83,6 +87,8 @@ def test_apply_constraints():
             "experiment": ["rcp_8_5"],
             "rcm": ["racmo22e"],
             "gcm": ["hadgem2_es"],
+            "data_format": ["netcdf"],
+            "download_format": ["zip"],
         },
     ]
     actual = constraint_tools.apply_constraints(request, constraints)

@@ -1,5 +1,7 @@
+from copy import deepcopy
 from typing import Any, BinaryIO
 
+from cads_adaptors import mapping
 from cads_adaptors.adaptors import Request, cds
 
 
@@ -12,13 +14,30 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         area = request.pop("area", None)
 
-        self._pre_retrieve(request=request)
+        # Not using common _pre_retrieve, as we are now dealing with lists of re
+        # self._pre_retrieve(request=request)
+
+        self.input_request = deepcopy(request)
+
+        self.receipt = request.pop("receipt", False)
+
+        valid_requests = self.intersect_constraints(request)
+
+        self.mapped_requests = [
+            mapping.apply_mapping(valid_request, self.mapping)
+            for valid_request in valid_requests
+        ]
+
+        self.download_format = [
+            mapped_request[0].pop("download_format", "zip")
+            for mapped_request in self.mapped_requests
+        ][0]
 
         from cads_adaptors.tools import area_selector, url_tools
 
         # Convert request to list of URLs
         requests_urls = url_tools.requests_to_urls(
-            self.mapped_request, patterns=self.config["patterns"]
+            self.mapped_requests, patterns=self.config["patterns"]
         )
 
         # try to download URLs
