@@ -4,6 +4,7 @@ from typing import Any, Union
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
+from cads_adaptors.tools import constraint_tools
 from cads_adaptors.tools.general import ensure_list
 
 
@@ -37,6 +38,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
+
+    def intersect_constraints(self, request: Request) -> list[Request]:
+        return constraint_tools.intersect_constraints(request, self.constraints)
+
+    def apply_mapping(self, request: Request) -> Request:
+        return mapping.apply_mapping(request, self.mapping)
 
     def estimate_costs(
         self, request: Request, cost_threshold: str = "max_costs"
@@ -76,7 +83,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def _pre_retrieve(self, request: Request, default_download_format="zip"):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", False)
-        self.mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
+        self.mapped_request = self.apply_mapping(request)  # type: ignore
 
         self.download_format = self.mapped_request.pop(
             "download_format", default_download_format

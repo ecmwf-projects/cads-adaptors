@@ -18,7 +18,7 @@ from cads_adaptors.tools import hcube_tools
 
 # copied from cdscommon/url2
 def requests_to_urls(
-    requests: Dict[str, Any], patterns: List[str]
+    requests: dict[str, Any] | list[dict[str, Any]], patterns: List[str]
 ) -> Generator[Dict[str, Any], None, None]:
     """Given a list of requests and a list of URL patterns with Jinja2
     formatting, yield the associated URLs to download.
