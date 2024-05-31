@@ -20,13 +20,16 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         self.input_request = deepcopy(request)
 
         self.receipt = request.pop("receipt", False)
-
+        self.context.add_stdout(f"Intersecting constraints for {request}")
         valid_requests = self.intersect_constraints(request)
+        self.context.add_stdout(f"Intersect constraints complete")
 
         self.mapped_requests = [
             mapping.apply_mapping(valid_request, self.mapping)
             for valid_request in valid_requests
         ]
+
+        self.context.add_stdout(f"Requests mapped to: {self.mapped_requests}")
 
         self.download_format = [
             mapped_request[0].pop("download_format", "zip")
@@ -39,6 +42,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         requests_urls = url_tools.requests_to_urls(
             self.mapped_requests, patterns=self.config["patterns"]
         )
+        self.context.add_stdout(f"Request matches URLS: {requests_urls}")
 
         # try to download URLs
         urls = [ru["url"] for ru in requests_urls]
