@@ -85,5 +85,5 @@ def test_apply_constraints():
             "gcm": ["hadgem2_es"],
         },
     ]
-    actual = constraint_tools.apply_constraints(request, constraints)
+    actual = constraint_tools.intersect_constraints(request, constraints)
     assert actual == expected

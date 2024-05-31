@@ -1,9 +1,11 @@
 from . import hcube_tools
 
 
-def apply_constraints(requests, constraints, rejects=False, logger=None):
+def intersect_constraints(requests, constraints, rejects=False, logger=None):
     """Apply the constraints to the requests and output the accepted and,
     optionally, rejected request fragments.
+
+    Formerly named `apply_constraints`.
     """
     if not isinstance(requests, (list, tuple)):
         requests = [requests]
