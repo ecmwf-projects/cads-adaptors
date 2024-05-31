@@ -203,3 +203,22 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 class DummyCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> Any:
         pass
+
+
+class GetEnvCdsAdaptor(AbstractCdsAdaptor):
+    def retrieve(self, request: Request, *arg, **kwargs) -> Any:
+        import json
+        import os
+
+        if "true" in str(request.get("dask", "False")).lower():
+            import dask
+
+            with dask.config.set(scheduler="threaded"):
+                with open("dummy_output.json", "w") as f:
+                    json.dump(dict(os.environ), f, indent=2)
+            return open("dummy_output.json")
+        
+        with open("dummy_output.json", "w") as f:
+            json.dump(dict(os.environ), f, indent=2)
+
+        return open("dummy_output.json")
