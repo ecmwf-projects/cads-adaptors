@@ -32,7 +32,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         self.context.add_stdout(f"Requests mapped to: {self.mapped_requests}")
 
         self.download_format = [
-            mapped_request[0].pop("download_format", "zip")
+            mapped_request.pop("download_format", "zip")
             for mapped_request in self.mapped_requests
         ][0]
 
