@@ -4,6 +4,7 @@ from typing import Any, Union
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
+from cads_adaptors.tools import constraint_tools
 from cads_adaptors.tools.general import ensure_list
 
 
@@ -37,6 +38,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
+
+    def intersect_constraints(self, request: Request, **kwargs: Any) -> list[Request]:
+        return constraint_tools.apply_constraints(request, self.constraints, **kwargs)
 
     def estimate_costs(
         self, request: Request, cost_threshold: str = "max_costs"
