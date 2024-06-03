@@ -22,7 +22,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         self.receipt = request.pop("receipt", False)
         self.context.add_stdout(f"Intersecting constraints for {request}")
         valid_requests = self.intersect_constraints(request)
-        self.context.add_stdout(f"Intersect constraints complete")
+        self.context.add_stdout("Intersect constraints complete")
 
         self.mapped_requests = [
             mapping.apply_mapping(valid_request, self.mapping)

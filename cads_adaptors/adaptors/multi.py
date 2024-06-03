@@ -29,7 +29,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 these_vals = req_vals
             else:
                 these_vals = [
-                    v for v in ensure_list(req_vals) if v in this_values.get(key, [])
+                    v
+                    for v in ensure_list(req_vals)
+                    if str(v) in this_values.get(key, [])
                 ]
             if len(these_vals) > 0:
                 # if values then add to request
