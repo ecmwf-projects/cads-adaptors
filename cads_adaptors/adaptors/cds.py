@@ -4,7 +4,6 @@ from typing import Any, Union
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
-from cads_adaptors.tools import constraint_tools
 from cads_adaptors.tools.general import ensure_list
 
 
@@ -40,7 +39,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return constraints.validate_constraints(self.form, request, self.constraints)
 
     def intersect_constraints(self, request: Request) -> list[Request]:
-        return constraint_tools.intersect_constraints(request, self.constraints)
+        return [
+            self.normalise_request(request)
+            for request in constraints.legacy_intersect_constraints(
+                request, self.constraints
+            )
+        ]
 
     def apply_mapping(self, request: Request) -> Request:
         return mapping.apply_mapping(request, self.mapping)
