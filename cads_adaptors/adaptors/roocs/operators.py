@@ -152,6 +152,11 @@ class Subset(Operator):
         return {"area": extents}
 
 
+class Concat(Operator):
+    def time(self):
+        return dict()
+
+
 ROOKI_OPERATORS = [
     Subset,
 ]

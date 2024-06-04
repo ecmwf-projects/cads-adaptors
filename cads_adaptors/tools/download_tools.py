@@ -1,32 +1,75 @@
+import itertools
 import os
+import zipfile
 from typing import Any, BinaryIO, Callable, Dict, List, Union
 
 import yaml
 
 from cads_adaptors.tools.general import ensure_list
 
+# compression parameters for the supported file types
+# feel free to adjust or add entries
+UNKNOWN_EXTENSION = "UNKNOWN_EXTENSION"
+UNKNOWN_EXTENSION_PARAMS = {"algo": zipfile.ZIP_STORED, "level": 0}
+COMPRESSION_PARAMS = {
+    "nc": {"algo": zipfile.ZIP_DEFLATED, "level": 0},
+    "grib": {"algo": zipfile.ZIP_DEFLATED, "level": 4},
+    "csv": {"algo": zipfile.ZIP_DEFLATED, "level": 6},
+}
+
+
+# could be done with python-magic
+def determine_file_type(path: str) -> str:
+    extension = os.path.splitext(path)[1][1:]
+    if len(extension) == 0:
+        extension = UNKNOWN_EXTENSION
+    return extension
+
+
+def group_files_by_type(paths: list[str]):
+    return itertools.groupby(paths, key=determine_file_type)
+
 
 # TODO zipstream for archive creation
 def zip_paths(
-    paths: List[str], base_target: str = "output-data", receipt: Any = None, **kwargs
+    paths: List[str],
+    base_target: str = "output-data",
+    receipt: Any = None,
+    compression_params_lookup_table: dict[str, dict[str, int]] = COMPRESSION_PARAMS,
+    **kwargs,
 ) -> BinaryIO:
-    import zipfile
-
     target = f"{base_target}.zip"
-    with zipfile.ZipFile(target, mode="w") as archive:
-        for path in paths:
-            if kwargs.get("preserve_dir", False):
-                archive_name = path
-            else:
-                archive_name = os.path.basename(path)
-            archive.write(path, archive_name)
 
-        if receipt is not None:
-            yaml_output: str = yaml.safe_dump(receipt, indent=2)
-            archive.writestr(
-                f"receipt-{base_target}.yaml",
-                data=yaml_output,
-            )
+    files_grouped_by_type = group_files_by_type(paths)
+
+    for file_type, paths_for_file_type in files_grouped_by_type:
+        # determine compression parameters for the current file type
+        compression_params = compression_params_lookup_table.get(
+            file_type, UNKNOWN_EXTENSION_PARAMS
+        )
+        compression_algorithm = compression_params["algo"]
+        compression_level = compression_params["level"]
+
+        # perform the compression
+        with zipfile.ZipFile(
+            target,
+            mode="a",
+            compression=compression_algorithm,
+            compresslevel=compression_level,
+        ) as archive:
+            for path in paths_for_file_type:
+                if kwargs.get("preserve_dir", False):
+                    archive_name = path
+                else:
+                    archive_name = os.path.basename(path)
+                archive.write(path, archive_name)
+
+            if receipt is not None:
+                yaml_output: str = yaml.safe_dump(receipt, indent=2)
+                archive.writestr(
+                    f"receipt-{base_target}.yaml",
+                    data=yaml_output,
+                )
 
     for path in paths:
         os.remove(path)

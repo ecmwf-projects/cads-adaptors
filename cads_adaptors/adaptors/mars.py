@@ -16,19 +16,26 @@ def convert_format(
         assert len(data_format) == 1, "Only one value of data_format is allowed"
         data_format = data_format[0]
 
-    # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
-    if data_format in ["netcdf", "nc", "netcdf_compressed"]:
-        if data_format in ["netcdf_compressed"]:
-            to_netcdf_kwargs = {
-                "compression_options": "default",
-            }
-        else:
-            to_netcdf_kwargs = {}
+    if data_format in ["netcdf4", "netcdf", "nc"]:
+        to_netcdf_kwargs: dict[str, Any] = {}
+
         from cads_adaptors.tools.convertors import grib_to_netcdf_files
 
         # Give the power to overwrite the to_netcdf kwargs from the request
         to_netcdf_kwargs = {**to_netcdf_kwargs, **kwargs}
-        paths = grib_to_netcdf_files(result, **to_netcdf_kwargs)
+        try:
+            paths = grib_to_netcdf_files(result, context=context, **to_netcdf_kwargs)
+        except Exception as e:
+            message = (
+                "There was an error converting the GRIB data to netCDF.\n"
+                "It may be that the selection you made was too complex, "
+                "in which case you could try reducing your selection. "
+                "For further help, or if you believe this to be a problem with the dataset, "
+                "please contact user support."
+            )
+            context.add_user_visible_error(message=message)
+            context.add_stderr(message=f"Exception: {e}")
+            raise e
     elif data_format in ["grib", "grib2", "grb", "grb2"]:
         paths = [result]
     else:
@@ -64,7 +71,7 @@ def execute_mars(
             "MARS servers cannot be found, this is an error at the system level."
         )
 
-    cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers)
+    cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
 
     # Add required fields to the env dictionary:
     env = {
@@ -76,16 +83,25 @@ def execute_mars(
         ),
         "host": os.getenv("HOSTNAME"),
     }
+    env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
 
     reply = cluster.execute(requests, env, target)
+    reply_message = str(reply.message)
+    context.add_stdout(message=reply_message)
+
     if reply.error:
+        error_lines = "\n".join(
+            [message for message in reply_message.split("\n") if "ERROR" in message]
+        )
         error_message = (
             "MARS has returned an error, please check your selection.\n"
-            f"Exception: {reply.error}\n"
             f"Request submitted to the MARS server:\n{requests}\n"
+            f"Full error message:\n{error_lines}\n"
         )
         context.add_user_visible_error(message=error_message)
-        raise reply.error
+
+        error_message += f"Exception: {reply.error}\n"
+        raise RuntimeError(error_message)
 
     if not os.path.getsize(target):
         error_message = (
@@ -96,8 +112,6 @@ def execute_mars(
             message=error_message,
         )
         raise RuntimeError(error_message)
-
-    context.add_stdout(message=reply.message)
 
     return target
 
@@ -111,6 +125,9 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
+    def convert_format(self, *args, **kwargs):
+        return convert_format(*args, **kwargs)
+
     def retrieve(self, request: Request) -> BinaryIO:
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
@@ -134,7 +151,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             self.mapped_request, context=self.context, config=self.config
         )
 
-        paths = convert_format(
+        paths = self.convert_format(
             result, data_format, context=self.context, **convert_kwargs
         )
 
