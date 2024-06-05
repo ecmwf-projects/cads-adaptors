@@ -19,6 +19,7 @@ dependencies:
 - pyyaml
 - tqdm
 - DateTimeRange
+- jsonschema
 - pip:
   - rooki
   - earthkit-aggregate

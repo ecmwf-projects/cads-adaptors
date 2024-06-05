@@ -23,6 +23,7 @@ dependencies = [
   "pyyaml",
   "tqdm",
   "DateTimeRange",
+  "jsonschema",
   "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
