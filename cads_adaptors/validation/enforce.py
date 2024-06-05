@@ -5,6 +5,8 @@ from copy import deepcopy
 
 import jsonschema.exceptions
 
+import cads_adaptors.exceptions
+
 from .error_message import error_message
 from .fix_errors import fix_errors
 from .get_validator import get_validator
@@ -14,7 +16,7 @@ def enforce(request, schema, logger=None):
     """
     Check whether the request conforms to the schema and if it doesn't,
     attempt to make it. If it cannot be made to conform, raise a
-    BadRequest exception with an informative error message about which aspect
+    InvalidRequest exception with an informative error message about which aspect
     of it is wrong.
     """
     lg = logger if (logger is not None) else logging.getLogger(__name__)
@@ -79,7 +81,7 @@ def enforce(request, schema, logger=None):
         for msg in [error_message(e) for e in errors]:
             if msg not in msgs:
                 msgs.append(msg)
-        raise BadRequest(msgs)
+        raise cads_adaptors.exceptions.InvalidRequest(msgs)
 
     return request
 
@@ -112,7 +114,9 @@ def check_key_is_string(item, path=None, text_path=None):
     if path:
         parent, index = path[-1]
         if isinstance(parent, dict) and not isinstance(index, str):
-            raise BadRequest([f"{text_path}: dict key is not of type " "string"])
+            raise cads_adaptors.exceptions.InvalidRequest(
+                [f"{text_path}: dict key is not of type " "string"]
+            )
 
 
 def set_split_pattern(item, **kwargs):
@@ -129,14 +133,3 @@ def set_split_pattern(item, **kwargs):
         and "pattern" not in item
     ):
         item["pattern"] = "^[^" + re.escape(item["_splitOn"]) + "]*$"
-
-
-class BadRequest(Exception):
-
-    def __init__(self, msgs):
-
-        if isinstance(msgs, str):
-            msgs = [msgs]
-        super().__init__("\n".join(msgs))
-
-        self.messages = deepcopy(msgs)

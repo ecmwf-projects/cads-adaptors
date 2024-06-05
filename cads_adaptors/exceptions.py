@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from copy import deepcopy
+
 
 class ParameterError(TypeError):
     """Raised when a request parameter is invalid."""
@@ -19,3 +21,11 @@ class ParameterError(TypeError):
 
 class InvalidRequest(Exception):
     """Raised when an invalid request is sent to the adaptor."""
+
+    def __init__(self, msgs):
+
+        if isinstance(msgs, str):
+            msgs = [msgs]
+        super().__init__("\n".join(msgs))
+
+        self.messages = deepcopy(msgs)
