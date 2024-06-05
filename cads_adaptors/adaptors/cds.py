@@ -35,9 +35,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.receipt: bool = False
         self.schemas = config.pop("schemas", [])
 
-    def validate(self, request: Request) -> bool:
-        return True
-
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
 

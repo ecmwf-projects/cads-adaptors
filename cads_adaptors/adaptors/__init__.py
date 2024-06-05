@@ -116,10 +116,6 @@ class AbstractAdaptor(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def validate(self, request: Request) -> bool:
-        pass
-
-    @abc.abstractmethod
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         """Apply constraints to the request.
 
@@ -157,8 +153,6 @@ class AbstractAdaptor(abc.ABC):
 
 
 class DummyAdaptor(AbstractAdaptor):
-    def validate(self, request: Request) -> bool:
-        return True
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return {}
