@@ -5,6 +5,7 @@ from typing import Any, Union
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.validation import enforce
 
 
 class AbstractCdsAdaptor(AbstractAdaptor):
@@ -75,8 +76,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         costs["number_of_fields"] = costs["size"]
         return costs
 
-    def normalise_request(self, request: Request) -> dict[str, Any]:
-        # TODO: cast to dict[str, list]
+    def normalise_request(self, request: Request) -> Request:
+        request = enforce.enforce(request)
         return request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:

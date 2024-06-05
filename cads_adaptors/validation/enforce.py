@@ -10,7 +10,7 @@ from .fix_errors import fix_errors
 from .get_validator import get_validator
 
 
-def enforce(request, schema, mapping=None, logger=None):
+def enforce(request, schema, logger=None):
     """
     Check whether the request conforms to the schema and if it doesn't,
     attempt to make it. If it cannot be made to conform, raise a
@@ -76,7 +76,7 @@ def enforce(request, schema, mapping=None, logger=None):
         # in case there's some particular sense to the order, which there may
         # well not be.
         msgs = []
-        for msg in [error_message(e, mapping=mapping) for e in errors]:
+        for msg in [error_message(e) for e in errors]:
             if msg not in msgs:
                 msgs.append(msg)
         raise BadRequest(msgs)

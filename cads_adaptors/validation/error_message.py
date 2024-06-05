@@ -92,7 +92,7 @@ class MinMaxItems(ErrorMessageBase):
         return error.validator in ["minItems", "maxItems"]
 
     @classmethod
-    def message(cls, error, rmapping):
+    def message(cls, error):
         msg = {
             "minItems": f"{error.instance}: list has too few items",
             "maxItems": f"{error.instance}: list has too many items",
@@ -119,7 +119,7 @@ class MinMaxStringLength(ErrorMessageBase):
         return error.validator in ["minLength", "maxLength"]
 
     @classmethod
-    def message(cls, error, rmapping):
+    def message(cls, error):
         msg = {
             "minLength": f"'{error.instance}': string is too short",
             "maxLength": f"'{error.instance}': string is too long",
@@ -143,15 +143,15 @@ class RequiredProperties(ErrorMessageBase):
         return error.validator == "required"
 
     @classmethod
-    def message(cls, error, rmapping):
+    def message(cls, error):
         m = re.match(r"^'(.*)' is a required property.*", error.message)
         if m:
-            key = rmapping["rename"].get(m.group(1), m.group(1))
+            key = m.group(1)
             msg = f"missing mandatory key: '{key}'"
         else:
             # We were unable to obtain the missing key name so just return
             # the error message we were given. This should never happen.
-            msg = super().message(error, rmapping)
+            msg = super().message(error)
         return msg
 
 
@@ -163,19 +163,15 @@ class UniqueItems(ErrorMessageBase):
         return error.validator == "uniqueItems"
 
     @classmethod
-    def message(cls, error, rmapping):
+    def message(cls, error):
         msg = "has repeated values in the list"
         # Try to get an example of a repeated item. There's no known reason this
         # should fail but we'll be cautious anyway and ignore any error
         try:
-            key = error.absolute_path[-1]
-            key = rmapping["rename"].get(key, key)
             # The item list should be in error.instance. Find a repeated value.
             for item in error.instance:
                 if error.instance.count(item) > 1:
-                    # Attempt to unmap back to front-end space and add to msg
-                    value = rmapping["remap"].get(key, {}).get(item, item)
-                    msg += f", e.g. '{value}'"
+                    msg += f", e.g. '{item}'"
                     break
         except Exception:
             pass
@@ -190,7 +186,7 @@ class AdditionalProperties(ErrorMessageBase):
         return error.validator == "additionalProperties"
 
     @classmethod
-    def message(cls, error, rmapping):
+    def message(cls, error):
 
         # Unfortunately, in the currently used version of jsonschema, the list
         # of offending keys is not provided in the error object and has to be
@@ -203,7 +199,7 @@ class AdditionalProperties(ErrorMessageBase):
             flags=re.DOTALL,
         )
         if m:
-            key = rmapping["rename"].get(m.group(1), m.group(1))
+            key = m.group(1)
             regexes = m.group(2)
             msg = f"'{key}' is an invalid key name"
             if error.schema.get("_onErrorShowPattern", True):
@@ -237,7 +233,7 @@ class AdditionalProperties(ErrorMessageBase):
             except Exception:
                 pass
 
-        return super().message(error, rmapping)
+        return super().message(error)
 
 
 class PropertyName(ErrorMessageBase):
@@ -251,10 +247,9 @@ class PropertyName(ErrorMessageBase):
             return False
 
     @classmethod
-    def message(cls, error, rmapping):
-        key = rmapping["rename"].get(error.instance, error.instance)
+    def message(cls, error):
         return (
-            f"'{key}' is an invalid key name because it does not match "
+            f"'{error.instance}' is an invalid key name because it does not match "
             "the following regular expression: " + repr(error.validator_value)
         )
 
@@ -267,7 +262,7 @@ class StringPattern(ErrorMessageBase):
         return error.validator == "pattern"
 
     @classmethod
-    def message(cls, error, rmapping):
+    def message(cls, error):
         msg = f"invalid value: '{error.instance}'"
         if error.schema.get("_onErrorShowPattern", True):
             msg += (
@@ -285,7 +280,7 @@ class Date(ErrorMessageBase):
         return error.validator == "format" and error.validator_value == "date"
 
     @classmethod
-    def message(cls, error, rmapping):
+    def message(cls, error):
         return (
             f'"{error.instance}" is not a valid date. Expected format ' "is yyyy-mm-dd"
         )
@@ -299,7 +294,7 @@ class BadFormat(ErrorMessageBase):
         return error.validator == "format"
 
     @classmethod
-    def message(cls, error, rmapping):
+    def message(cls, error):
         return f"'{error.instance}' is not a valid {error.validator_value}"
 
 
