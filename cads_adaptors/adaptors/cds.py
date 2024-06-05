@@ -10,6 +10,7 @@ from cads_adaptors.validation import enforce
 
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
+    adaptor_schema = {}
 
     def __init__(
         self,
@@ -32,6 +33,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.mapped_request: Request = Request()
         self.download_format: str = "zip"
         self.receipt: bool = False
+        self.schemas = config.pop("schemas", [])
 
     def validate(self, request: Request) -> bool:
         return True
@@ -77,7 +79,11 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return costs
 
     def normalise_request(self, request: Request) -> Request:
-        request = enforce.enforce(request)
+        schemas = self.schemas
+        if adaptor_schema := self.adaptor_schema:
+            schemas = [adaptor_schema] + schemas
+        for schema in schemas:
+            request = enforce.enforce(request, schema)
         return request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
