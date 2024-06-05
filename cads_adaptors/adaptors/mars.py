@@ -28,7 +28,7 @@ def convert_format(
 ) -> list:
     data_format = handle_data_format(data_format)
 
-    if data_format in ["netcdf4", "netcdf", "nc"]:
+    if data_format in ["netcdf"]:
         to_netcdf_kwargs: dict[str, Any] = {}
 
         from cads_adaptors.tools.convertors import grib_to_netcdf_files
@@ -48,7 +48,7 @@ def convert_format(
             context.add_user_visible_error(message=message)
             context.add_stderr(message=f"Exception: {e}")
             raise e
-    elif data_format in ["grib", "grib2", "grb", "grb2"]:
+    elif data_format in ["grib"]:
         paths = [result]
     else:
         message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
