@@ -277,6 +277,7 @@ def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
 
     # Add force values to request as some may be used in date expansion
     r.update(force)
+    request.update(force)
 
     date_keyword_configs = options.get("date_keyword_config", DATE_KEYWORD_CONFIGS)
     if isinstance(date_keyword_configs, dict):
