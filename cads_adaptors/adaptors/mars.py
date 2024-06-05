@@ -6,17 +6,29 @@ from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
 
 
+def handle_data_format(data_format: str) -> str:
+    if isinstance(data_format, (list, tuple, set)):
+        data_format = list(data_format)
+        assert len(data_format) == 1, "Only one value of data_format is allowed"
+        data_format = data_format[0]
+
+    if data_format in ["netcdf4", "netcdf", "nc"]:
+        data_format = "netcdf"
+    elif data_format in ["grib", "grib2", "grb", "grb2"]:
+        data_format = "grib"
+
+    return data_format
+
+
 def convert_format(
     result: str,
     data_format: str,
     context: Context,
     **kwargs,
 ) -> list:
-    if isinstance(data_format, (list, tuple)):
-        assert len(data_format) == 1, "Only one value of data_format is allowed"
-        data_format = data_format[0]
+    data_format = handle_data_format(data_format)
 
-    if data_format in ["netcdf4", "netcdf", "nc"]:
+    if data_format in ["netcdf"]:
         to_netcdf_kwargs: dict[str, Any] = {}
 
         from cads_adaptors.tools.convertors import grib_to_netcdf_files
@@ -36,7 +48,7 @@ def convert_format(
             context.add_user_visible_error(message=message)
             context.add_stderr(message=f"Exception: {e}")
             raise e
-    elif data_format in ["grib", "grib2", "grb", "grb2"]:
+    elif data_format in ["grib"]:
         paths = [result]
     else:
         message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
@@ -132,6 +144,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
+        data_format = handle_data_format(data_format)
 
         # Account from some horribleness from teh legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
