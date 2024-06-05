@@ -83,7 +83,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if adaptor_schema := self.adaptor_schema:
             schemas = [adaptor_schema] + schemas
         for schema in schemas:
-            request = enforce.enforce(request, schema)
+            request = enforce.enforce(request, schema, self.context.logger)
         return request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
