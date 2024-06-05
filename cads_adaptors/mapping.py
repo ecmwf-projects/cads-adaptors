@@ -292,6 +292,10 @@ def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
 
         # Transform year/month/day in dates
         if options.get("wants_dates", False):
+            print(
+                'pre-expand', r, request, date_key, year_key, month_key, day_key,
+                options.get(format_key, "%Y-%m-%d")
+            )
             expand_dates(
                 r,
                 request,
@@ -301,6 +305,7 @@ def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
                 day_key,
                 options.get(format_key, "%Y-%m-%d"),
             )
+            print('post-expand', r)
 
         if options.get("wants_intervals", False):
             if date_key in r:
