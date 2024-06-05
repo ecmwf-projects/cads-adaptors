@@ -19,6 +19,7 @@ def handle_data_format(data_format: str) -> str:
 
     return data_format
 
+
 def convert_format(
     result: str,
     data_format: str,
