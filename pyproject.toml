@@ -23,7 +23,8 @@ dependencies = [
   "pyyaml",
   "tqdm",
   "DateTimeRange",
-  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git"
+  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
+  "h5netcdf"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]
