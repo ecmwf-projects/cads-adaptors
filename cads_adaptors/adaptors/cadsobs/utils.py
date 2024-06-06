@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import logging
 import uuid
 from pathlib import Path
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 
 import cftime
-import h5netcdf
 import numpy
 import pandas
 import xarray
@@ -15,6 +16,9 @@ from cads_adaptors.adaptors.cadsobs.models import (
     RetrieveFormat,
     RetrieveParams,
 )
+
+if TYPE_CHECKING:
+    import h5netcdf
 
 logger = logging.getLogger(__name__)
 MAX_NUMBER_OF_GROUPS = 10
@@ -47,6 +51,8 @@ def _add_attributes(oncobj: h5netcdf.File, global_attributes: dict):
 
 def _get_url_ncobj(fs: HTTPFileSystem, url: str) -> h5netcdf.File:
     """Open an URL as a netCDF file object with h5netcdf."""
+    import h5netcdf
+
     fobj = fs.open(url)
     logger.debug(f"Reading data from {url}.")
     # xarray won't read bytes object directly with netCDF4
@@ -325,6 +331,8 @@ def _dump_char_variable(
 def _get_code_mapping(
     incobj: h5netcdf.File | xarray.Dataset, inverse: bool = False
 ) -> dict:
+    import h5netcdf
+
     if isinstance(incobj, h5netcdf.File):
         attrs = incobj.variables["observed_variable"].attrs
     elif isinstance(incobj, xarray.Dataset):
