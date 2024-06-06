@@ -1,7 +1,6 @@
 import functools
 import os
 import tarfile
-import traceback
 import urllib
 import zipfile
 from typing import Any, Dict, Generator, List, Optional
@@ -56,9 +55,7 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
                 url, path, progress_bar=functools.partial(tqdm, file=context), **kwargs
             )
         except Exception as e:
-            context.add_stdout(
-                f"Failed download for URL: {url}\nException: {e}"
-            )
+            context.add_stdout(f"Failed download for URL: {url}\nException: {e}")
         else:
             paths.append(path)
 
