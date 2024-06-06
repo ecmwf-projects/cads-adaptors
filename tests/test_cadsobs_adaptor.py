@@ -84,7 +84,7 @@ class MockerCadsobsApiClient:
 
 def test_adaptor(tmp_path, monkeypatch):
     monkeypatch.setattr(
-        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        "cads_adaptors.adaptors.cadsobs.api_client.CadsobsApiClient",
         MockerCadsobsApiClient,
     )
     test_request = {
