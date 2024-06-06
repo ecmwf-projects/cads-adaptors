@@ -55,9 +55,9 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             multiurl.download(
                 url, path, progress_bar=functools.partial(tqdm, file=context), **kwargs
             )
-        except Exception:
+        except Exception as e:
             context.add_stdout(
-                f"Failed download for URL: {url}\nTraceback: {traceback.format_exc()}"
+                f"Failed download for URL: {url}\nTraceback: {traceback.format_exc()}\n{e}"
             )
         else:
             paths.append(path)
