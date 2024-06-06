@@ -19,6 +19,8 @@ dependencies:
 - pyyaml
 - tqdm
 - DateTimeRange
+- fsspec
+- aiohttp
 - pip:
   - rooki
   - earthkit-aggregate
