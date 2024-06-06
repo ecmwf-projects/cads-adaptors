@@ -55,22 +55,23 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             multiurl.download(
                 url, path, progress_bar=functools.partial(tqdm, file=context), **kwargs
             )
-        except Exception:
+        except Exception as e:
             context.add_stdout(
-                f"Failed download for URL: {url}\nTraceback: {traceback.format_exc()}"
+                f"Failed download for URL: {url}\nException: {e}"
             )
         else:
             paths.append(path)
 
     if len(paths) == 0:
         context.add_user_visible_error(
-            "Your request has not found any data, please check your selection.\n\n"
+            "Your request has not found any data, please check your selection.\n"
             "If you believe this to be a data store error, please contact user support."
         )
         raise RuntimeError(
             f"Request empty. No data found from the following URLs:"
             f"\n{yaml.safe_dump(urls, indent=2)} "
         )
+    # TODO: raise a warning if len(paths)<len(urls). Need to check who sees this warning
     return paths
 
 
