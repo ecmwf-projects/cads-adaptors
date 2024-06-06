@@ -2,8 +2,6 @@ import logging
 import tempfile
 from pathlib import Path
 
-from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
-from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 
 logger = logging.getLogger(__name__)
@@ -11,6 +9,10 @@ logger = logging.getLogger(__name__)
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request):
+        # Import from inside retrieve method to prevent retrive-api breaking
+        from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
+        from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
+
         # Maps observation_type to source. This sets self.mapped_request
         self._pre_retrieve(request)
         # Assignment to avoid repeating self too many times
