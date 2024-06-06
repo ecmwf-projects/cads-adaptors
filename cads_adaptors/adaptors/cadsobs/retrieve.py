@@ -3,7 +3,6 @@ from pathlib import Path
 
 import dask
 import fsspec
-import h5netcdf
 
 from cads_adaptors.adaptors.cadsobs.csv import to_csv
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs, RetrieveParams
@@ -25,6 +24,8 @@ def retrieve_data(
     cdm_lite_variables: list[str],
     global_attributes: dict,
 ) -> Path:
+    import h5netcdf
+
     output_path_netcdf = _get_output_path(output_dir, dataset_name, "netCDF")
     logger.info(f"Streaming data to {output_path_netcdf}")
     # We first need to loop over the files to get the max size of the strings fields
