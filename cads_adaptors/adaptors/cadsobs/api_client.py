@@ -30,7 +30,7 @@ class CadsobsApiClient:
     ) -> list[str]:
         payload = dict(
             retrieve_args=dict(dataset=dataset_name, params=mapped_request),
-            config=dict(size_limit=100000),
+            config=dict(size_limit=10000000000),
         )
         objects_to_retrieve = self._send_request(
             "POST", "get_object_urls_and_check_size", payload=payload
