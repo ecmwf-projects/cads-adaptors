@@ -29,8 +29,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         else:
             self.context = context
         # The following attributes are updated during the retireve method
-        self.input_request: Request = Request()
-        self.mapped_request: Request = Request()
+        self.input_request: Request = dict()
+        self.mapped_request: Request = dict()
         self.download_format: str = "zip"
         self.receipt: bool = False
         self.schemas = config.pop("schemas", [])
