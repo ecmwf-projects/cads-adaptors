@@ -33,7 +33,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.mapped_request: Request = dict()
         self.download_format: str = "zip"
         self.receipt: bool = False
-        self.schemas = config.pop("schemas", [])
+        self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
@@ -77,6 +77,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def normalise_request(self, request: Request) -> Request:
         schemas = self.schemas
+        if not isinstance(schemas, list):
+            schemas = [schemas]
         if adaptor_schema := self.adaptor_schema:
             schemas = [adaptor_schema] + schemas
         for schema in schemas:
