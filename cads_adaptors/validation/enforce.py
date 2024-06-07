@@ -2,9 +2,11 @@ import json
 import logging
 import re
 from copy import deepcopy
+from typing import Any
 
 import jsonschema.exceptions
 
+import cads_adaptors.adaptors
 import cads_adaptors.exceptions
 
 from .error_message import error_message
@@ -12,7 +14,11 @@ from .fix_errors import fix_errors
 from .get_validator import get_validator
 
 
-def enforce(request, schema, logger=None):
+def enforce(
+    request: cads_adaptors.adaptors.Request,
+    schema: dict[str, Any],
+    logger: logging.Logger | None = None,
+) -> cads_adaptors.adaptors.Request:
     """
     Check whether the request conforms to the schema and if it doesn't,
     attempt to make it. If it cannot be made to conform, raise a
