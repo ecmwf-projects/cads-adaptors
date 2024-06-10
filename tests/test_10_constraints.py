@@ -383,14 +383,6 @@ def test_legacy_intersect_constraints():
 
 def test_legacy_intersect_empty_constraints():
     raw_constraints = []
-    request = {
-        "variable": ["surface_downwelling_shortwave_radiation", "electricity_demand"],
-        "spatial_aggregation": "country_level",
-        "temporal_aggregation": ["monthly"],
-        "energy_product_type": ["energy"],
-        "experiment": ["rcp_8_5"],
-        "rcm": ["racmo22e"],
-        "gcm": ["hadgem2_es"],
-    }
+    request = {"foo": "bar"}
     actual = constraints.legacy_intersect_constraints(request, raw_constraints)
     assert actual == [request]
