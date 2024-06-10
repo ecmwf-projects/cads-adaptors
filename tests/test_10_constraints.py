@@ -385,4 +385,4 @@ def test_legacy_intersect_empty_constraints():
     raw_constraints = []
     request = {"foo": "bar"}
     actual = constraints.legacy_intersect_constraints(request, raw_constraints)
-    assert actual == [request]
+    assert actual == [{"foo": "bar"}]
