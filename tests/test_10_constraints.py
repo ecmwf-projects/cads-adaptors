@@ -381,7 +381,6 @@ def test_legacy_intersect_constraints():
     assert actual == expected
 
 
-
 def test_legacy_intersect_empty_constraints():
     raw_constraints = []
     request = {
