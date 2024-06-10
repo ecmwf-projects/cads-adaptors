@@ -617,6 +617,8 @@ def legacy_intersect_constraints(
             }
 
     """
+    if constraints is None or len(constraints) == 0:
+        return [request]
     requests = []
     constraints = parse_constraints(constraints)
     constrained_fields = set(itertools.chain.from_iterable(constraints))
