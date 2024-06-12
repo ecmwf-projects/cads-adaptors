@@ -137,7 +137,9 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
         # Format of data files, grib or netcdf
         data_format = request.pop("format", "grib")
+        data_format = adaptor_tools.handle_data_format(data_format)
         data_format = request.pop("data_format", data_format)
+        data_format = adaptor_tools.handle_data_format(data_format)
 
         # Account from some horribleness from teh legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
