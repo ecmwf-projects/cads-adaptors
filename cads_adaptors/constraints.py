@@ -539,7 +539,8 @@ def gen_time_range_from_string(string: str) -> DateTimeRange:
 
 
 def legacy_intersect_constraints(
-    request: dict[str, Any], constraints: list[dict[str, Any]] | dict[str, Any] | None
+    request: dict[str, Any], constraints: list[dict[str, Any]] | dict[str, Any] | None,
+    context: adaptors.Context = adaptors.Context()
 ) -> list[dict[str, list[Any]]]:
     """
     'Constrain' a request by intersecting it with the constraints.
@@ -679,4 +680,16 @@ def legacy_intersect_constraints(
         if len(output_request) != 0:
             requests.append(output_request)
 
+    if len(requests) == 0:
+        context.add_user_visible_error(
+            "Your request has not produce a valid combination of values, please check your selection.\n"
+            "If using the cdsapi, please ensure that all values are strings or lists of strings.\n"
+            "If you believe this to be a data store error, please contact user support."
+        )
+        raise exceptions.ConstraintError(
+            "Your request has not produce a valid combination of values, please check your selection.\n"
+            "If using the cdsapi, please ensure that all values are strings or lists of strings.\n"
+            "If you believe this to be a data store error, please contact user support."
+        )   
+     
     return requests
