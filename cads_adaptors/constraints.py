@@ -617,7 +617,7 @@ def legacy_intersect_constraints(
             }
 
     """
-    if len(constraints) == 0:
+    if constraints is None or len(constraints) == 0:
         return [request]
     requests = []
     constraints = parse_constraints(constraints)
