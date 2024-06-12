@@ -194,7 +194,7 @@ def expand_dates(r, request, date, year, month, day, date_format):
                 items = [_.strip() for _ in d.split("/")]
                 if len(items) != 2 or not items[0] or not items[1]:
                     raise ValueError(
-                        'Date ranges must be of the form "start_date/end_date": "{d}"'
+                        f'Date ranges must be of the form "start_date/end_date": "{d}"'
                     )
                 newdates.update(date_range(*items, date_format=date_format))
             else:
