@@ -24,19 +24,28 @@ def test_normalize_request(in_value):
 
 def test_normalize_request_complex():
     this_adaptor = DummyCdsAdaptor({}, collection_id="test-collection")
-    request = this_adaptor.normalise_request(
-        {
-            "test": 1,
-            "test2": "1",
-            "test3": [1, "2"],
-            "test4": (1, "2"),
-            "test5": {1, "2"},
-        }
-    )
-    assert request == {
+    request_in = {
+        "test": 1,
+        "test2": "1",
+        "test3": [1, "2"],
+        "test4": (1, "2"),
+    }
+    assert this_adaptor.normalise_request(request_in) == {
         "test": ["1"],
         "test2": ["1"],
         "test3": ["1", "2"],
         "test4": ["1", "2"],
-        "test5": ["1", "2"],
     }
+
+    request_in.update(
+        {
+            "test5": {1, "2"},
+        }
+    )
+    request_out = this_adaptor.normalise_request(request_in)
+    assert request_out["test"] == ["1"]
+    assert request_out["test2"] == ["1"]
+    assert request_out["test3"] == ["1", "2"]
+    assert request_out["test4"] == ["1", "2"]
+    # Test 5 is a set, so order not guaranteed
+    assert sorted(request_out["test5"]) == ["1", "2"]
