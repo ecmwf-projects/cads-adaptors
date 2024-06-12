@@ -81,8 +81,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         for key, values in request.items():
             values = [str(val) for val in ensure_list(values) if val is not None]
             values = [v for v in values if len(v)]
-            if len(values):
-                normalised_request[key] = values
+            # if len(values):
+            #     normalised_request[key] = values
+            normalised_request[key] = values
         return normalised_request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
