@@ -386,3 +386,10 @@ def test_legacy_intersect_empty_constraints():
     request = {"foo": "bar"}
     actual = constraints.legacy_intersect_constraints(request, raw_constraints)
     assert actual == [{"foo": "bar"}]
+
+
+def test_legacy_intersect_dtype_differences():
+    raw_constraints = [{"foo": ["1", "2"], "bar": "3"}]
+    request = {"foo": 1, "bar": [3, 4]}
+    actual = constraints.legacy_intersect_constraints(request, raw_constraints)
+    assert actual == [{"foo": [1], "bar": [3]}]

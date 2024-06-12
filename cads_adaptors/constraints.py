@@ -664,7 +664,7 @@ def legacy_intersect_constraints(
             constrained_field_value = [
                 v
                 for v in ensure_sequence(output_request.get(field, []))
-                if v in constraint[field]
+                if str(v) in constraint[field]
             ]
 
             # If the intersection is empty, the request as a whole does not
