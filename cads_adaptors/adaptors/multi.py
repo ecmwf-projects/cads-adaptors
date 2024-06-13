@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Any
 
-from cads_adaptors import AbstractCdsAdaptor, mapping
+from cads_adaptors import AbstractCdsAdaptor, exceptions, mapping
 from cads_adaptors.adaptors import Request
 from cads_adaptors.tools.general import ensure_list
 
@@ -108,7 +108,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 results += this_result
 
         if len(results) == 0:
-            raise RuntimeError(
+            raise exceptions.InvalidRequest(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
                 f"{exception_logs}"
             )
@@ -138,6 +138,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         # Format of data files, grib or netcdf
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
+        data_format = adaptor_tools.handle_data_format(data_format)
 
         # Account from some horribleness from teh legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
