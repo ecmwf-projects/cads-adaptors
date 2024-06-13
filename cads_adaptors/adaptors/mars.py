@@ -6,6 +6,10 @@ from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
 
+# TODO: Remove option of environment variable, which I don't think is used by any stack.
+DEFAULT_MARS_SERVER_LIST = os.getenv(
+    "MARS_API_SERVER_LIST", "/etc/mars/mars-api-server.list"
+)
 
 def convert_format(
     result: str,
@@ -45,15 +49,23 @@ def convert_format(
     return paths
 
 
+def get_mars_server_list(config) -> list[str]:
+    mars_server_list: str = config.get("mars_server_list", DEFAULT_MARS_SERVER_LIST)
+    if os.path.exists(mars_server_list):
+        with open(mars_server_list) as f:
+            mars_servers = f.read().splitlines()
+    else:
+        raise SystemError(
+            "MARS servers cannot be found, this is an error at the system level."
+        )
+    return mars_servers
+
+
 def execute_mars(
     request: Union[Request, list],
     context: Context,
     config: dict[str, Any] = dict(),
     target: str = "data.grib",
-    # mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
-    mars_server_list: str = os.getenv(
-        "MARS_API_SERVER_LIST", "/etc/mars/mars-api-server.list"
-    ),
 ) -> str:
     from cads_mars_server import client as mars_client
 
@@ -62,13 +74,7 @@ def execute_mars(
         requests, _cacheable = implement_embargo(requests, config["embargo"])
     context.add_stdout(f"Request (after embargo implemented): {requests}")
 
-    if os.path.exists(mars_server_list):
-        with open(mars_server_list) as f:
-            mars_servers = f.read().splitlines()
-    else:
-        raise SystemError(
-            "MARS servers cannot be found, this is an error at the system level."
-        )
+    mars_servers = get_mars_server_list(config)
 
     cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
 
