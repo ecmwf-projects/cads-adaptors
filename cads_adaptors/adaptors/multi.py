@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Any
 
-from cads_adaptors import AbstractCdsAdaptor, mapping
+from cads_adaptors import AbstractCdsAdaptor, exceptions, mapping
 from cads_adaptors.adaptors import Request
 from cads_adaptors.tools.general import ensure_list
 
@@ -108,7 +108,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 results += this_result
 
         if len(results) == 0:
-            raise RuntimeError(
+            raise exceptions.InvalidRequest(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
                 f"{exception_logs}"
             )
