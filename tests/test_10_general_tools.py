@@ -1,12 +1,14 @@
 import pytest
+
 from cads_adaptors.tools import general
+
 
 @pytest.mark.parametrize(
     "input_item, expected_output",
     [
         ("test", ["test"]),
         (1, [1]),
-        (1., [1.]),
+        (1.0, [1.0]),
         (object, [object]),
         ({"test"}, ["test"]),
         (["test", "test2"], ["test", "test2"]),
