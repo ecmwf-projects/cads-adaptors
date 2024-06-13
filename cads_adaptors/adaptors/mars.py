@@ -46,6 +46,9 @@ def convert_format(
 
 
 def get_mars_server_list(config) -> list[str]:
+    if config.get("mars_servers") is not None:
+        return ensure_list(config["mars_servers"])
+
     # TODO: Refactor when we have a more stable set of mars-servers
     if os.getenv("MARS_API_SERVER_LIST") is not None:
         default_mars_server_list = os.getenv("MARS_API_SERVER_LIST")
