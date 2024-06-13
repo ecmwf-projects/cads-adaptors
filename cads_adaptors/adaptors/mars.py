@@ -1,7 +1,7 @@
 import os
 from typing import Any, BinaryIO, Union
 
-from cads_adaptors.adaptors import Context, Request, cds
+from cads_adaptors.adaptors import Context, Request, cds, exceptions
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
@@ -27,7 +27,7 @@ def convert_format(
         except Exception as e:
             message = (
                 "There was an error converting the GRIB data to netCDF.\n"
-                "It may be that the selection you made was too complex, "
+                "It may be that the selection you made was too large and/or complex, "
                 "in which case you could try reducing your selection. "
                 "For further help, or if you believe this to be a problem with the dataset, "
                 "please contact user support."
@@ -110,7 +110,7 @@ def execute_mars(
         context.add_user_visible_error(
             message=error_message,
         )
-        raise RuntimeError(error_message)
+        raise exceptions.InvalidRequest(error_message)
 
     return target
 
