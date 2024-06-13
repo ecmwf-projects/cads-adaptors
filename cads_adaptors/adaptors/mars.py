@@ -46,10 +46,17 @@ def convert_format(
 
 
 def get_mars_server_list(config) -> list[str]:
-    # TODO: Remove option of environment variable, which I don't think is used by any stack.
-    default_mars_server_list = os.getenv(
-        "MARS_API_SERVER_LIST", "/etc/mars/mars-api-server.list"
-    )
+    # TODO: Refactor when we have a more stable set of mars-servers
+    if os.getenv("MARS_API_SERVER_LIST") is not None:
+        default_mars_server_list = os.getenv("MARS_API_SERVER_LIST")
+    else:
+        for default_mars_server_list in [
+            "/etc/mars/mars-api-server-legacy.list",
+            "/etc/mars/mars-api-server.list",
+        ]:
+            if os.path.exists(default_mars_server_list):
+                break
+
     mars_server_list: str = config.get("mars_server_list", default_mars_server_list)
     if os.path.exists(mars_server_list):
         with open(mars_server_list) as f:
