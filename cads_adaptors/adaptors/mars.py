@@ -1,7 +1,8 @@
 import os
 from typing import Any, BinaryIO, Union
 
-from cads_adaptors.adaptors import Context, Request, cds, exceptions
+from cads_adaptors import exceptions
+from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list

@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Any
 
-from cads_adaptors import AbstractCdsAdaptor, mapping, exceptions
+from cads_adaptors import AbstractCdsAdaptor, exceptions, mapping
 from cads_adaptors.adaptors import Request
 from cads_adaptors.tools.general import ensure_list
 
