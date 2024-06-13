@@ -46,15 +46,37 @@ def convert_format(
     return paths
 
 
+def get_mars_server_list(config) -> list[str]:
+    if config.get("mars_servers") is not None:
+        return ensure_list(config["mars_servers"])
+
+    # TODO: Refactor when we have a more stable set of mars-servers
+    if os.getenv("MARS_API_SERVER_LIST") is not None:
+        default_mars_server_list = os.getenv("MARS_API_SERVER_LIST")
+    else:
+        for default_mars_server_list in [
+            "/etc/mars/mars-api-server-legacy.list",
+            "/etc/mars/mars-api-server.list",
+        ]:
+            if os.path.exists(default_mars_server_list):
+                break
+
+    mars_server_list: str = config.get("mars_server_list", default_mars_server_list)
+    if os.path.exists(mars_server_list):
+        with open(mars_server_list) as f:
+            mars_servers = f.read().splitlines()
+    else:
+        raise SystemError(
+            "MARS servers cannot be found, this is an error at the system level."
+        )
+    return mars_servers
+
+
 def execute_mars(
     request: Union[Request, list],
     context: Context,
     config: dict[str, Any] = dict(),
     target: str = "data.grib",
-    # mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
-    mars_server_list: str = os.getenv(
-        "MARS_API_SERVER_LIST", "/etc/mars/mars-api-server.list"
-    ),
 ) -> str:
     from cads_mars_server import client as mars_client
 
@@ -63,13 +85,7 @@ def execute_mars(
         requests, _cacheable = implement_embargo(requests, config["embargo"])
     context.add_stdout(f"Request (after embargo implemented): {requests}")
 
-    if os.path.exists(mars_server_list):
-        with open(mars_server_list) as f:
-            mars_servers = f.read().splitlines()
-    else:
-        raise SystemError(
-            "MARS servers cannot be found, this is an error at the system level."
-        )
+    mars_servers = get_mars_server_list(config)
 
     cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
 
