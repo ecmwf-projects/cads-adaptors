@@ -1,7 +1,6 @@
 import os
 from typing import Any, BinaryIO, Union
 
-from cads_adaptors import exceptions
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
@@ -127,7 +126,7 @@ def execute_mars(
         context.add_user_visible_error(
             message=error_message,
         )
-        raise exceptions.InvalidRequest(error_message)
+        raise RuntimeError(error_message)
 
     return target
 
