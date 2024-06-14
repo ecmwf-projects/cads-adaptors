@@ -11,7 +11,6 @@ import requests
 import yaml
 from tqdm import tqdm
 
-from cads_adaptors import exceptions
 from cads_adaptors.adaptors import Context
 from cads_adaptors.tools import hcube_tools
 
