@@ -127,7 +127,7 @@ def execute_mars(
         context.add_user_visible_error(
             message=error_message,
         )
-        raise exceptions.InvalidRequest(error_message)
+        raise RuntimeError(error_message)
 
     return target
 

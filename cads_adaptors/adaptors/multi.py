@@ -108,7 +108,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 results += this_result
 
         if len(results) == 0:
-            raise exceptions.InvalidRequest(
+            raise RuntimeError(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
                 f"{exception_logs}"
             )

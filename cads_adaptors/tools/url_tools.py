@@ -65,7 +65,7 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             "Your request has not found any data, please check your selection.\n"
             "If you believe this to be a data store error, please contact user support."
         )
-        raise exceptions.InvalidRequest(
+        raise RuntimeError(
             f"Request empty. No data found from the following URLs:"
             f"\n{yaml.safe_dump(urls, indent=2)} "
         )
