@@ -7,6 +7,23 @@ from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 
 logger = logging.getLogger(__name__)
 
+possible_aux_fields = [
+    "total_uncertainty",
+    "positive_total_uncertainty",
+    "negative_total_uncertainty",
+    "max_positive_total_uncertainty",
+    "max_negative_total_uncertainty",
+    "min_positive_total_uncertainty",
+    "min_negative_total_uncertainty",
+    "random_uncertainty",
+    "positive_systematic_uncertainty",
+    "negative_systematic_uncertainty",
+    "quasisystematic_uncertainty",
+    "positive_quasisystematic_uncertainty",
+    "negative_quasisystematic_uncertainty",
+    "flag",
+]
+
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request):
@@ -26,6 +43,18 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         dataset_source = self.handle_sources_list(dataset_source)
         mapped_request["dataset_source"] = dataset_source
         mapped_request = self.adapt_parameters(mapped_request)
+        aux_fields = set()
+        requested_variables = mapped_request["variables"].copy()
+        for variable in mapped_request["variables"]:
+            if "_uncertainty" in variable:
+                aux_fields.add("uncertainty")
+                requested_variables.remove(variable)
+            elif "_flag" in variable:
+                aux_fields.add("flag")
+                requested_variables.remove(variable)
+            else:
+                continue
+        mapped_request["variables"] = requested_variables
         # Request parameters validation happens here, not sure about how to move this to
         # validate method
         cadsobs_client = CadsobsApiClient(obs_api_url)
@@ -33,9 +62,10 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             dataset_name, mapped_request
         )
         cdm_lite_variables = cadsobs_client.get_cdm_lite_variables()
-        global_attributes = cadsobs_client.get_service_definition(dataset_name)[
-            "global_attributes"
-        ]
+        if "uncertainty" in aux_fields:
+            cdm_lite_variables.append("uncertainty")
+        service_definition = cadsobs_client.get_service_definition(dataset_name)
+        global_attributes = service_definition["global_attributes"]
         logger.debug(f"The following objects are going to be filtered: {object_urls}")
         output_dir = Path(tempfile.mkdtemp())
         output_path = retrieve_data(
@@ -64,6 +94,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             area = mapped_request.pop("area")
             mapped_request["latitude_coverage"] = [area[2], area[0]]
             mapped_request["longitude_coverage"] = [area[1], area[3]]
+        # Handle auxiliary variables such as uncertainty, which now are metadata
         return mapped_request
 
     def handle_sources_list(self, dataset_source: list | str) -> str:
