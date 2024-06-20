@@ -26,7 +26,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         dataset_source = self.handle_sources_list(dataset_source)
         mapped_request["dataset_source"] = dataset_source
         mapped_request = self.adapt_parameters(mapped_request)
-        # Get CDM lite variables as a dict with mandatory, optional and auxiliar
+        # Get CDM lite variables as a dict with mandatory, optional and auxiliary
         # Auxiliar are the former uncertainty etc. variables.
         cadsobs_client = CadsobsApiClient(obs_api_url)
         cdm_lite_variables_dict = cadsobs_client.get_cdm_lite_variables()
