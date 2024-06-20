@@ -1,5 +1,8 @@
 import os
 from typing import Any
+import cfgrib
+import dask
+import xarray as xr
 
 from cads_adaptors.adaptors import Context
 
@@ -11,7 +14,6 @@ STANDARD_COMPRESSION_OPTIONS = {
         "engine": "h5netcdf",
     }
 }
-
 
 def grib_to_netcdf_files(
     grib_file: str,
@@ -36,10 +38,6 @@ def grib_to_netcdf_files(
     # Allow expanding of dimensionality, e.g. to ensure that time is always a dimension
     # (this is applied after squeezing)
     expand_dims: list[str] = to_netcdf_kwargs.pop("expand_dims", [])
-
-    import cfgrib
-    import dask
-    import xarray as xr
 
     with dask.config.set(scheduler="threads"):
         if open_datasets_kwargs is None:
@@ -105,3 +103,54 @@ def grib_to_netcdf_files(
             out_nc_files.append(out_fname)
 
     return out_nc_files
+
+
+def open_grib_file(
+    grib_file: str, open_datasets_kwargs: dict[str, Any] = None, context: Context = Context()
+) -> list[xr.Dataset]:
+
+    if open_datasets_kwargs is None:
+        open_datasets_kwargs = {}
+    
+    # Auto chunk 12 time steps
+    open_datasets_kwargs.setdefault(
+        "chunks", {
+            "time": 12,
+            "step": 1,
+            "isobaricInhPa": 1,
+            "hybrid": 1,
+            "valid_time": 12,
+            "number": 1,
+            "realization": 1,
+            "depthBelowLandLayer": 1,
+        }
+    )
+
+    # Option for manual split of the grib file into list of xr.Datasets using list of open_ds_kwargs
+    context.add_stdout(f"Opening {grib_file} with kwargs: {open_datasets_kwargs}")
+    if isinstance(open_datasets_kwargs, list):
+        datasets: list[xr.Dataset] = []
+        for open_ds_kwargs in open_datasets_kwargs:
+            # Default engine is cfgrib
+            open_ds_kwargs.setdefault("engine", "cfgrib")
+            ds = xr.open_dataset(grib_file, **open_ds_kwargs)
+            if ds:
+                datasets.append(ds)
+    else:
+        # Attempt to open with xarray, then fall back to cfgrib if it fails
+        try:
+            datasets = [xr.open_dataset(grib_file, **open_datasets_kwargs)]
+        except Exception:
+            context.add_stdout("Unable to open grib file with xarray, falling back to cfgrib.")
+            datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
+
+    if len(datasets) == 0:
+        message = (
+            "We are unable to convert this GRIB data to netCDF, "
+            "please download as GRIB and convert to netCDF locally.\n"
+        )
+        context.add_user_visible_error(message=message)
+        context.add_stderr(message=message)
+        raise RuntimeError(message)
+
+    return datasets
