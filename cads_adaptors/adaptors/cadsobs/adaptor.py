@@ -27,10 +27,11 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         mapped_request["dataset_source"] = dataset_source
         mapped_request = self.adapt_parameters(mapped_request)
         # Get CDM lite variables as a dict with mandatory, optional and auxiliary
-        # Auxiliary variables are, generally, statistics associated with the mandatory and/or optional variables.
-        # They are identified by matches with the full variable name, e.g. VAR_standard_deviation, 
-        # where standard_deviation is the auxiliary variable.
-        # The will be included as additional columns in the output file.
+        # Auxiliary variables are, generally, statistics associated with the mandatory
+        # and/or optional variables. They are identified by matches with the full
+        # variable name, e.g. VAR_standard_deviation, where standard_deviation is the
+        # auxiliary variable. The will be included as additional columns in the output
+        # file.
         cadsobs_client = CadsobsApiClient(obs_api_url)
         cdm_lite_variables_dict = cadsobs_client.get_cdm_lite_variables()
         cdm_lite_variables = (
