@@ -98,7 +98,7 @@ def xarray_dict_to_netcdf(
                 "encoding": {var: compression_options for var in dataset},
             }
         )
-        out_fname = f"{out_fname_prefix}_{out_fname_base}.nc"
+        out_fname = f"{out_fname_prefix}{out_fname_base}.nc"
         context.add_stdout(f"Writing {out_fname} with kwargs:\n{to_netcdf_kwargs}")
         dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
         out_nc_files.append(out_fname)
@@ -141,7 +141,9 @@ def open_grib_file_as_xarray_dictionary(
         try:
             ds_tag = open_datasets_kwargs.pop("tag", 0)
             datasets = {
-                f"{fname}_{ds_tag}": xr.open_dataset(grib_file, **open_datasets_kwargs)
+                f"{fname}_{ds_tag}": xr.open_dataset(
+                    grib_file, **{**{"errors": "raise"}, **open_datasets_kwargs}
+                )
             }
         except Exception:
             context.add_stderr(
