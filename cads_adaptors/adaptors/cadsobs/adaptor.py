@@ -26,16 +26,28 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         dataset_source = self.handle_sources_list(dataset_source)
         mapped_request["dataset_source"] = dataset_source
         mapped_request = self.adapt_parameters(mapped_request)
-        # Request parameters validation happens here, not sure about how to move this to
-        # validate method
+        # Get CDM lite variables as a dict with mandatory, optional and auxiliary
+        # Auxiliary variables are, generally, statistics associated with the mandatory
+        # and/or optional variables. They are identified by matches with the full
+        # variable name, e.g. VAR_standard_deviation, where standard_deviation is the
+        # auxiliary variable. The will be included as additional columns in the output
+        # file.
         cadsobs_client = CadsobsApiClient(obs_api_url)
+        cdm_lite_variables_dict = cadsobs_client.get_cdm_lite_variables()
+        cdm_lite_variables = (
+            cdm_lite_variables_dict["mandatory"] + cdm_lite_variables_dict["optional"]
+        )
+        # Handle auxiliary variables
+        requested_auxiliary_variables = self.handle_auxiliary_variables(
+            cdm_lite_variables_dict, mapped_request
+        )
+        cdm_lite_variables = cdm_lite_variables + list(requested_auxiliary_variables)
+        # Get the objects that match the request
         object_urls = cadsobs_client.get_objects_to_retrieve(
             dataset_name, mapped_request
         )
-        cdm_lite_variables = cadsobs_client.get_cdm_lite_variables()
-        global_attributes = cadsobs_client.get_service_definition(dataset_name)[
-            "global_attributes"
-        ]
+        service_definition = cadsobs_client.get_service_definition(dataset_name)
+        global_attributes = service_definition["global_attributes"]
         logger.debug(f"The following objects are going to be filtered: {object_urls}")
         output_dir = Path(tempfile.mkdtemp())
         output_path = retrieve_data(
@@ -47,6 +59,25 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             global_attributes,
         )
         return open(output_path, "rb")
+
+    def handle_auxiliary_variables(
+        self, cdm_lite_variables_dict: dict[str, list[str]], mapped_request: dict
+    ) -> set[str]:
+        """Remove auxiliary variables from the request and add them as extra fields."""
+        requested_variables = mapped_request["variables"].copy()
+        requested_auxiliary_variables = set()
+        for variable in requested_variables:
+            for auxvar in cdm_lite_variables_dict["auxiliary"]:
+                if auxvar in variable:
+                    logger.warning(
+                        f"{variable} is an auxiliary variable, it will be included"
+                        f"as an extra {auxvar} column in the output file, not as a "
+                        f"regular variable."
+                    )
+                    requested_variables.remove(variable)
+                    requested_auxiliary_variables.add(auxvar)
+        mapped_request["variables"] = requested_variables
+        return requested_auxiliary_variables
 
     def adapt_parameters(self, mapped_request: dict) -> dict:
         # We need these changes right now to adapt the parameters to what we need
@@ -64,6 +95,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             area = mapped_request.pop("area")
             mapped_request["latitude_coverage"] = [area[2], area[0]]
             mapped_request["longitude_coverage"] = [area[1], area[3]]
+        # Handle auxiliary variables such as uncertainty, which now are metadata
         return mapped_request
 
     def handle_sources_list(self, dataset_source: list | str) -> str:
