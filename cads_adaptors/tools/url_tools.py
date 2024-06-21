@@ -53,7 +53,10 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
         try:
             context.add_stdout(f"Downloading {url} to {path}")
             multiurl.download(
-                url, path, progress_bar=functools.partial(tqdm, file=context, minterval=5), **kwargs
+                url,
+                path,
+                progress_bar=functools.partial(tqdm, file=context, minterval=5),
+                **kwargs,
             )
         except Exception as e:
             context.add_stdout(f"Failed download for URL: {url}\nException: {e}")
