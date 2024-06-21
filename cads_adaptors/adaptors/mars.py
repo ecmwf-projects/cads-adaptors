@@ -2,6 +2,7 @@ import os
 from typing import Any, BinaryIO, Union
 
 from cads_adaptors.adaptors import Context, Request, cds
+from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
 
@@ -12,22 +13,29 @@ def convert_format(
     context: Context,
     **kwargs,
 ) -> list:
-    if isinstance(data_format, (list, tuple)):
-        assert len(data_format) == 1, "Only one value of data_format is allowed"
-        data_format = data_format[0]
+    data_format = adaptor_tools.handle_data_format(data_format)
 
-    # NOTE: The NetCDF compressed option will not be visible on the WebPortal, it is here for testing
-    if data_format in ["netcdf", "nc", "netcdf_compressed"]:
+    if data_format in ["netcdf"]:
         to_netcdf_kwargs: dict[str, Any] = {}
-        if data_format in ["netcdf_compressed"]:
-            to_netcdf_kwargs["compression_options"] = "default"
 
         from cads_adaptors.tools.convertors import grib_to_netcdf_files
 
         # Give the power to overwrite the to_netcdf kwargs from the request
         to_netcdf_kwargs = {**to_netcdf_kwargs, **kwargs}
-        paths = grib_to_netcdf_files(result, context=context, **to_netcdf_kwargs)
-    elif data_format in ["grib", "grib2", "grb", "grb2"]:
+        try:
+            paths = grib_to_netcdf_files(result, context=context, **to_netcdf_kwargs)
+        except Exception as e:
+            message = (
+                "There was an error converting the GRIB data to netCDF.\n"
+                "It may be that the selection you made was too large and/or complex, "
+                "in which case you could try reducing your selection. "
+                "For further help, or if you believe this to be a problem with the dataset, "
+                "please contact user support."
+            )
+            context.add_user_visible_error(message=message)
+            context.add_stderr(message=f"Exception: {e}")
+            raise e
+    elif data_format in ["grib"]:
         paths = [result]
     else:
         message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
@@ -37,15 +45,37 @@ def convert_format(
     return paths
 
 
+def get_mars_server_list(config) -> list[str]:
+    if config.get("mars_servers") is not None:
+        return ensure_list(config["mars_servers"])
+
+    # TODO: Refactor when we have a more stable set of mars-servers
+    if os.getenv("MARS_API_SERVER_LIST") is not None:
+        default_mars_server_list = os.getenv("MARS_API_SERVER_LIST")
+    else:
+        for default_mars_server_list in [
+            "/etc/mars/mars-api-server-legacy.list",
+            "/etc/mars/mars-api-server.list",
+        ]:
+            if os.path.exists(default_mars_server_list):
+                break
+
+    mars_server_list: str = config.get("mars_server_list", default_mars_server_list)
+    if os.path.exists(mars_server_list):
+        with open(mars_server_list) as f:
+            mars_servers = f.read().splitlines()
+    else:
+        raise SystemError(
+            "MARS servers cannot be found, this is an error at the system level."
+        )
+    return mars_servers
+
+
 def execute_mars(
     request: Union[Request, list],
     context: Context,
     config: dict[str, Any] = dict(),
     target: str = "data.grib",
-    # mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
-    mars_server_list: str = os.getenv(
-        "MARS_API_SERVER_LIST", "/etc/mars/mars-api-server.list"
-    ),
 ) -> str:
     from cads_mars_server import client as mars_client
 
@@ -54,13 +84,7 @@ def execute_mars(
         requests, _cacheable = implement_embargo(requests, config["embargo"])
     context.add_stdout(f"Request (after embargo implemented): {requests}")
 
-    if os.path.exists(mars_server_list):
-        with open(mars_server_list) as f:
-            mars_servers = f.read().splitlines()
-    else:
-        raise SystemError(
-            "MARS servers cannot be found, this is an error at the system level."
-        )
+    mars_servers = get_mars_server_list(config)
 
     cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
 
@@ -78,6 +102,8 @@ def execute_mars(
 
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
+    context.add_stdout(message=reply_message)
+
     if reply.error:
         error_lines = "\n".join(
             [message for message in reply_message.split("\n") if "ERROR" in message]
@@ -102,8 +128,6 @@ def execute_mars(
         )
         raise RuntimeError(error_message)
 
-    context.add_stdout(message=reply_message)
-
     return target
 
 
@@ -119,15 +143,24 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def convert_format(self, *args, **kwargs):
         return convert_format(*args, **kwargs)
 
-    def daily_statistics(self, *args, **kwargs):
-        from cads_adaptors.tools.temporal_statistics import daily_statistics
+    def pp_mapping(self, in_pp_config: list[dict[str, Any]], *args, **kwargs):
+        from cads_adaptors.tools.post_processors import pp_config_mapping
 
-        return daily_statistics(*args, **kwargs)
+        pp_config = [
+            pp_config_mapping(_pp_config) for _pp_config in ensure_list(in_pp_config)
+        ]
+        return pp_config
+    
+    def temporal_reduce(self, *args, **kwargs):
+        from cads_adaptors.tools.post_processors import temporal_reduce
+
+        return temporal_reduce(*args, **kwargs)
 
     def retrieve(self, request: Request) -> BinaryIO:
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
+        data_format = adaptor_tools.handle_data_format(data_format)
 
         # Account from some horribleness from teh legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
@@ -140,9 +173,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             **request.pop("format_conversion_kwargs", dict()),
         }
 
-        daily_statistics_kwargs: dict[str, Any] | None = request.pop(
-            "daily_statistics", None
-        )
+        post_process_steps: list[dict[str, Any]] = self.pp_mapping(request.pop("post_process", []))
 
         # To preserve existing ERA5 functionality the default download_format="as_source"
         self._pre_retrieve(request=request, default_download_format="as_source")
@@ -151,21 +182,18 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             self.mapped_request, context=self.context, config=self.config
         )
 
-        # Daily statistics are returned as netcdf, so format conversion is not allowed
-        if daily_statistics_kwargs is not None:
-            data_format = "netcdf"
-            try:
-                paths = self.daily_statistics(
-                    result, daily_statistics_kwargs, context=self.context
-                )
-            except Exception:
-                paths = self.convert_format(
-                    result, data_format, context=self.context, **convert_kwargs
-                )
-        else:
-            paths = self.convert_format(
-                result, data_format, context=self.context, **convert_kwargs
-            )
+        for pp_step in post_process_steps:
+            _method = pp_step.pop("method")
+            if _method is not None and not hasattr(self, _method): # TODO: Extra safety net to limit
+                continue
+            else: 
+                method = getattr(self, _method)
+            
+            result = method(result, **pp_step)
+
+        paths = self.convert_format(
+            result, data_format, context=self.context, **convert_kwargs
+        )
 
         # A check to ensure that if there is more than one path, and download_format
         #  is as_source, we over-ride and zip up the files

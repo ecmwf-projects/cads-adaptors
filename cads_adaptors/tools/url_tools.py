@@ -1,7 +1,6 @@
 import functools
 import os
 import tarfile
-import traceback
 import urllib
 import zipfile
 from typing import Any, Dict, Generator, List, Optional
@@ -18,17 +17,23 @@ from cads_adaptors.tools import hcube_tools
 
 # copied from cdscommon/url2
 def requests_to_urls(
-    requests: Dict[str, Any], patterns: List[str]
+    requests: dict[str, Any] | list[dict[str, Any]], patterns: List[str]
 ) -> Generator[Dict[str, Any], None, None]:
     """Given a list of requests and a list of URL patterns with Jinja2
     formatting, yield the associated URLs to download.
     """
-    templates = [jinja2.Template(p) for p in patterns]
+    jinja_env = jinja2.Environment(undefined=jinja2.StrictUndefined)
+    templates = [jinja_env.from_string(p) for p in patterns]
 
     for req in hcube_tools.unfactorise(requests):  # type: ignore
-        for url in [t.render(req).strip() for t in templates]:
-            if url:
-                yield {"url": url, "req": req}
+        for template in templates:
+            try:
+                url = template.render(req).strip()
+            except jinja2.TemplateError:
+                pass
+            else:
+                if url:
+                    yield {"url": url, "req": req}
 
 
 def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
@@ -37,6 +42,8 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
 
     paths = []
     context.write_type = "stdout"
+    # set some default kwargs for establishing a connection
+    kwargs = {"timeout": 1, "maximum_retries": 1, "retry_after": 1, **kwargs}
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
@@ -47,22 +54,21 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             multiurl.download(
                 url, path, progress_bar=functools.partial(tqdm, file=context), **kwargs
             )
-        except Exception:
-            context.add_stdout(
-                f"Failed download for URL: {url}\nTraceback: {traceback.format_exc()}"
-            )
+        except Exception as e:
+            context.add_stdout(f"Failed download for URL: {url}\nException: {e}")
         else:
             paths.append(path)
 
     if len(paths) == 0:
         context.add_user_visible_error(
-            "Your request has not found any data, please check your selection.\n\n"
+            "Your request has not found any data, please check your selection.\n"
             "If you believe this to be a data store error, please contact user support."
         )
         raise RuntimeError(
             f"Request empty. No data found from the following URLs:"
             f"\n{yaml.safe_dump(urls, indent=2)} "
         )
+    # TODO: raise a warning if len(paths)<len(urls). Need to check who sees this warning
     return paths
 
 

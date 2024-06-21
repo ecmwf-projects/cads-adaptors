@@ -19,7 +19,13 @@ dependencies:
 - pyyaml
 - tqdm
 - DateTimeRange
+- fsspec
+- aiohttp
 - pip:
   - rooki
+<<<<<<< HEAD
   - earthkit-aggregate>=0.1.5
   - git+https://github.com/ecmwf-projects/cads-mars-server
+=======
+  - earthkit-aggregate
+>>>>>>> main

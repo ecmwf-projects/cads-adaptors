@@ -1,6 +1,8 @@
-# copied from cds-forms-scripts/cds/mapping
+# Based on legacy code in cdscompute/.../mapping.py
 
 import copy
+import datetime
+from typing import Any
 
 DATE_KEYWORD_CONFIGS = [
     {
@@ -8,12 +10,14 @@ DATE_KEYWORD_CONFIGS = [
         "year_keyword": "year",
         "month_keyword": "month",
         "day_keyword": "day",
+        "format_keyword": "date_format",
     },
     {
         "date_keyword": "hdate",
         "year_keyword": "hyear",
         "month_keyword": "hmonth",
         "day_keyword": "hday",
+        "format_keyword": "hdate_format",
     },
 ]
 
@@ -90,18 +94,23 @@ def date_to_julian(ddate):
 
 
 def parse_date(date):
-    if isinstance(date, str):
-        if "-" in date:
+    try:
+        if isinstance(date, str) and "-" in date:
             y, m, d = date.split("-")
-            return int(y) * 10000 + int(m) * 100 + int(d)
-    return int(date)
+            output = int(y) * 10000 + int(m) * 100 + int(d)
+        else:
+            output = int(date)
+    except Exception:
+        raise ValueError(
+            f'Invalid date string: "{date}". Should be ' "yyymmdd or yyyy-mm-dd"
+        )
+    return output
 
 
-def date_range(start_date, end_date, step=1):
+def date_range(start_date, end_date, step=1, date_format=None):
     """Get all the dates in the interval defined by start_date and end_date.
 
     Args:
-    ----
         start_date (str): Start date of the interval.
         end_date (str): End date of the interval.
         step (int): Spacing, in days, between dates. Defaults to 1.
@@ -115,7 +124,6 @@ def date_range(start_date, end_date, step=1):
         Generator returning one date at a time.
 
     Example:
-    -------
         >>> list(date_range(20110101, 20110105))
         >>> [20110101, 20110102, 20110103, 20110104, 20110105]
 
@@ -125,18 +133,22 @@ def date_range(start_date, end_date, step=1):
     e = date_to_julian(parse_date(end_date))
 
     while s <= e:
-        yield julian_to_date(s)
+        if date_format is None:
+            yield julian_to_date(s)
+        else:
+            yield datetime.date(*julian_to_ymd(s)).strftime(date_format)
         s += step
 
 
-def date_from_years_month_days(years, months, days):
+def date_from_years_months_days(years, months, days, date_format):
     for y in years:
         for m in months:
             for d in days:
-                julian = ymd_to_julian(y, m, d)
-                y1, m1, d1 = julian_to_ymd(julian)
-                if (y, m, d) == (y1, m1, d1):
-                    yield "%d-%02d-%02d" % (y, m, d)
+                try:
+                    dt = datetime.date(y, m, d)
+                except ValueError:
+                    continue
+                yield dt.strftime(date_format)
 
 
 def days_since_epoch(date, epoch):
@@ -151,11 +163,17 @@ def seconds_since_epoch(date, epoch):
 # Code from mapping.py
 
 
-def as_list(r, name, force):
-    x = force.get(name, r.get(name, []))
-    if not isinstance(x, list):
-        return [x]
-    return x
+def integer_list(request, name):
+    items = request.get(name, [])
+    if not isinstance(items, list):
+        items = [items]
+    integers = []
+    for item in items:
+        try:
+            integers.append(int(item))
+        except Exception:
+            raise ValueError(f"Invalid integer for {name}: {item!r}")
+    return integers
 
 
 def to_interval(x):
@@ -163,13 +181,55 @@ def to_interval(x):
         return "%s/%s" % (x, x)
 
 
-def apply_mapping(request, mapping):
+def expand_dates(r, request, date, year, month, day, date_format):
+    if date in r:
+        newdates = set()
+        dates = r[date]
+        if not isinstance(dates, list):
+            dates = [dates]
+        dates = [str(d) for d in dates]
+        # Expand intervals
+        for d in dates:
+            if "/" in d:
+                items = [_.strip() for _ in d.split("/")]
+                if len(items) != 2 or not items[0] or not items[1]:
+                    raise ValueError(
+                        f'Date ranges must be of the form "start_date/end_date": "{d}"'
+                    )
+                newdates.update(date_range(*items, date_format=date_format))
+            else:
+                newdates.add(d)
+
+        r[date] = sorted(newdates)
+
+    else:
+        years = integer_list(request, year)
+        months = integer_list(request, month)
+        days = integer_list(request, day)
+
+        if years and months and days:
+            r[date] = sorted(
+                set(date_from_years_months_days(years, months, days, date_format))
+            )
+
+            if len(r[date]) == 0:
+                raise ValueError(
+                    f"No valid dates from year={years} month={months} day={days}",
+                    "",
+                )
+
+            for k in (year, month, day):
+                if k in r:
+                    del r[k]
+
+
+def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
     request = copy.deepcopy(request)
+    mapping = copy.deepcopy(mapping)
 
     options = mapping.get("options", {})
     force = mapping.get("force", {})
     defaults = mapping.get("defaults", {})
-    selection_limit = mapping.get("selection_limit")
 
     # Set defaults
 
@@ -215,86 +275,47 @@ def apply_mapping(request, mapping):
     for name, values in request.items():
         r[rename.get(name, name)] = values
 
+    # Add force values to request as some may be used in date expansion
+    r.update(force)
+    request.update(force)
+
     date_keyword_configs = options.get("date_keyword_config", DATE_KEYWORD_CONFIGS)
     if isinstance(date_keyword_configs, dict):
         date_keyword_configs = [date_keyword_configs]
 
     # Loop over potential date keyword configs:
     for date_keyword_config in date_keyword_configs:
-        date = date_keyword_config.get("date_keyword", "date")
-        year = date_keyword_config.get("year_keyword", "year")
-        month = date_keyword_config.get("month_keyword", "month")
-        day = date_keyword_config.get("day_keyword", "day")
+        date_key = date_keyword_config.get("date_keyword", "date")
+        year_key = date_keyword_config.get("year_keyword", "year")
+        month_key = date_keyword_config.get("month_keyword", "month")
+        day_key = date_keyword_config.get("day_keyword", "day")
+        format_key = date_keyword_config.get("format_keyword", "date_format")
 
         # Transform year/month/day in dates
         if options.get("wants_dates", False):
-            if date in r:
-                newdates = set()
-                dates = r[date]
-                if not isinstance(dates, list):
-                    dates = [dates]
-                # Expand intervals
-                for d in dates:
-                    if "/" in d:
-                        start, end = d.split("/")
-                        for e in date_range(start, end):
-                            newdates.add(e)
-                    else:
-                        newdates.add(d)
-
-                r[date] = sorted(newdates)
-
-            # check if all Y,M,D are in request or force values
-            elif all(
-                [(thing in request) or (thing in force) for thing in [year, month, day]]
-            ):
-                years = [int(x) for x in as_list(request, year, force)]
-                months = [int(x) for x in as_list(request, month, force)]
-                days = [int(x) for x in as_list(request, day, force)]
-
-                if years and months and days:
-                    r[date] = sorted(
-                        set(date_from_years_month_days(years, months, days))
-                    )
-
-                    for k in (year, month, day):
-                        if k in r:
-                            del r[k]
-                        if k in force:
-                            del force[k]
+            expand_dates(
+                r,
+                request,
+                date_key,
+                year_key,
+                month_key,
+                day_key,
+                options.get(format_key, "%Y-%m-%d"),
+            )
 
         if options.get("wants_intervals", False):
-            if date in r:
-                r[date] = [to_interval(d) for d in r[date]]
+            if date_key in r:
+                r[date_key] = [to_interval(d) for d in r[date_key]]
 
         epoch = options.get("seconds_since_epoch")
         if epoch is not None:
             extra = options.get("add_hours_to_date", 0) * 3600
-            oldvalues = r[date]
+            oldvalues = r[date_key]
             if isinstance(oldvalues, list):
-                r[date] = [
+                r[date_key] = [
                     str(seconds_since_epoch(v, epoch) + extra) for v in oldvalues
                 ]
             else:
-                r[date] = str(seconds_since_epoch(oldvalues, epoch) + extra)
-
-    # Set forced values
-
-    r.update(force)
-
-    if selection_limit:
-        count = 1
-        for _, values in r.items():
-            if isinstance(values, list):
-                count *= len(values)
-
-        # print("ITEM count %s limit %s" % (count, selection_limit))
-
-        if count > selection_limit:
-            raise ValueError(
-                "Request too large. Requesting %s items, limit is %s"
-                % (count, selection_limit),
-                "",
-            )
+                r[date_key] = str(seconds_since_epoch(oldvalues, epoch) + extra)
 
     return r
