@@ -19,7 +19,6 @@ STANDARD_COMPRESSION_OPTIONS = {
 
 def grib_to_netcdf_files(
     grib_file: str,
-    compression_options: str | dict[str, Any] = "default",
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
     context: Context = Context(),
     out_fname_tag: str = "",
@@ -27,28 +26,15 @@ def grib_to_netcdf_files(
 ):
     fname, _ = os.path.splitext(os.path.basename(grib_file))
     grib_file = os.path.realpath(grib_file)
-    # Allow renaming of variables from what cfgrib decides
-    rename: dict[str, str] = to_netcdf_kwargs.pop("rename", {})
-    # Squeeze any unused dimensions
-    squeeze: bool = to_netcdf_kwargs.pop("squeeze", False)
-    # Allow expanding of dimensionality, e.g. to ensure that time is always a dimension
-    # (this is applied after squeezing)
-    expand_dims: list[str] = to_netcdf_kwargs.pop("expand_dims", [])
-
-    if isinstance(compression_options, str):
-        compression_options = STANDARD_COMPRESSION_OPTIONS.get(compression_options, {})
-
-    to_netcdf_kwargs.setdefault("engine", compression_options.pop("engine", "h5netcdf"))
 
     context.add_stdout(
         f"Converting {grib_file} to netCDF files with:\n"
         f"to_netcdf_kwargs: {to_netcdf_kwargs}\n"
-        f"compression_options: {compression_options}\n"
         f"open_datasets_kwargs: {open_datasets_kwargs}\n"
     )
 
     with dask.config.set(scheduler="threads"):
-        datasets = open_grib_file_as_xarray_list(
+        datasets = open_grib_file_as_xarray_dictionary(
             grib_file, open_datasets_kwargs=open_datasets_kwargs, context=context
         )
         # Fail here on empty lists so that error message is more informative
@@ -60,31 +46,58 @@ def grib_to_netcdf_files(
             context.add_user_visible_error(message=message)
             context.add_stderr(message=message)
             raise RuntimeError(message)
-
-        out_nc_files = []
-        for tag, dataset in datasets.items():
-            if squeeze:
-                dataset = dataset.squeeze(drop=True)
-            for old_name, new_name in rename.items():
-                if old_name in dataset:
-                    dataset = dataset.rename({old_name: new_name})
-            for dim in expand_dims:
-                if dim in dataset and dim not in dataset.dims:
-                    dataset = dataset.expand_dims(dim)
-            to_netcdf_kwargs.update(
-                {
-                    "encoding": {var: compression_options for var in dataset},
-                }
-            )
-            out_fname = f"{fname}_{tag}{out_fname_tag}.nc"
-            context.add_stdout(f"Writing {out_fname} with kwargs: {to_netcdf_kwargs}")
-            dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
-            out_nc_files.append(out_fname)
+        
+        out_fname_tag = f"{fname}{out_fname_tag}"
+        out_nc_files = xarray_dict_to_netcdf(
+            datasets, out_fname_tag, context=context, **to_netcdf_kwargs
+        )
 
     return out_nc_files
 
 
-def open_grib_file_as_xarray_list(
+def xarray_dict_to_netcdf(
+    datasets: dict[str | int, xr.Dataset],
+    out_fname_base: str,
+    context: Context = Context(),
+    compression_options: str | dict[str, Any] = "default",
+    **to_netcdf_kwargs,
+):
+    if isinstance(compression_options, str):
+        compression_options = STANDARD_COMPRESSION_OPTIONS.get(compression_options, {})
+
+    to_netcdf_kwargs.setdefault("engine", compression_options.pop("engine", "h5netcdf"))
+
+    # Allow renaming of variables from what cfgrib decides
+    rename: dict[str, str] = to_netcdf_kwargs.pop("rename", {})
+    # Squeeze any unused dimensions
+    squeeze: bool = to_netcdf_kwargs.pop("squeeze", False)
+    # Allow expanding of dimensionality, e.g. to ensure that time is always a dimension
+    # (this is applied after squeezing)
+    expand_dims: list[str] = to_netcdf_kwargs.pop("expand_dims", [])
+    out_nc_files = []
+    for tag, dataset in datasets.items():
+        if squeeze:
+            dataset = dataset.squeeze(drop=True)
+        for old_name, new_name in rename.items():
+            if old_name in dataset:
+                dataset = dataset.rename({old_name: new_name})
+        for dim in expand_dims:
+            if dim in dataset and dim not in dataset.dims:
+                dataset = dataset.expand_dims(dim)
+        to_netcdf_kwargs.update(
+            {
+                "encoding": {var: compression_options for var in dataset},
+            }
+        )
+        out_fname = f"{out_fname_base}_{tag}.nc"
+        context.add_stdout(f"Writing {out_fname} with kwargs:\n{to_netcdf_kwargs}")
+        dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
+        out_nc_files.append(out_fname)
+
+    return out_nc_files
+
+
+def open_grib_file_as_xarray_dictionary(
     grib_file: str,
     open_datasets_kwargs: dict[str, Any] | list[dict[str, Any]] = None,
     context: Context = Context(),
