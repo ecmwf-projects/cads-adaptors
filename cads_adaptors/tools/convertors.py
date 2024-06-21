@@ -62,7 +62,16 @@ def grib_to_netcdf_files(
                 if ds:
                     datasets.append(ds)
         else:
-            datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
+            # First try and open with xarray as a single dataset,
+            # xarray.open_dataset will handle a number of the potential conflicts in fields
+            try:
+                datasets = [xr.open_dataset(grib_file, **open_datasets_kwargs)]
+            except Exception:
+                context.add_stderr(
+                    f"Failed to open with xr.open_dataset({grib_file}, **{open_datasets_kwargs}), "
+                    "opening with cfgrib.open_datasets instead."
+                )
+                datasets = cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
 
         if len(datasets) == 0:
             message = (
