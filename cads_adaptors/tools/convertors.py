@@ -17,14 +17,24 @@ STANDARD_COMPRESSION_OPTIONS = {
 }
 
 
+DEFAULT_CHUNKS = {
+    "time": 12,
+    "step": 1,
+    "isobaricInhPa": 1,
+    "hybrid": 1,
+    "valid_time": 12,
+    "number": 1,
+    "realization": 1,
+    "depthBelowLandLayer": 1,
+}
+
+
 def grib_to_netcdf_files(
     grib_file: str,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
     context: Context = Context(),
-    out_fname_tag: str = "",
     **to_netcdf_kwargs,
 ):
-    fname, _ = os.path.splitext(os.path.basename(grib_file))
     grib_file = os.path.realpath(grib_file)
 
     context.add_stdout(
@@ -47,9 +57,8 @@ def grib_to_netcdf_files(
             context.add_stderr(message=message)
             raise RuntimeError(message)
 
-        out_fname_tag = f"{fname}{out_fname_tag}"
         out_nc_files = xarray_dict_to_netcdf(
-            datasets, out_fname_tag, context=context, **to_netcdf_kwargs
+            datasets, context=context, **to_netcdf_kwargs
         )
 
     return out_nc_files
@@ -57,9 +66,9 @@ def grib_to_netcdf_files(
 
 def xarray_dict_to_netcdf(
     datasets: dict[str | int, xr.Dataset],
-    out_fname_base: str,
     context: Context = Context(),
     compression_options: str | dict[str, Any] = "default",
+    out_fname_prefix: str = "",
     **to_netcdf_kwargs,
 ):
     if isinstance(compression_options, str):
@@ -75,7 +84,7 @@ def xarray_dict_to_netcdf(
     # (this is applied after squeezing)
     expand_dims: list[str] = to_netcdf_kwargs.pop("expand_dims", [])
     out_nc_files = []
-    for tag, dataset in datasets.items():
+    for out_fname_base, dataset in datasets.items():
         if squeeze:
             dataset = dataset.squeeze(drop=True)
         for old_name, new_name in rename.items():
@@ -89,7 +98,7 @@ def xarray_dict_to_netcdf(
                 "encoding": {var: compression_options for var in dataset},
             }
         )
-        out_fname = f"{out_fname_base}_{tag}.nc"
+        out_fname = f"{out_fname_prefix}_{out_fname_base}.nc"
         context.add_stdout(f"Writing {out_fname} with kwargs:\n{to_netcdf_kwargs}")
         dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
         out_nc_files.append(out_fname)
@@ -99,55 +108,48 @@ def xarray_dict_to_netcdf(
 
 def open_grib_file_as_xarray_dictionary(
     grib_file: str,
-    open_datasets_kwargs: dict[str, Any] | list[dict[str, Any]] = None,
+    open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
     context: Context = Context(),
 ) -> dict[str | int, xr.Dataset]:
-    """Open a grib file and return as a list of xarray datasets."""
+    """
+    Open a grib file and return as a dictionary of xarray datasets,
+    where the key will be used in any filenames created from the dataset.
+    """
+    fname, _ = os.path.splitext(os.path.basename(grib_file))
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {}
-
-    # Auto chunk 12 time steps
-    open_datasets_kwargs.setdefault(
-        "chunks",
-        {
-            "time": 12,
-            "step": 1,
-            "isobaricInhPa": 1,
-            "hybrid": 1,
-            "valid_time": 12,
-            "number": 1,
-            "realization": 1,
-            "depthBelowLandLayer": 1,
-        },
-    )
 
     # Option for manual split of the grib file into list of xr.Datasets using list of open_ds_kwargs
     context.add_stdout(f"Opening {grib_file} with kwargs: {open_datasets_kwargs}")
     if isinstance(open_datasets_kwargs, list):
-        datasets: dict[str | int, xr.Dataset] = []
+        datasets: dict[str | int, xr.Dataset] = {}
         for i, open_ds_kwargs in enumerate(open_datasets_kwargs):
             # Default engine is cfgrib
             open_ds_kwargs.setdefault("engine", "cfgrib")
+            open_ds_kwargs.setdefault("chunks", DEFAULT_CHUNKS)
             ds_tag = open_ds_kwargs.pop("tag", i)
             try:
                 ds = xr.open_dataset(grib_file, **open_ds_kwargs)
             except Exception:
                 ds = None
             if ds:
-                datasets[ds_tag] = ds
+                datasets[f"{fname}_{ds_tag}"] = ds
     else:
+        open_datasets_kwargs.setdefault("chunks", DEFAULT_CHUNKS)
         # First try and open with xarray as a single dataset,
         # xarray.open_dataset will handle a number of the potential conflicts in fields
         try:
             ds_tag = open_datasets_kwargs.pop("tag", 0)
-            datasets = {ds_tag: xr.open_dataset(grib_file, **open_datasets_kwargs)}
+            datasets = {
+                f"{fname}_{ds_tag}": xr.open_dataset(grib_file, **open_datasets_kwargs)
+            }
         except Exception:
             context.add_stderr(
                 f"Failed to open with xr.open_dataset({grib_file}, **{open_datasets_kwargs}), "
                 "opening with cfgrib.open_datasets instead."
             )
             datasets = {
-                i: ds
+                f"{fname}_{i}": ds
                 for i, ds in enumerate(
                     cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
                 )
