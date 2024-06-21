@@ -141,7 +141,9 @@ def open_grib_file_as_xarray_dictionary(
         try:
             ds_tag = open_datasets_kwargs.pop("tag", 0)
             datasets = {
-                f"{fname}_{ds_tag}": xr.open_dataset(grib_file, **open_datasets_kwargs)
+                f"{fname}_{ds_tag}": xr.open_dataset(
+                    grib_file, **{**{"errors": "raise"}, **open_datasets_kwargs}
+                )
             }
         except Exception:
             context.add_stderr(
