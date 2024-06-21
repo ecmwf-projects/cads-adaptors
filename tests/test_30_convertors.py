@@ -10,7 +10,6 @@ TEST_GRIB_FILE = (
 )
 
 
-
 def test_open_grib():
     grib_file = requests.get(TEST_GRIB_FILE)
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -18,15 +17,18 @@ def test_open_grib():
         with open(tmp_grib_file, "wb") as f:
             f.write(grib_file.content)
 
-        netcdf_files = convertors.grib_to_netcdf_files(tmp_grib_file)
-        assert isinstance(netcdf_files, list)
-        assert len(netcdf_files) == 1
+        xarray_dict = convertors.open_grib_file_as_xarray_dictionary(tmp_grib_file)
+        assert isinstance(xarray_dict, dict)
+        assert len(xarray_dict) == 1
+        assert list(xarray_dict)[0] == 0
 
-        netcdf_files = convertors.grib_to_netcdf_files(
-            tmp_grib_file, compression_options="default"
+        xarray_dict = convertors.open_grib_file_as_xarray_dictionary(
+            tmp_grib_file, open_datasets_kwargs={"tag": "test"}
         )
-        assert isinstance(netcdf_files, list)
-        assert len(netcdf_files) == 1
+        assert isinstance(xarray_dict, dict)
+        assert len(xarray_dict) == 1
+        assert list(xarray_dict)[0] == "test"
+
 
 def test_grib_to_netcdf():
     grib_file = requests.get(TEST_GRIB_FILE)

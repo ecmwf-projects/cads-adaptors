@@ -46,7 +46,7 @@ def grib_to_netcdf_files(
             context.add_user_visible_error(message=message)
             context.add_stderr(message=message)
             raise RuntimeError(message)
-        
+
         out_fname_tag = f"{fname}{out_fname_tag}"
         out_nc_files = xarray_dict_to_netcdf(
             datasets, out_fname_tag, context=context, **to_netcdf_kwargs
@@ -128,17 +128,19 @@ def open_grib_file_as_xarray_dictionary(
         for i, open_ds_kwargs in enumerate(open_datasets_kwargs):
             # Default engine is cfgrib
             open_ds_kwargs.setdefault("engine", "cfgrib")
+            ds_tag = open_ds_kwargs.pop("tag", i)
             try:
                 ds = xr.open_dataset(grib_file, **open_ds_kwargs)
             except Exception:
                 ds = None
             if ds:
-                datasets[open_ds_kwargs.get("tag", i)] = ds
+                datasets[ds_tag] = ds
     else:
         # First try and open with xarray as a single dataset,
         # xarray.open_dataset will handle a number of the potential conflicts in fields
         try:
-            datasets = {0: xr.open_dataset(grib_file, **open_datasets_kwargs)}
+            ds_tag = open_datasets_kwargs.pop("tag", 0)
+            datasets = {ds_tag: xr.open_dataset(grib_file, **open_datasets_kwargs)}
         except Exception:
             context.add_stderr(
                 f"Failed to open with xr.open_dataset({grib_file}, **{open_datasets_kwargs}), "
