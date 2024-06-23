@@ -79,8 +79,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         schemas = self.schemas
         if not isinstance(schemas, list):
             schemas = [schemas]
+        # Apply first dataset schemas, then adaptor schema
         if adaptor_schema := self.adaptor_schema:
-            schemas = [adaptor_schema] + schemas
+            schemas = schemas + [adaptor_schema]
         for schema in schemas:
             request = enforce.enforce(request, schema, self.context.logger)
         return request
