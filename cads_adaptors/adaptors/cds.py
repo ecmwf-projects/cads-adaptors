@@ -84,6 +84,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             schemas = schemas + [adaptor_schema]
         for schema in schemas:
             request = enforce.enforce(request, schema, self.context.logger)
+        if not isinstance(request, dict):
+            raise TypeError(
+                f"Normalised request is not a dictionary, instead it is of type {type(request)}"
+            )
         return request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
