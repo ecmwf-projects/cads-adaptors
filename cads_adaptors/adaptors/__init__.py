@@ -4,7 +4,7 @@ from typing import Any, BinaryIO
 
 import cads_adaptors.tools.logger
 
-Request = dict[str, Any] | list[dict[str, Any]]
+Request = dict[str, Any]
 
 
 class Context:
