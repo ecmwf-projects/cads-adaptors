@@ -157,10 +157,11 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
         from cads_adaptors.tools.post_processors import pp_config_mapping
-
+        print(in_pp_config)
         pp_config = [
             pp_config_mapping(_pp_config) for _pp_config in ensure_list(in_pp_config)
         ]
+        print(pp_config)
         return pp_config
     
     def temporal_reduce(self, *args, **kwargs) -> dict[str, Any]:
