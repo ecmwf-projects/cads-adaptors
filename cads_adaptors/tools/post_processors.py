@@ -43,6 +43,7 @@ CONFIG_MAPPING = {
 }
 
 def pp_config_mapping(pp_config: dict[str, Any]) -> dict[str, Any]:
+    print(pp_config)
     cnt = 0 # Escape infinite loop
     while pp_config.get("method") in CONFIG_MAPPING and cnt<100:
         pp_config = {**pp_config, **CONFIG_MAPPING[pp_config["method"]]}
