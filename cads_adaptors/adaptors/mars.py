@@ -157,7 +157,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
         from cads_adaptors.tools.post_processors import pp_config_mapping
-        print(in_pp_config)
+        print(type(in_pp_config), in_pp_config)
         pp_config = [
             pp_config_mapping(_pp_config) for _pp_config in ensure_list(in_pp_config)
         ]
@@ -206,22 +206,24 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         current_result_format = "grib"
 
         for pp_step in post_process_steps:
-            # post processing is done on xarray objects
-            if current_result_format == "grib":
-                from cads_adaptors.tools.convertors import open_grib_file_as_xarray_dictionary
-                result = open_grib_file_as_xarray_dictionary(
-                    result, open_datasets_kwargs=open_datasets_kwargs, context=self.context
-                )
-                current_result_format = "xarray"
+            import dask
+            with dask.config.set(scheduler="threads"):
+                # post processing is done on xarray objects
+                if current_result_format == "grib":
+                    from cads_adaptors.tools.convertors import open_grib_file_as_xarray_dictionary
+                    result = open_grib_file_as_xarray_dictionary(
+                        result, open_datasets_kwargs=open_datasets_kwargs, context=self.context
+                    )
+                    current_result_format = "xarray"
 
-            _method = pp_step.pop("method")
-             # TODO: Add extra condition to limit pps to datasets
-            if _method is not None and not hasattr(self, _method):
-                continue
-            else: 
-                method = getattr(self, _method)
-            
-            result = method(result, **pp_step)
+                _method = pp_step.pop("method")
+                # TODO: Add extra condition to limit pps to datasets
+                if _method is not None and not hasattr(self, _method):
+                    continue
+                else: 
+                    method = getattr(self, _method)
+                
+                result = method(result, **pp_step)
 
         #TODO?: Generalise format conversion to be a post-processor
         paths = self.convert_format(
