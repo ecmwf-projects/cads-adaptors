@@ -63,6 +63,7 @@ def temporal_reduction(
     for in_tag, in_dataset in in_xarray_dict.items():
         out_tag = f"{in_tag}_{how}_{frequency}"
         context.add_stdout(f"Temporal reduction: {out_tag}")
+        context.add_user_visible_log(f"Temporal reduction: {in_tag} {how} {frequency} {kwargs}")
         out_xarray_dict[out_tag] = temporal(
             in_dataset,
             how=how,
