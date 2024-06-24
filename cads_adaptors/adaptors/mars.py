@@ -224,6 +224,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                     method = getattr(self, _method)
                 
                 result = method(result, **pp_step)
+                print(result)
 
             #TODO?: Generalise format conversion to be a post-processor
             paths = self.convert_format(
