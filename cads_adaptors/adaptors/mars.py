@@ -35,7 +35,7 @@ def convert_format(
                 context.add_user_visible_error(message=message)
                 context.add_stderr(message=f"Exception: {e}")
                 raise e
-        if current_result_format in ["xarray"]:
+        elif current_result_format in ["xarray"]:
             from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
             paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
 
