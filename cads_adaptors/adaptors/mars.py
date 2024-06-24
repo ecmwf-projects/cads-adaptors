@@ -47,8 +47,8 @@ def convert_format(
             )
             from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
             paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
-            
-        paths = [result]
+        else:
+            paths = [result]
     else:
         message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
         context.add_user_visible_log(message=message)
