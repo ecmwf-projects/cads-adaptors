@@ -8,34 +8,46 @@ from cads_adaptors.tools.general import ensure_list
 
 
 def convert_format(
-    result: str,
+    result: Any,
     data_format: str,
     context: Context,
-    **kwargs,
+    current_result_format: str = "grib",
+    open_datasets_kwargs: dict[str, Any] = dict(),
+    **to_netcdf_kwargs,  # TODO: rename to something more generic
 ) -> list:
     data_format = adaptor_tools.handle_data_format(data_format)
 
     if data_format in ["netcdf"]:
-        to_netcdf_kwargs: dict[str, Any] = {}
+        if current_result_format == "grib":
+            from cads_adaptors.tools.convertors import grib_to_netcdf_files
+            try:
+                paths = grib_to_netcdf_files(
+                    result, context=context, open_datasets_kwargs=open_datasets_kwargs, **to_netcdf_kwargs
+                )
+            except Exception as e:
+                message = (
+                    "There was an error converting the GRIB data to netCDF.\n"
+                    "It may be that the selection you made was too large and/or complex, "
+                    "in which case you could try reducing your selection. "
+                    "For further help, or if you believe this to be a problem with the dataset, "
+                    "please contact user support."
+                )
+                context.add_user_visible_error(message=message)
+                context.add_stderr(message=f"Exception: {e}")
+                raise e
+        if current_result_format in ["xarray"]:
+            from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
+            paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
 
-        from cads_adaptors.tools.convertors import grib_to_netcdf_files
-
-        # Give the power to overwrite the to_netcdf kwargs from the request
-        to_netcdf_kwargs = {**to_netcdf_kwargs, **kwargs}
-        try:
-            paths = grib_to_netcdf_files(result, context=context, **to_netcdf_kwargs)
-        except Exception as e:
-            message = (
-                "There was an error converting the GRIB data to netCDF.\n"
-                "It may be that the selection you made was too large and/or complex, "
-                "in which case you could try reducing your selection. "
-                "For further help, or if you believe this to be a problem with the dataset, "
-                "please contact user support."
-            )
-            context.add_user_visible_error(message=message)
-            context.add_stderr(message=f"Exception: {e}")
-            raise e
     elif data_format in ["grib"]:
+        if current_result_format in ["xarray"]:
+            message = (
+                "WARNING: Unable to to returning post-processed data in grib format is not supported,"
+                " returning in netcdf format"
+            )
+            from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
+            paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
+            
         paths = [result]
     else:
         message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
@@ -143,7 +155,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def convert_format(self, *args, **kwargs):
         return convert_format(*args, **kwargs)
 
-    def pp_mapping(self, in_pp_config: list[dict[str, Any]], *args, **kwargs):
+    def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
         from cads_adaptors.tools.post_processors import pp_config_mapping
 
         pp_config = [
@@ -151,7 +163,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         ]
         return pp_config
     
-    def temporal_reduce(self, *args, **kwargs):
+    def temporal_reduce(self, *args, **kwargs) -> dict[str, Any]:
         from cads_adaptors.tools.post_processors import temporal_reduce
 
         return temporal_reduce(*args, **kwargs)
@@ -167,10 +179,18 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
-        # Allow user to provide format conversion kwargs
-        convert_kwargs: dict[str, Any] = {
-            **self.config.get("format_conversion_kwargs", dict()),
-            **request.pop("format_conversion_kwargs", dict()),
+        # TODO: deprecate this location for format_conversion_kwargs in config
+        convert_kwargs: dict[str, Any] = self.config.get("format_conversion_kwargs", dict())
+
+        # Separate the open_datasets_kwargs from the to_netcdf_kwargs so they can be used in the correct place
+        #  Preference allow for top level in daaset config:
+        open_datasets_kwargs = {
+            **convert_kwargs.pop("open_datasets_kwargs", dict()),
+            **self.config.get("open_datasets_kwargs", dict()),
+        }
+        to_netcdf_kwargs = {
+            **convert_kwargs.pop("to_netcdf_kwargs", dict()),
+            **self.config.get("to_netcdf_kwargs", dict()),
         }
 
         post_process_steps: list[dict[str, Any]] = self.pp_mapping(request.pop("post_process", []))
@@ -181,18 +201,31 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         result = execute_mars(
             self.mapped_request, context=self.context, config=self.config
         )
+        # Data returned from MARS is always in grib format
+        current_result_format = "grib"
 
         for pp_step in post_process_steps:
+            # post processing is done on xarray objects
+            if current_result_format == "grib":
+                from cads_adaptors.tools.convertors import open_grib_file_as_xarray_dictionary
+                result = open_grib_file_as_xarray_dictionary(
+                    result, open_datasets_kwargs=open_datasets_kwargs, context=self.context
+                )
+                current_result_format = "xarray"
+
             _method = pp_step.pop("method")
-            if _method is not None and not hasattr(self, _method): # TODO: Extra safety net to limit
+             # TODO: Add extra condition to limit pps to datasets
+            if _method is not None and not hasattr(self, _method):
                 continue
             else: 
                 method = getattr(self, _method)
             
             result = method(result, **pp_step)
 
+        #TODO?: Generalise format conversion to be a post-processor
         paths = self.convert_format(
-            result, data_format, context=self.context, **convert_kwargs
+            result, data_format, context=self.context, current_result_format=current_result_format, 
+            open_datasets_kwargs=open_datasets_kwargs, **to_netcdf_kwargs
         )
 
         # A check to ensure that if there is more than one path, and download_format
