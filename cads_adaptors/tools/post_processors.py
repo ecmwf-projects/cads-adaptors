@@ -1,5 +1,7 @@
 from typing import Any, Callable
+from xarray import Dataset
 
+from cads_adaptors import Context
 
 CONFIG_MAPPING = {
     "daily_statistics": {
@@ -47,19 +49,23 @@ def pp_config_mapping(pp_config: dict[str, Any]) -> dict[str, Any]:
     return pp_config
 
 def temporal_reduction(
-    in_path: str,
+    in_xarray_dict: dict[str, Dataset],
+    context: Context = Context(),
     how: str | Callable = "mean",
     frequency: str = "day",
-    open_datasets_kwargs: dict[str, Any] = dict(),
-    to_netcdf_kwargs: dict[str, Any] = dict(),
-):
+    **kwargs,
+) -> dict[str, Dataset]:
     from earthkit.aggregate import temporal
-    from earthkit.data import from_source
 
-    dataset = from_source("file", in_path).to_xarray(**open_datasets_kwargs)
+    out_xarray_dict = {}
+    for in_tag, in_dataset in in_xarray_dict.items():
+        out_tag = f"{in_tag}_{how}_{frequency}"
+        context.add_stdout(f"Temporal reduction: {out_tag}")
+        out_xarray_dict[out_tag] = temporal(
+            in_dataset,
+            how=how,
+            frequency=frequency,
+            **kwargs,
+        )
 
-    reduced_ds = temporal.reduce(dataset, how=how, frequency=frequency)
-
-    out_paths = [reduced_ds.to_netcdf(**to_netcdf_kwargs)]
-
-    return out_paths
+    return out_xarray_dict
