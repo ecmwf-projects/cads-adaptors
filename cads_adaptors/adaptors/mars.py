@@ -166,7 +166,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def temporal_reduce(self, *args, **kwargs) -> dict[str, Any]:
         from cads_adaptors.tools.post_processors import temporal_reduce
 
-        return temporal_reduce(*args, **kwargs)
+        return temporal_reduce(*args, context=self.context, **kwargs)
 
     def retrieve(self, request: Request) -> BinaryIO:
         # TODO: Remove legacy syntax all together
@@ -179,7 +179,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
-        # TODO: deprecate this location for format_conversion_kwargs in config
+        # TODO: deprecate this location for format_conversion_kwargs in the adaptor config
         convert_kwargs: dict[str, Any] = self.config.get("format_conversion_kwargs", dict())
 
         # Separate the open_datasets_kwargs from the to_netcdf_kwargs so they can be used in the correct place
