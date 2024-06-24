@@ -162,10 +162,15 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         ]
         return pp_config
     
-    def temporal_reduce(self, *args, **kwargs) -> dict[str, Any]:
-        from cads_adaptors.tools.post_processors import temporal_reduce
+    def daily_statistics(self, *args, **kwargs) -> dict[str, Any]:
+        from cads_adaptors.tools.post_processors import daily_statistics
 
-        return temporal_reduce(*args, context=self.context, **kwargs)
+        return daily_statistics(*args, context=self.context, **kwargs)
+    
+    def monthly_statistics(self, *args, **kwargs) -> dict[str, Any]:
+        from cads_adaptors.tools.post_processors import monthly_statistics
+
+        return monthly_statistics(*args, context=self.context, **kwargs)
 
     def retrieve(self, request: Request) -> BinaryIO:
         # TODO: Remove legacy syntax all together
