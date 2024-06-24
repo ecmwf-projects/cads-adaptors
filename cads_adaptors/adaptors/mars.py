@@ -171,6 +171,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def monthly_statistics(self, *args, **kwargs) -> dict[str, Any]:
         from cads_adaptors.tools.post_processors import monthly_statistics
 
+        return monthly_statistics(*args, context=self.context, **kwargs)
+    
     def retrieve(self, request: Request) -> BinaryIO:
         import dask
 
