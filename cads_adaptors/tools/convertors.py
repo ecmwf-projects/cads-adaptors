@@ -55,9 +55,7 @@ def grib_to_netcdf_files(
         context.add_stderr(message=message)
         raise RuntimeError(message)
 
-    out_nc_files = xarray_dict_to_netcdf(
-        datasets, context=context, **to_netcdf_kwargs
-    )
+    out_nc_files = xarray_dict_to_netcdf(datasets, context=context, **to_netcdf_kwargs)
 
     return out_nc_files
 

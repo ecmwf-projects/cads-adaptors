@@ -20,9 +20,13 @@ def convert_format(
     if data_format in ["netcdf"]:
         if current_result_format == "grib":
             from cads_adaptors.tools.convertors import grib_to_netcdf_files
+
             try:
                 paths = grib_to_netcdf_files(
-                    result, context=context, open_datasets_kwargs=open_datasets_kwargs, **to_netcdf_kwargs
+                    result,
+                    context=context,
+                    open_datasets_kwargs=open_datasets_kwargs,
+                    **to_netcdf_kwargs,
                 )
             except Exception as e:
                 message = (
@@ -37,6 +41,7 @@ def convert_format(
                 raise e
         elif current_result_format in ["xarray"]:
             from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
+
             paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
 
     elif data_format in ["grib"]:
@@ -46,6 +51,7 @@ def convert_format(
                 " returning in netcdf format"
             )
             from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
+
             paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
         else:
             paths = [result]
@@ -162,17 +168,17 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             pp_config_mapping(_pp_config) for _pp_config in ensure_list(in_pp_config)
         ]
         return pp_config
-    
+
     def daily_statistics(self, *args, **kwargs) -> dict[str, Any]:
         from cads_adaptors.tools.post_processors import daily_statistics
 
         return daily_statistics(*args, context=self.context, **kwargs)
-    
+
     def monthly_statistics(self, *args, **kwargs) -> dict[str, Any]:
         from cads_adaptors.tools.post_processors import monthly_statistics
 
         return monthly_statistics(*args, context=self.context, **kwargs)
-    
+
     def retrieve(self, request: Request) -> BinaryIO:
         import dask
 
@@ -187,7 +193,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             request.setdefault("download_format", "zip")
 
         # TODO: deprecate this location for format_conversion_kwargs in the adaptor config
-        convert_kwargs: dict[str, Any] = self.config.get("format_conversion_kwargs", dict())
+        convert_kwargs: dict[str, Any] = self.config.get(
+            "format_conversion_kwargs", dict()
+        )
 
         # Separate the open_datasets_kwargs from the to_netcdf_kwargs so they can be used in the correct place
         #  Preference allow for top level in daaset config:
@@ -200,7 +208,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             **self.config.get("to_netcdf_kwargs", dict()),
         }
 
-        post_process_steps: list[dict[str, Any]] = self.pp_mapping(request.pop("post_process", []))
+        post_process_steps: list[dict[str, Any]] = self.pp_mapping(
+            request.pop("post_process", [])
+        )
 
         # To preserve existing ERA5 functionality the default download_format="as_source"
         self._pre_retrieve(request=request, default_download_format="as_source")
@@ -220,23 +230,32 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                         message=f"Post-processor method '{_method}' not available for this dataset"
                     )
                     continue
-                else: 
+                else:
                     method = getattr(self, _method)
-                
+
                 # post processing is done on xarray objects, so convert now if not already converted
                 if current_result_format == "grib":
-                    from cads_adaptors.tools.convertors import open_grib_file_as_xarray_dictionary
+                    from cads_adaptors.tools.convertors import (
+                        open_grib_file_as_xarray_dictionary,
+                    )
+
                     result = open_grib_file_as_xarray_dictionary(
-                        result, open_datasets_kwargs=open_datasets_kwargs, context=self.context
+                        result,
+                        open_datasets_kwargs=open_datasets_kwargs,
+                        context=self.context,
                     )
                     current_result_format = "xarray"
 
                 result = method(result, **pp_step)
 
-            #TODO?: Generalise format conversion to be a post-processor
+            # TODO?: Generalise format conversion to be a post-processor
             paths = self.convert_format(
-                result, data_format, context=self.context, current_result_format=current_result_format, 
-                open_datasets_kwargs=open_datasets_kwargs, **to_netcdf_kwargs
+                result,
+                data_format,
+                context=self.context,
+                current_result_format=current_result_format,
+                open_datasets_kwargs=open_datasets_kwargs,
+                **to_netcdf_kwargs,
             )
 
         # A check to ensure that if there is more than one path, and download_format
