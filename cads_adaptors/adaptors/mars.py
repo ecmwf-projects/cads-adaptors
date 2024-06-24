@@ -195,6 +195,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         }
 
         post_process_steps: list[dict[str, Any]] = self.pp_mapping(request.pop("post_process", []))
+        print(post_process_steps)
 
         # To preserve existing ERA5 functionality the default download_format="as_source"
         self._pre_retrieve(request=request, default_download_format="as_source")
