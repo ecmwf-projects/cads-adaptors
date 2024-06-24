@@ -2,7 +2,6 @@ import os
 from typing import Any
 
 import cfgrib
-import dask
 import xarray as xr
 
 from cads_adaptors.adaptors import Context
@@ -43,23 +42,22 @@ def grib_to_netcdf_files(
         f"open_datasets_kwargs: {open_datasets_kwargs}\n"
     )
 
-    with dask.config.set(scheduler="threads"):
-        datasets = open_grib_file_as_xarray_dictionary(
-            grib_file, open_datasets_kwargs=open_datasets_kwargs, context=context
+    datasets = open_grib_file_as_xarray_dictionary(
+        grib_file, open_datasets_kwargs=open_datasets_kwargs, context=context
+    )
+    # Fail here on empty lists so that error message is more informative
+    if len(datasets) == 0:
+        message = (
+            "We are unable to convert this GRIB data to netCDF, "
+            "please download as GRIB and convert to netCDF locally.\n"
         )
-        # Fail here on empty lists so that error message is more informative
-        if len(datasets) == 0:
-            message = (
-                "We are unable to convert this GRIB data to netCDF, "
-                "please download as GRIB and convert to netCDF locally.\n"
-            )
-            context.add_user_visible_error(message=message)
-            context.add_stderr(message=message)
-            raise RuntimeError(message)
+        context.add_user_visible_error(message=message)
+        context.add_stderr(message=message)
+        raise RuntimeError(message)
 
-        out_nc_files = xarray_dict_to_netcdf(
-            datasets, context=context, **to_netcdf_kwargs
-        )
+    out_nc_files = xarray_dict_to_netcdf(
+        datasets, context=context, **to_netcdf_kwargs
+    )
 
     return out_nc_files
 

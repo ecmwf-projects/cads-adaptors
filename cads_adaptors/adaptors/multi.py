@@ -132,6 +132,8 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
     def retrieve(self, request: Request):
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
+        import dask
+        
         from cads_adaptors.adaptors.mars import execute_mars
         from cads_adaptors.tools import adaptor_tools
 
@@ -178,7 +180,8 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         )
         result = execute_mars(mapped_requests, context=self.context)
 
-        paths = self.convert_format(result, data_format, self.context, **convert_kwargs)
+        with dask.config.set(scheduler="threads"):
+            paths = self.convert_format(result, data_format, self.context, **convert_kwargs)
 
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"

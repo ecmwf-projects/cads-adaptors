@@ -35,7 +35,7 @@ def convert_format(
                 context.add_user_visible_error(message=message)
                 context.add_stderr(message=f"Exception: {e}")
                 raise e
-        if current_result_format in ["xarray"]:
+        elif current_result_format in ["xarray"]:
             from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
             paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
 
@@ -47,8 +47,8 @@ def convert_format(
             )
             from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
             paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
-            
-        paths = [result]
+        else:
+            paths = [result]
     else:
         message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
         context.add_user_visible_log(message=message)
@@ -163,12 +163,17 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         ]
         return pp_config
     
-    def temporal_reduce(self, *args, **kwargs) -> dict[str, Any]:
-        from cads_adaptors.tools.post_processors import temporal_reduce
+    def daily_statistics(self, *args, **kwargs) -> dict[str, Any]:
+        from cads_adaptors.tools.post_processors import daily_statistics
 
-        return temporal_reduce(*args, context=self.context, **kwargs)
+        return daily_statistics(*args, context=self.context, **kwargs)
+    
+    def monthly_statistics(self, *args, **kwargs) -> dict[str, Any]:
+        from cads_adaptors.tools.post_processors import monthly_statistics
 
     def retrieve(self, request: Request) -> BinaryIO:
+        import dask
+
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
@@ -204,29 +209,33 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Data returned from MARS is always in grib format
         current_result_format = "grib"
 
-        for pp_step in post_process_steps:
-            # post processing is done on xarray objects
-            if current_result_format == "grib":
-                from cads_adaptors.tools.convertors import open_grib_file_as_xarray_dictionary
-                result = open_grib_file_as_xarray_dictionary(
-                    result, open_datasets_kwargs=open_datasets_kwargs, context=self.context
-                )
-                current_result_format = "xarray"
+        with dask.config.set(scheduler="threads"):
+            for pp_step in post_process_steps:
+                _method = pp_step.pop("method")
+                # TODO: Add extra condition to limit pps to datasets
+                if _method is not None and not hasattr(self, _method):
+                    self.context.add_user_visible_error(
+                        message=f"Post-processor method '{_method}' not available for this dataset"
+                    )
+                    continue
+                else: 
+                    method = getattr(self, _method)
+                
+                # post processing is done on xarray objects, so convert now if not already converted
+                if current_result_format == "grib":
+                    from cads_adaptors.tools.convertors import open_grib_file_as_xarray_dictionary
+                    result = open_grib_file_as_xarray_dictionary(
+                        result, open_datasets_kwargs=open_datasets_kwargs, context=self.context
+                    )
+                    current_result_format = "xarray"
 
-            _method = pp_step.pop("method")
-             # TODO: Add extra condition to limit pps to datasets
-            if _method is not None and not hasattr(self, _method):
-                continue
-            else: 
-                method = getattr(self, _method)
-            
-            result = method(result, **pp_step)
+                result = method(result, **pp_step)
 
-        #TODO?: Generalise format conversion to be a post-processor
-        paths = self.convert_format(
-            result, data_format, context=self.context, current_result_format=current_result_format, 
-            open_datasets_kwargs=open_datasets_kwargs, **to_netcdf_kwargs
-        )
+            #TODO?: Generalise format conversion to be a post-processor
+            paths = self.convert_format(
+                result, data_format, context=self.context, current_result_format=current_result_format, 
+                open_datasets_kwargs=open_datasets_kwargs, **to_netcdf_kwargs
+            )
 
         # A check to ensure that if there is more than one path, and download_format
         #  is as_source, we over-ride and zip up the files
