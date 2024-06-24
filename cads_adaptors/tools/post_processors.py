@@ -46,16 +46,15 @@ def daily_statistics(
     in_xarray_dict: dict[str, Dataset],
     context: Context = Context(),
     how: str | Callable = "mean",
-    frequency: str = "day",
     **kwargs,
 ) -> dict[str, Dataset]:
     from earthkit.aggregate import temporal
 
     out_xarray_dict = {}
     for in_tag, in_dataset in in_xarray_dict.items():
-        out_tag = f"{in_tag}_{how}_{frequency}"
-        context.add_stdout(f"Temporal reduction: {out_tag}")
-        context.add_user_visible_log(f"Temporal reduction: {in_tag} {how} {frequency} {kwargs}")
+        out_tag = f"{in_tag}_daily-{how}"
+        context.add_stdout(f"Daily reduction: {how} {kwargs}")
+        context.add_user_visible_log(f"Temporal reduction: {how} {kwargs}")
         out_xarray_dict[out_tag] = temporal.daily_reduce(
             in_dataset,
             how=how,
@@ -65,20 +64,19 @@ def daily_statistics(
     return out_xarray_dict
 
 
-def monthly_monthly(
+def monthly_statistics(
     in_xarray_dict: dict[str, Dataset],
     context: Context = Context(),
     how: str | Callable = "mean",
-    frequency: str = "day",
     **kwargs,
 ) -> dict[str, Dataset]:
     from earthkit.aggregate import temporal
 
     out_xarray_dict = {}
     for in_tag, in_dataset in in_xarray_dict.items():
-        out_tag = f"{in_tag}_{how}_{frequency}"
-        context.add_stdout(f"Temporal reduction: {out_tag}")
-        context.add_user_visible_log(f"Temporal reduction: {in_tag} {how} {frequency} {kwargs}")
+        out_tag = f"{in_tag}_monthly-{how}"
+        context.add_stdout(f"Temporal reduction: {how} {kwargs}")
+        context.add_user_visible_log(f"Temporal reduction: {how} {kwargs}")
         out_xarray_dict[out_tag] = temporal.monthly_reduce(
             in_dataset,
             how=how,
