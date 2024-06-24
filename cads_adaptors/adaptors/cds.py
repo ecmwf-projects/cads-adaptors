@@ -76,15 +76,23 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return costs
 
     def normalise_request(self, request: Request) -> dict[str, Any]:
-        assert isinstance(request, dict)
-        normalised_request = {}
-        for key, values in request.items():
-            values = [str(val) for val in ensure_list(values) if val is not None]
-            values = [v for v in values if len(v)]
-            # if len(values):
-            #     normalised_request[key] = values
-            normalised_request[key] = values
-        return normalised_request
+        return request
+        # assert isinstance(request, dict)
+        # normalised_request = {}
+        # for key, _values in request.items():
+        #     values = ensure_list(_values)
+        #     for value in values:
+        #         if value is None:
+        #             continue
+        #         if isinstance(value, dict):
+        #             value = self.normalise_request(value)
+        #         elif isinstance(value, list):
+        #             values = [str(val) for val in ensure_list(values) if val is not None]
+        #     values = [v for v in values if len(v)]
+        #     # if len(values):
+        #     #     normalised_request[key] = values
+        #     normalised_request[key] = values
+        # return normalised_request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
