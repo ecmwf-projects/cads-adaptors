@@ -205,9 +205,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Data returned from MARS is always in grib format
         current_result_format = "grib"
 
-        for pp_step in post_process_steps:
-            import dask
-            with dask.config.set(scheduler="threads"):
+        import dask
+        with dask.config.set(scheduler="threads"):
+            for pp_step in post_process_steps:
                 # post processing is done on xarray objects
                 if current_result_format == "grib":
                     from cads_adaptors.tools.convertors import open_grib_file_as_xarray_dictionary
@@ -225,11 +225,11 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 
                 result = method(result, **pp_step)
 
-        #TODO?: Generalise format conversion to be a post-processor
-        paths = self.convert_format(
-            result, data_format, context=self.context, current_result_format=current_result_format, 
-            open_datasets_kwargs=open_datasets_kwargs, **to_netcdf_kwargs
-        )
+            #TODO?: Generalise format conversion to be a post-processor
+            paths = self.convert_format(
+                result, data_format, context=self.context, current_result_format=current_result_format, 
+                open_datasets_kwargs=open_datasets_kwargs, **to_netcdf_kwargs
+            )
 
         # A check to ensure that if there is more than one path, and download_format
         #  is as_source, we over-ride and zip up the files

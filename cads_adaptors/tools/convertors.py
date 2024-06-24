@@ -43,7 +43,8 @@ def grib_to_netcdf_files(
         f"open_datasets_kwargs: {open_datasets_kwargs}\n"
     )
 
-    with dask.config.set(scheduler="threads"):
+    # with dask.config.set(scheduler="threads"):
+    if True:
         datasets = open_grib_file_as_xarray_dictionary(
             grib_file, open_datasets_kwargs=open_datasets_kwargs, context=context
         )
