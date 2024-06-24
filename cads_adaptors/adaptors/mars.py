@@ -157,11 +157,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
         from cads_adaptors.tools.post_processors import pp_config_mapping
-        print(type(in_pp_config), in_pp_config)
         pp_config = [
             pp_config_mapping(_pp_config) for _pp_config in ensure_list(in_pp_config)
         ]
-        print(pp_config)
         return pp_config
     
     def temporal_reduce(self, *args, **kwargs) -> dict[str, Any]:
@@ -195,7 +193,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         }
 
         post_process_steps: list[dict[str, Any]] = self.pp_mapping(request.pop("post_process", []))
-        print(post_process_steps)
+        print("TESTING:", post_process_steps)
 
         # To preserve existing ERA5 functionality the default download_format="as_source"
         self._pre_retrieve(request=request, default_download_format="as_source")
@@ -209,6 +207,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         import dask
         with dask.config.set(scheduler="threads"):
             for pp_step in post_process_steps:
+                print("PP_STEP:", pp_step)
                 # post processing is done on xarray objects
                 if current_result_format == "grib":
                     from cads_adaptors.tools.convertors import open_grib_file_as_xarray_dictionary
