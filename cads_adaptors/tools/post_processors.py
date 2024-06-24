@@ -59,7 +59,6 @@ def daily_statistics(
         out_xarray_dict[out_tag] = temporal.daily_reduce(
             in_dataset,
             how=how,
-            frequency=frequency,
             **kwargs,
         )
 
@@ -83,7 +82,6 @@ def monthly_monthly(
         out_xarray_dict[out_tag] = temporal.monthly_reduce(
             in_dataset,
             how=how,
-            frequency=frequency,
             **kwargs,
         )
 
