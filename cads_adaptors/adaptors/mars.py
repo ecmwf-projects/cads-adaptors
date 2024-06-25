@@ -172,12 +172,14 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def daily_statistics(self, *args, **kwargs) -> dict[str, Any]:
         from cads_adaptors.tools.post_processors import daily_statistics
 
-        return daily_statistics(*args, context=self.context, **kwargs)
+        kwargs.setdefault("context", self.context)
+        return daily_statistics(*args, **kwargs)
 
     def monthly_statistics(self, *args, **kwargs) -> dict[str, Any]:
         from cads_adaptors.tools.post_processors import monthly_statistics
 
-        return monthly_statistics(*args, context=self.context, **kwargs)
+        kwargs.setdefault("context", self.context)
+        return monthly_statistics(*args, **kwargs)
 
     def retrieve(self, request: Request) -> BinaryIO:
         import dask
@@ -215,7 +217,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # To preserve existing ERA5 functionality the default download_format="as_source"
         self._pre_retrieve(request=request, default_download_format="as_source")
 
-        result = execute_mars(
+        result: Any = execute_mars(
             self.mapped_request, context=self.context, config=self.config
         )
         # Data returned from MARS is always in grib format
