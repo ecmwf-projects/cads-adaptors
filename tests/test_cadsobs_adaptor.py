@@ -90,7 +90,7 @@ class MockerCadsobsApiClient:
         return CDM_LITE_VARIABLES
 
     def get_objects_to_retrieve(
-        self, dataset_name: str, mapped_request: dict
+        self, dataset_name: str, mapped_request: dict, size_limit: int
     ) -> list[str]:
         return [
             "https://object-store.os-api.cci2.ecmwf.int/"
@@ -128,6 +128,7 @@ def test_adaptor(tmp_path, monkeypatch):
             "rename": {"observation_type": "dataset_source", "variable": "variables"},
             "force": {},
         },
+        "size_limit": 1000000000,
     }
     adaptor = ObservationsAdaptor(test_form, **test_adaptor_config)
     result = adaptor.retrieve(test_request)

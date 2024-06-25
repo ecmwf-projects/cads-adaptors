@@ -21,6 +21,8 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         obs_api_url = self.config["obs_api_url"]
         # Dataset name is in this config too
         dataset_name = self.config["collection_id"]
+        # Max size in bytes can be set in the adaptor.json. If not, it is set to 1 GB
+        size_limit = self.config.get("size_limit", 1073741824)
         # dataset_source must be a string, asking for two sources is unsupported
         dataset_source = mapped_request["dataset_source"]
         dataset_source = self.handle_sources_list(dataset_source)
@@ -44,7 +46,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         cdm_lite_variables = cdm_lite_variables + list(requested_auxiliary_variables)
         # Get the objects that match the request
         object_urls = cadsobs_client.get_objects_to_retrieve(
-            dataset_name, mapped_request
+            dataset_name, mapped_request, size_limit=size_limit
         )
         service_definition = cadsobs_client.get_service_definition(dataset_name)
         global_attributes = service_definition["global_attributes"]
