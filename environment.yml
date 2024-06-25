@@ -21,6 +21,7 @@ dependencies:
 - DateTimeRange
 - fsspec
 - aiohttp
+- zarr
 - pip:
   - rooki
   - earthkit-aggregate
