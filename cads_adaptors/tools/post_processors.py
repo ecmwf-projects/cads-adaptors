@@ -1,4 +1,5 @@
 from typing import Any, Callable
+
 from xarray import Dataset
 
 from cads_adaptors import Context
@@ -34,11 +35,13 @@ CONFIG_MAPPING = {
     },
 }
 
+
 def pp_config_mapping(pp_config: dict[str, Any]) -> dict[str, Any]:
-    cnt = 0 # Escape infinite loop
-    while pp_config.get("method") in CONFIG_MAPPING and cnt<100:
+    cnt = 0  # Escape infinite loop
+    while pp_config.get("method") in CONFIG_MAPPING and cnt < 100:
         pp_config = {**pp_config, **CONFIG_MAPPING[pp_config["method"]]}
     return pp_config
+
 
 def daily_statistics(
     in_xarray_dict: dict[str, Dataset],
