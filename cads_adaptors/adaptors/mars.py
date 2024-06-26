@@ -161,14 +161,6 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def convert_format(self, *args, **kwargs):
         return convert_format(*args, **kwargs)
 
-    def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        from cads_adaptors.tools.post_processors import pp_config_mapping
-
-        pp_config = [
-            pp_config_mapping(_pp_config) for _pp_config in ensure_list(in_pp_config)
-        ]
-        return pp_config
-
     def daily_statistics(self, *args, **kwargs) -> dict[str, Any]:
         from cads_adaptors.tools.post_processors import daily_statistics
 
@@ -210,52 +202,24 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             **self.config.get("to_netcdf_kwargs", dict()),
         }
 
-        post_process_steps: list[dict[str, Any]] = self.pp_mapping(
-            request.pop("post_process", [])
-        )
-
         # To preserve existing ERA5 functionality the default download_format="as_source"
         self._pre_retrieve(request=request, default_download_format="as_source")
 
         result: Any = execute_mars(
             self.mapped_request, context=self.context, config=self.config
         )
-        # Data returned from MARS is always in grib format
-        current_result_format = "grib"
 
         with dask.config.set(scheduler="threads"):
-            for pp_step in post_process_steps:
-                _method = pp_step.pop("method")
-                # TODO: Add extra condition to limit pps to datasets
-                if _method is not None and not hasattr(self, _method):
-                    self.context.add_user_visible_error(
-                        message=f"Post-processor method '{_method}' not available for this dataset"
-                    )
-                    continue
-                else:
-                    method = getattr(self, _method)
-
-                # post processing is done on xarray objects, so convert now if not already converted
-                if current_result_format == "grib":
-                    from cads_adaptors.tools.convertors import (
-                        open_grib_file_as_xarray_dictionary,
-                    )
-
-                    result = open_grib_file_as_xarray_dictionary(
-                        result,
-                        open_datasets_kwargs=open_datasets_kwargs,
-                        context=self.context,
-                    )
-                    current_result_format = "xarray"
-
-                result = method(result, **pp_step)
+            result = self.post_process(
+                result,
+                open_datasets_kwargs=open_datasets_kwargs,
+            )
 
             # TODO?: Generalise format conversion to be a post-processor
             paths = self.convert_format(
                 result,
                 data_format,
                 context=self.context,
-                current_result_format=current_result_format,
                 open_datasets_kwargs=open_datasets_kwargs,
                 **to_netcdf_kwargs,
             )

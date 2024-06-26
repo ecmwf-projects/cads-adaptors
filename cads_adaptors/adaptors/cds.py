@@ -31,6 +31,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.mapped_request: Request = Request()
         self.download_format: str = "zip"
         self.receipt: bool = False
+        # List of steps to perform after retrieving the data
+        self.post_process_steps: list[dict[str, Any]] = [{}]
 
     def validate(self, request: Request) -> bool:
         return True
@@ -87,11 +89,60 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def _pre_retrieve(self, request: Request, default_download_format="zip"):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", False)
+
+        # Extract post-process steps from the request before mapping:
+        self.post_process_steps = self.pp_mapping(
+            request.pop("post_process", [])
+        )
+
         self.mapped_request = self.apply_mapping(request)  # type: ignore
 
         self.download_format = self.mapped_request.pop(
             "download_format", default_download_format
         )
+
+    def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Map the post-process steps from the request to the correct functions."""
+        from cads_adaptors.tools.post_processors import pp_config_mapping
+
+        pp_config = [
+            pp_config_mapping(_pp_config) for _pp_config in ensure_list(in_pp_config)
+        ]
+        return pp_config
+
+    def post_process(
+        self, result: Any, open_datasets_kwargs: dict = {}
+    ) -> dict[str, Any]:
+        """Perform post-process steps on the retrieved data."""
+        for i, pp_step in enumerate(self.post_process_steps):
+            # TODO: pp_mapping should have ensured "method" is always present
+            _method = pp_step.pop("method", None)
+
+            # TODO: Add extra condition to limit pps from dataset configurations
+            if _method is not None and not hasattr(self, _method):
+                self.context.add_user_visible_error(
+                    message=f"Post-processor method '{_method}' not available for this dataset"
+                )
+                continue
+            else:
+                method = getattr(self, _method)
+
+            # post processing is done on xarray objects,
+            # so on first pass we ensure result is opened as xarray
+            if i == 0:
+                from cads_adaptors.tools.convertors import (
+                    open_result_as_xarray_dictionary,
+                )
+
+                result = open_result_as_xarray_dictionary(
+                    result,
+                    context=self.context,
+                    open_datasets_kwargs=open_datasets_kwargs,
+                )
+
+            result = method(result, **pp_step)
+
+        return result
 
     def make_download_object(
         self,

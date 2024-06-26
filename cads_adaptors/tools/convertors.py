@@ -28,6 +28,81 @@ DEFAULT_CHUNKS = {
 }
 
 
+def result_to_netcdf_files(
+    result: Any,
+    context: Context = Context(),
+    **kwargs,
+) -> list[str]:
+    """Convert a result of unknown type to netCDF files."""
+    if isinstance(result, str):
+        return unknown_filetype_to_netcdf_files(result, context=context, **kwargs)
+    elif isinstance(result, xr.Dataset):
+        return xarray_dict_to_netcdf({"data": result}, context=context, **kwargs)
+
+    elif isinstance(result, list):
+        # Ensure objects are same type
+        _result_type: list[type] = list(set([type(r) for r in result]))
+        assert len(_result_type) == 1, f"Result list contains mixed types: {_result_type}"
+        result_type = _result_type[0]
+        if result_type == str:
+            out_results = []
+            for res in result:
+                out_results += unknown_filetype_to_netcdf_files(res, context=context, **kwargs)
+            return out_results
+        
+        elif result_type == xr.Dataset:
+            return xarray_dict_to_netcdf(
+                {f"data_{i}": res for i, res in enumerate(result)},
+                context=context,
+                **kwargs,
+            )
+
+        else:
+            raise ValueError(
+                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}"
+            )
+
+    elif isinstance(result, dict):
+        # Ensure all values are of the same type
+        _result_type = list(set([type(r) for r in result.values()]))
+        assert (
+            len(_result_type) == 1
+        ), f"Result dictionary contains mixed types: {_result_type}"
+        result_type = _result_type[0]
+        if result_type == str:
+            out_results = []
+            for k, v in result.items():
+                out_results += unknown_filetype_to_netcdf_files(v, context=context, tag=k, **kwargs)
+            return out_results
+        elif result_type == xr.Dataset:
+            return xarray_dict_to_netcdf(result, context=context, **kwargs)
+        else:
+            raise ValueError(
+                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}"
+            )
+    
+    else:
+        raise ValueError(
+            f"Unable to convert result of type {type(result)} to netCDF files. result:\n{result}"
+        )
+
+
+def unknown_filetype_to_netcdf_files(
+    infile: str,
+    context: Context = Context(),
+    **kwargs,
+) -> list[str]:
+    """Convert a file of unknown type to netCDF files."""
+    _, ext = os.path.splitext(os.path.basename(infile))
+    if ext.lower() in ["netcdf", "nc"]:
+        return [infile]
+    elif ext.lower() in ["grib", "grib2"]:
+        context.add_stdout(f"Converting {infile} to netCDF files with kwargs: {kwargs}")
+        return grib_to_netcdf_files(infile, context=context, **kwargs)
+    else:
+        raise ValueError(f"Unknown file type: {infile}")
+
+
 def grib_to_netcdf_files(
     grib_file: str,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
@@ -61,12 +136,16 @@ def grib_to_netcdf_files(
 
 
 def xarray_dict_to_netcdf(
-    datasets: dict[str | int, xr.Dataset],
+    datasets: dict[str, xr.Dataset],
     context: Context = Context(),
     compression_options: str | dict[str, Any] = "default",
     out_fname_prefix: str = "",
     **to_netcdf_kwargs,
 ):
+    """
+    Convert a dictionary of xarray datasets to netCDF files, where the key of the dictionary
+    is used in the filename.
+    """
     if isinstance(compression_options, str):
         compression_options = STANDARD_COMPRESSION_OPTIONS.get(compression_options, {})
 
@@ -102,11 +181,116 @@ def xarray_dict_to_netcdf(
     return out_nc_files
 
 
+def open_result_as_xarray_dictionary(
+    result: Any,
+    context: Context = Context(),
+    **kwargs,
+) -> dict[str, xr.Dataset]:
+    """
+    Open a result of unknown type and return as a dictionary of xarray datasets,
+    where the key will be used in any filenames created from the dataset.
+    """
+    if isinstance(result, str):
+        datasets = open_file_as_xarray_dictionary(result, context=context, **kwargs)
+    elif isinstance(result, xr.Dataset):
+        datasets = {"data": result}
+    elif isinstance(result, dict):
+        datasets = {}
+        for k, v in result.items():
+            if isinstance(v, str):
+                result[k] = open_file_as_xarray_dictionary(v, context=context, **kwargs)
+            elif isinstance(v, xr.Dataset):
+                datasets[k] = v
+            else:
+                raise ValueError(
+                    "Incorrect result type, "
+                    "if result dictionary it must be of type: dict[str, str | xr.Dataset]."
+                    f"result:\n{result}"
+                )
+    elif isinstance(result, list):
+        datasets = {}
+        for k, v in enumerate(result):
+            if isinstance(v, str):
+                datasets.update(
+                    open_file_as_xarray_dictionary(v, context=context, **kwargs)
+                )
+            elif isinstance(v, xr.Dataset):
+                datasets[f"data_{k}"] = v
+            else:
+                raise ValueError(
+                    "Incorrect result type, "
+                    "if result list it must be of type: list[str | xr.Dataset]."
+                    f"result:\n{result}"
+                )
+    else:
+        raise ValueError(
+            f"Unable to open result of type {type(result)} as an xarray dataset."
+        )
+
+    return datasets
+
+
+def open_file_as_xarray_dictionary(
+    infile: str,
+    context: Context = Context(),
+    **kwargs,
+) -> dict[str, xr.Dataset]:
+    """
+    Open a file of unknown type and return as a dictionary of xarray datasets,
+    where the key will be used in any filenames created from the dataset.
+    """
+    _, ext = os.path.splitext(os.path.basename(infile))
+    if ext.lower() in ["netcdf", "nc"]:
+        return open_netcdf_as_xarray_dictionary(
+            infile, context=context, **kwargs
+        )
+    elif ext.lower() in ["grib", "grib2"]:
+        return open_grib_file_as_xarray_dictionary(
+            infile, context=context, **kwargs
+        )
+    else:
+        raise ValueError(f"Unable to open file {infile} as an xarray dataset.")
+
+
+
+# FUNCTIONS THAT OPEN FILES WITH XARRAY:
+
+
+def open_netcdf_as_xarray_dictionary(
+    netcdf_file: str,
+    context: Context = Context(),
+    open_datasets_kwargs: dict[str, Any] = {},
+    **kwargs,
+) -> dict[str, xr.Dataset]:
+    """
+    Open a netcdf file and return as a dictionary of xarray datasets,
+    where the key will be used in any filenames created from the dataset.
+    """
+    assert isinstance(
+        open_datasets_kwargs, dict
+    ), "open_datasets_kwargs must be a dictionary for netCDF"
+    # This is to maintain some consistency with the grib file opening
+    open_datasets_kwargs = {
+        "chunks": DEFAULT_CHUNKS,
+        **kwargs,
+        **open_datasets_kwargs,
+    }
+    context.add_stdout(f"Opening {netcdf_file} with kwargs: {open_datasets_kwargs}")
+    datasets = {
+        os.path.basename(netcdf_file): xr.open_dataset(
+            netcdf_file, **open_datasets_kwargs
+        )
+    }
+
+    return datasets
+
+
 def open_grib_file_as_xarray_dictionary(
     grib_file: str,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
     context: Context = Context(),
-) -> dict[str | int, xr.Dataset]:
+    **kwargs,
+) -> dict[str, xr.Dataset]:
     """
     Open a grib file and return as a dictionary of xarray datasets,
     where the key will be used in any filenames created from the dataset.
@@ -118,11 +302,13 @@ def open_grib_file_as_xarray_dictionary(
     # Option for manual split of the grib file into list of xr.Datasets using list of open_ds_kwargs
     context.add_stdout(f"Opening {grib_file} with kwargs: {open_datasets_kwargs}")
     if isinstance(open_datasets_kwargs, list):
-        datasets: dict[str | int, xr.Dataset] = {}
+        datasets: dict[str, xr.Dataset] = {}
         for i, open_ds_kwargs in enumerate(open_datasets_kwargs):
             # Default engine is cfgrib
             open_ds_kwargs.setdefault("engine", "cfgrib")
             open_ds_kwargs.setdefault("chunks", DEFAULT_CHUNKS)
+            # Any defined kwargs are used for all datasets
+            open_ds_kwargs.update(kwargs)
             ds_tag = open_ds_kwargs.pop("tag", i)
             try:
                 ds = xr.open_dataset(grib_file, **open_ds_kwargs)
@@ -132,6 +318,8 @@ def open_grib_file_as_xarray_dictionary(
                 datasets[f"{fname}_{ds_tag}"] = ds
     else:
         open_datasets_kwargs.setdefault("chunks", DEFAULT_CHUNKS)
+        # Include any additional kwargs, this may be useful for post-processing
+        open_datasets_kwargs.update(kwargs)
         # First try and open with xarray as a single dataset,
         # xarray.open_dataset will handle a number of the potential conflicts in fields
         try:

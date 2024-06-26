@@ -36,10 +36,17 @@ CONFIG_MAPPING = {
 }
 
 
-def pp_config_mapping(pp_config: dict[str, Any]) -> dict[str, Any]:
+def pp_config_mapping(
+    pp_config: dict[str, Any], context: Context = Context()
+) -> dict[str, Any]:
     cnt = 0  # Escape infinite loop
     while pp_config.get("method") in CONFIG_MAPPING and cnt < 100:
         pp_config = {**pp_config, **CONFIG_MAPPING[pp_config["method"]]}
+    if "method" not in pp_config:
+        context.add_user_visible_error(
+            f"Ignoring invalid post-processor config: {pp_config}"
+        )
+        return {}
     return pp_config
 
 
