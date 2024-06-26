@@ -34,6 +34,22 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
 
+        # Handle open_dataset_kwargs and to_netcdf_kwargs
+        # TODO: deprecate this location for format_conversion_kwargs in the adaptor config
+        convert_kwargs: dict[str, Any] = self.config.get(
+            "format_conversion_kwargs", dict()
+        )
+        # Separate the open_datasets_kwargs from the to_netcdf_kwargs so they can be used in the correct place
+        #  Preference allow for top level in dataset config:
+        self.open_datasets_kwargs = {
+            **convert_kwargs.pop("open_datasets_kwargs", dict()),
+            **self.config.get("open_datasets_kwargs", dict()),
+        }
+        self.to_netcdf_kwargs = {
+            **convert_kwargs.pop("to_netcdf_kwargs", dict()),
+            **self.config.get("to_netcdf_kwargs", dict()),
+        }
+
     def validate(self, request: Request) -> bool:
         return True
 
@@ -91,9 +107,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.receipt = request.pop("receipt", False)
 
         # Extract post-process steps from the request before mapping:
-        self.post_process_steps = self.pp_mapping(
-            request.pop("post_process", [])
-        )
+        self.post_process_steps = self.pp_mapping(request.pop("post_process", []))
 
         self.mapped_request = self.apply_mapping(request)  # type: ignore
 
@@ -110,22 +124,20 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         ]
         return pp_config
 
-    def post_process(
-        self, result: Any, open_datasets_kwargs: dict = {}
-    ) -> dict[str, Any]:
+    def post_process(self, result: Any) -> dict[str, Any]:
         """Perform post-process steps on the retrieved data."""
         for i, pp_step in enumerate(self.post_process_steps):
             # TODO: pp_mapping should have ensured "method" is always present
-            _method = pp_step.pop("method", None)
+            method_name = pp_step.pop("method", None)
 
             # TODO: Add extra condition to limit pps from dataset configurations
-            if _method is not None and not hasattr(self, _method):
+            if method_name is not None or not hasattr(self, method_name):
                 self.context.add_user_visible_error(
-                    message=f"Post-processor method '{_method}' not available for this dataset"
+                    message=f"Post-processor method '{method_name}' not available for this dataset"
                 )
                 continue
-            else:
-                method = getattr(self, _method)
+            
+            method = getattr(self, method_name)
 
             # post processing is done on xarray objects,
             # so on first pass we ensure result is opened as xarray
@@ -137,7 +149,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 result = open_result_as_xarray_dictionary(
                     result,
                     context=self.context,
-                    open_datasets_kwargs=open_datasets_kwargs,
+                    open_datasets_kwargs=self.open_datasets_kwargs,
                 )
 
             result = method(result, **pp_step)

@@ -6,61 +6,41 @@ from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
 
+# def convert_format(
+#     result: Any,
+#     data_format: str,
+#     context: Context,
+#     open_datasets_kwargs: dict[str, Any] = dict(),
+#     **to_netcdf_kwargs,  # TODO: rename to something more generic
+# ) -> list:
+#     data_format = adaptor_tools.handle_data_format(data_format)
 
-def convert_format(
-    result: Any,
-    data_format: str,
-    context: Context,
-    current_result_format: str = "grib",
-    open_datasets_kwargs: dict[str, Any] = dict(),
-    **to_netcdf_kwargs,  # TODO: rename to something more generic
-) -> list:
-    data_format = adaptor_tools.handle_data_format(data_format)
+#     if data_format in ["netcdf"]:
+#         from cads_adaptors.tools.convertors import result_to_netcdf_files
 
-    if data_format in ["netcdf"]:
-        if current_result_format == "grib":
-            from cads_adaptors.tools.convertors import grib_to_netcdf_files
+#         paths = result_to_netcdf_files(
+#             result, context=context,
+#             open_datasets_kwargs=open_datasets_kwargs,
+#             **to_netcdf_kwargs
+#         )
 
-            try:
-                paths = grib_to_netcdf_files(
-                    result,
-                    context=context,
-                    open_datasets_kwargs=open_datasets_kwargs,
-                    **to_netcdf_kwargs,
-                )
-            except Exception as e:
-                message = (
-                    "There was an error converting the GRIB data to netCDF.\n"
-                    "It may be that the selection you made was too large and/or complex, "
-                    "in which case you could try reducing your selection. "
-                    "For further help, or if you believe this to be a problem with the dataset, "
-                    "please contact user support."
-                )
-                context.add_user_visible_error(message=message)
-                context.add_stderr(message=f"Exception: {e}")
-                raise e
-        elif current_result_format in ["xarray"]:
-            from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
+#     elif data_format in ["grib"]:
+#         if current_result_format in ["xarray"]:
+#             message = (
+#                 "WARNING: Unable to to returning post-processed data in grib format is not supported,"
+#                 " returning in netcdf format"
+#             )
+#             from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
 
-            paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
-
-    elif data_format in ["grib"]:
-        if current_result_format in ["xarray"]:
-            message = (
-                "WARNING: Unable to to returning post-processed data in grib format is not supported,"
-                " returning in netcdf format"
-            )
-            from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
-
-            paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
-        else:
-            paths = [result]
-    else:
-        message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
-        context.add_user_visible_log(message=message)
-        context.add_stdout(message=message)
-        paths = [result]
-    return paths
+#             paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
+#         else:
+#             paths = [result]
+#     else:
+#         message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
+#         context.add_user_visible_log(message=message)
+#         context.add_stdout(message=message)
+#         paths = [result]
+#     return paths
 
 
 def get_mars_server_list(config) -> list[str]:
@@ -159,6 +139,8 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def convert_format(self, *args, **kwargs):
+        from cads_adaptors.tools.convertors import convert_format
+
         return convert_format(*args, **kwargs)
 
     def daily_statistics(self, *args, **kwargs) -> dict[str, Any]:
@@ -186,22 +168,6 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
-        # TODO: deprecate this location for format_conversion_kwargs in the adaptor config
-        convert_kwargs: dict[str, Any] = self.config.get(
-            "format_conversion_kwargs", dict()
-        )
-
-        # Separate the open_datasets_kwargs from the to_netcdf_kwargs so they can be used in the correct place
-        #  Preference allow for top level in daaset config:
-        open_datasets_kwargs = {
-            **convert_kwargs.pop("open_datasets_kwargs", dict()),
-            **self.config.get("open_datasets_kwargs", dict()),
-        }
-        to_netcdf_kwargs = {
-            **convert_kwargs.pop("to_netcdf_kwargs", dict()),
-            **self.config.get("to_netcdf_kwargs", dict()),
-        }
-
         # To preserve existing ERA5 functionality the default download_format="as_source"
         self._pre_retrieve(request=request, default_download_format="as_source")
 
@@ -212,7 +178,6 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         with dask.config.set(scheduler="threads"):
             result = self.post_process(
                 result,
-                open_datasets_kwargs=open_datasets_kwargs,
             )
 
             # TODO?: Generalise format conversion to be a post-processor
@@ -220,8 +185,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 result,
                 data_format,
                 context=self.context,
-                open_datasets_kwargs=open_datasets_kwargs,
-                **to_netcdf_kwargs,
+                open_datasets_kwargs=self.open_datasets_kwargs,
+                **self.to_netcdf_kwargs,
             )
 
         # A check to ensure that if there is more than one path, and download_format

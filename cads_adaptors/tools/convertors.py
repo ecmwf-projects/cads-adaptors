@@ -1,10 +1,11 @@
 import os
-from typing import Any
+from typing import Any, Callable
 
 import cfgrib
 import xarray as xr
 
 from cads_adaptors.adaptors import Context
+from cads_adaptors.tools import adaptor_tools
 
 STANDARD_COMPRESSION_OPTIONS = {
     "default": {
@@ -28,6 +29,102 @@ DEFAULT_CHUNKS = {
 }
 
 
+def convert_format(
+    result: Any,
+    target_format: str,
+    context: Context,
+    open_datasets_kwargs: dict[str, Any] = dict(),
+    **to_netcdf_kwargs,  # TODO: rename to something more generic
+) -> list[str]:
+    target_format = adaptor_tools.handle_data_format(target_format)
+
+    convertor: None | Callable = {
+        "netcdf": result_to_netcdf_files,
+        "grib": result_to_grib_files,
+    }.get(target_format, None)
+
+    if convertor is not None:
+        return convertor(
+            result,
+            context=context,
+            open_datasets_kwargs=open_datasets_kwargs,
+            **to_netcdf_kwargs,
+        )
+
+    else:
+        message = f"WARNING: Unrecoginsed target_format requested, returning in original format: {result}"
+        context.add_user_visible_error(message=message)
+        context.add_stderr(message=message)
+        return [result]
+
+
+def result_to_grib_files(
+    result: Any,
+    context: Context = Context(),
+    **kwargs,
+) -> list[str]:
+    """Convert a result of unknown type to grib files."""
+    if isinstance(result, str):
+        unknown_filetype_to_grib_files(result, context=context, **kwargs)
+    elif isinstance(result, xr.Dataset):
+        context.add_user_visible_error(
+            "Cannot convert xarray dataset to grib, returning as netCDF."
+        )
+        return xarray_dict_to_netcdf({"data": result}, context=context, **kwargs)
+    elif isinstance(result, list):
+        # Ensure objects are same type (This may not be necessary, but it probably implies something is wrong)
+        _result_type: list[type] = list(set([type(r) for r in result]))
+        assert (
+            len(_result_type) == 1
+        ), f"Result list contains mixed types: {_result_type}"
+        result_type = _result_type[0]
+        if result_type == str:
+            out_results = []
+            for res in result:
+                out_results += unknown_filetype_to_grib_files(
+                    res, context=context, **kwargs
+                )
+            return out_results
+        elif result_type == xr.Dataset:
+            context.add_user_visible_error(
+                "Cannot convert xarray dataset to grib, returning as netCDF."
+            )
+            return xarray_dict_to_netcdf(
+                {f"data_{i}": res for i, res in enumerate(result)},
+                context=context,
+                **kwargs,
+            )
+
+    elif isinstance(result, dict):
+        # Ensure all values are of the same type
+        # (This may not be necessary, but it probably implies something is wrong)
+        _result_type = list(set([type(r) for r in result.values()]))
+        assert (
+            len(_result_type) == 1
+        ), f"Result dictionary contains mixed types: {_result_type}"
+        result_type = _result_type[0]
+        if result_type == str:
+            out_results = []
+            for k, v in result.items():
+                out_results += unknown_filetype_to_grib_files(
+                    v, context=context, tag=k, **kwargs
+                )
+            return out_results
+        elif result_type == xr.Dataset:
+            context.add_user_visible_error(
+                "Cannot convert xarray dataset to grib, returning as netCDF."
+            )
+            return xarray_dict_to_netcdf(
+                {k: res for k, res in result.items()},
+                context=context,
+                **kwargs,
+            )
+    else:
+        raise ValueError(
+            f"Unable to convert result of type {type(result)} to grib files. result:\n{result}"
+        )
+
+
 def result_to_netcdf_files(
     result: Any,
     context: Context = Context(),
@@ -40,16 +137,20 @@ def result_to_netcdf_files(
         return xarray_dict_to_netcdf({"data": result}, context=context, **kwargs)
 
     elif isinstance(result, list):
-        # Ensure objects are same type
+        # Ensure objects are same type (This may not be necessary, but it probably implies something is wrong)
         _result_type: list[type] = list(set([type(r) for r in result]))
-        assert len(_result_type) == 1, f"Result list contains mixed types: {_result_type}"
+        assert (
+            len(_result_type) == 1
+        ), f"Result list contains mixed types: {_result_type}"
         result_type = _result_type[0]
         if result_type == str:
             out_results = []
             for res in result:
-                out_results += unknown_filetype_to_netcdf_files(res, context=context, **kwargs)
+                out_results += unknown_filetype_to_netcdf_files(
+                    res, context=context, **kwargs
+                )
             return out_results
-        
+
         elif result_type == xr.Dataset:
             return xarray_dict_to_netcdf(
                 {f"data_{i}": res for i, res in enumerate(result)},
@@ -64,6 +165,7 @@ def result_to_netcdf_files(
 
     elif isinstance(result, dict):
         # Ensure all values are of the same type
+        # (This may not be necessary, but it probably implies something is wrong)
         _result_type = list(set([type(r) for r in result.values()]))
         assert (
             len(_result_type) == 1
@@ -72,7 +174,9 @@ def result_to_netcdf_files(
         if result_type == str:
             out_results = []
             for k, v in result.items():
-                out_results += unknown_filetype_to_netcdf_files(v, context=context, tag=k, **kwargs)
+                out_results += unknown_filetype_to_netcdf_files(
+                    v, context=context, tag=k, **kwargs
+                )
             return out_results
         elif result_type == xr.Dataset:
             return xarray_dict_to_netcdf(result, context=context, **kwargs)
@@ -80,11 +184,29 @@ def result_to_netcdf_files(
             raise ValueError(
                 f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}"
             )
-    
+
     else:
         raise ValueError(
             f"Unable to convert result of type {type(result)} to netCDF files. result:\n{result}"
         )
+
+
+def unknown_filetype_to_grib_files(
+    infile: str,
+    context: Context = Context(),
+    **kwargs,
+) -> list[str]:
+    """Convert a file of unknown type to netCDF files."""
+    _, ext = os.path.splitext(os.path.basename(infile))
+    if ext.lower() in ["grib", "grib2"]:
+        return [infile]
+    elif ext.lower() in ["netcdf", "nc", "csv"]:
+        context.add_user_visible_error(
+            f"Cannot convert {ext} to grib, returning original file."
+        )
+        return [infile]
+    else:
+        raise ValueError(f"Unknown file type: {infile}")
 
 
 def unknown_filetype_to_netcdf_files(
@@ -153,15 +275,11 @@ def xarray_dict_to_netcdf(
 
     # Allow renaming of variables from what cfgrib decides
     rename: dict[str, str] = to_netcdf_kwargs.pop("rename", {})
-    # Squeeze any unused dimensions
-    squeeze: bool = to_netcdf_kwargs.pop("squeeze", False)
     # Allow expanding of dimensionality, e.g. to ensure that time is always a dimension
     # (this is applied after squeezing)
     expand_dims: list[str] = to_netcdf_kwargs.pop("expand_dims", [])
     out_nc_files = []
     for out_fname_base, dataset in datasets.items():
-        if squeeze:
-            dataset = dataset.squeeze(drop=True)
         for old_name, new_name in rename.items():
             if old_name in dataset:
                 dataset = dataset.rename({old_name: new_name})
@@ -198,7 +316,7 @@ def open_result_as_xarray_dictionary(
         datasets = {}
         for k, v in result.items():
             if isinstance(v, str):
-                result[k] = open_file_as_xarray_dictionary(v, context=context, **kwargs)
+                datasets.update(open_file_as_xarray_dictionary(v, context=context, **kwargs))
             elif isinstance(v, xr.Dataset):
                 datasets[k] = v
             else:
@@ -241,16 +359,11 @@ def open_file_as_xarray_dictionary(
     """
     _, ext = os.path.splitext(os.path.basename(infile))
     if ext.lower() in ["netcdf", "nc"]:
-        return open_netcdf_as_xarray_dictionary(
-            infile, context=context, **kwargs
-        )
+        return open_netcdf_as_xarray_dictionary(infile, context=context, **kwargs)
     elif ext.lower() in ["grib", "grib2"]:
-        return open_grib_file_as_xarray_dictionary(
-            infile, context=context, **kwargs
-        )
+        return open_grib_file_as_xarray_dictionary(infile, context=context, **kwargs)
     else:
         raise ValueError(f"Unable to open file {infile} as an xarray dataset.")
-
 
 
 # FUNCTIONS THAT OPEN FILES WITH XARRAY:
@@ -272,8 +385,8 @@ def open_netcdf_as_xarray_dictionary(
     # This is to maintain some consistency with the grib file opening
     open_datasets_kwargs = {
         "chunks": DEFAULT_CHUNKS,
-        **kwargs,
         **open_datasets_kwargs,
+        **kwargs,
     }
     context.add_stdout(f"Opening {netcdf_file} with kwargs: {open_datasets_kwargs}")
     datasets = {
@@ -320,13 +433,14 @@ def open_grib_file_as_xarray_dictionary(
         open_datasets_kwargs.setdefault("chunks", DEFAULT_CHUNKS)
         # Include any additional kwargs, this may be useful for post-processing
         open_datasets_kwargs.update(kwargs)
+        open_datasets_kwargs.setdefault("errors", "raise")
         # First try and open with xarray as a single dataset,
         # xarray.open_dataset will handle a number of the potential conflicts in fields
+        ds_tag = open_datasets_kwargs.pop("tag", "0")
         try:
-            ds_tag = open_datasets_kwargs.pop("tag", 0)
             datasets = {
                 f"{fname}_{ds_tag}": xr.open_dataset(
-                    grib_file, **{**{"errors": "raise"}, **open_datasets_kwargs}
+                    grib_file, **open_datasets_kwargs
                 )
             }
         except Exception:
