@@ -128,15 +128,20 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         """Perform post-process steps on the retrieved data."""
         for i, pp_step in enumerate(self.post_process_steps):
             # TODO: pp_mapping should have ensured "method" is always present
-            method_name = pp_step.pop("method", None)
 
+            if "method" not in pp_step:
+                self.context.add_user_visible_error(
+                    message="Post-processor method not specified"
+                )
+                continue
+
+            method_name = pp_step["method"]
             # TODO: Add extra condition to limit pps from dataset configurations
-            if method_name is not None or not hasattr(self, method_name):
+            if hasattr(self, method_name):
                 self.context.add_user_visible_error(
                     message=f"Post-processor method '{method_name}' not available for this dataset"
                 )
                 continue
-            
             method = getattr(self, method_name)
 
             # post processing is done on xarray objects,

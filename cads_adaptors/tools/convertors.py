@@ -65,7 +65,7 @@ def result_to_grib_files(
 ) -> list[str]:
     """Convert a result of unknown type to grib files."""
     if isinstance(result, str):
-        unknown_filetype_to_grib_files(result, context=context, **kwargs)
+        return unknown_filetype_to_grib_files(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
         context.add_user_visible_error(
             "Cannot convert xarray dataset to grib, returning as netCDF."
@@ -94,6 +94,10 @@ def result_to_grib_files(
                 context=context,
                 **kwargs,
             )
+        else:
+            raise ValueError(
+                f"Unable to convert result of type {result_type} to grib files. result:\n{result}"
+            )
 
     elif isinstance(result, dict):
         # Ensure all values are of the same type
@@ -103,6 +107,7 @@ def result_to_grib_files(
             len(_result_type) == 1
         ), f"Result dictionary contains mixed types: {_result_type}"
         result_type = _result_type[0]
+
         if result_type == str:
             out_results = []
             for k, v in result.items():
@@ -118,6 +123,10 @@ def result_to_grib_files(
                 {k: res for k, res in result.items()},
                 context=context,
                 **kwargs,
+            )
+        else:
+            raise ValueError(
+                f"Unable to convert result of type {result_type} to grib files. result:\n{result}"
             )
     else:
         raise ValueError(
@@ -316,7 +325,9 @@ def open_result_as_xarray_dictionary(
         datasets = {}
         for k, v in result.items():
             if isinstance(v, str):
-                datasets.update(open_file_as_xarray_dictionary(v, context=context, **kwargs))
+                datasets.update(
+                    open_file_as_xarray_dictionary(v, context=context, **kwargs)
+                )
             elif isinstance(v, xr.Dataset):
                 datasets[k] = v
             else:
@@ -439,9 +450,7 @@ def open_grib_file_as_xarray_dictionary(
         ds_tag = open_datasets_kwargs.pop("tag", "0")
         try:
             datasets = {
-                f"{fname}_{ds_tag}": xr.open_dataset(
-                    grib_file, **open_datasets_kwargs
-                )
+                f"{fname}_{ds_tag}": xr.open_dataset(grib_file, **open_datasets_kwargs)
             }
         except Exception:
             context.add_stderr(
