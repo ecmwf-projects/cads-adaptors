@@ -220,9 +220,9 @@ def unknown_filetype_to_grib_files(
 ) -> list[str]:
     """Convert a file of unknown type to netCDF files."""
     _, ext = os.path.splitext(os.path.basename(infile))
-    if ext.lower() in ["grib", "grib2"]:
+    if ext.lower() in [".grib", ".grib2"]:
         return [infile]
-    elif ext.lower() in ["netcdf", "nc", "csv"]:
+    elif ext.lower() in [".netcdf", ".nc", ".csv"]:
         context.add_user_visible_error(
             f"Cannot convert {ext} to grib, returning original file."
         )
@@ -241,9 +241,9 @@ def unknown_filetype_to_netcdf_files(
 ) -> list[str]:
     """Convert a file of unknown type to netCDF files."""
     _, ext = os.path.splitext(os.path.basename(infile))
-    if ext.lower() in ["netcdf", "nc"]:
+    if ext.lower() in [".netcdf", ".nc"]:
         return [infile]
-    elif ext.lower() in ["grib", "grib2"]:
+    elif ext.lower() in [".grib", ".grib2"]:
         context.add_stdout(f"Converting {infile} to netCDF files with kwargs: {kwargs}")
         return grib_to_netcdf_files(infile, context=context, **kwargs)
     else:
@@ -390,9 +390,9 @@ def open_file_as_xarray_dictionary(
     where the key will be used in any filenames created from the dataset.
     """
     _, ext = os.path.splitext(os.path.basename(infile))
-    if ext.lower() in ["netcdf", "nc"]:
+    if ext.lower() in [".netcdf", ".nc"]:
         return open_netcdf_as_xarray_dictionary(infile, context=context, **kwargs)
-    elif ext.lower() in ["grib", "grib2"]:
+    elif ext.lower() in [".grib", ".grib2"]:
         return open_grib_file_as_xarray_dictionary(infile, context=context, **kwargs)
     else:
         add_user_log_and_raise_error(
