@@ -29,6 +29,14 @@ DEFAULT_CHUNKS = {
 }
 
 
+def add_user_log_and_raise_error(
+    message: str,
+    context: Context = Context(),
+    thisError=ValueError,
+):
+    context.add_user_visible_error(message)
+    raise thisError(message)
+
 def convert_format(
     result: Any,
     target_format: str,
@@ -95,8 +103,9 @@ def result_to_grib_files(
                 **kwargs,
             )
         else:
-            raise ValueError(
-                f"Unable to convert result of type {result_type} to grib files. result:\n{result}"
+            add_user_log_and_raise_error(
+                f"Unable to convert result of type {result_type} to grib files. result:\n{result}",
+                context=context, thisError=ValueError
             )
 
     elif isinstance(result, dict):
@@ -125,12 +134,14 @@ def result_to_grib_files(
                 **kwargs,
             )
         else:
-            raise ValueError(
-                f"Unable to convert result of type {result_type} to grib files. result:\n{result}"
+            add_user_log_and_raise_error(
+                f"Unable to convert result of type {result_type} to grib files. result:\n{result}",
+                context=context, thisError=ValueError
             )
     else:
-        raise ValueError(
-            f"Unable to convert result of type {type(result)} to grib files. result:\n{result}"
+        add_user_log_and_raise_error(
+            f"Unable to convert result of type {type(result)} to grib files. result:\n{result}",
+            context=context, thisError=ValueError
         )
 
 
@@ -168,10 +179,10 @@ def result_to_netcdf_files(
             )
 
         else:
-            raise ValueError(
-                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}"
+            add_user_log_and_raise_error(
+                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}",
+                context=context, thisError=ValueError
             )
-
     elif isinstance(result, dict):
         # Ensure all values are of the same type
         # (This may not be necessary, but it probably implies something is wrong)
@@ -190,13 +201,15 @@ def result_to_netcdf_files(
         elif result_type == xr.Dataset:
             return xarray_dict_to_netcdf(result, context=context, **kwargs)
         else:
-            raise ValueError(
-                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}"
+            add_user_log_and_raise_error(
+                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}",
+                context=context, thisError=ValueError
             )
 
     else:
-        raise ValueError(
-            f"Unable to convert result of type {type(result)} to netCDF files. result:\n{result}"
+        add_user_log_and_raise_error(
+            f"Unable to convert result of type {type(result)} to netCDF files. result:\n{result}",
+            context=context, thisError=ValueError
         )
 
 
@@ -215,7 +228,10 @@ def unknown_filetype_to_grib_files(
         )
         return [infile]
     else:
-        raise ValueError(f"Unknown file type: {infile}")
+        add_user_log_and_raise_error(
+            f"Unknown file type: {infile}",
+            context=context, thisError=ValueError
+        )
 
 
 def unknown_filetype_to_netcdf_files(
@@ -231,8 +247,10 @@ def unknown_filetype_to_netcdf_files(
         context.add_stdout(f"Converting {infile} to netCDF files with kwargs: {kwargs}")
         return grib_to_netcdf_files(infile, context=context, **kwargs)
     else:
-        raise ValueError(f"Unknown file type: {infile}")
-
+        add_user_log_and_raise_error(
+            f"Unknown file type: {infile}",
+            context=context, thisError=ValueError
+        )
 
 def grib_to_netcdf_files(
     grib_file: str,
@@ -331,10 +349,11 @@ def open_result_as_xarray_dictionary(
             elif isinstance(v, xr.Dataset):
                 datasets[k] = v
             else:
-                raise ValueError(
+                add_user_log_and_raise_error(
                     "Incorrect result type, "
                     "if result dictionary it must be of type: dict[str, str | xr.Dataset]."
-                    f"result:\n{result}"
+                    f"result:\n{result}",
+                    context=context, thisError=ValueError
                 )
     elif isinstance(result, list):
         datasets = {}
@@ -346,14 +365,16 @@ def open_result_as_xarray_dictionary(
             elif isinstance(v, xr.Dataset):
                 datasets[f"data_{k}"] = v
             else:
-                raise ValueError(
+                add_user_log_and_raise_error(
                     "Incorrect result type, "
                     "if result list it must be of type: list[str | xr.Dataset]."
-                    f"result:\n{result}"
+                    f"result:\n{result}",
+                    context=context, thisError=ValueError
                 )
     else:
-        raise ValueError(
-            f"Unable to open result of type {type(result)} as an xarray dataset."
+        add_user_log_and_raise_error(
+            f"Unable to open result of type {type(result)} as an xarray dataset.",
+            context=context, thisError=ValueError
         )
 
     return datasets
@@ -374,8 +395,10 @@ def open_file_as_xarray_dictionary(
     elif ext.lower() in ["grib", "grib2"]:
         return open_grib_file_as_xarray_dictionary(infile, context=context, **kwargs)
     else:
-        raise ValueError(f"Unable to open file {infile} as an xarray dataset.")
-
+        add_user_log_and_raise_error(
+            f"Unable to open file {infile} as an xarray dataset.",
+            context=context, thisError=ValueError
+        )
 
 # FUNCTIONS THAT OPEN FILES WITH XARRAY:
 
