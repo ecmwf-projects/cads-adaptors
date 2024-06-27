@@ -7,6 +7,36 @@ from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.tools.general import ensure_list
 
 
+# TODO: temporary function to reorder the open_dataset_kwargs and to_netcdf_kwargs
+#  to align with post-processing framework. When datasets have been updated, this should be removed.
+def _reorganise_open_dataset_and_to_netcdf_kwargs(
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    # If defined in older "format_conversion_kwargs" then Separate the open_datasets_kwargs from the
+    # to_netcdf_kwargs so they can be used in the correct place.
+    convert_kwargs: dict[str, Any] = config.pop("format_conversion_kwargs", dict())
+    open_datasets_kwargs = {
+        **convert_kwargs.pop("open_datasets_kwargs", dict()),
+        **config.get("open_datasets_kwargs", dict()),
+    }
+    to_netcdf_kwargs = {
+        **convert_kwargs.pop("to_netcdf_kwargs", dict()),
+        **config.get("to_netcdf_kwargs", dict()),
+    }
+    # rename and expand_dims is now done at open_datasets level, to assist in post-processing
+    for key in ["rename", "expand_dims"]:
+        if key in to_netcdf_kwargs:
+            open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
+
+    config.update(
+        {
+            "open_datasets_kwargs": open_datasets_kwargs,
+            "to_netcdf_kwargs": to_netcdf_kwargs,
+        }
+    )
+    return config
+
+
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
 
@@ -34,21 +64,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
 
-        # Handle open_dataset_kwargs and to_netcdf_kwargs
-        # TODO: deprecate this location for format_conversion_kwargs in the adaptor config
-        convert_kwargs: dict[str, Any] = self.config.get(
-            "format_conversion_kwargs", dict()
-        )
-        # Separate the open_datasets_kwargs from the to_netcdf_kwargs so they can be used in the correct place
-        #  Preference allow for top level in dataset config:
-        self.open_datasets_kwargs = {
-            **convert_kwargs.pop("open_datasets_kwargs", dict()),
-            **self.config.get("open_datasets_kwargs", dict()),
-        }
-        self.to_netcdf_kwargs = {
-            **convert_kwargs.pop("to_netcdf_kwargs", dict()),
-            **self.config.get("to_netcdf_kwargs", dict()),
-        }
+        # TODO: remove this when datasets have been updated to match new configuation
+        self.config = _reorganise_open_dataset_and_to_netcdf_kwargs(self.config)
 
     def validate(self, request: Request) -> bool:
         return True
@@ -154,7 +171,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 result = open_result_as_xarray_dictionary(
                     result,
                     context=self.context,
-                    open_datasets_kwargs=self.open_datasets_kwargs,
+                    open_datasets_kwargs=self.config.get("open_datasets_kwargs", {}),
                 )
 
             result = method(result, **pp_step)

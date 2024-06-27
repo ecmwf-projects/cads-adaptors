@@ -185,8 +185,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 result,
                 data_format,
                 context=self.context,
-                open_datasets_kwargs=self.open_datasets_kwargs,
-                **self.to_netcdf_kwargs,
+                config=self.config,
             )
 
         # A check to ensure that if there is more than one path, and download_format
