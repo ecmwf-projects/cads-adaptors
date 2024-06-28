@@ -147,6 +147,8 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
+        print(f"MultiMarsCdsAdaptor, retrieve start: {request}")
+
         self._pre_retrieve(request, default_download_format="as_source")
 
         mapped_requests = []
@@ -154,6 +156,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             f"MultiMarsCdsAdaptor, full_request: {self.mapped_request}"
         )
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
+            print(f"MultiMarsCdsAdaptor, adaptor_tag: {adaptor_tag}")
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
 
