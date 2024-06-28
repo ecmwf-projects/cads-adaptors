@@ -22,8 +22,11 @@ class CadsobsApiClient:
     def get_service_definition(self, dataset: str) -> dict:
         return self._send_request("GET", f"{dataset}/service_definition")
 
-    def get_cdm_lite_variables(self):
+    def get_cdm_lite_variables(self) -> dict:
         return self._send_request("GET", "cdm/lite_variables")
+
+    def get_aux_var_mapping(self, dataset: str, source: str) -> dict:
+        return self._send_request("GET", f"{dataset}/{source}/aux_variables_mapping")
 
     def get_objects_to_retrieve(
         self, dataset_name: str, mapped_request: dict, size_limit: int
