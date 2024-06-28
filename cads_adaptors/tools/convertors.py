@@ -53,12 +53,13 @@ def convert_format(
         "post_open_datasets_kwargs", {}
     )
 
+    # Keywords specific to writing to the target format
+    to_target_kwargs: dict[str, Any] = config.get(f"to_{target_format}_kwargs", {})
+
     convertor: None | Callable = {
         "netcdf": result_to_netcdf_files,
         "grib": result_to_grib_files,
     }.get(target_format, None)
-
-    to_target_kwargs: dict[str, Any] = config.get(f"to_{target_format}_kwargs", {})
 
     if convertor is not None:
         return convertor(
@@ -280,6 +281,7 @@ def grib_to_netcdf_files(
     context: Context = Context(),
     **to_netcdf_kwargs,
 ):
+    to_netcdf_kwargs.update(to_netcdf_kwargs.pop("to_netcdf_kwargs", {}))
     grib_file = os.path.realpath(grib_file)
 
     context.add_stdout(
@@ -502,6 +504,8 @@ def open_netcdf_as_xarray_dictionary(
     Open a netcdf file and return as a dictionary of xarray datasets,
     where the key will be used in any filenames created from the dataset.
     """
+    fname, _ = os.path.splitext(os.path.basename(netcdf_file))
+
     assert isinstance(
         open_datasets_kwargs, dict
     ), "open_datasets_kwargs must be a dictionary for netCDF"
@@ -513,11 +517,7 @@ def open_netcdf_as_xarray_dictionary(
     }
 
     context.add_stdout(f"Opening {netcdf_file} with kwargs: {open_datasets_kwargs}")
-    datasets = {
-        os.path.basename(netcdf_file): xr.open_dataset(
-            netcdf_file, **open_datasets_kwargs
-        )
-    }
+    datasets = {fname: xr.open_dataset(netcdf_file, **open_datasets_kwargs)}
 
     datasets = post_open_datasets_modifications(datasets, **post_open_kwargs)
 
