@@ -6,6 +6,7 @@ used to construct a better error message.
 import logging
 import re
 import sys
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ class ErrorMessageBase:
     # used to prevent additional user-defined sub-classes being added to the
     # list, as they may only be required for one adaptor. Additional class
     # names can be specified in the relevant schema.
-    subclasses = []
+    subclasses: list[Any] = []
     frozen = False
 
     def __init_subclass__(cls):

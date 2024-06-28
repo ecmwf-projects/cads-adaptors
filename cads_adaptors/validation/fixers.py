@@ -3,6 +3,7 @@
 import re
 from copy import deepcopy
 from datetime import datetime
+from typing import Any
 
 SENTINEL = object()
 
@@ -10,7 +11,7 @@ SENTINEL = object()
 class BaseFixer:
     """Abstract base class for schema error fixers."""
 
-    all_fixers = []
+    all_fixers: list[Any] = []
 
     def __init_subclass__(cls):
         """Register all subclasses as fixers."""

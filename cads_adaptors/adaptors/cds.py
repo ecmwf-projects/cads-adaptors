@@ -10,7 +10,7 @@ from cads_adaptors.validation import enforce
 
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
-    adaptor_schema = {}
+    adaptor_schema: dict[str, Any] = {}
 
     def __init__(
         self,

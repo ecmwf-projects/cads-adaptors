@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import re
+from typing import Any
 
 import _pytest
 import _pytest.python_api
@@ -80,7 +81,7 @@ ACTUAL_MARS_SCHEMA = {
     },
 }
 
-TEST_CASES = [
+TEST_CASES: list[dict[str, Any]] = [
     {"id": "Null test", "specs": ({}, {}, {}, None)},
     {"id": "Simplest non-null test", "specs": ({"a": "1"}, {}, {"a": "1"}, None)},
     {
