@@ -6,42 +6,6 @@ from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
 
-# def convert_format(
-#     result: Any,
-#     data_format: str,
-#     context: Context,
-#     open_datasets_kwargs: dict[str, Any] = dict(),
-#     **to_netcdf_kwargs,  # TODO: rename to something more generic
-# ) -> list:
-#     data_format = adaptor_tools.handle_data_format(data_format)
-
-#     if data_format in ["netcdf"]:
-#         from cads_adaptors.tools.convertors import result_to_netcdf_files
-
-#         paths = result_to_netcdf_files(
-#             result, context=context,
-#             open_datasets_kwargs=open_datasets_kwargs,
-#             **to_netcdf_kwargs
-#         )
-
-#     elif data_format in ["grib"]:
-#         if current_result_format in ["xarray"]:
-#             message = (
-#                 "WARNING: Unable to to returning post-processed data in grib format is not supported,"
-#                 " returning in netcdf format"
-#             )
-#             from cads_adaptors.tools.convertors import xarray_dict_to_netcdf
-
-#             paths = xarray_dict_to_netcdf(result, context=context, **to_netcdf_kwargs)
-#         else:
-#             paths = [result]
-#     else:
-#         message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
-#         context.add_user_visible_log(message=message)
-#         context.add_stdout(message=message)
-#         paths = [result]
-#     return paths
-
 
 def get_mars_server_list(config) -> list[str]:
     if config.get("mars_servers") is not None:

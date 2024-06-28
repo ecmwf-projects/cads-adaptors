@@ -166,6 +166,6 @@ def test_convert_format_to_grib(url, target_format="grib"):
         )
         assert isinstance(converted_files, list)
         assert len(converted_files) == 1
-        # Can't convert to grib yet, so ensure in extension is the same as input
+        # Can't convert from netcdf to grib yet, so ensure in extension is the same as input
         _, out_ext = os.path.splitext(converted_files[0])
         assert out_ext == ext

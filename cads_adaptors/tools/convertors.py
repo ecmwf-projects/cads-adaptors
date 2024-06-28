@@ -6,6 +6,7 @@ import xarray as xr
 
 from cads_adaptors.adaptors import Context
 from cads_adaptors.tools import adaptor_tools
+from cads_adaptors.tools.general import ensure_list
 
 STANDARD_COMPRESSION_OPTIONS = {
     "default": {
@@ -71,10 +72,13 @@ def convert_format(
         )
 
     else:
-        message = f"WARNING: Unrecoginsed target_format requested, returning in original format: {result}"
+        message = (
+            f"WARNING: Unrecoginsed target_format requested ({target_format}), "
+            f"returning in original format: {result}"
+        )
         context.add_user_visible_error(message=message)
         context.add_stderr(message=message)
-        return [result]
+        return ensure_list(result)
 
 
 def result_to_grib_files(
@@ -90,7 +94,8 @@ def result_to_grib_files(
         return unknown_filetype_to_grib_files(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
         context.add_user_visible_error(
-            "Cannot convert xarray dataset to grib, returning as netCDF."
+            "Cannot convert xarray.Dataset to grib, returning as netCDF. "
+            "Please note that post-processing uses xarray.Datasets. "
         )
         return xarray_dict_to_netcdf({"data": result}, context=context, **kwargs)
     elif isinstance(result, list):
