@@ -19,6 +19,7 @@ dependencies:
 - pyyaml
 - tqdm
 - DateTimeRange
+- jsonschema
 - fsspec
 - aiohttp
 - pip:

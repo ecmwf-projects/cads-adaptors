@@ -5,10 +5,12 @@ from typing import Any, Union
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.validation import enforce
 
 
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
+    adaptor_schema: dict[str, Any] = {}
 
     def __init__(
         self,
@@ -27,13 +29,11 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         else:
             self.context = context
         # The following attributes are updated during the retireve method
-        self.input_request: Request = Request()
-        self.mapped_request: Request = Request()
+        self.input_request: Request = dict()
+        self.mapped_request: Request = dict()
         self.download_format: str = "zip"
         self.receipt: bool = False
-
-    def validate(self, request: Request) -> bool:
-        return True
+        self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
@@ -75,8 +75,19 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         costs["number_of_fields"] = costs["size"]
         return costs
 
-    def normalise_request(self, request: Request) -> dict[str, Any]:
-        # TODO: cast to dict[str, list]
+    def normalise_request(self, request: Request) -> Request:
+        schemas = self.schemas
+        if not isinstance(schemas, list):
+            schemas = [schemas]
+        # Apply first dataset schemas, then adaptor schema
+        if adaptor_schema := self.adaptor_schema:
+            schemas = schemas + [adaptor_schema]
+        for schema in schemas:
+            request = enforce.enforce(request, schema, self.context.logger)
+        if not isinstance(request, dict):
+            raise TypeError(
+                f"Normalised request is not a dictionary, instead it is of type {type(request)}"
+            )
         return request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
