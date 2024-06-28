@@ -12,17 +12,13 @@ from cads_adaptors.tools.general import ensure_list
 def _reorganise_open_dataset_and_to_netcdf_kwargs(
     config: dict[str, Any],
 ) -> dict[str, Any]:
-    # If defined in older "format_conversion_kwargs" then Separate the open_datasets_kwargs from the
-    # to_netcdf_kwargs so they can be used in the correct place.
+    # If defined in older "format_conversion_kwargs" then rename as post_processing_kwargs.
+    #  Preference for post_processing_kwargs over format_conversion_kwargs
     post_processing_kwargs: dict[str, Any] = {
         **config.pop("format_conversion_kwargs", dict()),
         **config.pop("post_processing_kwargs", dict()),
     }
 
-    # open_dataset kwargs can be list or dict, must preserve this
-    open_datasets_kwargs = {
-        **post_processing_kwargs.pop("open_datasets_kwargs", dict()),
-    }
     to_netcdf_kwargs = {
         **post_processing_kwargs.pop("to_netcdf_kwargs", dict()),
     }
@@ -32,13 +28,13 @@ def _reorganise_open_dataset_and_to_netcdf_kwargs(
         if key in to_netcdf_kwargs:
             post_open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
 
-    config.update(
+    post_processing_kwargs.update(
         {
-            "open_datasets_kwargs": open_datasets_kwargs,
             "post_open_datasets_kwargs": post_open_datasets_kwargs,
             "to_netcdf_kwargs": to_netcdf_kwargs,
         }
     )
+    config.update({"post_processing_kwargs": post_processing_kwargs})
     return config
 
 
