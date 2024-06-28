@@ -165,6 +165,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             # post processing is done on xarray objects,
             # so on first pass we ensure result is opened as xarray
             if i == 0:
+                post_processing_kwargs = self.config.get("post_processing_kwargs", {})
+
                 from cads_adaptors.tools.convertors import (
                     open_result_as_xarray_dictionary,
                 )
@@ -172,8 +174,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 result = open_result_as_xarray_dictionary(
                     result,
                     context=self.context,
-                    open_datasets_kwargs=self.config.get("open_datasets_kwargs", {}),
-                    post_open_kwargs=self.config.get("post_open_datasets_kwargs", {}),
+                    open_datasets_kwargs=post_processing_kwargs.get(
+                        "open_datasets_kwargs", {}
+                    ),
+                    post_open_kwargs=post_processing_kwargs.get(
+                        "post_open_datasets_kwargs", {}
+                    ),
                 )
 
             result = method(result, **pp_step)

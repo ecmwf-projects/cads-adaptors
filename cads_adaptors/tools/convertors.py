@@ -45,9 +45,13 @@ def convert_format(
     config: dict[str, Any] = {},
 ) -> list[str]:
     target_format = adaptor_tools.handle_data_format(target_format)
-
-    open_datasets_kwargs: dict[str, Any] = config.get("open_datasets_kwargs", {})
-    post_open_kwargs: dict[str, Any] = config.get("post_open_datasets_kwargs", {})
+    post_processing_kwargs = config.get("post_processing_kwargs", {})
+    open_datasets_kwargs: dict[str, Any] = post_processing_kwargs.get(
+        "open_datasets_kwargs", {}
+    )
+    post_open_kwargs: dict[str, Any] = post_processing_kwargs.get(
+        "post_open_datasets_kwargs", {}
+    )
 
     convertor: None | Callable = {
         "netcdf": result_to_netcdf_files,
@@ -78,6 +82,9 @@ def result_to_grib_files(
     **kwargs,
 ) -> list[str]:
     """Convert a result of unknown type to grib files."""
+    context.add_stdout(
+        f"Converting result ({result}) to grib files with kwargs: {kwargs}"
+    )
     if isinstance(result, str):
         return unknown_filetype_to_grib_files(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
@@ -153,8 +160,6 @@ def result_to_grib_files(
             thisError=ValueError,
         )
 
-    raise RuntimeError("This should never be reached")
-
 
 def result_to_netcdf_files(
     result: Any,
@@ -162,6 +167,9 @@ def result_to_netcdf_files(
     **kwargs,
 ) -> list[str]:
     """Convert a result of unknown type to netCDF files."""
+    context.add_stdout(
+        f"Converting result ({result}) to netCDF files with kwargs: {kwargs}"
+    )
     if isinstance(result, str):
         return unknown_filetype_to_netcdf_files(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
