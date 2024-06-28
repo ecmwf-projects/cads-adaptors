@@ -1628,7 +1628,6 @@ def generate_schema_drafts_specs():
     ],
 )
 def test_enforce(draft_specs, req, schema, expected, err_msgs):
-
     schema = schema.copy()
     schema["_draft"] = draft_specs["draft"]
     # Input schema are expected to follow the rules of draft 2019-09. If the

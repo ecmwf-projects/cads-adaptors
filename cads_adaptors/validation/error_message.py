@@ -187,7 +187,6 @@ class AdditionalProperties(ErrorMessageBase):
 
     @classmethod
     def message(cls, error):
-
         # Unfortunately, in the currently used version of jsonschema, the list
         # of offending keys is not provided in the error object and has to be
         # parsed from the error message.
@@ -211,7 +210,7 @@ class AdditionalProperties(ErrorMessageBase):
 
         # Property is forbidden because it's not in a white-list of names?
         m = re.match(
-            "Additional properties are not allowed \((.*) " "(was|were) unexpected\)",
+            r"Additional properties are not allowed \((.*) " r"(was|were) unexpected\)",
             error.message,
             flags=re.DOTALL,
         )

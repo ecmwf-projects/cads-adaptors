@@ -23,7 +23,6 @@ class InvalidRequest(Exception):
     """Raised when an invalid request is sent to the adaptor."""
 
     def __init__(self, msgs):
-
         if isinstance(msgs, str):
             msgs = [msgs]
         super().__init__("\n".join(msgs))

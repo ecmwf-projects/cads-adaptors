@@ -24,11 +24,9 @@ def fix_errors(request, errors, logger=None):
         # bad idea.
         error_path = list(error.absolute_path)
         if not [p for p in paths_altered if same_root_path(p, error_path)]:
-
             # Loop over all fixers until one fixes the error
             request_orig = deepcopy(request)
             for fixer in BaseFixer.all_fixers:
-
                 # The request will be altered in-place if possible, but it won't
                 # be if the problem is at the top level, e.g. it needs changing
                 # from a dict to a list containing a dict or vice-versa. If the

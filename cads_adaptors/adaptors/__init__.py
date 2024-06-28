@@ -153,7 +153,6 @@ class AbstractAdaptor(abc.ABC):
 
 
 class DummyAdaptor(AbstractAdaptor):
-
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return {}
 
