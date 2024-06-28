@@ -65,7 +65,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.post_process_steps: list[dict[str, Any]] = [{}]
 
         # TODO: remove this when datasets have been updated to match new configuation
-        self.config = _reorganise_open_dataset_and_to_netcdf_kwargs(self.config)
+        try:
+            self.config = _reorganise_open_dataset_and_to_netcdf_kwargs(self.config)
+        except:
+            pass
 
     def validate(self, request: Request) -> bool:
         return True
