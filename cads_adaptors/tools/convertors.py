@@ -47,6 +47,7 @@ def convert_format(
     target_format = adaptor_tools.handle_data_format(target_format)
 
     open_datasets_kwargs: dict[str, Any] = config.get("open_datasets_kwargs", {})
+    post_open_kwargs: dict[str, Any] = config.get("post_open_datasets_kwargs", {})
 
     convertor: None | Callable = {
         "netcdf": result_to_netcdf_files,
@@ -60,6 +61,7 @@ def convert_format(
             result,
             context=context,
             open_datasets_kwargs=open_datasets_kwargs,
+            post_open_kwargs=post_open_kwargs,
             **to_target_kwargs,
         )
 
@@ -266,6 +268,7 @@ def unknown_filetype_to_netcdf_files(
 def grib_to_netcdf_files(
     grib_file: str,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
+    post_open_kwargs: dict[str, Any] = {},
     context: Context = Context(),
     **to_netcdf_kwargs,
 ):
@@ -275,10 +278,14 @@ def grib_to_netcdf_files(
         f"Converting {grib_file} to netCDF files with:\n"
         f"to_netcdf_kwargs: {to_netcdf_kwargs}\n"
         f"open_datasets_kwargs: {open_datasets_kwargs}\n"
+        f"post_open_kwargs: {post_open_kwargs}\n"
     )
 
     datasets = open_grib_file_as_xarray_dictionary(
-        grib_file, open_datasets_kwargs=open_datasets_kwargs, context=context
+        grib_file,
+        open_datasets_kwargs=open_datasets_kwargs,
+        post_open_kwargs=post_open_kwargs,
+        context=context,
     )
     # Fail here on empty lists so that error message is more informative
     if len(datasets) == 0:
@@ -391,11 +398,6 @@ def open_file_as_xarray_dictionary(
     Open a file of unknown type and return as a dictionary of xarray datasets,
     where the key will be used in any filenames created from the dataset.
     """
-    post_open_kwargs = {}
-    for key in ["rename", "expand_dims"]:
-        post_open_kwargs[key] = kwargs.pop(key, {})
-    kwargs.update({"post_open_kwargs": post_open_kwargs})
-
     _, ext = os.path.splitext(os.path.basename(infile))
     if ext.lower() in [".netcdf", ".nc"]:
         return open_netcdf_as_xarray_dictionary(infile, context=context, **kwargs)

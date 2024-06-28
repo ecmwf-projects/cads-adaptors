@@ -14,23 +14,28 @@ def _reorganise_open_dataset_and_to_netcdf_kwargs(
 ) -> dict[str, Any]:
     # If defined in older "format_conversion_kwargs" then Separate the open_datasets_kwargs from the
     # to_netcdf_kwargs so they can be used in the correct place.
-    convert_kwargs: dict[str, Any] = config.pop("format_conversion_kwargs", dict())
+    post_processing_kwargs: dict[str, Any] = {
+        **config.pop("format_conversion_kwargs", dict()),
+        **config.pop("post_processing_kwargs", dict()),
+    }
+
+    # open_dataset kwargs can be list or dict, must preserve this
     open_datasets_kwargs = {
-        **convert_kwargs.pop("open_datasets_kwargs", dict()),
-        **config.get("open_datasets_kwargs", dict()),
+        **post_processing_kwargs.pop("open_datasets_kwargs", dict()),
     }
     to_netcdf_kwargs = {
-        **convert_kwargs.pop("to_netcdf_kwargs", dict()),
-        **config.get("to_netcdf_kwargs", dict()),
+        **post_processing_kwargs.pop("to_netcdf_kwargs", dict()),
     }
-    # rename and expand_dims is now done at open_datasets level, to assist in post-processing
+    # rename and expand_dims is now done as a "post open" step, to assist in other post-processing
+    post_open_datasets_kwargs = config.get("post_open_datasets_kwargs", {})
     for key in ["rename", "expand_dims"]:
         if key in to_netcdf_kwargs:
-            open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
+            post_open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
 
     config.update(
         {
             "open_datasets_kwargs": open_datasets_kwargs,
+            "post_open_datasets_kwargs": post_open_datasets_kwargs,
             "to_netcdf_kwargs": to_netcdf_kwargs,
         }
     )
@@ -65,10 +70,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.post_process_steps: list[dict[str, Any]] = [{}]
 
         # TODO: remove this when datasets have been updated to match new configuation
-        try:
-            self.config = _reorganise_open_dataset_and_to_netcdf_kwargs(self.config)
-        except:
-            pass
+        self.config = _reorganise_open_dataset_and_to_netcdf_kwargs(self.config)
 
     def validate(self, request: Request) -> bool:
         return True
@@ -175,6 +177,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     result,
                     context=self.context,
                     open_datasets_kwargs=self.config.get("open_datasets_kwargs", {}),
+                    post_open_kwargs=self.config.get("post_open_datasets_kwargs", {}),
                 )
 
             result = method(result, **pp_step)
