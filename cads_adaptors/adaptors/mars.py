@@ -143,17 +143,17 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return convert_format(*args, **kwargs)
 
-    def daily_statistics(self, *args, **kwargs) -> dict[str, Any]:
-        from cads_adaptors.tools.post_processors import daily_statistics
+    def daily_reduce(self, *args, **kwargs) -> dict[str, Any]:
+        from cads_adaptors.tools.post_processors import daily_reduce
 
         kwargs.setdefault("context", self.context)
-        return daily_statistics(*args, **kwargs)
+        return daily_reduce(*args, **kwargs)
 
-    def monthly_statistics(self, *args, **kwargs) -> dict[str, Any]:
-        from cads_adaptors.tools.post_processors import monthly_statistics
+    def monthly_reduce(self, *args, **kwargs) -> dict[str, Any]:
+        from cads_adaptors.tools.post_processors import monthly_reduce
 
         kwargs.setdefault("context", self.context)
-        return monthly_statistics(*args, **kwargs)
+        return monthly_reduce(*args, **kwargs)
 
     def retrieve(self, request: Request) -> BinaryIO:
         import dask

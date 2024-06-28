@@ -6,31 +6,31 @@ from cads_adaptors import Context
 
 CONFIG_MAPPING = {
     "daily_mean": {
-        "method": "daily_statistics",
+        "method": "daily_reduce",
         "how": "mean",
     },
     "daily_median": {
-        "method": "daily_statistics",
+        "method": "daily_reduce",
         "how": "median",
     },
     "daily_min": {
-        "method": "daily_statistics",
+        "method": "daily_reduce",
         "how": "min",
     },
     "daily_max": {
-        "method": "daily_statistics",
+        "method": "daily_reduce",
         "how": "max",
     },
     "monthly_median": {
-        "method": "monthly_statistics",
+        "method": "monthly_reduce",
         "how": "median",
     },
     "monthly_min": {
-        "method": "monthly_statistics",
+        "method": "monthly_reduce",
         "how": "min",
     },
     "monthly_max": {
-        "method": "monthly_statistics",
+        "method": "monthly_reduce",
         "how": "max",
     },
 }
@@ -50,7 +50,7 @@ def pp_config_mapping(
     return pp_config
 
 
-def daily_statistics(
+def daily_reduce(
     in_xarray_dict: dict[str, Dataset],
     context: Context = Context(),
     how: str | Callable = "mean",
@@ -72,7 +72,7 @@ def daily_statistics(
     return out_xarray_dict
 
 
-def monthly_statistics(
+def monthly_reduce(
     in_xarray_dict: dict[str, Dataset],
     context: Context = Context(),
     how: str | Callable = "mean",
