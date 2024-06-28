@@ -42,7 +42,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return [
             self.normalise_request(request)
             for request in constraints.legacy_intersect_constraints(
-                request, self.constraints
+                request, self.constraints, context=self.context
             )
         ]
 

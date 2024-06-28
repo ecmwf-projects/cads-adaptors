@@ -539,7 +539,9 @@ def gen_time_range_from_string(string: str) -> DateTimeRange:
 
 
 def legacy_intersect_constraints(
-    request: dict[str, Any], constraints: list[dict[str, Any]] | dict[str, Any] | None
+    request: dict[str, Any],
+    constraints: list[dict[str, Any]] | dict[str, Any] | None,
+    context: adaptors.Context = adaptors.Context(),
 ) -> list[dict[str, list[Any]]]:
     """
     'Constrain' a request by intersecting it with the constraints.
@@ -617,6 +619,8 @@ def legacy_intersect_constraints(
             }
 
     """
+    if constraints is None or len(constraints) == 0:
+        return [request]
     requests = []
     constraints = parse_constraints(constraints)
     constrained_fields = set(itertools.chain.from_iterable(constraints))
@@ -662,7 +666,7 @@ def legacy_intersect_constraints(
             constrained_field_value = [
                 v
                 for v in ensure_sequence(output_request.get(field, []))
-                if v in constraint[field]
+                if str(v) in constraint[field]
             ]
 
             # If the intersection is empty, the request as a whole does not
@@ -676,5 +680,17 @@ def legacy_intersect_constraints(
 
         if len(output_request) != 0:
             requests.append(output_request)
+
+    if len(requests) == 0:
+        context.add_user_visible_error(
+            "Your request has not produce a valid combination of values, please check your selection.\n"
+            "If using the cdsapi, please ensure that the values in your request match the values provided"
+            f" in the web-portal, your request:\n {request}\n"
+            "If you believe this to be a data store error, please contact user support.\n"
+        )
+        raise RuntimeError(
+            "Request has not produce a valid combination of values, please check your selection.\n"
+            f"{request}"
+        )
 
     return requests

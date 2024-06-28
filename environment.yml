@@ -20,7 +20,8 @@ dependencies:
 - tqdm
 - DateTimeRange
 - jsonschema
+- fsspec
+- aiohttp
 - pip:
   - rooki
   - earthkit-aggregate
-  - git+https://github.com/ecmwf-projects/cads-mars-server

@@ -2,22 +2,9 @@ import os
 from typing import Any, BinaryIO, Union
 
 from cads_adaptors.adaptors import Context, Request, cds
+from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
-
-
-def handle_data_format(data_format: str) -> str:
-    if isinstance(data_format, (list, tuple, set)):
-        data_format = list(data_format)
-        assert len(data_format) == 1, "Only one value of data_format is allowed"
-        data_format = data_format[0]
-
-    if data_format in ["netcdf4", "netcdf", "nc"]:
-        data_format = "netcdf"
-    elif data_format in ["grib", "grib2", "grb", "grb2"]:
-        data_format = "grib"
-
-    return data_format
 
 
 def convert_format(
@@ -26,7 +13,7 @@ def convert_format(
     context: Context,
     **kwargs,
 ) -> list:
-    data_format = handle_data_format(data_format)
+    data_format = adaptor_tools.handle_data_format(data_format)
 
     if data_format in ["netcdf"]:
         to_netcdf_kwargs: dict[str, Any] = {}
@@ -40,7 +27,7 @@ def convert_format(
         except Exception as e:
             message = (
                 "There was an error converting the GRIB data to netCDF.\n"
-                "It may be that the selection you made was too complex, "
+                "It may be that the selection you made was too large and/or complex, "
                 "in which case you could try reducing your selection. "
                 "For further help, or if you believe this to be a problem with the dataset, "
                 "please contact user support."
@@ -58,15 +45,37 @@ def convert_format(
     return paths
 
 
+def get_mars_server_list(config) -> list[str]:
+    if config.get("mars_servers") is not None:
+        return ensure_list(config["mars_servers"])
+
+    # TODO: Refactor when we have a more stable set of mars-servers
+    if os.getenv("MARS_API_SERVER_LIST") is not None:
+        default_mars_server_list = os.getenv("MARS_API_SERVER_LIST")
+    else:
+        for default_mars_server_list in [
+            "/etc/mars/mars-api-server-legacy.list",
+            "/etc/mars/mars-api-server.list",
+        ]:
+            if os.path.exists(default_mars_server_list):
+                break
+
+    mars_server_list: str = config.get("mars_server_list", default_mars_server_list)
+    if os.path.exists(mars_server_list):
+        with open(mars_server_list) as f:
+            mars_servers = f.read().splitlines()
+    else:
+        raise SystemError(
+            "MARS servers cannot be found, this is an error at the system level."
+        )
+    return mars_servers
+
+
 def execute_mars(
     request: Union[Request, list],
     context: Context,
     config: dict[str, Any] = dict(),
     target: str = "data.grib",
-    # mars_cmd: tuple[str, ...] = ("/usr/local/bin/mars", "r"),
-    mars_server_list: str = os.getenv(
-        "MARS_API_SERVER_LIST", "/etc/mars/mars-api-server.list"
-    ),
 ) -> str:
     from cads_mars_server import client as mars_client
 
@@ -75,13 +84,7 @@ def execute_mars(
         requests, _cacheable = implement_embargo(requests, config["embargo"])
     context.add_stdout(f"Request (after embargo implemented): {requests}")
 
-    if os.path.exists(mars_server_list):
-        with open(mars_server_list) as f:
-            mars_servers = f.read().splitlines()
-    else:
-        raise SystemError(
-            "MARS servers cannot be found, this is an error at the system level."
-        )
+    mars_servers = get_mars_server_list(config)
 
     cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
 
@@ -144,7 +147,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
-        data_format = handle_data_format(data_format)
+        data_format = adaptor_tools.handle_data_format(data_format)
 
         # Account from some horribleness from teh legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:

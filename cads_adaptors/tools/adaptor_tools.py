@@ -3,6 +3,20 @@ from typing import Any
 from cads_adaptors.adaptors import AbstractAdaptor
 
 
+def handle_data_format(data_format: Any) -> str:
+    if isinstance(data_format, (list, tuple, set)):
+        data_format = list(data_format)
+        assert len(data_format) == 1, "Only one value of data_format is allowed"
+        data_format = data_format[0]
+
+    if data_format in ["netcdf4", "netcdf", "nc"]:
+        data_format = "netcdf"
+    elif data_format in ["grib", "grib2", "grb", "grb2"]:
+        data_format = "grib"
+
+    return data_format
+
+
 def get_adaptor_class(
     entry_point: str, setup_code: str | None = None
 ) -> type[AbstractAdaptor]:

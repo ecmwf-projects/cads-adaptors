@@ -24,7 +24,8 @@ dependencies = [
   "tqdm",
   "DateTimeRange",
   "jsonschema",
-  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git"
+  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
+  "aiohttp"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]
