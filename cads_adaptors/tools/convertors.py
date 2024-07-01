@@ -17,7 +17,6 @@ STANDARD_COMPRESSION_OPTIONS = {
     }
 }
 
-
 DEFAULT_CHUNKS = {
     "time": 12,
     "step": 1,

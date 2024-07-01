@@ -21,6 +21,10 @@ CONFIG_MAPPING = {
         "method": "daily_reduce",
         "how": "max",
     },
+    "daily_std": {
+        "method": "daily_reduce",
+        "how": "std",
+    },
     "monthly_median": {
         "method": "monthly_reduce",
         "how": "median",

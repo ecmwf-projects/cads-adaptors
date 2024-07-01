@@ -134,7 +134,7 @@ EXTENSION_MAPPING = {
 
 @pytest.mark.parametrize("url", [TEST_GRIB_FILE, TEST_NC_FILE])
 def test_convert_format_to_netcdf(url, target_format="netcdf"):
-    remote_file = requests.get(TEST_GRIB_FILE)
+    remote_file = requests.get(url)
     _, ext = os.path.splitext(url)
     with tempfile.TemporaryDirectory() as tmpdirname:
         os.chdir(tmpdirname)
@@ -153,7 +153,7 @@ def test_convert_format_to_netcdf(url, target_format="netcdf"):
 
 @pytest.mark.parametrize("url", [TEST_GRIB_FILE, TEST_NC_FILE])
 def test_convert_format_to_grib(url, target_format="grib"):
-    remote_file = requests.get(TEST_GRIB_FILE)
+    remote_file = requests.get(url)
     _, ext = os.path.splitext(url)
     with tempfile.TemporaryDirectory() as tmpdirname:
         os.chdir(tmpdirname)

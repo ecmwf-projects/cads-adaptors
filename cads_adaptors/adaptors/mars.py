@@ -140,9 +140,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         )
 
         with dask.config.set(scheduler="threads"):
-            result = self.post_process(
-                result,
-            )
+            result = self.post_process(result)
 
             # TODO?: Generalise format conversion to be a post-processor
             paths = self.convert_format(
