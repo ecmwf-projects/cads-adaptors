@@ -40,14 +40,18 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             cdm_lite_variables_dict["mandatory"] + cdm_lite_variables_dict["optional"]
         )
         # Handle auxiliary variables
+        aux_var_mapping = cadsobs_client.get_aux_var_mapping(
+            dataset_name, dataset_source
+        )
         requested_auxiliary_variables = self.handle_auxiliary_variables(
-            cdm_lite_variables_dict, mapped_request
+            mapped_request, aux_var_mapping
         )
         cdm_lite_variables = cdm_lite_variables + list(requested_auxiliary_variables)
         # Get the objects that match the request
         object_urls = cadsobs_client.get_objects_to_retrieve(
             dataset_name, mapped_request, size_limit=size_limit
         )
+        # Get the service definition file
         service_definition = cadsobs_client.get_service_definition(dataset_name)
         global_attributes = service_definition["global_attributes"]
         logger.debug(f"The following objects are going to be filtered: {object_urls}")
@@ -63,23 +67,30 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         return open(output_path, "rb")
 
     def handle_auxiliary_variables(
-        self, cdm_lite_variables_dict: dict[str, list[str]], mapped_request: dict
+        self, mapped_request: dict, aux_var_mapping: dict
     ) -> set[str]:
         """Remove auxiliary variables from the request and add them as extra fields."""
         requested_variables = mapped_request["variables"].copy()
-        requested_auxiliary_variables = set()
-        for variable in requested_variables:
-            for auxvar in cdm_lite_variables_dict["auxiliary"]:
-                if auxvar in variable:
+        regular_variables = [v for v in requested_variables if v in aux_var_mapping]
+        auxiliary_variables = [
+            v for v in requested_variables if v not in aux_var_mapping
+        ]
+        requested_metadata_fields = set()
+        for regular_variable in regular_variables:
+            for auxvar_dict in aux_var_mapping[regular_variable]:
+                auxvar = auxvar_dict["auxvar"]
+                if auxvar in auxiliary_variables:
+                    metadata_field = auxvar_dict["metadata_name"]
                     logger.warning(
-                        f"{variable} is an auxiliary variable, it will be included"
-                        f"as an extra {auxvar} column in the output file, not as a "
+                        f"{auxvar} is an auxiliary variable, it will be included"
+                        f"as an extra {metadata_field} column in the output file, not as a "
                         f"regular variable."
                     )
-                    requested_variables.remove(variable)
-                    requested_auxiliary_variables.add(auxvar)
+                    requested_variables.remove(auxvar)
+                    requested_metadata_fields.add(metadata_field)
+
         mapped_request["variables"] = requested_variables
-        return requested_auxiliary_variables
+        return requested_metadata_fields
 
     def adapt_parameters(self, mapped_request: dict) -> dict:
         # We need these changes right now to adapt the parameters to what we need
