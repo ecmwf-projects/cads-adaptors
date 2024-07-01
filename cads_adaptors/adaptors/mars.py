@@ -7,44 +7,6 @@ from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list
 
 
-def convert_format(
-    result: str,
-    data_format: str,
-    context: Context,
-    **kwargs,
-) -> list:
-    data_format = adaptor_tools.handle_data_format(data_format)
-
-    if data_format in ["netcdf"]:
-        to_netcdf_kwargs: dict[str, Any] = {}
-
-        from cads_adaptors.tools.convertors import grib_to_netcdf_files
-
-        # Give the power to overwrite the to_netcdf kwargs from the request
-        to_netcdf_kwargs = {**to_netcdf_kwargs, **kwargs}
-        try:
-            paths = grib_to_netcdf_files(result, context=context, **to_netcdf_kwargs)
-        except Exception as e:
-            message = (
-                "There was an error converting the GRIB data to netCDF.\n"
-                "It may be that the selection you made was too large and/or complex, "
-                "in which case you could try reducing your selection. "
-                "For further help, or if you believe this to be a problem with the dataset, "
-                "please contact user support."
-            )
-            context.add_user_visible_error(message=message)
-            context.add_stderr(message=f"Exception: {e}")
-            raise e
-    elif data_format in ["grib"]:
-        paths = [result]
-    else:
-        message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
-        context.add_user_visible_log(message=message)
-        context.add_stdout(message=message)
-        paths = [result]
-    return paths
-
-
 def get_mars_server_list(config) -> list[str]:
     if config.get("mars_servers") is not None:
         return ensure_list(config["mars_servers"])
@@ -141,9 +103,25 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def convert_format(self, *args, **kwargs):
+        from cads_adaptors.tools.convertors import convert_format
+
         return convert_format(*args, **kwargs)
 
+    def daily_reduce(self, *args, **kwargs) -> dict[str, Any]:
+        from cads_adaptors.tools.post_processors import daily_reduce
+
+        kwargs.setdefault("context", self.context)
+        return daily_reduce(*args, **kwargs)
+
+    def monthly_reduce(self, *args, **kwargs) -> dict[str, Any]:
+        from cads_adaptors.tools.post_processors import monthly_reduce
+
+        kwargs.setdefault("context", self.context)
+        return monthly_reduce(*args, **kwargs)
+
     def retrieve(self, request: Request) -> BinaryIO:
+        import dask
+
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
@@ -154,22 +132,23 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
-        # Allow user to provide format conversion kwargs
-        convert_kwargs: dict[str, Any] = {
-            **self.config.get("format_conversion_kwargs", dict()),
-            **request.pop("format_conversion_kwargs", dict()),
-        }
-
         # To preserve existing ERA5 functionality the default download_format="as_source"
         self._pre_retrieve(request=request, default_download_format="as_source")
 
-        result = execute_mars(
+        result: Any = execute_mars(
             self.mapped_request, context=self.context, config=self.config
         )
 
-        paths = self.convert_format(
-            result, data_format, context=self.context, **convert_kwargs
-        )
+        with dask.config.set(scheduler="threads"):
+            result = self.post_process(result)
+
+            # TODO?: Generalise format conversion to be a post-processor
+            paths = self.convert_format(
+                result,
+                data_format,
+                context=self.context,
+                config=self.config,
+            )
 
         # A check to ensure that if there is more than one path, and download_format
         #  is as_source, we over-ride and zip up the files

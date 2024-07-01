@@ -14,8 +14,8 @@ classifiers = [
 ]
 dependencies = [
   "ecmwflibs",
-  "ek-aggregate",
-  "cfgrib",
+  "earthkit-aggregate>=0.1.5",
+  "cfgrib>=0.9.13.0",
   "cacholote",
   "multiurl>=0.3.1",
   "rooki",

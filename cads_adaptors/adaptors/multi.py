@@ -126,12 +126,14 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
 class MultiMarsCdsAdaptor(MultiAdaptor):
     def convert_format(self, *args, **kwargs):
-        from cads_adaptors.adaptors.mars import convert_format
+        from cads_adaptors.tools.convertors import convert_format
 
         return convert_format(*args, **kwargs)
 
     def retrieve(self, request: Request):
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
+        import dask
+
         from cads_adaptors.adaptors.mars import execute_mars
         from cads_adaptors.tools import adaptor_tools
 
@@ -144,12 +146,6 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
-
-        # Allow user to provide format conversion kwargs
-        convert_kwargs = {
-            **self.config.get("format_conversion_kwargs", dict()),
-            **request.pop("format_conversion_kwargs", dict()),
-        }
 
         self._pre_retrieve(request, default_download_format="as_source")
 
@@ -178,7 +174,8 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         )
         result = execute_mars(mapped_requests, context=self.context)
 
-        paths = self.convert_format(result, data_format, self.context, **convert_kwargs)
+        with dask.config.set(scheduler="threads"):
+            paths = self.convert_format(result, data_format, self.context, self.config)
 
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"
