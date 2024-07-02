@@ -61,7 +61,7 @@ def retrieve_data(
         output_path = output_path_netcdf
     else:
         try:
-            with dask.config.set(scheduler="threads"):
+            with dask.config.set(scheduler="single-threaded"):
                 output_path = to_csv(output_dir, output_path_netcdf, retrieve_args)
         finally:
             # Ensure that the netCDF is not left behind taking disk space.

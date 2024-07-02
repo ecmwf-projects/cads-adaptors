@@ -15,8 +15,9 @@ def to_csv(
 ) -> Path:
     """Transform the output netCDF to CSV format."""
     output_path = _get_output_path(output_dir, retrieve_args.dataset, "csv")
+    # Beware xarray will silently ignore the chunk size if the dimension does not exist
     cdm_lite_dataset = xarray.open_dataset(
-        output_path_netcdf, chunks=dict(observation_id=100000), decode_times=True
+        output_path_netcdf, chunks=dict(index=100000), decode_times=True
     )
     logger.info("Transforming netCDF to CSV")
     with output_path.open("w") as ofileobj:
@@ -25,11 +26,7 @@ def to_csv(
     # Beware this will not work with old dask versions because of a bug
     # https://github.com/dask/dask/issues/10414
     cdm_lite_dataset.to_dask_dataframe().astype("str").to_csv(
-        output_path,
-        index=False,
-        single_file=True,
-        mode="a",
-        compute_kwargs={"scheduler": "single-threaded"},
+        output_path, index=False, single_file=True, mode="a"
     )
     return output_path
 
@@ -59,8 +56,12 @@ def get_csv_header(
         cdm_lite_dataset.longitude.min().compute().item(),
         cdm_lite_dataset.longitude.max().compute().item(),
     )
-    time_start = "{:%Y%m%d}".format(cdm_lite_dataset.report_timestamp.to_index()[0])
-    time_end = "{:%Y%m%d}".format(cdm_lite_dataset.report_timestamp.to_index()[-1])
+    time_start = "{:%Y%m%d}".format(
+        cdm_lite_dataset.report_timestamp[0].compute().dt.date
+    )
+    time_end = "{:%Y%m%d}".format(
+        cdm_lite_dataset.report_timestamp[-1].compute().dt.date
+    )
     vars_and_units = zip(
         numpy.unique(cdm_lite_dataset.observed_variable.to_index().str.decode("utf-8")),
         numpy.unique(cdm_lite_dataset.units.to_index().str.decode("utf-8")),
