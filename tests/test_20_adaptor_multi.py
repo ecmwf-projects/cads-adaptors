@@ -84,31 +84,40 @@ def test_multi_adaptor_split_requests_dont_split_keys():
     assert "dont_split" in split_mean_dont_split_area
 
     # dont_split_keys as integer dtype
-    request["dont_split"] = 1
-    split_mean_dont_split_int = multi_adaptor.split_request(
+    request["dont_split"] = "1"
+    split_mean_dont_split = multi_adaptor.split_request(
         request,
         multi_adaptor.config["adaptors"]["mean"]["values"],
         dont_split_keys=["dont_split"],
     )
-    assert "dont_split" in split_mean_dont_split_int
+    assert "dont_split" in split_mean_dont_split
+
+    # dont_split_keys as integer dtype
+    request["dont_split"] = 1
+    split_mean_dont_split = multi_adaptor.split_request(
+        request,
+        multi_adaptor.config["adaptors"]["mean"]["values"],
+        dont_split_keys=["dont_split"],
+    )
+    assert "dont_split" in split_mean_dont_split
 
     # dont_split_keys as float dtype
     request["dont_split"] = 1.0
-    split_mean_dont_split_int = multi_adaptor.split_request(
+    split_mean_dont_split = multi_adaptor.split_request(
         request,
         multi_adaptor.config["adaptors"]["mean"]["values"],
         dont_split_keys=["dont_split"],
     )
-    assert "dont_split" in split_mean_dont_split_int
+    assert "dont_split" in split_mean_dont_split
 
     # dont_split_keys as dict dtype
     request["dont_split"] = {"a": 1}
-    split_mean_dont_split_int = multi_adaptor.split_request(
+    split_mean_dont_split = multi_adaptor.split_request(
         request,
         multi_adaptor.config["adaptors"]["mean"]["values"],
         dont_split_keys=["dont_split"],
     )
-    assert "dont_split" in split_mean_dont_split_int
+    assert "dont_split" in split_mean_dont_split
 
     # Area is dont_split as default
     request["area"] = [1, 2, 3, 4]
