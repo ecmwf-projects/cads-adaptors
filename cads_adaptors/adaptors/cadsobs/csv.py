@@ -26,8 +26,8 @@ def to_csv(
     # Beware this will not work with old dask versions because of a bug
     # https://github.com/dask/dask/issues/10414
     cdm_lite_dataset.to_dask_dataframe().astype("str").to_csv(
-        output_path, index=False, single_file=True, mode="a", compute=False
-    ).compute(optimize_graph=True)
+        output_path, index=False, single_file=True, mode="a"
+    )
     return output_path
 
 
