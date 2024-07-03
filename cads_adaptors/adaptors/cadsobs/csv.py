@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-import numpy
+import dask
 import xarray
 
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs
@@ -17,7 +17,7 @@ def to_csv(
     output_path = _get_output_path(output_dir, retrieve_args.dataset, "csv")
     # Beware xarray will silently ignore the chunk size if the dimension does not exist
     cdm_lite_dataset = xarray.open_dataset(
-        output_path_netcdf, chunks=dict(index=100000), decode_times=True
+        output_path_netcdf, chunks=dict(index=50000), decode_times=True
     )
     logger.info("Transforming netCDF to CSV")
     with output_path.open("w") as ofileobj:
@@ -26,8 +26,8 @@ def to_csv(
     # Beware this will not work with old dask versions because of a bug
     # https://github.com/dask/dask/issues/10414
     cdm_lite_dataset.to_dask_dataframe().astype("str").to_csv(
-        output_path, index=False, single_file=True, mode="a"
-    )
+        output_path, index=False, single_file=True, mode="a", compute=False
+    ).compute(optimize_graph=True)
     return output_path
 
 
@@ -63,8 +63,10 @@ def get_csv_header(
         cdm_lite_dataset.report_timestamp[-1].compute().dt.date
     )
     vars_and_units = zip(
-        numpy.unique(cdm_lite_dataset.observed_variable.to_index().str.decode("utf-8")),
-        numpy.unique(cdm_lite_dataset.units.to_index().str.decode("utf-8")),
+        dask.array.unique(cdm_lite_dataset.observed_variable.data)
+        .compute()
+        .astype("U"),
+        dask.array.unique(cdm_lite_dataset.units.data).compute().astype("U"),
     )
     varstr = "\n".join([f"# {v} [{u}]" for v, u in vars_and_units])
     header_params = dict(
