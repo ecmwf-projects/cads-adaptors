@@ -140,7 +140,7 @@ class AbstractAdaptor(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def estimate_costs(self, request: Request) -> dict[str, int]:
+    def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         pass
 
     @abc.abstractmethod

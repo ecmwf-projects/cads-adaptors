@@ -49,9 +49,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def apply_mapping(self, request: Request) -> Request:
         return mapping.apply_mapping(request, self.mapping)
 
-    def estimate_costs(
-        self, request: Request, cost_threshold: str = "max_costs"
-    ) -> dict[str, int]:
+    def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
+        cost_threshold = kwargs.get("cost_threshold", "max_costs")
         costing_config: dict[str, Any] = self.config.get("costing", dict())
         costing_kwargs: dict[str, Any] = costing_config.get("costing_kwargs", dict())
         cost_threshold = (
