@@ -14,8 +14,8 @@ classifiers = [
 ]
 dependencies = [
   "ecmwflibs",
-  "ek-aggregate",
-  "cfgrib",
+  "earthkit-aggregate>=0.1.5",
+  "cfgrib>=0.9.13.0",
   "cacholote",
   "multiurl>=0.3.1",
   "rooki",
@@ -23,7 +23,9 @@ dependencies = [
   "pyyaml",
   "tqdm",
   "DateTimeRange",
-  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git"
+  "jsonschema",
+  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
+  "aiohttp"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]

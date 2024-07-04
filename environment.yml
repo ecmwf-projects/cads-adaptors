@@ -12,14 +12,17 @@ dependencies:
 - requests
 - pandas
 - python-dateutil
-- cfgrib
+- cfgrib>=0.9.13.0
 - h5netcdf
 - wget
 - multiurl>=0.3.1
 - pyyaml
 - tqdm
 - DateTimeRange
+- jsonschema
+- fsspec
+- aiohttp
 - pip:
   - rooki
-  - earthkit-aggregate
+  - earthkit-aggregate>=0.1.5
   - git+https://github.com/ecmwf-projects/cads-mars-server

@@ -1,172 +1,158 @@
-import contextlib
-import datetime
 from pathlib import Path
 
-import pytest
-import xarray
-from numpy import nan
+import h5netcdf
+
+from cads_adaptors import ObservationsAdaptor
+
+CDM_LITE_VARIABLES = {
+    "mandatory": [
+        "observation_id",
+        "observed_variable",
+        "units",
+        "actual_time",
+        "agency",
+        "observation_value",
+        "observation_value_total_uncertainty",
+        "city",
+        "country",
+        "height_of_station_above_sea_level",
+        "latitude",
+        "longitude",
+        "z_coordinate",
+        "data_policy_licence",
+        "platform_type",
+        "primary_station_id",
+        "qc_method",
+        "quality_flag",
+        "report_id",
+        "report_timestamp",
+        "report_meaning_of_time_stamp",
+        "report_duration",
+        "report_type",
+        "sensor_id",
+        "source_id",
+        "station_name",
+        "z_coordinate_type",
+    ],
+    "optional": [
+        "source_id",
+        "product_citation",
+        "data_policy_licence",
+        "homogenization_adjustment",
+        "homogenization_method",
+        "number_of_observations",
+        "secondary_id",
+        "sensor_model",
+        "station_type",
+        "platform_type",
+        "report_type",
+        "station_automation",
+        "profile_id",
+        "z_coordinate",
+        "spatial_representativeness",
+        "exposure_of_sensor",
+        "fg_depar@body",
+        "an_depar@body",
+    ],
+    "auxiliary": [
+        "total_uncertainty",
+        "positive_total_uncertainty",
+        "negative_total_uncertainty",
+        "random_uncertainty",
+        "positive_random_uncertainty",
+        "negative_random_uncertainty",
+        "systematic_uncertainty",
+        "positive_systematic_uncertainty",
+        "negative_systematic_uncertainty",
+        "quasisystematic_uncertainty",
+        "positive_quasisystematic_uncertainty",
+        "negative_quasisystematic_uncertainty",
+        "flag",
+    ],
+}
 
 
-def mocked_retrieve_observations(
-    session, storage_url, retrieve_args, output_dir: Path, size_limit: int
-) -> Path:
-    dataset = xarray.Dataset.from_dict(
-        {
-            "coords": {},
-            "attrs": {
-                "featureType": "point",
+class MockerCadsobsApiClient:
+    def __init__(self, baseurl: str):
+        pass
+
+    def get_service_definition(self, dataset: str) -> dict:
+        return {
+            "global_attributes": {
                 "contactemail": "https://support.ecmwf.int",
                 "licence_list": "20180314_Copernicus_License_V1.1",
                 "responsible_organisation": "ECMWF",
-            },
-            "dims": {"index": 5},
-            "data_vars": {
-                "observation_id": {
-                    "dims": ("index",),
-                    "attrs": {},
-                    "data": [101, 102, 103, 104, 105],
-                },
-                "report_id": {"dims": ("index",), "attrs": {}, "data": [2, 2, 2, 2, 2]},
-                "platform_type": {
-                    "dims": ("index",),
-                    "attrs": {},
-                    "data": [b"STN", b"STN", b"STN", b"STN", b"STN"],
-                },
-                "primary_station_id": {
-                    "dims": ("index",),
-                    "attrs": {},
-                    "data": [b"7", b"7", b"7", b"7", b"7"],
-                },
-                "height_of_station_above_sea_level": {
-                    "dims": ("index",),
-                    "attrs": {"units": "m"},
-                    "data": [283.0, 283.0, 283.0, 283.0, 283.0],
-                },
-                "report_timestamp": {
-                    "dims": ("index",),
-                    "attrs": {"standard_name": "time"},
-                    "data": [
-                        datetime.datetime(1969, 2, 13, 5, 45),
-                        datetime.datetime(1969, 2, 13, 5, 45),
-                        datetime.datetime(1969, 2, 13, 5, 45),
-                        datetime.datetime(1969, 2, 13, 5, 45),
-                        datetime.datetime(1969, 2, 13, 5, 45),
-                    ],
-                },
-                "z_coordinate": {
-                    "dims": ("index",),
-                    "attrs": {},
-                    "data": [98510.0, 94160.0, 92500.0, 90000.0, 86070.0],
-                },
-                "z_coordinate_type": {
-                    "dims": ("index",),
-                    "attrs": {},
-                    "data": [
-                        b"pressure (Pa)",
-                        b"pressure (Pa)",
-                        b"pressure (Pa)",
-                        b"pressure (Pa)",
-                        b"pressure (Pa)",
-                    ],
-                },
-                "observed_variable": {
-                    "dims": ("index",),
-                    "attrs": {},
-                    "data": [
-                        b"air_temperature",
-                        b"air_temperature",
-                        b"air_temperature",
-                        b"air_temperature",
-                        b"air_temperature",
-                    ],
-                },
-                "observation_value": {
-                    "dims": ("index",),
-                    "attrs": {},
-                    "data": [
-                        290.45001220703125,
-                        287.8500061035156,
-                        286.8500061035156,
-                        285.25,
-                        283.45001220703125,
-                    ],
-                },
-                "units": {
-                    "dims": ("index",),
-                    "attrs": {},
-                    "data": [b"Kelvin", b"Kelvin", b"Kelvin", b"Kelvin", b"Kelvin"],
-                },
-                "sensor_id": {
-                    "dims": ("index",),
-                    "attrs": {},
-                    "data": [b"KC-68", b"KC-68", b"KC-68", b"KC-68", b"KC-68"],
-                },
-                "longitude|observations_table": {
-                    "dims": ("index",),
-                    "attrs": {},
-                    "data": [nan, nan, nan, nan, nan],
-                },
-                "latitude|observations_table": {
-                    "dims": ("index",),
-                    "attrs": {},
-                    "data": [nan, nan, nan, nan, nan],
-                },
-                "longitude": {
-                    "dims": ("index",),
-                    "attrs": {
-                        "cdm_table": "station_configuration",
-                        "standard_name": "longitude",
-                        "units": "degrees_east",
-                    },
-                    "data": [
-                        130.60000610351562,
-                        130.60000610351562,
-                        130.60000610351562,
-                        130.60000610351562,
-                        130.60000610351562,
-                    ],
-                },
-                "latitude": {
-                    "dims": ("index",),
-                    "attrs": {
-                        "cdm_table": "station_configuration",
-                        "standard_name": "latitude",
-                        "units": "degrees_north",
-                    },
-                    "data": [
-                        31.600000381469727,
-                        31.600000381469727,
-                        31.600000381469727,
-                        31.600000381469727,
-                        31.600000381469727,
-                    ],
-                },
-            },
+            }
         }
-    )
-    output_file = Path(output_dir, "test_cadsobs_adaptor.nc")
-    dataset.to_netcdf(output_file)
-    return output_file
+
+    def get_cdm_lite_variables(self):
+        return CDM_LITE_VARIABLES
+
+    def get_objects_to_retrieve(
+        self, dataset_name: str, mapped_request: dict, size_limit: int
+    ) -> list[str]:
+        return [
+            "https://object-store.os-api.cci2.ecmwf.int/"
+            "cds2-obs-alpha-insitu-observations-near-surface-temperature-us/"
+            "insitu-observations-near-surface-temperature-us-climate-reference-network_USCRN_DAILY_200808_30.0_-150.0.nc"
+        ]
+
+    def get_aux_var_mapping(
+        self, dataset: str, source: str
+    ) -> dict[str, list[dict[str, str]]]:
+        return {
+            "accumulated_precipitation": [],
+            "air_temperature": [
+                {
+                    "auxvar": "air_temperature_mean_positive_total_uncertainty",
+                    "metadata_name": "positive_total_uncertainty",
+                },
+                {
+                    "auxvar": "air_temperature_mean_negative_total_uncertainty",
+                    "metadata_name": "negative_total_uncertainty",
+                },
+            ],
+            "daily_maximum_air_temperature": [
+                {
+                    "auxvar": "air_temperature_max_positive_total_uncertainty",
+                    "metadata_name": "positive_total_uncertainty",
+                },
+                {
+                    "auxvar": "air_temperature_max_negative_total_uncertainty",
+                    "metadata_name": "negative_total_uncertainty",
+                },
+            ],
+            "daily_maximum_relative_humidity": [],
+            "daily_minimum_air_temperature": [
+                {
+                    "auxvar": "air_temperature_min_positive_total_uncertainty",
+                    "metadata_name": "positive_total_uncertainty",
+                },
+                {
+                    "auxvar": "air_temperature_min_negative_total_uncertainty",
+                    "metadata_name": "negative_total_uncertainty",
+                },
+            ],
+            "daily_minimum_relative_humidity": [],
+            "relative_humidity": [],
+        }
 
 
-def mocked_get_session(*args):
-    return contextlib.nullcontext()
-
-
-@pytest.mark.skip("Depends on cdsobs")
 def test_adaptor(tmp_path, monkeypatch):
-    from cads_adaptors import ObservationsAdaptor
-
     monkeypatch.setattr(
-        "cads_adaptors.adaptors.cadsobs.retrieve_observations",
-        mocked_retrieve_observations,
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        MockerCadsobsApiClient,
     )
     test_request = {
-        "observation_type": ["vertical_profile"],
+        "time_aggregation": "daily",
         "format": "netCDF",
-        "variable": ["air_temperature"],
-        "year": ["1969"],
-        "month": ["01"],
+        "variable": [
+            "maximum_air_temperature",
+            "maximum_air_temperature_negative_total_uncertainty",
+            "maximum_air_temperature_positive_total_uncertainty",
+        ],
+        "year": ["2007"],
+        "month": ["11"],
         "day": [
             "01",
             "02",
@@ -178,17 +164,41 @@ def test_adaptor(tmp_path, monkeypatch):
     # is not needed for this test
     test_adaptor_config = {
         "entry_point": "cads_adaptors:ObservationsAdaptor",
-        "collection_id": "insitu-observations-woudc-ozone-total-column-and-profiles",
-        "catalogue_url": "https://thisisatest.host.com",
-        "storage_url": "https://thisisatest.host.com:2223",
+        "collection_id": "insitu-observations-near-surface-temperature-us-climate-reference-network",
+        "obs_api_url": "http://localhost:8000",
         "mapping": {
             "remap": {
-                "observation_type": {
-                    "total_column": "TotalOzone",
-                    "vertical_profile": "OzoneSonde",
-                }
+                "time_aggregation": {
+                    "daily": "USCRN_DAILY",
+                    "hourly": "USCRN_HOURLY",
+                    "monthly": "USCRN_MONTHLY",
+                    "sub_hourly": "USCRN_SUBHOURLY",
+                },
+                "variable": {
+                    "maximum_air_temperature": "daily_maximum_air_temperature",
+                    "maximum_air_temperature_negative_total_uncertainty": "air_temperature_max_negative_total_uncertainty",  # noqa E501
+                    "maximum_air_temperature_positive_total_uncertainty": "air_temperature_max_positive_total_uncertainty",  # noqa E501
+                    "maximum_relative_humidity": "daily_maximum_relative_humidity",
+                    "maximum_soil_temperature": "hourly_maximum_soil_temperature",
+                    "maximum_soil_temperature_flag": "hourly_maximum_soil_temperature_flag",  # noqa E501
+                    "maximum_solar_irradiance": "hourly_maximum_downward_shortwave_irradiance_at_earth_surface",  # noqa E501
+                    "maximum_solar_irradiance_quality_flag": "hourly_maximum_downward_shortwave_irradiance_at_earth_surface_quality_flag",  # noqa E501
+                    "mean_air_temperature_negative_total_uncertainty": "air_temperature_mean_negative_total_uncertainty",  # noqa E501
+                    "mean_air_temperature_positive_total_uncertainty": "air_temperature_mean_positive_total_uncertainty",  # noqa E501
+                    "minimum_air_temperature": "daily_minimum_air_temperature",
+                    "minimum_air_temperature_negative_total_uncertainty": "air_temperature_min_negative_total_uncertainty",  # noqa E501
+                    "minimum_air_temperature_positive_total_uncertainty": "air_temperature_min_positive_total_uncertainty",  # noqa E501
+                    "minimum_relative_humidity": "daily_minimum_relative_humidity",
+                    "minimum_soil_temperature": "hourly_minimum_soil_temperature",
+                    "minimum_soil_temperature_quality_flag": "hourly_minimum_soil_temperature_quality_flag",  # noqa E501
+                    "minimum_solar_irradiance": "hourly_minimum_downward_shortwave_irradiance_at_earth_surface",  # noqa E501
+                    "minimum_solar_irradiance_quality_flag": "hourly_minimum_downward_shortwave_irradiance_at_earth_surface_quality_flag",  # noqa E501
+                    "solar_irradiance": "downward_shortwave_irradiance_at_earth_surface",
+                    "solar_irradiance_quality_flag": "downward_shortwave_irradiance_at_earth_surface_quality_flag",  # noqa E501
+                },
             },
-            "rename": {"observation_type": "dataset_source", "variable": "variables"},
+            "format": {"netcdf": "netCDF"},
+            "rename": {"time_aggregation": "dataset_source", "variable": "variables"},
             "force": {},
         },
     }
@@ -198,4 +208,5 @@ def test_adaptor(tmp_path, monkeypatch):
     with tempfile.open("wb") as tmpf:
         tmpf.write(result.read())
     assert tempfile.stat().st_size > 0
-    assert xarray.open_dataset(tempfile).observation_id.size > 0
+    actual = h5netcdf.File(tempfile)
+    assert actual.dimensions["index"].size > 0

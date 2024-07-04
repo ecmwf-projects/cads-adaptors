@@ -24,20 +24,23 @@ class MultiAdaptor(AbstractCdsAdaptor):
         this_request = {}
         # loop over keys in the full_request
         for key, req_vals in full_request.items():
-            # filter for values relevant to this_adaptor:
+            # If dont_split_key, then copy the key and values to the new request
             if key in ensure_list(dont_split_keys):
-                these_vals = req_vals
+                this_request[key] = req_vals
             else:
+                # filter for values relevant to this_adaptor:
                 these_vals = [
-                    v for v in ensure_list(req_vals) if v in this_values.get(key, [])
+                    v
+                    for v in ensure_list(req_vals)
+                    if str(v) in this_values.get(key, [])
                 ]
-            if len(these_vals) > 0:
-                # if values then add to request
-                this_request[key] = these_vals
-            elif key in required_keys:
-                # If a required key is missing, then return an empty dictionary.
-                #  optional keys must be set in the adaptor.json via gecko
-                return dict()
+                if len(these_vals) > 0:
+                    # if values then add to request
+                    this_request[key] = these_vals
+                elif key in required_keys:
+                    # If a required key is missing, then return an empty dictionary.
+                    #  optional keys must be set in the adaptor.json via gecko
+                    return dict()
 
         # Our request may not have included all keys, so do a final check that all required keys are present
         if not all([key in this_request for key in required_keys]):
@@ -124,29 +127,26 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
 class MultiMarsCdsAdaptor(MultiAdaptor):
     def convert_format(self, *args, **kwargs):
-        from cads_adaptors.adaptors.mars import convert_format
+        from cads_adaptors.tools.convertors import convert_format
 
         return convert_format(*args, **kwargs)
 
     def retrieve(self, request: Request):
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
+        import dask
+
         from cads_adaptors.adaptors.mars import execute_mars
         from cads_adaptors.tools import adaptor_tools
 
         # Format of data files, grib or netcdf
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
+        data_format = adaptor_tools.handle_data_format(data_format)
 
         # Account from some horribleness from teh legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
-
-        # Allow user to provide format conversion kwargs
-        convert_kwargs = {
-            **self.config.get("format_conversion_kwargs", dict()),
-            **request.pop("format_conversion_kwargs", dict()),
-        }
 
         self._pre_retrieve(request, default_download_format="as_source")
 
@@ -175,7 +175,8 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         )
         result = execute_mars(mapped_requests, context=self.context)
 
-        paths = self.convert_format(result, data_format, self.context, **convert_kwargs)
+        with dask.config.set(scheduler="threads"):
+            paths = self.convert_format(result, data_format, self.context, self.config)
 
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"

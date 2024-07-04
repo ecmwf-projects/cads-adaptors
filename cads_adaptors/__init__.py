@@ -58,6 +58,6 @@ __all__ = [
     "UrlCdsAdaptor",
     "MultiAdaptor",
     "MultiMarsCdsAdaptor",
-    "ObservationsAdaptor",
     "RoocsCdsAdaptor",
+    "ObservationsAdaptor",
 ]
