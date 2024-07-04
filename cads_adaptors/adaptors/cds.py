@@ -205,7 +205,7 @@ class GetEnvCdsAdaptor(AbstractCdsAdaptor):
                 with open("dummy_output.json", "w") as f:
                     json.dump(dict(os.environ), f, indent=2)
             return open("dummy_output.json")
-        
+
         with open("dummy_output.json", "w") as f:
             json.dump(dict(os.environ), f, indent=2)
 
