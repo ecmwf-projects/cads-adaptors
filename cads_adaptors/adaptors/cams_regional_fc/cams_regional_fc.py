@@ -97,6 +97,7 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
         leadtime_hour = requests[i]["leadtime_hour"]
         requests[i].pop('leadtime_hour', None)
         requests[i]["step"] = leadtime_hour
+        requests[i]["format"] = 'grib'
     context.add_stdout(f"----------> REQUESTS: {requests}")
     
     # If converting to NetCDF then different groups of grib files may need to be
