@@ -103,7 +103,7 @@ def api_retrieve(context, requests, regapi, dataset_dir,
         except RequestFailed as e:
             req = {x['url']: x['req'] for x in urlreqs}[e.url]
             raise Exception(
-                'Failed to retrieve data for ' + str(req) +
+                'Failed to retrieve data for ' + 'PLACEHOLDER' + # str(req) +
                 f' (code {e.status_code}). Please try again later') \
                 from None
 
