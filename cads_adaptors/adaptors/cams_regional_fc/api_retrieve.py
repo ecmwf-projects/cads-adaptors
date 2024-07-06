@@ -106,6 +106,7 @@ def api_retrieve(context, requests, regapi, dataset_dir,
             #     'Failed to retrieve data for ' + str(req) +
             #     f' (code {e.status_code}). Please try again later') \
             #     from None
+            return None
 
         # Ensure the next call to this routine does not happen less than
         # 1/max_rate seconds after the last API request
