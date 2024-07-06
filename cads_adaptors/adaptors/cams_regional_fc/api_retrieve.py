@@ -102,10 +102,10 @@ def api_retrieve(context, requests, regapi, dataset_dir,
             file = downloader.execute(urlreqs)
         except RequestFailed as e:
             req = {x['url']: x['req'] for x in urlreqs}[e.url]
-            raise Exception(
-                'Failed to retrieve data for ' + 'PLACEHOLDER' + # str(req) +
-                f' (code {e.status_code}). Please try again later') \
-                from None
+            # raise Exception(
+            #     'Failed to retrieve data for ' + str(req) +
+            #     f' (code {e.status_code}). Please try again later') \
+            #     from None
 
         # Ensure the next call to this routine does not happen less than
         # 1/max_rate seconds after the last API request
