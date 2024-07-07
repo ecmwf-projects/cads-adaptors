@@ -127,19 +127,20 @@ class RemoteCopier:
     def _copier(self):
         """Thread to copy tar files to remote hosts and untar"""
 
+        DO_COPY = False
         # Copy any tar files that exceed the max size
         while True:
             uhost = self.queue.get()
             if uhost is None:
                 break
-            self._copy_tar(uhost)
+            if DO_COPY: self._copy_tar(uhost)
         #self._logger.debug('REMCOP Expecting no more copy calls. Remaining '
         #                   'files are ' +
         #                   ', '.join(v['path'] for v in self._tf.values()))
 
         # Copy any remaining tar files
         for uhost in list(self._tf.keys()):
-            self._copy_tar(uhost)
+            if DO_COPY: self._copy_tar(uhost)
 
     def _copy_tar(self, uhost):
         """Copy tar file to remote host and untar"""
