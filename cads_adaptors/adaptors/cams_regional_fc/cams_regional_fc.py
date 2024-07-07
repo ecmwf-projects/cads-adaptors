@@ -30,6 +30,13 @@ from .api_retrieve import api_retrieve
 # when too many archived requests are blocking access to latest data
 ARCHIVED_OFF = False
 
+def do_second_mapping(mapping, requests):
+    for request in requests:
+        for widget in request:
+            if widget in mapping:
+                request[widget] = [mapping[widget][value] for value in request[widget]]
+    return requests
+
 def new_cams_regional_fc(context, config, requests, forms_dir=None):
     context.add_stdout("----------> Entering new_cams_regional_fc...")
     
@@ -40,6 +47,80 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
         logger=context)
     
     context.add_stdout(f"----------> integration_server: {config.get('integration_server', False)}")
+    
+    second_mapping_that_I_do_not_understand = {
+        "model": {
+            "chimere": "CHIMERE",
+            "dehm": "DEHM",
+            "emep": "EMEP",
+            "ensemble_median": "ENS",
+            "eurad_im": "EURADIM",
+            "gem_aq": "GEMAQ",
+            "lotos_euros": "LOTOS",
+            "match": "MATCH",
+            "minni": "MINNI",
+            "mocage": "MOCAGE",
+            "monarch": "MONARCH",
+            "silam": "SILAM"
+        },
+        "time": {
+            "00_00": "0000",
+            "01_00": "0100",
+            "02_00": "0200",
+            "03_00": "0300",
+            "04_00": "0400",
+            "05_00": "0500",
+            "06_00": "0600",
+            "07_00": "0700",
+            "08_00": "0800",
+            "09_00": "0900",
+            "10_00": "1000",
+            "11_00": "1100",
+            "12_00": "1200",
+            "13_00": "1300",
+            "14_00": "1400",
+            "15_00": "1500",
+            "16_00": "1600",
+            "17_00": "1700",
+            "18_00": "1800",
+            "19_00": "1900",
+            "20_00": "2000",
+            "21_00": "2100",
+            "22_00": "2200",
+            "23_00": "2300"
+        },
+        "variable": {
+            "alder_pollen": "C_POL_ALDER",
+            "ammonia": "NH3_USI",
+            "birch_pollen": "C_POL_BIRCH",
+            "carbon_monoxide": "CO_USI",
+            "dust": "DUST_USI",
+            "formaldehyde": "HCHO_USI",
+            "glyoxal": "CHOCHO_USI",
+            "grass_pollen": "C_POL_GRASS",
+            "mugwort_pollen": "C_POL_MUGW",
+            "nitrogen_dioxide": "NO2_USI",
+            "nitrogen_monoxide": "NO_USI",
+            "non_methane_vocs": "NMVOC_USI",
+            "olive_pollen": "C_POL_OLIVE",
+            "ozone": "O3_USI",
+            "particulate_matter_10um": "PM10_USI",
+            "particulate_matter_2.5um": "PM25_USI",
+            "peroxyacyl_nitrates": "PANS_USI",
+            "pm10_sea_salt_dry": "DYNSAL_USI",
+            "pm10_wildfires": "PM_WF_USI",
+            "pm2.5_anthropogenic_fossil_fuel_carbon": "EC_FF_USI",
+            "pm2.5_anthropogenic_wood_burning_carbon": "EC_WB_USI",
+            "pm2.5_total_organic_matter": "PM25_OM_USI",
+            "ragweed_pollen": "C_POL_RAGW",
+            "residential_elementary_carbon": "EC_RES_USI",
+            "secondary_inorganic_aerosol": "SIA_USI",
+            "sulphur_dioxide": "SO2_USI",
+            "total_elementary_carbon": "EC_TOT_USI"
+        }
+    }
+    
+    requests = do_second_mapping(second_mapping_that_I_do_not_understand, requests)
     
     context.request = {"mapping": {
             "remap": {
