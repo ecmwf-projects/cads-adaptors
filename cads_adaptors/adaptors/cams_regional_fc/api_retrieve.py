@@ -37,7 +37,7 @@ def api_retrieve(context, requests, regapi, dataset_dir,
                     lambda req: ('ConnectionResetError' in str(req['status'])
                                  and req['attempt'] < 10),
                 404: 1,
-                400: 1},
+                400: 10},
             'request_timeout': [60, 600],  # The read timeout is set to 600s
                                            # to match same timeout on MF side
         },
