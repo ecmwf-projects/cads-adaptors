@@ -40,7 +40,7 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
         logger=context)
     
     context.add_stdout(f"----------> integration_server: {config.get('integration_server', False)}")
-    
+        
     context.request = {"mapping": {
             "remap": {
                 "model": {
@@ -76,13 +76,33 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
                     "23_00": "23:00"
                 },
                 "variable": {
-                    "particulate_matter_10_\u00b5m": "particulate_matter_10um",
-                    "particulate_matter_2_5_\u00b5m": "particulate_matter_2.5um",
-                    "pm10_sea_salt_only": "pm10_sea_salt_dry",
-                    "pm10_wildfires_only": "pm10_wildfires",
-                    "pm2_5_anthropogenic_fossil_fuel_carbon_only": "pm2.5_anthropogenic_fossil_fuel_carbon",
-                    "pm2_5_anthropogenic_wood_burning_carbon_only": "pm2.5_anthropogenic_wood_burning_carbon",
-                    "pm2_5_total_organic_matter_only": "pm2.5_total_organic_matter"
+                    "alder_pollen": "C_POL_ALDER",
+                    "ammonia": "NH3_USI",
+                    "birch_pollen": "C_POL_BIRCH",
+                    "carbon_monoxide": "CO_USI",
+                    "dust": "DUST_USI",
+                    "formaldehyde": "HCHO_USI",
+                    "glyoxal": "CHOCHO_USI",
+                    "grass_pollen": "C_POL_GRASS",
+                    "mugwort_pollen": "C_POL_MUGW",
+                    "nitrogen_dioxide": "NO2_USI",
+                    "nitrogen_monoxide": "NO_USI",
+                    "non_methane_vocs": "NMVOC_USI",
+                    "olive_pollen": "C_POL_OLIVE",
+                    "ozone": "O3_USI",
+                    "particulate_matter_10um": "PM10_USI",
+                    "particulate_matter_2.5um": "PM25_USI",
+                    "peroxyacyl_nitrates": "PANS_USI",
+                    "pm10_sea_salt_dry": "DYNSAL_USI",
+                    "pm10_wildfires": "PM_WF_USI",
+                    "pm2.5_anthropogenic_fossil_fuel_carbon": "EC_FF_USI",
+                    "pm2.5_anthropogenic_wood_burning_carbon": "EC_WB_USI",
+                    "pm2.5_total_organic_matter": "PM25_OM_USI",
+                    "ragweed_pollen": "C_POL_RAGW",
+                    "residential_elementary_carbon": "EC_RES_USI",
+                    "secondary_inorganic_aerosol": "SIA_USI",
+                    "sulphur_dioxide": "SO2_USI",
+                    "total_elementary_carbon": "EC_TOT_USI"
                 }
             },
             "rename": {
