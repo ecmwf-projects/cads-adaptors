@@ -23,8 +23,12 @@ def _reorganise_open_dataset_and_to_netcdf_kwargs(
     to_netcdf_kwargs = {
         **post_processing_kwargs.pop("to_netcdf_kwargs", dict()),
     }
+    
     # rename and expand_dims is now done as a "post open" step, to assist in other post-processing
-    post_open_datasets_kwargs = config.get("post_open_datasets_kwargs", {})
+    #  Due to a bug, we allow this to be stored in the top level of the config
+    post_open_datasets_kwargs = post_processing_kwargs.get(
+        "post_open_datasets_kwargs", config.get("post_open_datasets_kwargs", {})
+    )
     for key in ["rename", "expand_dims"]:
         if key in to_netcdf_kwargs:
             post_open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
