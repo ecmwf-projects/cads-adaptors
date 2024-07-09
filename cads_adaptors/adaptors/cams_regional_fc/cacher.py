@@ -217,7 +217,10 @@ class Cacher:
 
         path = self.temp_cache_root + '/' + self.cache_field_path(field)
         #url = 'http://' + socket.gethostbyname(host) + path
-        url = 'http://' + self.compute_dns[host] + path
+        if host != "localhost":
+            url = 'http://' + self.compute_dns[host] + path
+        else:
+            url = path
 
         return (host, path, url)
 
