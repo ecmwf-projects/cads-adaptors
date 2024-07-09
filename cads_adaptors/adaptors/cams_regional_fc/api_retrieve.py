@@ -78,6 +78,7 @@ def api_retrieve(context, requests, regapi, dataset_dir,
     with Cacher(context, no_put=no_cache_put) as cacher:
 
         # Create an object that will allow URL downloading in parallel
+        context.create_result_file(".json")
         downloader = Downloader(
             context,
             getter=getter,
