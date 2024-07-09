@@ -52,6 +52,7 @@ def convert_format(
     post_open_kwargs: dict[str, Any] = post_processing_kwargs.get(
         "post_open_datasets_kwargs", {}
     )
+    print(post_processing_kwargs)
     print(post_open_kwargs)
     print(config.keys())
 
