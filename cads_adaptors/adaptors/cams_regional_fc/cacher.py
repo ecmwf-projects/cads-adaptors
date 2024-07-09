@@ -213,7 +213,7 @@ class Cacher:
         if len(self.compute_nodes):
             host = self.compute_nodes[(day - 1) % len(self.compute_nodes)]
         else:
-            host = self.compute_nodes[0]
+            host = "localhost"
 
         path = self.temp_cache_root + '/' + self.cache_field_path(field)
         #url = 'http://' + socket.gethostbyname(host) + path
