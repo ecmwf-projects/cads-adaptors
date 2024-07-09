@@ -210,7 +210,10 @@ class Cacher:
         # Distribute the cache across the compute nodes by field day-of-month
         day = int(field['date'].split('-')[-1])
         assert day >= 1 and day <= 31
-        host = self.compute_nodes[(day - 1) % len(self.compute_nodes)]
+        if len(self.compute_nodes):
+            host = self.compute_nodes[(day - 1) % len(self.compute_nodes)]
+        else:
+            host = self.compute_nodes[0]
 
         path = self.temp_cache_root + '/' + self.cache_field_path(field)
         #url = 'http://' + socket.gethostbyname(host) + path
