@@ -558,7 +558,7 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
 
     if result is not None:
         # Download result to a local file
-        context.info("---------------------------------------->",result)
+        context.info(f"----------------------------------------> {result}")
         grib_file = context.get_data(result)
         req_group['retrieved_files'] = req_group.get('retrieved_files', []) + \
                                        [grib_file]
