@@ -172,6 +172,8 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
         }
     }
     
+    context.create_result_file(".alabala")
+    
     # Pre-process requests
     requests, info = preprocess_requests(context, requests, regapi)
     for i in range(len(requests)):
