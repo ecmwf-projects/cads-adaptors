@@ -175,6 +175,9 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         )
         result = execute_mars(mapped_requests, context=self.context)
 
+        print(self.config.keys())
+        print(self.config.get("post_processing_kwargs", "No post_processing_kwargs"))
+
         with dask.config.set(scheduler="threads"):
             paths = self.convert_format(result, data_format, self.context, self.config)
 
