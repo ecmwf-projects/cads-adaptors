@@ -13,6 +13,9 @@ from cads_adaptors.validation import enforce
 def _reorganise_open_dataset_and_to_netcdf_kwargs(
     config: dict[str, Any],
 ) -> dict[str, Any]:
+    
+    print(config.keys())
+
     # If defined in older "format_conversion_kwargs" then rename as post_processing_kwargs.
     #  Preference for post_processing_kwargs over format_conversion_kwargs
     post_processing_kwargs: dict[str, Any] = {
@@ -20,15 +23,21 @@ def _reorganise_open_dataset_and_to_netcdf_kwargs(
         **config.pop("post_processing_kwargs", dict()),
     }
 
+    print(post_processing_kwargs)
+
     to_netcdf_kwargs = {
         **post_processing_kwargs.pop("to_netcdf_kwargs", dict()),
     }
+    print(to_netcdf_kwargs)
+
     # rename and expand_dims is now done as a "post open" step, to assist in other post-processing
     post_open_datasets_kwargs = config.get("post_open_datasets_kwargs", {})
+    print(post_open_datasets_kwargs)
     for key in ["rename", "expand_dims"]:
         if key in to_netcdf_kwargs:
             post_open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
 
+    print(post_open_datasets_kwargs)
     post_processing_kwargs.update(
         {
             "post_open_datasets_kwargs": post_open_datasets_kwargs,
@@ -36,6 +45,7 @@ def _reorganise_open_dataset_and_to_netcdf_kwargs(
         }
     )
     config.update({"post_processing_kwargs": post_processing_kwargs})
+    print(config["post_processing_kwargs"])
     return config
 
 
