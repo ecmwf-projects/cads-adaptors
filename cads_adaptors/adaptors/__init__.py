@@ -76,13 +76,6 @@ class Context:
 
     def exception(self, *args, **kwargs):
         self.add_stderr(*args, log_type="exception", **kwargs)
-        
-    def create_result_file(self, extension):
-        class MockResultFile():
-            def __init__(self):
-                self.path = 'alabala.txt'
-        self.add_stdout("----------> MOCK RESULT FILE HERE")
-        return MockResultFile()
 
 
 import inspect
