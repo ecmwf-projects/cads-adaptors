@@ -222,7 +222,13 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     
     # Retrieve non-local archived (slow-access) fields
     get_archived(req_groups, regapi, dataset_dir, context)
-    return req_groups
+    
+    # Remove groups that had no matching data
+    req_groups = [x for x in req_groups if 'retrieved_files' in x]
+    if not req_groups:
+        raise NoDataException('No data found for this request', '')
+    
+    return req_groups[0]
 
 
 def cams_regional_fc(context, requests, forms_dir=None):
@@ -559,7 +565,7 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     if result is not None:
         # Download result to a local file
         context.info(f"----------------------------------------> {result}")
-        grib_file = context.get_data(result)
+        grib_file = result #context.get_data(result)
         req_group['retrieved_files'] = req_group.get('retrieved_files', []) + \
                                        [grib_file]
     else:
