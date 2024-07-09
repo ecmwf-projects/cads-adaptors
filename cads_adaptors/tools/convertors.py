@@ -456,7 +456,7 @@ def safely_rename_variable(dataset: xr.Dataset, rename: dict[str, str]) -> xr.Da
             )
 
     for old_name in rename_order:
-        dataset = dataset.rename({old_name: rename[new_name]})
+        dataset = dataset.rename({old_name: rename[old_name]})
 
     return dataset
 
