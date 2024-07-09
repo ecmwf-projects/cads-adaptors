@@ -186,10 +186,10 @@ def test_safely_rename_variable():
     assert "temperature" not in ds_1
     assert "temp" in ds_1
 
-
     ds_2 = convertors.safely_rename_variable(ds, {"time": "valid_time"})
     assert "time" not in ds_2
     assert "valid_time" in ds_2
+
 
 def test_safely_expand_dims():
     import xarray as xr
@@ -198,11 +198,11 @@ def test_safely_expand_dims():
         {
             "temperature": xr.DataArray([1, 2, 3], dims="time"),
         },
-        coords = {
+        coords={
             "lat": xr.DataArray(1),
             "lon": xr.DataArray(2),
             "time": xr.DataArray([1, 2, 3], dims="time"),
-        }
+        },
     )
     assert "lat" not in ds.dims
     assert "lon" not in ds.dims
