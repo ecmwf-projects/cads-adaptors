@@ -228,7 +228,7 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     if not req_groups:
         raise NoDataException('No data found for this request', '')
     
-    return req_groups[0]
+    return req_groups[0]['retrieved_files'][0]
 
 
 def cams_regional_fc(context, requests, forms_dir=None):
