@@ -78,7 +78,11 @@ class Context:
         self.add_stderr(*args, log_type="exception", **kwargs)
         
     def create_result_file(self, extension):
-        return ResultFile(self.cdsinf, extension)
+        class MockResultFile():
+            def __init__(self):
+                self.path = 'alabala.txt'
+        self.add_stdout("----------> MOCK RESULT FILE HERE")
+        return MockResultFile()
 
 
 import inspect
