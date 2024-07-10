@@ -28,6 +28,7 @@ all = [
   "earthkit-aggregate>=0.1.5",
   "cfgrib>=0.9.13.0",
   "cacholote",
+  "h5netcdf",
   "multiurl>=0.3.1",
   "rooki",
   "python-dateutil",
