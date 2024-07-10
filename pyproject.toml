@@ -39,7 +39,8 @@ complete = [
 ]
 tests = [
   "pytest",
-  "pytest-cov"
+  "pytest-cov",
+  "pytest-localftpserver"
 ]
 
 [tool.coverage.run]
