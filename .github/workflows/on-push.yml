@@ -144,7 +144,7 @@ jobs:
   integration-tests:
     needs: [combine-environments, unit-tests]
     if: |
-      success() && false
+      success() && true
     runs-on: ubuntu-latest
 
     strategy:
@@ -171,9 +171,9 @@ jobs:
         cache-downloads-key: downloads-${{ steps.date.outputs.date }}
         create-args: >-
           python=${{ matrix.python-version }}
-    - name: Install package
+    - name: Install package and optional dependencies using pip
       run: |
-        python -m pip install --no-deps -e .
+        python -m pip install -e .[all]
     - name: Run tests
       run: |
         make unit-tests COV_REPORT=xml

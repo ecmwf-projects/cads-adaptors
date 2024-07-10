@@ -13,6 +13,17 @@ classifiers = [
   "Topic :: Scientific/Engineering"
 ]
 dependencies = [
+  "DateTimeRange",
+  "jsonschema"
+]
+description = "CADS data retrieve utilities to be used by adaptors"
+dynamic = ["version"]
+license = {file = "LICENSE"}
+name = "cads-adaptors"
+readme = "README.md"
+
+[project.optional-dependencies]
+all = [
   "ecmwflibs",
   "earthkit-aggregate>=0.1.5",
   "cfgrib>=0.9.13.0",
@@ -22,16 +33,9 @@ dependencies = [
   "python-dateutil",
   "pyyaml",
   "tqdm",
-  "DateTimeRange",
-  "jsonschema",
   "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
   "aiohttp"
 ]
-description = "CADS data retrieve utilities to be used by adaptors"
-dynamic = ["version"]
-license = {file = "LICENSE"}
-name = "cads-adaptors"
-readme = "README.md"
 
 [tool.coverage.run]
 branch = true
