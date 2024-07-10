@@ -23,7 +23,7 @@ name = "cads-adaptors"
 readme = "README.md"
 
 [project.optional-dependencies]
-all = [
+complete = [
   "ecmwflibs",
   "earthkit-aggregate>=0.1.5",
   "cfgrib>=0.9.13.0",
@@ -36,6 +36,10 @@ all = [
   "tqdm",
   "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
   "aiohttp"
+]
+tests = [
+  "pytest",
+  "pytest-cov"
 ]
 
 [tool.coverage.run]
