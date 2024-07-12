@@ -303,9 +303,9 @@ def result_to_netcdf_legacy_files(
     if filter_rules:
         # Filter the grib files to netCDFable chunks (in replacement of split_on in legacy system)
         here = os.getcwd()
-        os.system(f"echo {filter_rules} > {here}/filter_rules")
-        print(here, filter_rules)
-        os.system(f"cat {here}/filter_rules")
+        with open(f"{here}/filter_rules", "w") as f:
+            f.write(filter_rules)
+        os.system(f"echo POTATO; cat {here}/filter_rules")
         filtered_results = {}
         for out_fname_base, grib_file in result.items():
             import glob
