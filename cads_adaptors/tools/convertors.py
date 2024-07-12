@@ -322,8 +322,12 @@ def result_to_netcdf_legacy_files(
                 filtered_results[f"{out_fname_base}_{filter_base}"] = filter_file
         result = filtered_results
 
+    nc_files = []
     for out_fname_base, grib_file in result.items():
+        nc_files.append(f"{out_fname_base}.nc")
         os.system(f"{command} -o {out_fname_base}.nc  {grib_file}")
+    
+    return nc_files
 
 
 def unknown_filetype_to_grib_files(
