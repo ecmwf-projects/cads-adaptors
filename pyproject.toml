@@ -13,6 +13,7 @@ classifiers = [
   "Topic :: Scientific/Engineering"
 ]
 dependencies = [
+  # Only mandatory dependencies required by the broker and retrieve-api images
   "DateTimeRange",
   "jsonschema"
 ]
@@ -24,6 +25,7 @@ readme = "README.md"
 
 [project.optional-dependencies]
 complete = [
+  # Additional dependencies required by the worker image
   "ecmwflibs",
   "earthkit-aggregate>=0.1.5",
   "cfgrib>=0.9.13.0",
