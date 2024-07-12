@@ -254,7 +254,8 @@ def result_to_netcdf_legacy_files(
     Converts to netCDF3 only.
     """
     context.add_user_visible_error(
-        "The 'netcdf_legacy' format is deprecated and no longer supported, please use 'netcdf' instead."
+        "The 'netcdf_legacy' format is deprecated and no longer supported. "
+        "Users are encouraged to update workflows to use the updated, and CF compliant, 'netcdf' option."
     )
     context.add_stdout(
         f"Converting result ({result}) to legacy netCDF files with grib_to_netcdf"
