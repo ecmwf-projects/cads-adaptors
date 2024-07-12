@@ -315,8 +315,9 @@ def result_to_netcdf_legacy_files(
             os.chdir(temp_filter_folder)
             os.system(
                 f"echo {filter_rules} > {out_fname_base}.filter_rules && "
-                f"grib_filter {out_fname_base}.filter_rules {full_grib_path};"
-                f"rm {out_fname_base}.filter_rules"
+                f"grib_filter {out_fname_base}.filter_rules {full_grib_path} &&"
+                f"rm {out_fname_base}.filter_rules &&"
+                f"ls"
             )
             os.chdir(here)
             for filter_file in glob.glob(f"{temp_filter_folder}/*.grib*"):
