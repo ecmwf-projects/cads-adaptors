@@ -299,7 +299,6 @@ def result_to_netcdf_legacy_files(
             context=context,
             thisError=ValueError,
         )
-    print(f"grib_to_netcdf in results: {result}")
 
     if filter_rules:
         # Filter the grib files to netCDFable chunks (in replacement of split_on in legacy system)
@@ -324,14 +323,13 @@ def result_to_netcdf_legacy_files(
                 filtered_results[f"{out_fname_base}_{filter_base}"] = filter_file
         result = filtered_results
 
-    print(f"Grib files for conversion: {result}")
     nc_files = []
     for out_fname_base, grib_file in result.items():
         out_fname = f"{out_fname_base}.nc"
         nc_files.append(out_fname)
         command = ensure_list(command)
         os.system(" ".join(command + ["-o", out_fname, grib_file]))
-    
+
     return nc_files
 
 
