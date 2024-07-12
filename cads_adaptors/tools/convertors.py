@@ -298,6 +298,7 @@ def result_to_netcdf_legacy_files(
             context=context,
             thisError=ValueError,
         )
+    print(f"grib_to_netcdf in results: {result}")
 
     if filter_rules:
         # Filter the grib files to netCDFable chunks (in replacement of split_on in legacy system)
