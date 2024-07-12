@@ -58,6 +58,7 @@ def convert_format(
 
     convertor: None | Callable = {
         "netcdf": result_to_netcdf_files,
+        "netcdf_legacy": result_to_netcdf_legacy_files,
         "grib": result_to_grib_files,
     }.get(target_format, None)
 
@@ -238,6 +239,91 @@ def result_to_netcdf_files(
             context=context,
             thisError=ValueError,
         )
+
+
+def result_to_netcdf_legacy_files(
+    result: Any,
+    context: Context = Context(),
+    command: str = "grib_to_netcdf -S param",
+    filter_rules: str | None = None,
+    **kwargs,
+) -> list[str]:
+    """
+    Legacy grib_to_netcdf convertor, which will be marked as deprecated.
+    Can only accept a grib file, or list/dict of grib files as input.
+    Converts to netCDF3 only.
+    """
+    context.add_user_visible_error(
+        "The 'netcdf_legacy' format is deprecated and no longer supported, please use 'netcdf' instead."
+    )
+    context.add_stdout(
+        f"Converting result ({result}) to legacy netCDF files with grib_to_netcdf"
+    )
+
+    # Check result is a single grib_file or a list/dict of grib_files
+    if isinstance(result, str):
+        assert (
+            result.endswith(".grib") or result.endswith(".grib2")
+        ), f"The 'netcdf_legacy' format can only accept a grib files as input. File received: {result}"
+        fname, _ = os.path.splitext(os.path.basename(result))
+        result = {fname: result}
+
+    elif isinstance(result, list):
+        # Ensure objects are same type (This may not be necessary, but it probably implies something is wrong)
+        results_types: list[type] = list(set([type(r) for r in result]))
+        result_type = results_types[0]
+        assert (
+            len(results_types) == 1
+            and result_type == str
+            and (result[0].endswith(".grib") or result[0].endswith(".grib2"))
+        ), f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {results_types}"
+
+        result = {
+            os.path.splitext(os.path.basename(result))[0]: result for result in result
+        }
+    elif isinstance(result, dict):
+        # Ensure all values are of the same type
+        # (This may not be necessary, but it probably implies something is wrong)
+        result_types = list(set([type(r) for r in result.values()]))
+        result_type = result_types[0]
+        assert (
+            len(result_types) == 1
+            and result_type == str
+            and (result[0].endswith(".grib") or result[0].endswith(".grib2"))
+        ), f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {results_types}"
+
+    else:
+        add_user_log_and_raise_error(
+            f"Unable to convert result of type {type(result)} to 'netcdf_legacy' files. result:\n{result}",
+            context=context,
+            thisError=ValueError,
+        )
+
+    if filter_rules:
+        filtered_results = {}
+        for out_fname_base, grib_file in result.items():
+            import glob
+
+            here = os.getcwd()
+            full_grib_path = os.path.realpath(grib_file)
+            temp_filter_folder = (
+                f"{os.path.dirname(grib_file)}/{out_fname_base}.filtered"
+            )
+            os.makedirs(temp_filter_folder, exist_ok=True)
+            os.chdir(temp_filter_folder)
+            os.system(
+                f"echo {filter_rules} > {out_fname_base}.filter_rules && "
+                f"grib_filter {out_fname_base}.filter_rules {full_grib_path};"
+                f"rm {out_fname_base}.filter_rules"
+            )
+            os.chdir(here)
+            for filter_file in glob.glob(f"{temp_filter_folder}/*.grib*"):
+                filter_base = os.path.splitext(os.path.basename(filter_file))
+                filtered_results[f"{out_fname_base}_{filter_base}"] = filter_file
+        result = filtered_results
+
+    for out_fname_base, grib_file in result.items():
+        os.system(f"{command} -o {out_fname_base}.nc  {grib_file}")
 
 
 def unknown_filetype_to_grib_files(
