@@ -330,6 +330,13 @@ def result_to_netcdf_legacy_files(
         command = ensure_list(command)
         os.system(" ".join(command + ["-o", out_fname, grib_file]))
 
+    if len(nc_files) == 0:
+        message = (
+            "We are unable to convert this GRIB data to netCDF, "
+            "please download as GRIB and convert to netCDF locally.\n"
+        )
+        add_user_log_and_raise_error(message, context=context, thisError=RuntimeError)
+    
     return nc_files
 
 
