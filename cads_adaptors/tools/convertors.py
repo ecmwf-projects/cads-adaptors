@@ -244,7 +244,7 @@ def result_to_netcdf_files(
 def result_to_netcdf_legacy_files(
     result: Any,
     context: Context = Context(),
-    command: str = "grib_to_netcdf -S param",
+    command: str | list[str] = ["grib_to_netcdf", "-S", "param"],
     filter_rules: str | None = None,
     **kwargs,
 ) -> list[str]:
@@ -300,6 +300,7 @@ def result_to_netcdf_legacy_files(
         )
 
     if filter_rules:
+        # Filter the grib files to netCDFable chunks (in replacement of split_on in legacy system)
         filtered_results = {}
         for out_fname_base, grib_file in result.items():
             import glob
@@ -307,7 +308,7 @@ def result_to_netcdf_legacy_files(
             here = os.getcwd()
             full_grib_path = os.path.realpath(grib_file)
             temp_filter_folder = (
-                f"{os.path.dirname(grib_file)}/{out_fname_base}.filtered"
+                f"{os.path.dirname(full_grib_path)}/{out_fname_base}.filtered"
             )
             os.makedirs(temp_filter_folder, exist_ok=True)
             os.chdir(temp_filter_folder)
@@ -324,8 +325,10 @@ def result_to_netcdf_legacy_files(
 
     nc_files = []
     for out_fname_base, grib_file in result.items():
-        nc_files.append(f"{out_fname_base}.nc")
-        os.system(f"{command} -o {out_fname_base}.nc  {grib_file}")
+        out_fname = f"{out_fname_base}.nc"
+        nc_files.append(out_fname)
+        command = ensure_list(command)
+        os.system(" ".join(command + ["-o", out_fname, grib_file]))
     
     return nc_files
 
