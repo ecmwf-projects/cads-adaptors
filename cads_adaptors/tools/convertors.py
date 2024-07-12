@@ -304,12 +304,12 @@ def result_to_netcdf_legacy_files(
         # Filter the grib files to netCDFable chunks (in replacement of split_on in legacy system)
         here = os.getcwd()
         os.system(f"echo {filter_rules} > {here}/filter_rules")
-        print(filter_rules)
+        print(here, filter_rules)
         os.system(f"cat {here}/filter_rules")
         filtered_results = {}
         for out_fname_base, grib_file in result.items():
             import glob
-
+            print(out_fname_base)
             full_grib_path = os.path.realpath(grib_file)
             temp_filter_folder = (
                 f"{os.path.dirname(full_grib_path)}/{out_fname_base}.filtered"
@@ -322,6 +322,7 @@ def result_to_netcdf_legacy_files(
             )
             os.chdir(here)
             for filter_file in glob.glob(f"{temp_filter_folder}/*.grib*"):
+                print(filter_file)
                 filter_base = os.path.splitext(os.path.basename(filter_file))
                 filtered_results[f"{out_fname_base}_{filter_base}"] = filter_file
         result = filtered_results
