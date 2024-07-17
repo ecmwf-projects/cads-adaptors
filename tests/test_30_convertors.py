@@ -129,6 +129,7 @@ def test_grib_to_netcdf():
 EXTENSION_MAPPING = {
     "grib": ".grib",
     "netcdf": ".nc",
+    "netcdf_legacy": ".nc",
 }
 
 
@@ -169,6 +170,24 @@ def test_convert_format_to_grib(url, target_format="grib"):
         # Can't convert from netcdf to grib yet, so ensure in extension is the same as input
         _, out_ext = os.path.splitext(converted_files[0])
         assert out_ext == ext
+
+
+def test_convert_format_to_netcdf_legacy(url=TEST_GRIB_FILE, target_format="netcdf_legacy"):
+    remote_file = requests.get(url)
+    _, ext = os.path.splitext(url)
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        os.chdir(tmpdirname)
+        tmp_file = f"test.{ext}"
+        with open(tmp_file, "wb") as f:
+            f.write(remote_file.content)
+
+        converted_files = convertors.convert_format(
+            tmp_file, target_format=target_format
+        )
+        assert isinstance(converted_files, list)
+        assert len(converted_files) == 1
+        _, out_ext = os.path.splitext(converted_files[0])
+        assert out_ext == EXTENSION_MAPPING.get(target_format, f".{target_format}")
 
 
 def test_safely_rename_variable():
