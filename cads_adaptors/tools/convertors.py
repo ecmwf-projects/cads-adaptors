@@ -56,11 +56,7 @@ def convert_format(
     # Keywords specific to writing to the target format
     to_target_kwargs: dict[str, Any] = config.get(f"to_{target_format}_kwargs", {})
 
-    convertor: None | Callable = {
-        "netcdf": result_to_netcdf_files,
-        "netcdf_legacy": result_to_netcdf_legacy_files,
-        "grib": result_to_grib_files,
-    }.get(target_format, None)
+    convertor: None | Callable = CONVERTORS.get(target_format, None)
 
     if convertor is not None:
         return convertor(
@@ -337,6 +333,13 @@ def result_to_netcdf_legacy_files(
         add_user_log_and_raise_error(message, context=context, thisError=RuntimeError)
 
     return nc_files
+
+
+CONVERTORS: dict[str, Callable] = {
+    "netcdf": result_to_netcdf_files,
+    "netcdf_legacy": result_to_netcdf_legacy_files,
+    "grib": result_to_grib_files,
+}
 
 
 def unknown_filetype_to_grib_files(
