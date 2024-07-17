@@ -271,13 +271,13 @@ def result_to_netcdf_legacy_files(
 
     elif isinstance(result, list):
         # Ensure objects are same type (This may not be necessary, but it probably implies something is wrong)
-        results_types: list[type] = list(set([type(r) for r in result]))
-        result_type = results_types[0]
+        result_types: list[type] = list(set([type(r) for r in result]))
+        result_type = result_types[0]
         assert (
-            len(results_types) == 1
+            len(result_types) == 1
             and result_type == str
             and (result[0].endswith(".grib") or result[0].endswith(".grib2"))
-        ), f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {results_types}"
+        ), f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {result_types}"
 
         result = {
             os.path.splitext(os.path.basename(result))[0]: result for result in result
@@ -291,7 +291,7 @@ def result_to_netcdf_legacy_files(
             len(result_types) == 1
             and result_type == str
             and (result[0].endswith(".grib") or result[0].endswith(".grib2"))
-        ), f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {results_types}"
+        ), f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {result_types}"
 
     else:
         add_user_log_and_raise_error(
@@ -308,15 +308,14 @@ def result_to_netcdf_legacy_files(
         filtered_results = {}
         for out_fname_base, grib_file in result.items():
             import glob
+
             full_grib_path = os.path.realpath(grib_file)
             temp_filter_folder = (
                 f"{os.path.dirname(full_grib_path)}/{out_fname_base}.filtered"
             )
             os.makedirs(temp_filter_folder, exist_ok=True)
             os.chdir(temp_filter_folder)
-            os.system(
-                f"grib_filter {here}/filter_rules {full_grib_path}"
-            )
+            os.system(f"grib_filter {here}/filter_rules {full_grib_path}")
             os.chdir(here)
             for filter_file in glob.glob(f"{temp_filter_folder}/*.grib*"):
                 filter_base = os.path.splitext(os.path.basename(filter_file))[0]
@@ -336,7 +335,7 @@ def result_to_netcdf_legacy_files(
             "please download as GRIB and convert to netCDF locally.\n"
         )
         add_user_log_and_raise_error(message, context=context, thisError=RuntimeError)
-    
+
     return nc_files
 
 
