@@ -172,7 +172,9 @@ def test_convert_format_to_grib(url, target_format="grib"):
         assert out_ext == ext
 
 
-def test_convert_format_to_netcdf_legacy(url=TEST_GRIB_FILE, target_format="netcdf_legacy"):
+def test_convert_format_to_netcdf_legacy(
+    url=TEST_GRIB_FILE, target_format="netcdf_legacy"
+):
     remote_file = requests.get(url)
     _, ext = os.path.splitext(url)
     with tempfile.TemporaryDirectory() as tmpdirname:
