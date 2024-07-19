@@ -101,7 +101,7 @@ def result_to_grib_files(
             len(_result_type) == 1
         ), f"Result list contains mixed types: {_result_type}"
         result_type = _result_type[0]
-        if result_type == str:
+        if result_type is str:
             out_results = []
             for res in result:
                 out_results += unknown_filetype_to_grib_files(
@@ -133,7 +133,7 @@ def result_to_grib_files(
         ), f"Result dictionary contains mixed types: {_result_type}"
         result_type = _result_type[0]
 
-        if result_type == str:
+        if result_type is str:
             out_results = []
             for k, v in result.items():
                 out_results += unknown_filetype_to_grib_files(
@@ -184,7 +184,7 @@ def result_to_netcdf_files(
             len(_result_type) == 1
         ), f"Result list contains mixed types: {_result_type}"
         result_type = _result_type[0]
-        if result_type == str:
+        if result_type is str:
             out_results = []
             for res in result:
                 out_results += unknown_filetype_to_netcdf_files(
@@ -213,7 +213,7 @@ def result_to_netcdf_files(
             len(_result_type) == 1
         ), f"Result dictionary contains mixed types: {_result_type}"
         result_type = _result_type[0]
-        if result_type == str:
+        if result_type is str:
             out_results = []
             for k, v in result.items():
                 out_results += unknown_filetype_to_netcdf_files(
@@ -271,7 +271,7 @@ def result_to_netcdf_legacy_files(
         result_type = result_types[0]
         assert (
             len(result_types) == 1
-            and result_type == str
+            and result_type is str
             and (result[0].endswith(".grib") or result[0].endswith(".grib2"))
         ), f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {result_types}"
 
@@ -285,7 +285,7 @@ def result_to_netcdf_legacy_files(
         result_type = result_types[0]
         assert (
             len(result_types) == 1
-            and result_type == str
+            and result_type is str
             and (result[0].endswith(".grib") or result[0].endswith(".grib2"))
         ), f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {result_types}"
 
