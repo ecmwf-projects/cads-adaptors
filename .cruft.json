@@ -11,7 +11,7 @@
       "copyright_year": "2022",
       "mypy_strict": "True",
       "integration_tests": "False",
-      "pypi": true,
+      "pypi": "false",
       "_template": "https://github.com/ecmwf-projects/cookiecutter-conda-package"
     }
   },
