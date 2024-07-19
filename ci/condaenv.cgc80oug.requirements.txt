@@ -1,5 +1,0 @@
-cfgrib>=0.9.14.0
-earthkit-aggregate>=0.1.5
-git+https://github.com/ecmwf-projects/cacholote.git
-git+https://github.com/ecmwf-projects/cads-mars-server
-rooki
