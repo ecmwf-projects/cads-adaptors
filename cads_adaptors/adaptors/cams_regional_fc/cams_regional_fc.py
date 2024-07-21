@@ -610,7 +610,7 @@ def reassign_missing_to_archive(reqs, grib_file, req_group, regapi, context):
     # Which are in the file and which aren't?
     context.add_stdout(f"----------> {grib_file}")
     context.add_stdout(f"----------> {grib_file.path}")
-    present, missing = which_fields_in_file(reqs, grib_file, context)
+    present, missing = which_fields_in_file(reqs, grib_file.path, context)
 
     # The archive backend will reject any requests for dates less than N
     # days old with a 400 HTTP error, so remove any if they exist. There
