@@ -608,6 +608,8 @@ def reassign_missing_to_archive(reqs, grib_file, req_group, regapi, context):
        backend"""
 
     # Which are in the file and which aren't?
+    context.add_stdout(f"----------> {grib_file}")
+    context.add_stdout(f"----------> {grib_file.path}")
     present, missing = which_fields_in_file(reqs, grib_file, context)
 
     # The archive backend will reject any requests for dates less than N
