@@ -85,15 +85,33 @@ def test_general_ensure_list(input_item, expected_output):
         (
             # Split on multiple keys
             [
-                {"key1": ["value1", "value2"], "key2": "value3"},
-                {"key1": "value4", "key2": ["value5", "value6"]},
+                {"key1": ["value1", "value2"], "key2": ["value3", "value4"]},
+                # {"key1": "value4", "key2": ["value5", "value6"]},
             ],
             ["key1", "key2"],
             [
                 {"key1": "value1", "key2": "value3"},
+                {"key1": "value1", "key2": "value4"},
                 {"key1": "value2", "key2": "value3"},
-                {"key1": "value4", "key2": "value5"},
-                {"key1": "value4", "key2": "value6"},
+                {"key1": "value2", "key2": "value4"},
+                # {"key1": "value4", "key2": "value5"},
+                # {"key1": "value4", "key2": "value6"},
+            ],
+        ),
+        (
+            # Split on multiple keys, accross multiple requests
+            [
+                {"key1": ["value1", "value2"], "key2": ["value3", "value4"]},
+                {"key1": "value5", "key2": ["value6", "value7"]},
+            ],
+            ["key1", "key2"],
+            [
+                {"key1": "value1", "key2": "value3"},
+                {"key1": "value1", "key2": "value4"},
+                {"key1": "value2", "key2": "value3"},
+                {"key1": "value2", "key2": "value4"},
+                {"key1": "value5", "key2": "value6"},
+                {"key1": "value5", "key2": "value7"},
             ],
         ),
     ],

@@ -17,9 +17,9 @@ def split_requests_on_keys(
     if len(split_on_keys) == 0:
         return requests
 
-    out_requests = []
-    for request in requests:
-        for key in split_on_keys:
+    for key in split_on_keys:
+        out_requests = []
+        for request in requests:
             if key in request:
                 values = ensure_list(request[key])
                 if len(values) == 1:
@@ -31,4 +31,5 @@ def split_requests_on_keys(
                         out_requests.append(new_request)
             else:
                 out_requests.append(request)
+        requests = out_requests
     return out_requests
