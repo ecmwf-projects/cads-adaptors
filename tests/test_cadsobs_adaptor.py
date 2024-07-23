@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import h5netcdf
@@ -158,6 +159,7 @@ def test_adaptor(tmp_path, monkeypatch):
             "02",
             "03",
         ],
+        "_timestamp": str(time.time()),
     }
     test_form = {}
     # + "/v1/AUTH_{public_user}" will be needed to work with S3 ceph public urls, but it

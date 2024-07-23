@@ -43,7 +43,8 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
     paths = []
     context.write_type = "stdout"
     # set some default kwargs for establishing a connection
-    kwargs = {"timeout": 1, "maximum_retries": 1, "retry_after": 1, **kwargs}
+    # the default timeout value (3) has been determined empirically (it also included a safety margin)
+    kwargs = {"timeout": 3, "maximum_retries": 1, "retry_after": 1, **kwargs}
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
