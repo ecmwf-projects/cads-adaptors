@@ -1,7 +1,5 @@
 from typing import Literal
 
-import requests
-
 
 class CadsobsApiClient:
     """API Client for the observations repository HTTP API."""
@@ -12,6 +10,8 @@ class CadsobsApiClient:
     def _send_request(
         self, method: Literal["GET", "POST"], endpoint: str, payload: dict | None = None
     ):
+        import requests
+
         with requests.Session() as session:
             response = session.request(
                 method=method, url=f"{self.baseurl}/{endpoint}", json=payload
