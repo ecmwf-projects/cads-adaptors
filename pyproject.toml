@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=64", "setuptools_scm>=8"]
 
 [project]
 classifiers = [
@@ -15,7 +16,7 @@ classifiers = [
 dependencies = [
   "ecmwflibs",
   "earthkit-aggregate>=0.1.5",
-  "cfgrib>=0.9.13.0",
+  "cfgrib>=0.9.14.0",
   "cacholote",
   "multiurl>=0.3.1",
   "rooki",
