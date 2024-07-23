@@ -1,15 +1,20 @@
-import logging
 import tempfile
 from pathlib import Path
 
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 
-logger = logging.getLogger(__name__)
-
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request):
+        try:
+            output = self._retrieve(request)
+        except Exception as e:
+            self.context.add_user_visible_error(repr(e))
+            raise
+        return output
+
+    def _retrieve(self, request):
         # TODO: retrieve_data imports various optional dependencies at top level
         from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 
@@ -54,7 +59,9 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         # Get the service definition file
         service_definition = cadsobs_client.get_service_definition(dataset_name)
         global_attributes = service_definition["global_attributes"]
-        logger.debug(f"The following objects are going to be filtered: {object_urls}")
+        self.context.debug(
+            f"The following objects are going to be filtered: {object_urls}"
+        )
         output_dir = Path(tempfile.mkdtemp())
         output_path = retrieve_data(
             dataset_name,
@@ -81,7 +88,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                 auxvar = auxvar_dict["auxvar"]
                 if auxvar in auxiliary_variables:
                     metadata_field = auxvar_dict["metadata_name"]
-                    logger.warning(
+                    self.context.warning(
                         f"{auxvar} is an auxiliary variable, it will be included"
                         f"as an extra {metadata_field} column in the output file, not as a "
                         f"regular variable."
@@ -115,14 +122,11 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         """Raise error if many, extract if list."""
         if isinstance(dataset_source, list):
             if len(dataset_source) > 1:
-                self.context.add_user_visible_error(
+                error_message = (
                     "Asking for more than one observation_types in the same"
                     "request is currently unsupported."
                 )
-                raise RuntimeError(
-                    "Asking for more than one observation_types in the same"
-                    "request is currently unsupported."
-                )
+                raise RuntimeError(error_message)
             else:
                 # Get the string if there is only one item in the list.
                 dataset_source_str = dataset_source[0]
