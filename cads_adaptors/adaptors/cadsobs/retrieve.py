@@ -12,6 +12,7 @@ from cads_adaptors.adaptors.cadsobs.utils import (
     _get_char_sizes,
     _get_output_path,
 )
+from cads_adaptors.exceptions import CadsObsRuntimeError
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def retrieve_data(
             )
         # Check if the resulting file is empty
         if len(oncobj.variables) == 0 or len(oncobj.variables["report_timestamp"]) == 0:
-            raise RuntimeError(
+            raise CadsObsRuntimeError(
                 "No data was found, try a different parameter combination."
             )
         # Add atributes
