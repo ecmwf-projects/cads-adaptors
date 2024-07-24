@@ -4,7 +4,20 @@ from typing import Any, BinaryIO, Union
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
-from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools.general import ensure_list, split_requests_on_keys
+
+# This hard requirement of MARS requests should be moved to the proxy MARS client
+ALWAYS_SPLIT_ON: list[str] = [
+    "class",
+    "type",
+    "stream",
+    "levtype",
+    "expver",
+    "domain",
+    "system",
+    "method",
+    "origin",
+]
 
 
 def get_mars_server_list(config) -> list[str]:
@@ -44,7 +57,9 @@ def execute_mars(
     requests = ensure_list(request)
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
-    context.add_stdout(f"Request (after embargo implemented): {requests}")
+
+    split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
+    requests = split_requests_on_keys(requests, split_on_keys)
 
     mars_servers = get_mars_server_list(config)
 
@@ -62,6 +77,7 @@ def execute_mars(
     }
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
 
+    context.add_stdout(f"Request sent to proxy MARS client: {requests}")
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
     context.add_stdout(message=reply_message)
