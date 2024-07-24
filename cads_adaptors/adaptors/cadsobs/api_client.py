@@ -9,7 +9,7 @@ class CadsobsApiClient:
 
     def _send_request(
         self, method: Literal["GET", "POST"], endpoint: str, payload: dict | None = None
-    ) -> dict | list:
+    ):
         import requests
 
         try:
