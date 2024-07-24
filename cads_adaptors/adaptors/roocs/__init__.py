@@ -4,6 +4,7 @@ from typing import BinaryIO
 
 from cads_adaptors import mapping
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+from cads_adaptors.exceptions import RoocsRuntimeError, RoocsValueError
 
 ROOK_URL = "http://compute.mips.copernicus-climate.eu/wps"
 
@@ -33,7 +34,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         try:
             urls = response.download_urls()
         except Exception:
-            raise Exception(response.status)
+            raise RoocsRuntimeError(response.status)
         urls += [response.provenance(), response.provenance_image()]
 
         paths = url_tools.try_download(urls, context=self.context)
@@ -143,7 +144,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
                     matched_facets.append(raw_candidate)
 
         if not matched_facets:
-            raise ValueError(f"No data found for request {request}")
+            raise RoocsValueError(f"No data found for request {request}")
 
         # raise ValueError(str(raw_candidate) + " | " + str(self.facets_order))
         return [

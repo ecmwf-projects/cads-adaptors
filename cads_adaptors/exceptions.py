@@ -28,3 +28,35 @@ class InvalidRequest(Exception):
         super().__init__("\n".join(msgs))
 
         self.messages = deepcopy(msgs)
+
+
+class MarsRuntimeError(RuntimeError):
+    """Raised when a MARS request fails."""
+
+
+class MarsNoDataError(InvalidRequest):
+    """Raised when a MARS request returns no data."""
+
+
+class MarsSystemError(SystemError):
+    """Raised when a MARS request fails due to a system error."""
+
+
+class UrlNoDataError(InvalidRequest):
+    """Raised when a MARS request returns no data."""
+
+
+class MultiAdaptorNoDataError(InvalidRequest):
+    """Raised when a MultiAdaptor request returns no data."""
+
+
+class CadsObsRuntimeError(RuntimeError):
+    """Raised when a CADS-observation repository request fails."""
+
+
+class RoocsRuntimeError(RuntimeError):
+    """Raised when a ROOCS request fails."""
+
+
+class RoocsValueError(ValueError):
+    """Raised when a ROOCS request fails due to a value error."""

@@ -12,6 +12,7 @@ import yaml
 from tqdm import tqdm
 
 from cads_adaptors.adaptors import Context
+from cads_adaptors.exceptions import InvalidRequest, UrlNoDataError
 from cads_adaptors.tools import hcube_tools
 
 
@@ -66,9 +67,10 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
     if len(paths) == 0:
         context.add_user_visible_error(
             "Your request has not found any data, please check your selection.\n"
-            "If you believe this to be a data store error, please contact user support."
+            "This may be due to temporary connectivity issues with the source data.\n"
+            "If this problem persists, please contact user support."
         )
-        raise RuntimeError(
+        raise UrlNoDataError(
             f"Request empty. No data found from the following URLs:"
             f"\n{yaml.safe_dump(urls, indent=2)} "
         )
@@ -76,7 +78,7 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
     return paths
 
 
-# TODO use targzstream
+# TODO: remove unused function
 def download_zip_from_urls(
     urls: List[str],
     base_target: str,
@@ -94,7 +96,7 @@ def download_zip_from_urls(
     return target
 
 
-# TODO zipstream for archive creation
+# TODO: remove unused function
 def download_tgz_from_urls(
     urls: List[str],
     base_target: str,
@@ -112,27 +114,29 @@ def download_tgz_from_urls(
     return target
 
 
+# TODO: remove unused function
 def download_from_urls(
     urls: List[str],
     context: Context,
-    data_format: str = "zip",
+    download_format: str = "zip",
 ) -> str:
     base_target = str(hash(tuple(urls)))
 
-    if data_format == "tgz":
+    if download_format == "tgz":
         target = download_tgz_from_urls(
             urls=urls, base_target=base_target, context=context
         )
-    elif data_format == "zip":
+    elif download_format == "zip":
         target = download_zip_from_urls(
             urls=urls, base_target=base_target, context=context
         )
     else:
-        raise ValueError(f"{data_format=} is not supported")
+        raise InvalidRequest(f"Download format '{download_format}' is not supported")
 
     return target
 
 
+# TODO: remove unused function
 def download_zip_from_urls_in_memory(
     urls: List[str], target: Optional[str] = None
 ) -> str:

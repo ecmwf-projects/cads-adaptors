@@ -4,6 +4,7 @@ from pathlib import Path
 
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.exceptions import CadsObsRuntimeError
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +120,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                     "Asking for more than one observation_types in the same"
                     "request is currently unsupported."
                 )
-                raise RuntimeError(
+                raise CadsObsRuntimeError(
                     "Asking for more than one observation_types in the same"
                     "request is currently unsupported."
                 )
