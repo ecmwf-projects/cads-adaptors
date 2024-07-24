@@ -107,13 +107,18 @@ def monthly_reduce(
     return out_xarray_dict
 
 
-def update_history(dataset: Dataset, update_text: str) -> Dataset:
+def update_history(dataset: Dataset, update_text: str, context: Context = Context()) -> Dataset:
     
     history = dataset.attrs.get("history", None)
     if history is None:
         history = update_text
-    else:
+    elif isinstance(history, str):
         history += f"\n{update_text}"
+    else:
+        context.add_stderr(
+            f"Unexpected history attribute type in existing xarray: {type(history)}"
+        )
+        return dataset
     return dataset.assign_attrs({"history": history})
 
 
