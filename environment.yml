@@ -32,4 +32,4 @@ dependencies:
 - xarray
 - pip:
   - rooki
-  - earthkit-aggregate>=0.1.5
+  - earthkit-transforms>=0.3.0

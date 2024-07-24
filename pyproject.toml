@@ -35,7 +35,7 @@ complete = [
   "cftime",
   "dask",
   "ecmwflibs",
-  "earthkit-aggregate>=0.1.5",
+  "earthkit-transforms>=0.3.0",
   "fsspec",
   "h5netcdf",
   "jinja2",
