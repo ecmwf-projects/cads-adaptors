@@ -67,11 +67,12 @@ def daily_reduce(
         out_tag = f"{in_tag}_daily-{how}"
         context.add_stdout(f"Daily reduction: {how} {kwargs}")
         context.add_user_visible_log(f"Temporal reduction: {how} {kwargs}")
-        out_xarray_dict[out_tag] = temporal.daily_reduce(
+        reduced_data = temporal.daily_reduce(
             in_dataset,
             how=how,
             **kwargs,
         )
+        out_xarray_dict[out_tag]
 
     return out_xarray_dict
 
@@ -96,3 +97,15 @@ def monthly_reduce(
         )
 
     return out_xarray_dict
+
+
+def update_history(dataset: Dataset, update_text: str) -> Dataset:
+    
+    history = dataset.attrs.get("history", None)
+    if history is None:
+        history = update_text
+    else:
+        history += f"\n{update_text}"
+    return dataset.assign_attrs({"history": history})
+
+
