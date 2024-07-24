@@ -27,18 +27,30 @@ readme = "README.md"
 [project.optional-dependencies]
 complete = [
   # Additional dependencies required by the worker image
+  "aiohttp",
+  "cacholote",
+  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
+  "cdsapi",
+  "cfgrib>=0.9.13.0",
+  "cftime",
+  "dask",
   "ecmwflibs",
   "earthkit-aggregate>=0.1.5",
-  "cfgrib>=0.9.13.0",
-  "cacholote",
+  "fsspec",
   "h5netcdf",
+  "jinja2",
   "multiurl>=0.3.1",
-  "rooki",
+  "netcdf4",
+  "numpy",
+  "pandas",
+  "pydantic",
   "python-dateutil",
   "pyyaml",
+  "requests",
+  "rooki",
+  "sqlalchemy",
   "tqdm",
-  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
-  "aiohttp"
+  "xarray"
 ]
 tests = [
   "pytest",
