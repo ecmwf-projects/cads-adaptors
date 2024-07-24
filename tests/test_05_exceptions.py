@@ -1,5 +1,3 @@
-from typing import Any
-
 import pytest
 
 from cads_adaptors import exceptions
@@ -21,5 +19,3 @@ from cads_adaptors import exceptions
 def test_exceptions_raise_as_expected(test_exception) -> None:
     with pytest.raises(test_exception):
         raise test_exception
-
-

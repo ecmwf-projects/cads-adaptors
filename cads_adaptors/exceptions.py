@@ -25,7 +25,7 @@ class InvalidRequest(Exception):
     def __init__(self, msgs: None | str | list[str] = None):
         if isinstance(msgs, str):
             msgs = [msgs]
-        
+
         if msgs is not None:
             super().__init__("\n".join(msgs))
 
