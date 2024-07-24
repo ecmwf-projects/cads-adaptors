@@ -2,9 +2,23 @@ import os
 from typing import Any, BinaryIO, Union
 
 from cads_adaptors.adaptors import Context, Request, cds
+from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
-from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools.general import ensure_list, split_requests_on_keys
+
+# This hard requirement of MARS requests should be moved to the proxy MARS client
+ALWAYS_SPLIT_ON: list[str] = [
+    "class",
+    "type",
+    "stream",
+    "levtype",
+    "expver",
+    "domain",
+    "system",
+    "method",
+    "origin",
+]
 
 
 def get_mars_server_list(config) -> list[str]:
@@ -27,7 +41,7 @@ def get_mars_server_list(config) -> list[str]:
         with open(mars_server_list) as f:
             mars_servers = f.read().splitlines()
     else:
-        raise SystemError(
+        raise MarsSystemError(
             "MARS servers cannot be found, this is an error at the system level."
         )
     return mars_servers
@@ -44,7 +58,9 @@ def execute_mars(
     requests = ensure_list(request)
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
-    context.add_stdout(f"Request (after embargo implemented): {requests}")
+
+    split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
+    requests = split_requests_on_keys(requests, split_on_keys)
 
     mars_servers = get_mars_server_list(config)
 
@@ -62,6 +78,7 @@ def execute_mars(
     }
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
 
+    context.add_stdout(f"Request sent to proxy MARS client: {requests}")
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
     context.add_stdout(message=reply_message)
@@ -78,7 +95,7 @@ def execute_mars(
         context.add_user_visible_error(message=error_message)
 
         error_message += f"Exception: {reply.error}\n"
-        raise RuntimeError(error_message)
+        raise MarsRuntimeError(error_message)
 
     if not os.path.getsize(target):
         error_message = (
@@ -88,7 +105,7 @@ def execute_mars(
         context.add_user_visible_error(
             message=error_message,
         )
-        raise RuntimeError(error_message)
+        raise MarsNoDataError(error_message)
 
     return target
 

@@ -8,21 +8,28 @@ channels:
 # - package2
 # DO NOT EDIT ABOVE THIS LINE, ADD DEPENDENCIES BELOW AS SHOWN IN THE EXAMPLE
 dependencies:
-- pip
-- requests
-- pandas
-- python-dateutil
-- cfgrib>=0.9.14.0
-- h5netcdf
-- wget
-- multiurl>=0.3.1
-- pyyaml
-- tqdm
-- DateTimeRange
-- jsonschema
-- fsspec
 - aiohttp
+- cdsapi
+- cfgrib>=0.9.14.0
+- cftime
+- dask
+- DateTimeRange
+- fsspec
+- h5netcdf
+- jinja2
+- jsonschema
+- multiurl>=0.3.1
+- netcdf4
+- numpy
+- pandas
+- pip
+- pydantic
+- python-dateutil
+- pyyaml
+- requests
+- sqlalchemy
+- tqdm
+- xarray
 - pip:
   - rooki
-  - earthkit-aggregate>=0.1.5
-  - git+https://github.com/ecmwf-projects/cads-mars-server
+  - earthkit-transforms>=0.3.0

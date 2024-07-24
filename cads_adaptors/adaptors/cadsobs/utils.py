@@ -15,6 +15,7 @@ from cads_adaptors.adaptors.cadsobs.models import (
     RetrieveFormat,
     RetrieveParams,
 )
+from cads_adaptors.exceptions import CadsObsRuntimeError
 
 logger = logging.getLogger(__name__)
 MAX_NUMBER_OF_GROUPS = 10
@@ -197,7 +198,7 @@ def _get_param_name_in_data(retrieved_dataset: h5netcdf.File, param_name: str) -
             else:
                 param_name_in_data = f"{coord}|station_configuration"
         case _:
-            raise RuntimeError(f"Unknown parameter name {param_name}")
+            raise CadsObsRuntimeError(f"Unknown parameter name {param_name}")
     return param_name_in_data
 
 
@@ -332,7 +333,7 @@ def _get_code_mapping(
     elif isinstance(incobj, xarray.Dataset):
         attrs = incobj["observed_variable"].attrs
     else:
-        raise RuntimeError("Unsupported input type")
+        raise CadsObsRuntimeError("Unsupported input type")
     if inverse:
         mapping = {c: v for v, c in zip(attrs["labels"], attrs["codes"])}
     else:

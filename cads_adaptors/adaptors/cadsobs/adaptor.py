@@ -3,6 +3,7 @@ from pathlib import Path
 
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.exceptions import CadsObsRuntimeError
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
@@ -126,7 +127,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                     "Asking for more than one observation_types in the same"
                     "request is currently unsupported."
                 )
-                raise RuntimeError(error_message)
+                raise CadsObsRuntimeError(error_message)
             else:
                 # Get the string if there is only one item in the list.
                 dataset_source_str = dataset_source[0]
