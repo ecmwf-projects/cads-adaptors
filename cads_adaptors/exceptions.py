@@ -22,12 +22,14 @@ class ParameterError(TypeError):
 class InvalidRequest(Exception):
     """Raised when an invalid request is sent to the adaptor."""
 
-    def __init__(self, msgs):
+    def __init__(self, msgs: None | str | list[str] = None):
         if isinstance(msgs, str):
             msgs = [msgs]
-        super().__init__("\n".join(msgs))
+        
+        if msgs is not None:
+            super().__init__("\n".join(msgs))
 
-        self.messages = deepcopy(msgs)
+            self.messages = deepcopy(msgs)
 
 
 class MarsRuntimeError(RuntimeError):
