@@ -72,7 +72,10 @@ def daily_reduce(
             how=how,
             **kwargs,
         )
-        out_xarray_dict[out_tag]
+        out_xarray_dict[out_tag] = update_history(
+            reduced_data,
+            f"earthkit.transforms.aggregate.temporal.daily_reduce({in_tag}, how={how} **{kwargs})",
+        )
 
     return out_xarray_dict
 
@@ -90,11 +93,16 @@ def monthly_reduce(
         out_tag = f"{in_tag}_monthly-{how}"
         context.add_stdout(f"Temporal reduction: {how} {kwargs}")
         context.add_user_visible_log(f"Temporal reduction: {how} {kwargs}")
-        out_xarray_dict[out_tag] = temporal.monthly_reduce(
+        reduced_data = temporal.monthly_reduce(
             in_dataset,
             how=how,
             **kwargs,
         )
+        out_xarray_dict[out_tag] = update_history(
+            reduced_data,
+            f"earthkit.transforms.aggregate.temporal.monthly_reduce({in_tag}, how={how} **{kwargs})",
+        )
+
 
     return out_xarray_dict
 
