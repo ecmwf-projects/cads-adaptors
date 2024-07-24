@@ -14,25 +14,37 @@ classifiers = [
   "Topic :: Scientific/Engineering"
 ]
 dependencies = [
-  "ecmwflibs",
-  "earthkit-aggregate>=0.1.5",
-  "cfgrib>=0.9.14.0",
-  "cacholote",
-  "multiurl>=0.3.1",
-  "rooki",
-  "python-dateutil",
-  "pyyaml",
-  "tqdm",
+  # Only mandatory dependencies required by the broker and retrieve-api images
   "DateTimeRange",
-  "jsonschema",
-  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
-  "aiohttp"
+  "jsonschema"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]
 license = {file = "LICENSE"}
 name = "cads-adaptors"
 readme = "README.md"
+
+[project.optional-dependencies]
+complete = [
+  # Additional dependencies required by the worker image
+  "ecmwflibs",
+  "earthkit-aggregate>=0.1.5",
+  "cfgrib>=0.9.13.0",
+  "cacholote",
+  "h5netcdf",
+  "multiurl>=0.3.1",
+  "rooki",
+  "python-dateutil",
+  "pyyaml",
+  "tqdm",
+  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
+  "aiohttp"
+]
+tests = [
+  "pytest",
+  "pytest-cov",
+  "pytest-localftpserver"
+]
 
 [tool.coverage.run]
 branch = true

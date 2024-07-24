@@ -1,8 +1,5 @@
 from typing import Literal
 
-import requests
-from requests import ConnectionError, HTTPError
-
 
 class CadsobsApiClient:
     """API Client for the observations repository HTTP API."""
@@ -12,26 +9,30 @@ class CadsobsApiClient:
 
     def _send_request(
         self, method: Literal["GET", "POST"], endpoint: str, payload: dict | None = None
-    ):
+    ) -> dict | list:
+        import requests
+
         try:
             with requests.Session() as session:
                 response = session.request(
                     method=method, url=f"{self.baseurl}/{endpoint}", json=payload
                 )
                 response.raise_for_status()
-        except ConnectionError:
+        except requests.ConnectionError:
             raise ConnectionError("Can't connect to the observations API.")
-        except HTTPError:
+        except requests.HTTPError:
             message = self._get_error_message(response)
-            raise HTTPError(f"Request to observations API failed: {message}")
+            raise requests.HTTPError(f"Request to observations API failed: {message}")
         return response.json()
 
-    def _get_error_message(self, response: requests.Response) -> str:
+    def _get_error_message(self, response) -> str:
+        import requests
+
         try:
             message = response.json()["detail"]
         except requests.JSONDecodeError:
-            # When the exception is not handled well by the API server, we can
-            # get the traceback doing this.
+            # When the exception is not handled well by the API server response.content
+            # will not be JSON parseable. Then we can get the traceback like this.
             message = response.content.decode("UTF-8")
         return message
 
