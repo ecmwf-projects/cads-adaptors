@@ -60,7 +60,7 @@ def daily_reduce(
     how: str | Callable = "mean",
     **kwargs,
 ) -> dict[str, Dataset]:
-    from earthkit.aggregate import temporal
+    from earthkit.transforms.aggregate import temporal
 
     out_xarray_dict = {}
     for in_tag, in_dataset in in_xarray_dict.items():
@@ -82,7 +82,7 @@ def monthly_reduce(
     how: str | Callable = "mean",
     **kwargs,
 ) -> dict[str, Dataset]:
-    from earthkit.aggregate import temporal
+    from earthkit.transforms.aggregate import temporal
 
     out_xarray_dict = {}
     for in_tag, in_dataset in in_xarray_dict.items():
