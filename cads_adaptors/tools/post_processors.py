@@ -74,7 +74,7 @@ def daily_reduce(
         )
         out_xarray_dict[out_tag] = update_history(
             reduced_data,
-            f"earthkit.transforms.aggregate.temporal.daily_reduce({in_tag}, how={how} **{kwargs})",
+            f"earthkit.transforms.aggregate.temporal.daily_reduce({in_tag}, how={how}, **{kwargs})",
         )
 
     return out_xarray_dict
