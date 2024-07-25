@@ -1,5 +1,7 @@
 from typing import Literal
 
+from cads_adaptors.exceptions import CadsObsConnectionError
+
 
 class CadsobsApiClient:
     """API Client for the observations repository HTTP API."""
@@ -12,12 +14,31 @@ class CadsobsApiClient:
     ):
         import requests
 
-        with requests.Session() as session:
-            response = session.request(
-                method=method, url=f"{self.baseurl}/{endpoint}", json=payload
+        try:
+            with requests.Session() as session:
+                response = session.request(
+                    method=method, url=f"{self.baseurl}/{endpoint}", json=payload
+                )
+                response.raise_for_status()
+        except requests.ConnectionError:
+            raise CadsObsConnectionError("Can't connect to the observations API.")
+        except requests.HTTPError:
+            message = self._get_error_message(response)
+            raise CadsObsConnectionError(
+                f"Request to observations API failed: {message}"
             )
-            response.raise_for_status()
         return response.json()
+
+    def _get_error_message(self, response) -> str:
+        import requests
+
+        try:
+            message = response.json()["detail"]
+        except requests.JSONDecodeError:
+            # When the exception is not handled well by the API server response.content
+            # will not be JSON parseable. Then we can get the traceback like this.
+            message = response.content.decode("UTF-8")
+        return message
 
     def get_service_definition(self, dataset: str) -> dict:
         return self._send_request("GET", f"{dataset}/service_definition")

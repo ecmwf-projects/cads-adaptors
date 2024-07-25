@@ -65,7 +65,7 @@ def test_monthly_reduce():
 
 
 def test_update_history():
-    in_xarray =  xr.Dataset(
+    in_xarray = xr.Dataset(
         {
             "temperature": xr.DataArray([1, 2, 3]),
         }
