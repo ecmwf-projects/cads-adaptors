@@ -103,12 +103,12 @@ def monthly_reduce(
             f"earthkit.transforms.aggregate.temporal.monthly_reduce({in_tag}, how={how}, **{kwargs})",
         )
 
-
     return out_xarray_dict
 
 
-def update_history(dataset: Dataset, update_text: str, context: Context = Context()) -> Dataset:
-    
+def update_history(
+    dataset: Dataset, update_text: str, context: Context = Context()
+) -> Dataset:
     history = dataset.attrs.get("history", None)
     if history is None:
         history = update_text
@@ -120,5 +120,3 @@ def update_history(dataset: Dataset, update_text: str, context: Context = Contex
         )
         return dataset
     return dataset.assign_attrs({"history": history})
-
-

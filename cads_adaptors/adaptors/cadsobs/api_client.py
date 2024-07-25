@@ -1,5 +1,7 @@
 from typing import Literal
 
+from cads_adaptors.exceptions import CadsObsConnectionError
+
 
 class CadsobsApiClient:
     """API Client for the observations repository HTTP API."""
@@ -19,10 +21,12 @@ class CadsobsApiClient:
                 )
                 response.raise_for_status()
         except requests.ConnectionError:
-            raise ConnectionError("Can't connect to the observations API.")
+            raise CadsObsConnectionError("Can't connect to the observations API.")
         except requests.HTTPError:
             message = self._get_error_message(response)
-            raise requests.HTTPError(f"Request to observations API failed: {message}")
+            raise CadsObsConnectionError(
+                f"Request to observations API failed: {message}"
+            )
         return response.json()
 
     def _get_error_message(self, response) -> str:

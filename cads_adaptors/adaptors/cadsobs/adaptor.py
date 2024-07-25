@@ -12,7 +12,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             output = self._retrieve(request)
         except Exception as e:
             self.context.add_user_visible_error(repr(e))
-            raise
+            raise e
         return output
 
     def _retrieve(self, request):

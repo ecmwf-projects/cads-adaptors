@@ -56,6 +56,10 @@ class CadsObsRuntimeError(RuntimeError):
     """Raised when a CADS-observation repository request fails."""
 
 
+class CadsObsConnectionError(RuntimeError):
+    """Raised when a CADS-observation repository request fails."""
+
+
 class RoocsRuntimeError(RuntimeError):
     """Raised when a ROOCS request fails."""
 
