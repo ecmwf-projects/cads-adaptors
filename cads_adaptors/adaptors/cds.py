@@ -33,6 +33,9 @@ def _reorganise_open_dataset_and_to_netcdf_kwargs(
         if key in to_netcdf_kwargs:
             post_open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
 
+    # A quick clean up of some previous bad decisions:
+    post_open_datasets_kwargs.update(post_processing_kwargs.pop("post_open_kwargs", {}))
+
     post_processing_kwargs.update(
         {
             "post_open_datasets_kwargs": post_open_datasets_kwargs,
