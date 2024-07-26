@@ -180,7 +180,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
             method_name = pp_step["method"]
             # TODO: Add extra condition to limit pps from dataset configurations
-            if hasattr(self, method_name):
+            if not hasattr(self, method_name):
                 self.context.add_user_visible_error(
                     message=f"Post-processor method '{method_name}' not available for this dataset"
                 )
