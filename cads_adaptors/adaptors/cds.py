@@ -137,15 +137,22 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     # and currently only implemented for retrieve methods
     def _pre_retrieve(self, request: Request, default_download_format="zip"):
         self.input_request = deepcopy(request)
+        self.context.add_stdout(f"Input request:\n{self.input_request}")
         self.receipt = request.pop("receipt", False)
 
         # Extract post-process steps from the request before mapping:
         self.post_process_steps = self.pp_mapping(request.pop("post_process", []))
+        self.context.add_stdout(
+            f"Post-process steps extracted from request:\n{self.post_process_steps}"
+        )
 
         self.mapped_request = self.apply_mapping(request)  # type: ignore
 
         self.download_format = self.mapped_request.pop(
             "download_format", default_download_format
+        )
+        self.context.add_stdout(
+            f"Request mapped to {self.collection_id} format:\n{self.mapped_request}"
         )
 
     def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
