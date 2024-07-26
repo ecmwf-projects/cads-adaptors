@@ -29,7 +29,7 @@ complete = [
   # Additional dependencies required by the worker image
   "aiohttp",
   "cacholote",
-  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
+  "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git>=0.2.5",
   "cdsapi",
   "cfgrib>=0.9.13.0",
   "cftime",
