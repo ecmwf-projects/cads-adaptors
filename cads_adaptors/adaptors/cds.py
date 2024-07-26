@@ -178,7 +178,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 )
                 continue
 
-            method_name = pp_step["method"]
+            method_name = pp_step.pop("method")
             # TODO: Add extra condition to limit pps from dataset configurations
             if not hasattr(self, method_name):
                 self.context.add_user_visible_error(
@@ -195,7 +195,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 from cads_adaptors.tools.convertors import (
                     open_result_as_xarray_dictionary,
                 )
-
+                self.context.add_stdout(
+                    f"Opening result: {result} as xarray dictionary with kwargs:\n{post_processing_kwargs}"
+                )
                 result = open_result_as_xarray_dictionary(
                     result,
                     context=self.context,
