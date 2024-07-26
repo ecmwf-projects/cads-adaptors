@@ -193,7 +193,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 from cads_adaptors.tools.convertors import (
                     open_result_as_xarray_dictionary,
                 )
-                post_processing_kwargs = self.config.get("post_processing_kwargs", {})
 
                 post_processing_kwargs = self.config.get("post_processing_kwargs", {})
 
