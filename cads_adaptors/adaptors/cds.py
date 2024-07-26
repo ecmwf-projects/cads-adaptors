@@ -201,12 +201,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 result = open_result_as_xarray_dictionary(
                     result,
                     context=self.context,
-                    open_datasets_kwargs=post_processing_kwargs.get(
-                        "open_datasets_kwargs", {}
-                    ),
-                    post_open_kwargs=post_processing_kwargs.get(
-                        "post_open_datasets_kwargs", {}
-                    ),
+                    **post_processing_kwargs
                 )
 
             result = method(result, **pp_step)
