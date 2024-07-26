@@ -167,6 +167,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def post_process(self, result: Any) -> dict[str, Any]:
         """Perform post-process steps on the retrieved data."""
         for i, pp_step in enumerate(self.post_process_steps):
+            self.context.add_stdout(
+                f"Performing post-process step {i+1} of {len(self.post_process_steps)}"
+            )
             # TODO: pp_mapping should have ensured "method" is always present
 
             if "method" not in pp_step:
