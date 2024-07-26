@@ -137,12 +137,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     # and currently only implemented for retrieve methods
     def _pre_retrieve(self, request: Request, default_download_format="zip"):
         self.input_request = deepcopy(request)
-        self.context.add_stdout(f"Input request:\n{self.input_request}")
+        self.context.debug(f"Input request:\n{self.input_request}")
         self.receipt = request.pop("receipt", False)
 
         # Extract post-process steps from the request before mapping:
         self.post_process_steps = self.pp_mapping(request.pop("post_process", []))
-        self.context.add_stdout(
+        self.context.debug(
             f"Post-process steps extracted from request:\n{self.post_process_steps}"
         )
 
@@ -151,8 +151,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.download_format = self.mapped_request.pop(
             "download_format", default_download_format
         )
-        self.context.add_stdout(
-            f"Request mapped to {self.collection_id} format:\n{self.mapped_request}"
+        self.context.debug(
+            f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_request}"
         )
 
     def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -168,7 +168,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         """Perform post-process steps on the retrieved data."""
         for i, pp_step in enumerate(self.post_process_steps):
             self.context.add_stdout(
-                f"Performing post-process step {i+1} of {len(self.post_process_steps)}"
+                f"Performing post-process step {i+1} of {len(self.post_process_steps)}: {pp_step}"
             )
             # TODO: pp_mapping should have ensured "method" is always present
 
@@ -195,8 +195,14 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 )
                 post_processing_kwargs = self.config.get("post_processing_kwargs", {})
 
-                open_datasets_kwargs = post_processing_kwargs.get("open_datasets_kwargs", {})
-                post_open_datasets_kwargs = post_processing_kwargs.get("post_open_datasets_kwargs", {})
+                post_processing_kwargs = self.config.get("post_processing_kwargs", {})
+
+                open_datasets_kwargs = post_processing_kwargs.get(
+                    "open_datasets_kwargs", {}
+                )
+                post_open_datasets_kwargs = post_processing_kwargs.get(
+                    "post_open_datasets_kwargs", {}
+                )
                 self.context.add_stdout(
                     f"Opening result: {result} as xarray dictionary with kwargs:\n"
                     f"open_dataset_kwargs: {open_datasets_kwargs}\n"

@@ -46,24 +46,11 @@ def convert_format(
 ) -> list[str]:
     target_format = adaptor_tools.handle_data_format(target_format)
     post_processing_kwargs = config.get("post_processing_kwargs", {})
-    # open_datasets_kwargs: dict[str, Any] = post_processing_kwargs.get(
-    #     "open_datasets_kwargs", {}
-    # )
-    # post_open_datasets_kwargs: dict[str, Any] = post_processing_kwargs.get(
-    #     "post_open_datasets_kwargs", {}
-    # )
-
-    # # Keywords specific to writing to the target format
-    # to_target_kwargs: dict[str, Any] = post_processing_kwargs.get(f"to_{target_format}_kwargs", {})
 
     convertor: None | Callable = CONVERTORS.get(target_format, None)
 
     if convertor is not None:
-        return convertor(
-            result,
-            context=context,
-            **post_processing_kwargs
-        )
+        return convertor(result, context=context, **post_processing_kwargs)
 
     else:
         message = (
@@ -246,7 +233,9 @@ def result_to_netcdf_legacy_files(
     Can only accept a grib file, or list/dict of grib files as input.
     Converts to netCDF3 only.
     """
-    command: str | list[str] = to_netcdf_legacy_kwargs.get("command", ["grib_to_netcdf", "-S", "param"])
+    command: str | list[str] = to_netcdf_legacy_kwargs.get(
+        "command", ["grib_to_netcdf", "-S", "param"]
+    )
     filter_rules: str | None = to_netcdf_legacy_kwargs.get("filter", None)
 
     context.add_user_visible_error(
@@ -414,7 +403,9 @@ def grib_to_netcdf_files(
         context.add_stderr(message=message)
         raise RuntimeError(message)
 
-    out_nc_files = xarray_dict_to_netcdf(datasets, context=context, to_netcdf_kwargs=to_netcdf_kwargs)
+    out_nc_files = xarray_dict_to_netcdf(
+        datasets, context=context, to_netcdf_kwargs=to_netcdf_kwargs
+    )
 
     return out_nc_files
 
