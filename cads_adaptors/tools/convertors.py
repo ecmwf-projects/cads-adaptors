@@ -238,12 +238,14 @@ def result_to_netcdf_legacy_files(
     )
     filter_rules: str | None = to_netcdf_legacy_kwargs.get("filter", None)
 
-    context.add_user_visible_error(
+    context.add_user_visible_log(
         "The 'netcdf_legacy' format is deprecated and no longer supported. "
         "Users are encouraged to update workflows to use the updated, and CF compliant, 'netcdf' option."
     )
     context.add_stdout(
-        f"Converting result ({result}) to legacy netCDF files with grib_to_netcdf"
+        f"Converting result ({result}) to legacy netCDF files with grib_to_netcdf.\n"
+        f"filter_rules: {filter_rules}\n"
+        f"command: {command}"
     )
 
     # Check result is a single grib_file or a list/dict of grib_files
