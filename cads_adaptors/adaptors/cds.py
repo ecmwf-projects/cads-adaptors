@@ -33,9 +33,6 @@ def _reorganise_open_dataset_and_to_netcdf_kwargs(
         if key in to_netcdf_kwargs:
             post_open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
 
-    # A quick clean up of some previous bad decisions:
-    post_open_datasets_kwargs.update(post_processing_kwargs.pop("post_open_kwargs", {}))
-
     post_processing_kwargs.update(
         {
             "post_open_datasets_kwargs": post_open_datasets_kwargs,
@@ -193,18 +190,23 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             # post processing is done on xarray objects,
             # so on first pass we ensure result is opened as xarray
             if i == 0:
-                post_processing_kwargs = self.config.get("post_processing_kwargs", {})
-
                 from cads_adaptors.tools.convertors import (
                     open_result_as_xarray_dictionary,
                 )
+                post_processing_kwargs = self.config.get("post_processing_kwargs", {})
+
+                open_datasets_kwargs = post_processing_kwargs.get("open_datasets_kwargs", {})
+                post_open_datasets_kwargs = post_processing_kwargs.get("post_open_datasets_kwargs", {})
                 self.context.add_stdout(
-                    f"Opening result: {result} as xarray dictionary with kwargs:\n{post_processing_kwargs}"
+                    f"Opening result: {result} as xarray dictionary with kwargs:\n"
+                    f"open_dataset_kwargs: {open_datasets_kwargs}\n"
+                    f"post_open_datasets_kwargs: {post_open_datasets_kwargs}"
                 )
                 result = open_result_as_xarray_dictionary(
                     result,
                     context=self.context,
-                    **post_processing_kwargs
+                    open_datasets_kwargs=open_datasets_kwargs,
+                    post_open_datasets_kwargs=post_open_datasets_kwargs,
                 )
 
             result = method(result, **pp_step)
