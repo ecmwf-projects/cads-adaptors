@@ -239,7 +239,7 @@ def result_to_netcdf_legacy_files(
     command: str | list[str] = to_netcdf_legacy_kwargs.get(
         "command", ["grib_to_netcdf", "-S", "param"]
     )
-    filter_rules: str | None = to_netcdf_legacy_kwargs.get("filter", None)
+    filter_rules: str | None = to_netcdf_legacy_kwargs.get("filter_rules", None)
 
     context.add_user_visible_log(
         "The 'netcdf_legacy' format is deprecated and no longer supported. "
