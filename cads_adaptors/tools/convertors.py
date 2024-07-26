@@ -46,6 +46,9 @@ def convert_format(
 ) -> list[str]:
     target_format = adaptor_tools.handle_data_format(target_format)
     post_processing_kwargs = config.get("post_processing_kwargs", {})
+    context.add_stdout(
+        f"Converting result ({result}) to {target_format} with kwargs: {post_processing_kwargs}"
+    )
 
     convertor: None | Callable = CONVERTORS.get(target_format, None)
 
