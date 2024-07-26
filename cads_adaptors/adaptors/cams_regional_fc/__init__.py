@@ -18,7 +18,11 @@ from .cams_regional_fc import cams_regional_fc,new_cams_regional_fc
 from .api_retrieve import api_retrieve
 
 
-
+# CHECKLIST:
+# - LATEST: OK
+# - ARCHIVE: OK
+# - RATE LIMITING: TBD
+# - CACHE: TBD
 class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         request["type"] = [t.upper() for t in request["type"]]
