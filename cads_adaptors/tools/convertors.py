@@ -246,6 +246,7 @@ def result_to_netcdf_legacy_files(
         f"Converting result ({result}) to legacy netCDF files with grib_to_netcdf.\n"
         f"filter_rules: {filter_rules}\n"
         f"command: {command}"
+        f"kwargs: {kwargs}"
     )
 
     # Check result is a single grib_file or a list/dict of grib_files
