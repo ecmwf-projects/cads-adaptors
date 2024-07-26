@@ -19,7 +19,6 @@ def _reorganise_open_dataset_and_to_netcdf_kwargs(
         **config.pop("format_conversion_kwargs", dict()),
         **config.pop("post_processing_kwargs", dict()),
     }
-    print("HELLO", post_processing_kwargs)
 
     to_netcdf_kwargs = {
         **post_processing_kwargs.pop("to_netcdf_kwargs", dict()),
@@ -40,7 +39,6 @@ def _reorganise_open_dataset_and_to_netcdf_kwargs(
             "to_netcdf_kwargs": to_netcdf_kwargs,
         }
     )
-    print("BYE", post_processing_kwargs)
     config.update({"post_processing_kwargs": post_processing_kwargs})
     return config
 
