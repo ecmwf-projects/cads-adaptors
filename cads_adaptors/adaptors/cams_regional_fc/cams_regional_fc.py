@@ -175,7 +175,8 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     def create_result_file(self, extension):
         class MockResultFile():
             def __init__(self):
-                self.path = '/cache/debug/alabala.txt'
+                request_uid = config["request_uid"]
+                self.path = f'/cache/debug/{request_uid}.{extension}'
         self.add_stdout("----------> MOCK RESULT FILE HERE")
         return MockResultFile()
     

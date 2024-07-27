@@ -39,3 +39,11 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
         #     fp.write(json.dumps(result_file))
             
         return open(result_file.path, "rb")
+
+class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
+    def retrieve(self, request: Request) -> BinaryIO:
+        return None
+    
+class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
+    def retrieve(self, request: Request) -> BinaryIO:
+        return None
