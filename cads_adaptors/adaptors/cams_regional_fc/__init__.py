@@ -40,10 +40,10 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
             
         return open(result_file.path, "rb")
 
-class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
-        return None
+# class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
+#     def retrieve(self, request: Request) -> BinaryIO:
+#         return None
     
-class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
-        return None
+# class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
+#     def retrieve(self, request: Request) -> BinaryIO:
+#         return None
