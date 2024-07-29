@@ -69,7 +69,7 @@ def result_to_grib_files(
         return unknown_filetype_to_grib_files(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
         context.add_user_visible_log(
-            "Cannot convert xarray.Dataset to grib, returning as netCDF. "
+            "ERROR: Cannot convert xarray.Dataset to grib, returning as netCDF. "
             "Please note that post-processing uses xarray.Datasets. "
         )
         return xarray_dict_to_netcdf({"data": result}, context=context, **kwargs)
