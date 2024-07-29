@@ -241,8 +241,8 @@ def result_to_netcdf_legacy_files(
     )
     filter_rules: str | None = to_netcdf_legacy_kwargs.get("filter_rules", None)
 
-    context.add_user_visible_error(
-        "The 'netcdf_legacy' format is deprecated and no longer supported. "
+    context.add_user_visible_log(
+        "WARNING: The 'netcdf_legacy' format is deprecated and no longer supported. "
         "Users are encouraged to update workflows to use the updated, and CF compliant, 'netcdf' option."
     )
     context.add_stdout(
