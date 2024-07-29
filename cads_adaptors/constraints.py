@@ -1,6 +1,7 @@
 """Main module of the request-constraints API."""
 
 import copy
+import itertools
 import re
 from typing import Any
 
@@ -535,3 +536,161 @@ def gen_time_range_from_string(string: str) -> DateTimeRange:
         return time_range
     else:
         raise ValueError("Start date must be before end date")
+
+
+def legacy_intersect_constraints(
+    request: dict[str, Any],
+    constraints: list[dict[str, Any]] | dict[str, Any] | None,
+    context: adaptors.Context = adaptors.Context(),
+) -> list[dict[str, list[Any]]]:
+    """
+    'Constrain' a request by intersecting it with the constraints.
+
+    The result is a list of requests all together covering all of the
+    available data requested, but none of the unavailable data.
+
+    We do this by intersection the request with each constraint in turn,
+    emitting a request if the intersection is non-empty.
+
+    For instance, given the constraints below:
+
+        {
+            'day' : [ '21', '29' ],
+            'month' : [ '12' ],
+            'region' : [ 'northern_hemisphere' ],
+            'variable' : [ 'sea_ice_concentration' ],
+            'year' : [ '1981', '1983' ]
+        },
+
+        {
+            'day' : [ '19', '20' ],
+            'month' : [ '12' ],
+            'region' : [ 'south_hemisphere' ],
+            'variable' : [ 'sea_ice_concentration' ],
+            'year': [ '1981', '1983' ]
+        },
+
+        {
+            'day' : [ '25' ],
+            'month' : [ '12' ],
+            'region' : [ 'northern_hemisphere', 'south_hemisphere' ],
+            'variable' : [ 'sea_ice_concentration' ],
+            'year': [ '1982', '1983', '1984' ]
+        }
+
+    ,and the request:
+
+    {
+
+        'day' : [ '20', '21', '25' ],
+        'month' : [ '12' ],
+        'region' : [ 'south_hemisphere' ],
+        'variable' : [ 'sea_ice_concentration' ],
+        'year' : [ '1982', '1983' ],
+        'format' : [ 'zip' ]
+
+    }
+
+    , the following will happen:
+
+        - The comparison with the first contraint will return nothing, because
+        'region' in the request does not math 'region' in the constraint.
+
+        - The comparison with the second constraint will return:
+
+            {
+                'year': ['1983'],
+                'variable': ['sea_ice_concentration'],
+                'day': ['20'],
+                'month': ['12'],
+                'region': ['south_hemisphere'],
+                'format': ['zip']
+            }
+
+        - The comparison with the third constraint will return:
+
+            {
+                'year': ['1982', '1983'],
+                'variable': ['sea_ice_concentration'],
+                'day': ['25'],
+                'month': ['12'],
+                'region': ['south_hemisphere'],
+                'format': ['zip']
+            }
+
+    """
+    if constraints is None or len(constraints) == 0:
+        return [request]
+    requests = []
+    constraints = parse_constraints(constraints)
+    constrained_fields = set(itertools.chain.from_iterable(constraints))
+
+    # We need to know which fields in the request are constrained fields
+    # and which are unconstrained fields.
+    #
+    # Unconstrained fields should be ignored during constraints processing
+    # and simply passed through.
+    request_fields = request.keys()
+    unconstrained_fields = request_fields - constrained_fields
+
+    for constraint in constraints:
+        # There may be constrained fields used in the request that
+        # are not used in this particular constraint.
+        #
+        # This is conceptually a bit dodgy in the hypercube view of things
+        # as it implies some dimensions cease to exist when you look at
+        # it in certain ways.
+        #
+        # However, it's useful when the underlying data is actually two
+        # hypercubes with different dimensions.
+        #
+        # We handle this by generating a request which pretends that the
+        # constrained fields in the request which are not used in the
+        # current constraint did not exist.
+        #
+        # So we need to delete an entry from output_request if it is
+        # 1) used in the request,
+        # 2) a constrained field, and
+        # 3) not in constraint.keys().
+        unwanted_fields = request_fields - unconstrained_fields - constraint.keys()
+
+        # We output up to one request for each constraint (containing
+        # the part of the input request which intersects the constraint).
+        #
+        # This will be that request.
+        output_request = {k: v for k, v in request.items() if k not in unwanted_fields}
+
+        for field in constraint:
+            # Constrain the requested values for this field to the permitted
+            # ones (by intersecting it with the constraint).
+            constrained_field_value = [
+                v
+                for v in ensure_sequence(output_request.get(field, []))
+                if str(v) in constraint[field]
+            ]
+
+            # If the intersection is empty, the request as a whole does not
+            # meet this constraint and this output_request must be
+            # discarded.
+            if constrained_field_value:
+                output_request[field] = constrained_field_value
+            else:
+                output_request = {}
+                break
+
+        if len(output_request) != 0:
+            requests.append(output_request)
+
+    if len(requests) == 0:
+        context.add_user_visible_error(
+            "Your request has not produce a valid combination of values, please check your selection.\n"
+            "If using the cdsapi, please ensure that the values in your request match the values provided"
+            f" in the web-portal, your request:\n {request}\n"
+            "If you believe this to be a data store error, please contact user support.\n"
+        )
+        raise RuntimeError(
+            "Request has not produce a valid combination of values, please check your selection.\n"
+            f"{request}"
+        )
+
+    return requests

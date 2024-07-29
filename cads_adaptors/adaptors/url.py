@@ -17,8 +17,13 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         from cads_adaptors.tools import area_selector, url_tools
 
         # Convert request to list of URLs
+        requests = [
+            self.apply_mapping(request)
+            for request in self.intersect_constraints(request)
+        ]
         requests_urls = url_tools.requests_to_urls(
-            self.mapped_request, patterns=self.config["patterns"]
+            requests,
+            patterns=self.config["patterns"],
         )
 
         # try to download URLs

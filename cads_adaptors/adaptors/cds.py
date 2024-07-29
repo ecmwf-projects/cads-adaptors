@@ -5,10 +5,47 @@ from typing import Any, Union
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.validation import enforce
+
+
+# TODO: temporary function to reorder the open_dataset_kwargs and to_netcdf_kwargs
+#  to align with post-processing framework. When datasets have been updated, this should be removed.
+def _reorganise_open_dataset_and_to_netcdf_kwargs(
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    # If defined in older "format_conversion_kwargs" then rename as post_processing_kwargs.
+    #  Preference for post_processing_kwargs over format_conversion_kwargs
+    post_processing_kwargs: dict[str, Any] = {
+        **config.pop("format_conversion_kwargs", dict()),
+        **config.pop("post_processing_kwargs", dict()),
+    }
+
+    to_netcdf_kwargs = {
+        **post_processing_kwargs.pop("to_netcdf_kwargs", dict()),
+    }
+
+    # rename and expand_dims is now done as a "post open" step, to assist in other post-processing
+    #  Due to a bug, we allow this to be stored in the top level of the config
+    post_open_datasets_kwargs = post_processing_kwargs.get(
+        "post_open_datasets_kwargs", config.get("post_open_datasets_kwargs", {})
+    )
+    for key in ["rename", "expand_dims"]:
+        if key in to_netcdf_kwargs:
+            post_open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
+
+    post_processing_kwargs.update(
+        {
+            "post_open_datasets_kwargs": post_open_datasets_kwargs,
+            "to_netcdf_kwargs": to_netcdf_kwargs,
+        }
+    )
+    config.update({"post_processing_kwargs": post_processing_kwargs})
+    return config
 
 
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
+    adaptor_schema: dict[str, Any] = {}
 
     def __init__(
         self,
@@ -27,16 +64,30 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         else:
             self.context = context
         # The following attributes are updated during the retireve method
-        self.input_request: Request = Request()
-        self.mapped_request: Request = Request()
+        self.input_request: Request = dict()
+        self.mapped_request: Request = dict()
         self.download_format: str = "zip"
         self.receipt: bool = False
+        self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
+        # List of steps to perform after retrieving the data
+        self.post_process_steps: list[dict[str, Any]] = [{}]
 
-    def validate(self, request: Request) -> bool:
-        return True
+        # TODO: remove this when datasets have been updated to match new configuation
+        self.config = _reorganise_open_dataset_and_to_netcdf_kwargs(self.config)
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
+
+    def intersect_constraints(self, request: Request) -> list[Request]:
+        return [
+            self.normalise_request(request)
+            for request in constraints.legacy_intersect_constraints(
+                request, self.constraints, context=self.context
+            )
+        ]
+
+    def apply_mapping(self, request: Request) -> Request:
+        return mapping.apply_mapping(request, self.mapping)
 
     def estimate_costs(
         self, request: Request, cost_threshold: str = "max_costs"
@@ -64,8 +115,19 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         costs["number_of_fields"] = costs["size"]
         return costs
 
-    def normalise_request(self, request: Request) -> dict[str, Any]:
-        # TODO: cast to dict[str, list]
+    def normalise_request(self, request: Request) -> Request:
+        schemas = self.schemas
+        if not isinstance(schemas, list):
+            schemas = [schemas]
+        # Apply first dataset schemas, then adaptor schema
+        if adaptor_schema := self.adaptor_schema:
+            schemas = schemas + [adaptor_schema]
+        for schema in schemas:
+            request = enforce.enforce(request, schema, self.context.logger)
+        if not isinstance(request, dict):
+            raise TypeError(
+                f"Normalised request is not a dictionary, instead it is of type {type(request)}"
+            )
         return request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
@@ -75,12 +137,86 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     # and currently only implemented for retrieve methods
     def _pre_retrieve(self, request: Request, default_download_format="zip"):
         self.input_request = deepcopy(request)
+        self.context.debug(f"Input request:\n{self.input_request}")
         self.receipt = request.pop("receipt", False)
-        self.mapped_request = mapping.apply_mapping(request, self.mapping)  # type: ignore
+
+        # Extract post-process steps from the request before mapping:
+        self.post_process_steps = self.pp_mapping(request.pop("post_process", []))
+        self.context.debug(
+            f"Post-process steps extracted from request:\n{self.post_process_steps}"
+        )
+
+        self.mapped_request = self.apply_mapping(request)  # type: ignore
 
         self.download_format = self.mapped_request.pop(
             "download_format", default_download_format
         )
+        self.context.debug(
+            f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_request}"
+        )
+
+    def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Map the post-process steps from the request to the correct functions."""
+        from cads_adaptors.tools.post_processors import pp_config_mapping
+
+        pp_config = [
+            pp_config_mapping(_pp_config) for _pp_config in ensure_list(in_pp_config)
+        ]
+        return pp_config
+
+    def post_process(self, result: Any) -> dict[str, Any]:
+        """Perform post-process steps on the retrieved data."""
+        for i, pp_step in enumerate(self.post_process_steps):
+            self.context.add_stdout(
+                f"Performing post-process step {i+1} of {len(self.post_process_steps)}: {pp_step}"
+            )
+            # TODO: pp_mapping should have ensured "method" is always present
+
+            if "method" not in pp_step:
+                self.context.add_user_visible_error(
+                    message="Post-processor method not specified"
+                )
+                continue
+
+            method_name = pp_step.pop("method")
+            # TODO: Add extra condition to limit pps from dataset configurations
+            if not hasattr(self, method_name):
+                self.context.add_user_visible_error(
+                    message=f"Post-processor method '{method_name}' not available for this dataset"
+                )
+                continue
+            method = getattr(self, method_name)
+
+            # post processing is done on xarray objects,
+            # so on first pass we ensure result is opened as xarray
+            if i == 0:
+                from cads_adaptors.tools.convertors import (
+                    open_result_as_xarray_dictionary,
+                )
+
+                post_processing_kwargs = self.config.get("post_processing_kwargs", {})
+
+                open_datasets_kwargs = post_processing_kwargs.get(
+                    "open_datasets_kwargs", {}
+                )
+                post_open_datasets_kwargs = post_processing_kwargs.get(
+                    "post_open_datasets_kwargs", {}
+                )
+                self.context.add_stdout(
+                    f"Opening result: {result} as xarray dictionary with kwargs:\n"
+                    f"open_dataset_kwargs: {open_datasets_kwargs}\n"
+                    f"post_open_datasets_kwargs: {post_open_datasets_kwargs}"
+                )
+                result = open_result_as_xarray_dictionary(
+                    result,
+                    context=self.context,
+                    open_datasets_kwargs=open_datasets_kwargs,
+                    post_open_datasets_kwargs=post_open_datasets_kwargs,
+                )
+
+            result = method(result, **pp_step)
+
+        return result
 
     def make_download_object(
         self,
@@ -171,8 +307,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "licence": [
                 f"{licence[0]} (version {licence[1]})" for licence in self.licences
             ],
-            # TODO: Add request-id information to the context
-            "request-uid": self.config.get("request_uid", "Unavailable"),
+            "user_uid": self.config.get("user_uid"),
+            "request_uid": self.config.get("request_uid"),
             #
             # TODO: Add URL/DNS information to the context for populating these fields:
             # "web-portal": self.???, # Need update to information available to adaptors

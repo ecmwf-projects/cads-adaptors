@@ -14,9 +14,11 @@ dependencies:
 - sphinx
 - sphinx-autoapi
 # DO NOT EDIT ABOVE THIS LINE, ADD DEPENDENCIES BELOW
+- packaging
 - types-python-dateutil
 - types-pyyaml
 - types-requests
 - pytest-localftpserver
 - pip:
   - git+https://github.com/ecmwf-projects/cacholote.git
+  - git+https://github.com/ecmwf-projects/cads-mars-server

@@ -4,7 +4,7 @@ import dask
 import numpy as np
 import xarray as xr
 from earthkit import data
-from earthkit.aggregate import tools as eka_tools
+from earthkit.transforms import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
 

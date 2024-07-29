@@ -1,7 +1,6 @@
 import functools
 import os
 import tarfile
-import traceback
 import urllib
 import zipfile
 from typing import Any, Dict, Generator, List, Optional
@@ -13,12 +12,13 @@ import yaml
 from tqdm import tqdm
 
 from cads_adaptors.adaptors import Context
+from cads_adaptors.exceptions import InvalidRequest, UrlNoDataError
 from cads_adaptors.tools import hcube_tools
 
 
 # copied from cdscommon/url2
 def requests_to_urls(
-    requests: Dict[str, Any], patterns: List[str]
+    requests: dict[str, Any] | list[dict[str, Any]], patterns: List[str]
 ) -> Generator[Dict[str, Any], None, None]:
     """Given a list of requests and a list of URL patterns with Jinja2
     formatting, yield the associated URLs to download.
@@ -43,6 +43,9 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
 
     paths = []
     context.write_type = "stdout"
+    # set some default kwargs for establishing a connection
+    # the default timeout value (3) has been determined empirically (it also included a safety margin)
+    kwargs = {"timeout": 3, "maximum_retries": 1, "retry_after": 1, **kwargs}
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         dir = os.path.dirname(path)
@@ -51,28 +54,31 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
         try:
             context.add_stdout(f"Downloading {url} to {path}")
             multiurl.download(
-                url, path, progress_bar=functools.partial(tqdm, file=context), **kwargs
+                url,
+                path,
+                progress_bar=functools.partial(tqdm, file=context, mininterval=5),
+                **kwargs,
             )
-        except Exception:
-            context.add_stdout(
-                f"Failed download for URL: {url}\nTraceback: {traceback.format_exc()}"
-            )
+        except Exception as e:
+            context.add_stdout(f"Failed download for URL: {url}\nException: {e}")
         else:
             paths.append(path)
 
     if len(paths) == 0:
         context.add_user_visible_error(
-            "Your request has not found any data, please check your selection.\n\n"
-            "If you believe this to be a data store error, please contact user support."
+            "Your request has not found any data, please check your selection.\n"
+            "This may be due to temporary connectivity issues with the source data.\n"
+            "If this problem persists, please contact user support."
         )
-        raise RuntimeError(
+        raise UrlNoDataError(
             f"Request empty. No data found from the following URLs:"
             f"\n{yaml.safe_dump(urls, indent=2)} "
         )
+    # TODO: raise a warning if len(paths)<len(urls). Need to check who sees this warning
     return paths
 
 
-# TODO use targzstream
+# TODO: remove unused function
 def download_zip_from_urls(
     urls: List[str],
     base_target: str,
@@ -90,7 +96,7 @@ def download_zip_from_urls(
     return target
 
 
-# TODO zipstream for archive creation
+# TODO: remove unused function
 def download_tgz_from_urls(
     urls: List[str],
     base_target: str,
@@ -108,27 +114,29 @@ def download_tgz_from_urls(
     return target
 
 
+# TODO: remove unused function
 def download_from_urls(
     urls: List[str],
     context: Context,
-    data_format: str = "zip",
+    download_format: str = "zip",
 ) -> str:
     base_target = str(hash(tuple(urls)))
 
-    if data_format == "tgz":
+    if download_format == "tgz":
         target = download_tgz_from_urls(
             urls=urls, base_target=base_target, context=context
         )
-    elif data_format == "zip":
+    elif download_format == "zip":
         target = download_zip_from_urls(
             urls=urls, base_target=base_target, context=context
         )
     else:
-        raise ValueError(f"{data_format=} is not supported")
+        raise InvalidRequest(f"Download format '{download_format}' is not supported")
 
     return target
 
 
+# TODO: remove unused function
 def download_zip_from_urls_in_memory(
     urls: List[str], target: Optional[str] = None
 ) -> str:

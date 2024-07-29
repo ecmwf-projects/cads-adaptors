@@ -194,7 +194,7 @@ def expand_dates(r, request, date, year, month, day, date_format):
                 items = [_.strip() for _ in d.split("/")]
                 if len(items) != 2 or not items[0] or not items[1]:
                     raise ValueError(
-                        'Date ranges must be of the form "start_date/end_date": "{d}"'
+                        f'Date ranges must be of the form "start_date/end_date": "{d}"'
                     )
                 newdates.update(date_range(*items, date_format=date_format))
             else:
@@ -277,6 +277,7 @@ def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
 
     # Add force values to request as some may be used in date expansion
     r.update(force)
+    request.update(force)
 
     date_keyword_configs = options.get("date_keyword_config", DATE_KEYWORD_CONFIGS)
     if isinstance(date_keyword_configs, dict):
