@@ -34,6 +34,8 @@ from cads_adaptors.adaptors.mars import DirectMarsCdsAdaptor, MarsCdsAdaptor
 from cads_adaptors.adaptors.multi import MultiAdaptor, MultiMarsCdsAdaptor
 from cads_adaptors.adaptors.roocs import RoocsCdsAdaptor
 from cads_adaptors.adaptors.url import UrlCdsAdaptor
+from cads_adaptors.adaptors.cams_regional_fc import CAMSEuropeAirQualityForecastsAdaptor
+#, CAMSEuropeAirQualityForecastsAdaptorForLatestData, CAMSEuropeAirQualityForecastsAdaptorForArchivedData
 
 from .tools.adaptor_tools import get_adaptor_class
 
@@ -54,5 +56,8 @@ __all__ = [
     "MultiAdaptor",
     "MultiMarsCdsAdaptor",
     "RoocsCdsAdaptor",
+    "CAMSEuropeAirQualityForecastsAdaptor",
+    # "CAMSEuropeAirQualityForecastsAdaptorForLatestData",
+    # "CAMSEuropeAirQualityForecastsAdaptorForArchivedData",
     "ObservationsAdaptor",
 ]
