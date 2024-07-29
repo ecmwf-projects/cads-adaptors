@@ -65,8 +65,9 @@ def daily_reduce(
     out_xarray_dict = {}
     for in_tag, in_dataset in in_xarray_dict.items():
         out_tag = f"{in_tag}_daily-{how}"
-        context.add_stdout(f"Daily reduction: {how} {kwargs}\n{in_dataset}")
-        context.add_user_visible_log(f"Daily reduction: {how} {kwargs}")
+        context.add_user_visible_log(
+            f"Applying daily reduction to {in_tag}. Method={how}; Addtional kwargs: {kwargs}"
+        )
         reduced_data = temporal.daily_reduce(
             in_dataset,
             how=how,
@@ -91,8 +92,9 @@ def monthly_reduce(
     out_xarray_dict = {}
     for in_tag, in_dataset in in_xarray_dict.items():
         out_tag = f"{in_tag}_monthly-{how}"
-        context.add_stdout(f"Temporal reduction: {how} {kwargs}")
-        context.add_user_visible_log(f"Temporal reduction: {how} {kwargs}")
+        context.add_user_visible_log(
+            f"Applying monthly reduction to {in_tag}. Method={how}; Addtional kwargs: {kwargs}"
+        )
         reduced_data = temporal.monthly_reduce(
             in_dataset,
             how=how,

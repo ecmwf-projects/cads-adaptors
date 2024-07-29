@@ -174,7 +174,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
             if "method" not in pp_step:
                 self.context.add_user_visible_log(
-                    "ERROR: Post-processor method not specified, skipping post-processing step: {pp_step}"
+                    f"ERROR: Post-processor method not specified, skipping post-processing step: {pp_step}"
                 )
                 continue
 
