@@ -92,8 +92,6 @@ def execute_mars(
             f"Request submitted to the MARS server:\n{requests}\n"
             f"Full error message:\n{error_lines}\n"
         )
-        context.add_user_visible_error(message=error_message)
-
         error_message += f"Exception: {reply.error}\n"
         raise MarsRuntimeError(error_message)
 
@@ -101,9 +99,6 @@ def execute_mars(
         error_message = (
             "MARS returned no data, please check your selection."
             f"Request submitted to the MARS server:\n{requests}\n"
-        )
-        context.add_user_visible_error(
-            message=error_message,
         )
         raise MarsNoDataError(error_message)
 

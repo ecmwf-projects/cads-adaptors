@@ -1,10 +1,11 @@
 import os
-from typing import Any, Callable, NoReturn
+from typing import Any, Callable
 
 import cfgrib
 import xarray as xr
 
 from cads_adaptors.adaptors import Context
+from cads_adaptors.exceptions import FormatConversionError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 
@@ -29,15 +30,6 @@ DEFAULT_CHUNKS = {
 }
 
 
-def add_user_log_and_raise_error(
-    message: str,
-    context: Context = Context(),
-    thisError=ValueError,
-) -> NoReturn:
-    context.add_user_visible_error(message)
-    raise thisError(message)
-
-
 def convert_format(
     result: Any,
     target_format: str,
@@ -57,11 +49,10 @@ def convert_format(
 
     else:
         message = (
-            f"WARNING: Unrecoginsed target_format requested ({target_format}), "
+            f"ERROR: Unrecoginsed target_format requested ({target_format}), "
             f"returning in original format: {result}"
         )
-        context.add_user_visible_error(message=message)
-        context.add_stderr(message=message)
+        context.add_user_visible_log(message=message)
         return ensure_list(result)
 
 
@@ -77,7 +68,7 @@ def result_to_grib_files(
     if isinstance(result, str):
         return unknown_filetype_to_grib_files(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
-        context.add_user_visible_error(
+        context.add_user_visible_log(
             "Cannot convert xarray.Dataset to grib, returning as netCDF. "
             "Please note that post-processing uses xarray.Datasets. "
         )
@@ -97,8 +88,8 @@ def result_to_grib_files(
                 )
             return out_results
         elif result_type == xr.Dataset:
-            context.add_user_visible_error(
-                "Cannot convert xarray dataset to grib, returning as netCDF."
+            context.add_user_visible_log(
+                "ERROR: Cannot convert xarray dataset to grib, returning as netCDF."
             )
             return xarray_dict_to_netcdf(
                 {f"data_{i}": res for i, res in enumerate(result)},
@@ -106,10 +97,8 @@ def result_to_grib_files(
                 **kwargs,
             )
         else:
-            add_user_log_and_raise_error(
-                f"Unable to convert result of type {result_type} to grib files. result:\n{result}",
-                context=context,
-                thisError=ValueError,
+            raise FormatConversionError(
+                f"Unable to convert result of type {result_type} to grib files. result:\n{result}"
             )
 
     elif isinstance(result, dict):
@@ -129,26 +118,22 @@ def result_to_grib_files(
                 )
             return out_results
         elif result_type == xr.Dataset:
-            context.add_user_visible_error(
-                "Cannot convert xarray dataset to grib, returning as netCDF."
+            context.add_user_visible_log(
+                "ERROR: Cannot convert xarray dataset to grib, returning as netCDF."
             )
             return xarray_dict_to_netcdf(
                 {k: res for k, res in result.items()},
                 context=context,
                 **kwargs,
             )
-        else:
-            add_user_log_and_raise_error(
-                f"Unable to convert result of type {result_type} to grib files. result:\n{result}",
-                context=context,
-                thisError=ValueError,
-            )
-    else:
-        add_user_log_and_raise_error(
-            f"Unable to convert result of type {type(result)} to grib files. result:\n{result}",
-            context=context,
-            thisError=ValueError,
+
+        raise FormatConversionError(
+            f"Unable to convert result of type {result_type} to grib files. result:\n{result}"
         )
+
+    raise FormatConversionError(
+        f"Unable to convert result of type {type(result)} to grib files. result:\n{result}"
+    )
 
 
 def result_to_netcdf_files(
@@ -188,10 +173,8 @@ def result_to_netcdf_files(
             )
 
         else:
-            add_user_log_and_raise_error(
-                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}",
-                context=context,
-                thisError=ValueError,
+            raise FormatConversionError(
+                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}"
             )
     elif isinstance(result, dict):
         # Ensure all values are of the same type
@@ -211,17 +194,13 @@ def result_to_netcdf_files(
         elif result_type == xr.Dataset:
             return xarray_dict_to_netcdf(result, context=context, **kwargs)
         else:
-            add_user_log_and_raise_error(
-                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}",
-                context=context,
-                thisError=ValueError,
+            raise FormatConversionError(
+                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}"
             )
 
     else:
-        add_user_log_and_raise_error(
-            f"Unable to convert result of type {type(result)} to netCDF files. result:\n{result}",
-            context=context,
-            thisError=ValueError,
+        raise FormatConversionError(
+            f"Unable to convert result of type {type(result)} to netCDF files. result:\n{result}"
         )
 
 
@@ -242,7 +221,7 @@ def result_to_netcdf_legacy_files(
     filter_rules: str | None = to_netcdf_legacy_kwargs.get("filter_rules", None)
 
     context.add_user_visible_log(
-        "The 'netcdf_legacy' format is deprecated and no longer supported. "
+        "WARNING: The 'netcdf_legacy' format is deprecated and no longer supported. "
         "Users are encouraged to update workflows to use the updated, and CF compliant, 'netcdf' option."
     )
     context.add_stdout(
@@ -285,10 +264,8 @@ def result_to_netcdf_legacy_files(
         ), f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {result_types}"
 
     else:
-        add_user_log_and_raise_error(
-            f"Unable to convert result of type {type(result)} to 'netcdf_legacy' files. result:\n{result}",
-            context=context,
-            thisError=ValueError,
+        raise FormatConversionError(
+            f"Unable to convert result of type {type(result)} to 'netcdf_legacy' files. result:\n{result}"
         )
 
     if filter_rules:
@@ -325,7 +302,7 @@ def result_to_netcdf_legacy_files(
             "We are unable to convert this GRIB data to netCDF, "
             "please download as GRIB and convert to netCDF locally.\n"
         )
-        add_user_log_and_raise_error(message, context=context, thisError=RuntimeError)
+        raise FormatConversionError(message)
 
     return nc_files
 
@@ -347,14 +324,12 @@ def unknown_filetype_to_grib_files(
     if ext.lower() in [".grib", ".grib2"]:
         return [infile]
     elif ext.lower() in [".netcdf", ".nc", ".csv"]:
-        context.add_user_visible_error(
-            f"Cannot convert {ext} to grib, returning original file."
+        context.add_user_visible_log(
+            f"ERROR: Cannot convert {ext} to grib, returning original file."
         )
         return [infile]
-    else:
-        add_user_log_and_raise_error(
-            f"Unknown file type: {infile}", context=context, thisError=ValueError
-        )
+
+    raise FormatConversionError(f"Unknown file type: {infile}")
 
 
 def unknown_filetype_to_netcdf_files(
@@ -370,9 +345,7 @@ def unknown_filetype_to_netcdf_files(
         context.add_stdout(f"Converting {infile} to netCDF files with kwargs: {kwargs}")
         return grib_to_netcdf_files(infile, context=context, **kwargs)
     else:
-        add_user_log_and_raise_error(
-            f"Unknown file type: {infile}", context=context, thisError=ValueError
-        )
+        raise FormatConversionError(f"Unknown file type: {infile}")
 
 
 def grib_to_netcdf_files(
@@ -405,9 +378,7 @@ def grib_to_netcdf_files(
             "We are unable to convert this GRIB data to netCDF, "
             "please download as GRIB and convert to netCDF locally.\n"
         )
-        context.add_user_visible_error(message=message)
-        context.add_stderr(message=message)
-        raise RuntimeError(message)
+        raise FormatConversionError(message)
 
     out_nc_files = xarray_dict_to_netcdf(
         datasets, context=context, to_netcdf_kwargs=to_netcdf_kwargs
@@ -470,12 +441,10 @@ def open_result_as_xarray_dictionary(
             elif isinstance(v, xr.Dataset):
                 datasets[k] = v
             else:
-                add_user_log_and_raise_error(
+                raise FormatConversionError(
                     "Incorrect result type, "
                     "if result dictionary it must be of type: dict[str, str | xr.Dataset]."
-                    f"result:\n{result}",
-                    context=context,
-                    thisError=ValueError,
+                    f"result:\n{result}"
                 )
     elif isinstance(result, list):
         datasets = {}
@@ -487,18 +456,14 @@ def open_result_as_xarray_dictionary(
             elif isinstance(v, xr.Dataset):
                 datasets[f"data_{k}"] = v
             else:
-                add_user_log_and_raise_error(
+                raise FormatConversionError(
                     "Incorrect result type, "
                     "if result list it must be of type: list[str | xr.Dataset]."
-                    f"result:\n{result}",
-                    context=context,
-                    thisError=ValueError,
+                    f"result:\n{result}"
                 )
     else:
-        add_user_log_and_raise_error(
-            f"Unable to open result of type {type(result)} as an xarray dataset.",
-            context=context,
-            thisError=ValueError,
+        raise FormatConversionError(
+            f"Unable to open result of type {type(result)} as an xarray dataset."
         )
 
     return datasets
@@ -518,12 +483,8 @@ def open_file_as_xarray_dictionary(
         return open_netcdf_as_xarray_dictionary(infile, context=context, **kwargs)
     elif ext.lower() in [".grib", ".grib2"]:
         return open_grib_file_as_xarray_dictionary(infile, context=context, **kwargs)
-    else:
-        add_user_log_and_raise_error(
-            f"Unable to open file {infile} as an xarray dataset.",
-            context=context,
-            thisError=ValueError,
-        )
+
+    raise FormatConversionError(f"Unable to open file {infile} as an xarray dataset.")
 
 
 def safely_rename_variable(dataset: xr.Dataset, rename: dict[str, str]) -> xr.Dataset:

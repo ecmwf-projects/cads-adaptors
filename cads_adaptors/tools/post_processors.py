@@ -47,8 +47,8 @@ def pp_config_mapping(
     while pp_config.get("method") in CONFIG_MAPPING and cnt < 100:
         pp_config = {**pp_config, **CONFIG_MAPPING[pp_config["method"]]}
     if "method" not in pp_config:
-        context.add_user_visible_error(
-            f"Ignoring invalid post-processor config: {pp_config}"
+        context.add_user_visible_log(
+            f"WARNING: Ignoring invalid post-processor config: {pp_config}"
         )
         return {}
     return pp_config

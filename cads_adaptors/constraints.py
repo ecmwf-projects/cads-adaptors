@@ -682,15 +682,16 @@ def legacy_intersect_constraints(
             requests.append(output_request)
 
     if len(requests) == 0:
-        context.add_user_visible_error(
-            "Your request has not produce a valid combination of values, please check your selection.\n"
-            "If using the cdsapi, please ensure that the values in your request match the values provided"
+        context.add_user_visible_log(
+            "ERROR: Your request has not produce a valid combination of values, please check your selection."
+            "\n If using the cdsapi, please ensure that the values in your request match the values provided"
             f" in the web-portal, your request:\n {request}\n"
             "If you believe this to be a data store error, please contact user support.\n"
         )
         raise RuntimeError(
             "Request has not produce a valid combination of values, please check your selection.\n"
             f"{request}"
+            "If you believe this to be a data store error, please contact user support.\n"
         )
 
     return requests

@@ -2,7 +2,7 @@ import os
 from copy import deepcopy
 from typing import Any, Union
 
-from cads_adaptors import constraints, costing, mapping
+from cads_adaptors import constraints, costing, exceptions, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.validation import enforce
@@ -173,16 +173,16 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             # TODO: pp_mapping should have ensured "method" is always present
 
             if "method" not in pp_step:
-                self.context.add_user_visible_error(
-                    message="Post-processor method not specified"
+                self.context.add_user_visible_log(
+                    "ERROR: Post-processor method not specified, skipping post-processing step: {pp_step}"
                 )
                 continue
 
             method_name = pp_step.pop("method")
             # TODO: Add extra condition to limit pps from dataset configurations
             if not hasattr(self, method_name):
-                self.context.add_user_visible_error(
-                    message=f"Post-processor method '{method_name}' not available for this dataset"
+                self.context.add_user_visible_log(
+                    f"ERROR: Post-processor method '{method_name}' not available for this dataset"
                 )
                 continue
             method = getattr(self, method_name)
@@ -256,21 +256,18 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         try:
             return download_tools.DOWNLOAD_FORMATS[download_format](paths, **kwargs)
         except Exception as err:
-            self.context.add_user_visible_error(
-                message=(
-                    "There was an error whilst preparing your data for download, "
-                    "please try submitting you request again. "
-                    "If the problem persists, please contact user support. "
-                    f"Files being prepared for download: {filenames}\n"
-                )
-            )
             self.context.add_stderr(
                 f"Error whilst preparing download object: {err}\n"
                 f"Paths: {paths}\n"
                 f"Download format: {download_format}\n"
                 f"kwargs: {kwargs}\n"
             )
-            raise err
+            raise exceptions.DownloadPreparationError(
+                "There was an error whilst preparing your data for download, "
+                "please try submitting you request again. "
+                "If the problem persists, please contact user support. "
+                f"Files being prepared for download: {filenames}\n"
+            )
 
     def make_receipt(
         self,

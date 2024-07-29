@@ -7,6 +7,7 @@ from earthkit import data
 from earthkit.transforms import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
+from cads_adaptors.exceptions import PostProcessingError
 
 
 def incompatible_area_error(
@@ -14,15 +15,13 @@ def incompatible_area_error(
     start: float,
     end: float,
     coord_range: list,
-    context: Context = Context(),
-    thisError=ValueError,
+    thisError=PostProcessingError,
 ):
     error_message = (
         "Your area selection is not yet compatible with this dataset.\n"
         f"Range selection for {dim_key}: [{start}, {end}].\n"
         f"Coord range from dataset: {coord_range}"
     )
-    context.add_user_visible_error(error_message)
     raise thisError(error_message)
 
 
@@ -52,7 +51,7 @@ def wrap_longitudes(
             end_shift_east = True
         # Things have been shifted, check if at least one point is within range
         if not points_inside_range([start, end], coord_range, how=any):
-            incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
+            incompatible_area_error(dim_key, start_in, end_in, coord_range)
 
     if start_shift_east and end_shift_east:
         return [slice(start, end)]
@@ -69,7 +68,7 @@ def wrap_longitudes(
             start_shift_west = True
         # Things have been shifted, check if at least one point is within range
         if not points_inside_range([start, end], coord_range, how=any):
-            incompatible_area_error(dim_key, start_in, end_in, coord_range, context)
+            incompatible_area_error(dim_key, start_in, end_in, coord_range)
 
     if start_shift_west and end_shift_west:
         return [slice(start, end)]
@@ -122,7 +121,10 @@ def get_dim_slices(
     # A final check that there is at least an overlap
     if not points_inside_range([start, end], coord_range):
         incompatible_area_error(
-            dim_key, start, end, coord_range, context, thisError=NotImplementedError
+            dim_key,
+            start,
+            end,
+            coord_range,
         )
 
     return [slice(start, end)]
@@ -184,11 +186,7 @@ def area_selector(
         context.logger.debug(f"ds_area: {ds_area}")
         return ds_area
 
-    else:
-        context.add_user_visible_error(
-            "Area selection not available for data projection"
-        )
-        raise NotImplementedError("Area selection not available for data projection")
+    raise PostProcessingError("Area selection not available for data projection")
 
 
 def area_selector_paths(
@@ -210,5 +208,7 @@ def area_selector_paths(
                 ds_area.to_netcdf(out_fname)
                 out_paths.append(out_fname)
             else:
-                raise NotImplementedError(f"Output format not recognised {out_format}")
+                raise PostProcessingError(
+                    f"Output format not recognised {out_format} for area selection post processing"
+                )
     return out_paths

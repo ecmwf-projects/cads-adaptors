@@ -5,6 +5,7 @@ import unittest
 import numpy as np
 import xarray as xr
 
+from cads_adaptors.exceptions import PostProcessingError
 from cads_adaptors.tools.area_selector import (
     area_selector,
     get_dim_slices,
@@ -82,7 +83,7 @@ class TestGetDimSlices(unittest.TestCase):
         self.assertEqual(result, [slice(300, 360), slice(0, 10)])
 
     def test_get_dim_slices_incompatible_area(self):
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(PostProcessingError):
             get_dim_slices(self.ds, "latitude", -100, -91)
 
     def test_get_dim_slices_descending(self):

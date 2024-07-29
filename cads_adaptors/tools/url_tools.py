@@ -65,14 +65,14 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             paths.append(path)
 
     if len(paths) == 0:
-        context.add_user_visible_error(
+        context.add_stderr(
+            f"Request empty. No data found from the following URLs:"
+            f"\n{yaml.safe_dump(urls, indent=2)}"
+        )
+        raise UrlNoDataError(
             "Your request has not found any data, please check your selection.\n"
             "This may be due to temporary connectivity issues with the source data.\n"
             "If this problem persists, please contact user support."
-        )
-        raise UrlNoDataError(
-            f"Request empty. No data found from the following URLs:"
-            f"\n{yaml.safe_dump(urls, indent=2)} "
         )
     # TODO: raise a warning if len(paths)<len(urls). Need to check who sees this warning
     return paths

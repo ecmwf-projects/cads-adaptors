@@ -66,3 +66,15 @@ class RoocsRuntimeError(RuntimeError):
 
 class RoocsValueError(ValueError):
     """Raised when a ROOCS request fails due to a value error."""
+
+
+class DownloadPreparationError(RuntimeError):
+    """Raised when a request fails during download preparation."""
+
+
+class PostProcessingError(RuntimeError):
+    """Raised when a request fails during post processing."""
+
+
+class FormatConversionError(RuntimeError):
+    """Raised when a request fails during a format conversion step."""
