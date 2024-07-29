@@ -46,26 +46,14 @@ def convert_format(
 ) -> list[str]:
     target_format = adaptor_tools.handle_data_format(target_format)
     post_processing_kwargs = config.get("post_processing_kwargs", {})
-    open_datasets_kwargs: dict[str, Any] = post_processing_kwargs.get(
-        "open_datasets_kwargs", {}
+    context.add_stdout(
+        f"Converting result ({result}) to {target_format} with kwargs: {post_processing_kwargs}"
     )
-    post_open_kwargs: dict[str, Any] = post_processing_kwargs.get(
-        "post_open_datasets_kwargs", {}
-    )
-
-    # Keywords specific to writing to the target format
-    to_target_kwargs: dict[str, Any] = config.get(f"to_{target_format}_kwargs", {})
 
     convertor: None | Callable = CONVERTORS.get(target_format, None)
 
     if convertor is not None:
-        return convertor(
-            result,
-            context=context,
-            open_datasets_kwargs=open_datasets_kwargs,
-            post_open_kwargs=post_open_kwargs,
-            **to_target_kwargs,
-        )
+        return convertor(result, context=context, **post_processing_kwargs)
 
     else:
         message = (
@@ -240,8 +228,7 @@ def result_to_netcdf_files(
 def result_to_netcdf_legacy_files(
     result: Any,
     context: Context = Context(),
-    command: str | list[str] = ["grib_to_netcdf", "-S", "param"],
-    filter_rules: str | None = None,
+    to_netcdf_legacy_kwargs: dict[str, Any] = {},
     **kwargs,
 ) -> list[str]:
     """
@@ -249,12 +236,20 @@ def result_to_netcdf_legacy_files(
     Can only accept a grib file, or list/dict of grib files as input.
     Converts to netCDF3 only.
     """
-    context.add_user_visible_error(
+    command: str | list[str] = to_netcdf_legacy_kwargs.get(
+        "command", ["grib_to_netcdf", "-S", "param"]
+    )
+    filter_rules: str | None = to_netcdf_legacy_kwargs.get("filter_rules", None)
+
+    context.add_user_visible_log(
         "The 'netcdf_legacy' format is deprecated and no longer supported. "
         "Users are encouraged to update workflows to use the updated, and CF compliant, 'netcdf' option."
     )
     context.add_stdout(
-        f"Converting result ({result}) to legacy netCDF files with grib_to_netcdf"
+        f"Converting result ({result}) to legacy netCDF files with grib_to_netcdf.\n"
+        f"filter_rules: {filter_rules}\n"
+        f"command: {command}"
+        f"kwargs: {kwargs}"
     )
 
     # Check result is a single grib_file or a list/dict of grib_files
@@ -383,24 +378,25 @@ def unknown_filetype_to_netcdf_files(
 def grib_to_netcdf_files(
     grib_file: str,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
-    post_open_kwargs: dict[str, Any] = {},
+    post_open_datasets_kwargs: dict[str, Any] = {},
+    to_netcdf_kwargs: dict[str, Any] = {},
     context: Context = Context(),
-    **to_netcdf_kwargs,
+    **kwargs,
 ):
-    to_netcdf_kwargs.update(to_netcdf_kwargs.pop("to_netcdf_kwargs", {}))
+    to_netcdf_kwargs.update(kwargs.pop("to_netcdf_kwargs", {}))
     grib_file = os.path.realpath(grib_file)
 
     context.add_stdout(
         f"Converting {grib_file} to netCDF files with:\n"
         f"to_netcdf_kwargs: {to_netcdf_kwargs}\n"
         f"open_datasets_kwargs: {open_datasets_kwargs}\n"
-        f"post_open_kwargs: {post_open_kwargs}\n"
+        f"post_open_datasets_kwargs: {post_open_datasets_kwargs}\n"
     )
 
     datasets = open_grib_file_as_xarray_dictionary(
         grib_file,
         open_datasets_kwargs=open_datasets_kwargs,
-        post_open_kwargs=post_open_kwargs,
+        post_open_datasets_kwargs=post_open_datasets_kwargs,
         context=context,
     )
     # Fail here on empty lists so that error message is more informative
@@ -413,7 +409,9 @@ def grib_to_netcdf_files(
         context.add_stderr(message=message)
         raise RuntimeError(message)
 
-    out_nc_files = xarray_dict_to_netcdf(datasets, context=context, **to_netcdf_kwargs)
+    out_nc_files = xarray_dict_to_netcdf(
+        datasets, context=context, to_netcdf_kwargs=to_netcdf_kwargs
+    )
 
     return out_nc_files
 
@@ -422,8 +420,9 @@ def xarray_dict_to_netcdf(
     datasets: dict[str, xr.Dataset],
     context: Context = Context(),
     compression_options: str | dict[str, Any] = "default",
+    to_netcdf_kwargs: dict[str, Any] = {},
     out_fname_prefix: str = "",
-    **to_netcdf_kwargs,
+    **kwargs,
 ) -> list[str]:
     """
     Convert a dictionary of xarray datasets to netCDF files, where the key of the dictionary
@@ -603,7 +602,7 @@ def open_netcdf_as_xarray_dictionary(
     netcdf_file: str,
     context: Context = Context(),
     open_datasets_kwargs: dict[str, Any] = {},
-    post_open_kwargs: dict[str, Any] = {},
+    post_open_datasets_kwargs: dict[str, Any] = {},
     **kwargs,
 ) -> dict[str, xr.Dataset]:
     """
@@ -625,7 +624,7 @@ def open_netcdf_as_xarray_dictionary(
     context.add_stdout(f"Opening {netcdf_file} with kwargs: {open_datasets_kwargs}")
     datasets = {fname: xr.open_dataset(netcdf_file, **open_datasets_kwargs)}
 
-    datasets = post_open_datasets_modifications(datasets, **post_open_kwargs)
+    datasets = post_open_datasets_modifications(datasets, **post_open_datasets_kwargs)
 
     return datasets
 
@@ -633,7 +632,7 @@ def open_netcdf_as_xarray_dictionary(
 def open_grib_file_as_xarray_dictionary(
     grib_file: str,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
-    post_open_kwargs: dict[str, Any] = {},
+    post_open_datasets_kwargs: dict[str, Any] = {},
     context: Context = Context(),
     **kwargs,
 ) -> dict[str, xr.Dataset]:
@@ -686,6 +685,6 @@ def open_grib_file_as_xarray_dictionary(
                 )
             }
 
-    datasets = post_open_datasets_modifications(datasets, **post_open_kwargs)
+    datasets = post_open_datasets_modifications(datasets, **post_open_datasets_kwargs)
 
     return datasets

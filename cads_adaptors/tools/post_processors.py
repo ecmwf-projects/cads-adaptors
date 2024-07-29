@@ -65,8 +65,8 @@ def daily_reduce(
     out_xarray_dict = {}
     for in_tag, in_dataset in in_xarray_dict.items():
         out_tag = f"{in_tag}_daily-{how}"
-        context.add_stdout(f"Daily reduction: {how} {kwargs}")
-        context.add_user_visible_log(f"Temporal reduction: {how} {kwargs}")
+        context.add_stdout(f"Daily reduction: {how} {kwargs}\n{in_dataset}")
+        context.add_user_visible_log(f"Daily reduction: {how} {kwargs}")
         reduced_data = temporal.daily_reduce(
             in_dataset,
             how=how,
