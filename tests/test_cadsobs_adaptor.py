@@ -166,6 +166,11 @@ TEST_REQUEST = {
     "_timestamp": str(time.time()),
 }
 
+TEST_REQUEST_ORPHAN_AUXVAR = TEST_REQUEST.copy()
+TEST_REQUEST_ORPHAN_AUXVAR.update(
+    dict(variable=["maximum_air_temperature_negative_total_uncertainty"])
+)
+
 TEST_ADAPTOR_CONFIG = {
     "entry_point": "cads_adaptors:ObservationsAdaptor",
     "collection_id": "insitu-observations-near-surface-temperature-us-climate-reference-network",
@@ -208,7 +213,8 @@ TEST_ADAPTOR_CONFIG = {
 }
 
 
-def test_adaptor(tmp_path, monkeypatch):
+@pytest.mark.parametrize("test_request", [TEST_REQUEST, TEST_REQUEST_ORPHAN_AUXVAR])
+def test_adaptor(tmp_path, monkeypatch, test_request):
     monkeypatch.setattr(
         "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
         MockerCadsobsApiClient,
@@ -218,7 +224,7 @@ def test_adaptor(tmp_path, monkeypatch):
     # is not needed for this test
 
     adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
-    result = adaptor.retrieve(TEST_REQUEST)
+    result = adaptor.retrieve(test_request)
     tempfile = Path(tmp_path, "test_adaptor.nc")
     with tempfile.open("wb") as tmpf:
         tmpf.write(result.read())
