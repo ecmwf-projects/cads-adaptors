@@ -678,6 +678,10 @@ def open_grib_file_as_xarray_dictionary(
                 f"Failed to open with xr.open_dataset({grib_file}, **{open_datasets_kwargs}), "
                 "opening with cfgrib.open_datasets instead."
             )
+            context.add_user_visible_log(
+                f"WARNING: Structural differences in grib fields detected, safely opening as a list "
+                "of datasets. This may result in multiple files being created."
+            )
             datasets = {
                 f"{fname}_{i}": ds
                 for i, ds in enumerate(
