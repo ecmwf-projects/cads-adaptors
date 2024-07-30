@@ -679,7 +679,7 @@ def open_grib_file_as_xarray_dictionary(
                 "opening with cfgrib.open_datasets instead."
             )
             context.add_user_visible_log(
-                f"WARNING: Structural differences in grib fields detected, safely opening as a list "
+                "WARNING: Structural differences in grib fields detected, safely opening as a list "
                 "of datasets. This may result in multiple files being created."
             )
             datasets = {
