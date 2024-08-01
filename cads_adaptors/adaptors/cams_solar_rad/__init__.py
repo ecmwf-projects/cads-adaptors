@@ -55,7 +55,7 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         return f"result.{extension}"
     
     def retrieve(self, request: Request) -> BinaryIO:
-        self.context.debug(f'Alabala here debug <---------------------------------------------------------')
+        self.context.add_stdout(f'Alabala here debug <---------------------------------------------------------')
         self.context.debug(f'Request is {request!r}')
 
         # Apply mapping
