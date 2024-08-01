@@ -1,10 +1,16 @@
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.adaptors.cds import Request
+from cads_adaptors.exceptions import InvalidRequest
+from typing import Any, BinaryIO
+import logging
+import hashlib
+import time
+import jinja2
+import traceback
+import re
 
 
 class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
-    from typing import Any, BinaryIO
-    import logging
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -49,8 +55,7 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         return f"result.{extension}"
     
     def retrieve(self, request: Request) -> BinaryIO:
-        from cads_adaptors.exceptions import InvalidRequest
-
+        self.context.debug(f'Alabala here debug <---------------------------------------------------------')
         self.context.debug(f'Request is {request!r}')
 
         # Apply mapping
@@ -116,7 +121,6 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
 
     @classmethod
     def anonymised_user_id(cls, ads_user_id):
-        import hashlib
         # We have to pass a unique user ID to the provider but, for privacy reasons,
         # we want it to be as anonymous as possible. Use a hash of the ADS user ID,
         # which as an integer is already pretty anonymous but this takes it further
@@ -177,9 +181,7 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
 
     @classmethod
     def retrieve_by_wps(cls, req, outfile, ntries, logger):
-        import time
-        import jinja2
-        import traceback
+
         """Execute a CAMS solar radiation data retrieval through the WPS API"""
 
         # Construct the XML to pass
@@ -237,8 +239,8 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
 
     @classmethod
     def wps_execute(cls, url, xml, outfile, logger):
-        import re
         from owslib.wps import WebProcessingService
+        
         # Execute WPS. This can throw an immediate exception if the service is
         # down
         wps = WebProcessingService(url, skip_caps=True, timeout=3600)
@@ -290,7 +292,6 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
 
     @classmethod
     def tidy_error(cls, text):
-        import re
         lines = [l.strip() for l in text.split('\n')]
         text = '; '.join([l for l in lines if l])
         return re.sub(r'^ *Failed to execute WPS process \[\w+\]: *', '', text)
@@ -374,17 +375,3 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
     </wps:ResponseForm>
 </wps:Execute>
         """
-
-    # test_request = {
-    #     "sky_type": "get_mcclear",
-    #     "location": {
-    #         "latitude": 0.0,
-    #         "longitude": 0.0
-    #     },
-    #     "altitude": -999,
-    #     "date": "2022-10-26",
-    #     "time_reference": "TST",
-    #     "time_step": "PT01M",
-    #     "format": "csv"
-    # }
-    # solar_rad_retrieve(test_request, user_id="14144", outfile="a.csv")
