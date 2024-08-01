@@ -11,6 +11,7 @@ DEFAULT_BASE_URL = (
 
 class ArcoCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
+        self.context.add_stdout(f"ARCO DEBUG: {request}")
         import xarray as xr
 
         self._pre_retrieve(request=request)
@@ -20,6 +21,7 @@ class ArcoCdsAdaptor(cds.AbstractCdsAdaptor):
         )
 
         arco_ds = xr.open_zarr(os.path.join(BASEURL, BUCKET))
+        self.context.add_stdout(f"ARCO DEBUG, connect to BUCKET: {arco_ds}")
 
         variables = ensure_list(self.mapped_request.get("variable", []))
 
