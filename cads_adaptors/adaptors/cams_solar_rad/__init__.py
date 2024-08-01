@@ -1,85 +1,88 @@
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+from typing import Any, BinaryIO
 
 
 class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
-    from typing import Any, BinaryIO
-    import logging
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Schema required to ensure adaptor will not fall over with an uncaught exception
-        self.schemas.append({
-            '_draft': '7',
-            'type': 'object',        # Request should be a single dict
-            'required': [            # ... with at least these keys
-                'sky_type',
-                'location',
-                'altitude',
-                'date',
-                'time_step',
-                'time_reference',
-                'format'],
-            'properties': {
-                'sky_type': {'type': 'string'},
-                'location': {
-                    'type': 'object',
-                    'properties': {
-                        'latitude': {'maximum': 90.0,
-                                     'minimum': -90.0,
-                                     'type': 'number'},
-                        'longitude': {'maximum': 180.0,
-                                      'minimum': -180.0,
-                                      'type': 'number'}}},
-                'altitude': {'type': 'string', 'format': 'numeric string'},
-                'date': {'type': 'string', 'format': 'date range'},
-                'time_step': {'type': 'string'},
-                'time_reference': {'type': 'string'},
-                'format': {'type': 'string'}},
-            '_defaults': {
-                'format': 'csv'}})
-
-    def determine_result_filename(self, request):
-        EXTENSIONS = {
-            "csv": "csv",
-            "csv_expert": "csv",
-            "netcdf": "nc"
-        }
-        extension = EXTENSIONS.get(request["format"], "csv")
-        return f"result.{extension}"
-    
     def retrieve(self, request: Request) -> BinaryIO:
-        from cads_adaptors.exceptions import InvalidRequest
+        return None
+#     from typing import Any, BinaryIO
+#     import logging
 
-        self.context.debug(f'Request is {request!r}')
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
 
-        # Apply mapping
-        self._pre_retrieve(request, default_download_format="as_source")
-        mreq = self.mapped_request
-        self.context.debug(f'Mapped request is {mreq!r}')
+#         # Schema required to ensure adaptor will not fall over with an uncaught exception
+#         self.schemas.append({
+#             '_draft': '7',
+#             'type': 'object',        # Request should be a single dict
+#             'required': [            # ... with at least these keys
+#                 'sky_type',
+#                 'location',
+#                 'altitude',
+#                 'date',
+#                 'time_step',
+#                 'time_reference',
+#                 'format'],
+#             'properties': {
+#                 'sky_type': {'type': 'string'},
+#                 'location': {
+#                     'type': 'object',
+#                     'properties': {
+#                         'latitude': {'maximum': 90.0,
+#                                      'minimum': -90.0,
+#                                      'type': 'number'},
+#                         'longitude': {'maximum': 180.0,
+#                                       'minimum': -180.0,
+#                                       'type': 'number'}}},
+#                 'altitude': {'type': 'string', 'format': 'numeric string'},
+#                 'date': {'type': 'string', 'format': 'date range'},
+#                 'time_step': {'type': 'string'},
+#                 'time_reference': {'type': 'string'},
+#                 'format': {'type': 'string'}},
+#             '_defaults': {
+#                 'format': 'csv'}})
+
+#     def determine_result_filename(self, request):
+#         EXTENSIONS = {
+#             "csv": "csv",
+#             "csv_expert": "csv",
+#             "netcdf": "nc"
+#         }
+#         extension = EXTENSIONS.get(request["format"], "csv")
+#         return f"result.{extension}"
+    
+#     def retrieve(self, request: Request) -> BinaryIO:
+#         from cads_adaptors.exceptions import InvalidRequest
+
+#         self.context.debug(f'Request is {request!r}')
+
+#         # Apply mapping
+#         self._pre_retrieve(request, default_download_format="as_source")
+#         mreq = self.mapped_request
+#         self.context.debug(f'Mapped request is {mreq!r}')
         
-        numeric_user_id = self.__class__.get_numeric_user_id(self.config["user_uid"])
-        result_filename=self.determine_result_filename(request)
+#         numeric_user_id = self.__class__.get_numeric_user_id(self.config["user_uid"])
+#         result_filename=self.determine_result_filename(request)
 
-        try:
-            # self.__class__.solar_rad_retrieve(
-            #     mreq,
-            #     user_id=numeric_user_id,
-            #     outfile=result_filename,
-            #     logger=self.context)
-            pass
-        except (self.BadRequest, self.NoData) as e:
-            msg = e.args[0]
-            self.context.add_user_visible_error(msg)
-            raise InvalidRequest(msg)
+#         try:
+#             self.__class__.solar_rad_retrieve(
+#                 mreq,
+#                 user_id=numeric_user_id,
+#                 outfile=result_filename,
+#                 logger=self.context)
 
-        return open(result_filename, "rb")
+#         except (self.BadRequest, self.NoData) as e:
+#             msg = e.args[0]
+#             self.context.add_user_visible_error(msg)
+#             raise InvalidRequest(msg)
 
-    class BadRequest(Exception):
-        pass
+#         return open(result_filename, "rb")
 
-    class NoData(Exception):
-        pass
+#     class BadRequest(Exception):
+#         pass
+
+#     class NoData(Exception):
+#         pass
 
 #     @classmethod
 #     def solar_rad_retrieve(cls, request,
@@ -110,9 +113,9 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
 #         #retrieve_by_url(req, outfile, logger)
 #         cls.retrieve_by_wps(req, outfile, ntries, logger)
 
-    @classmethod
-    def get_numeric_user_id(cls, ads_user_id):
-        return str(int(ads_user_id.replace("-", ""), 16) % 10**6)
+#     @classmethod
+#     def get_numeric_user_id(cls, ads_user_id):
+#         return str(int(ads_user_id.replace("-", ""), 16) % 10**6)
 
 #     @classmethod
 #     def anonymised_user_id(cls, ads_user_id):
