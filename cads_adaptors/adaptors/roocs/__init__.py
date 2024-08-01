@@ -7,6 +7,7 @@ from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 from cads_adaptors.exceptions import RoocsRuntimeError, RoocsValueError
 
 ROOK_URL = "http://compute.mips.copernicus-climate.eu/wps"
+ROOK_MODE = "async"
 
 
 class RoocsCdsAdaptor(AbstractCdsAdaptor):
@@ -24,7 +25,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         os.environ["ROOK_URL"] = self.config.get("ROOK_URL", ROOK_URL)
 
         # switch off interactive logging to avoid threading issues
-        os.environ["ROOK_MODE"] = self.config.get("ROOK_MODE", "sync")
+        os.environ["ROOK_MODE"] = self.config.get("ROOK_MODE", ROOK_MODE)
 
         request = mapping.apply_mapping(request, self.mapping)
 
