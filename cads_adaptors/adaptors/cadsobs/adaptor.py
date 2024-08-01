@@ -96,7 +96,21 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                     )
                     requested_variables.remove(auxvar)
                     requested_metadata_fields.add(metadata_field)
-
+        # Check that there are no orphan auxiliary variables without its regular
+        # variable and if any, add the regular variable
+        inverse_aux_var_mapping = {
+            auxvar_dict["auxvar"]: regular_var
+            for regular_var, auxiliary_vars in aux_var_mapping.items()
+            for auxvar_dict in auxiliary_vars
+        }
+        for auxvar in auxiliary_variables:
+            regular_variable = inverse_aux_var_mapping[auxvar]
+            if regular_variable not in requested_variables:
+                self.context.warning(
+                    f"{auxvar} is auxiliary metadata of variable {regular_variable}, "
+                    f"adding ir to the request."
+                )
+                requested_variables.append(regular_variable)
         mapped_request["variables"] = requested_variables
         return requested_metadata_fields
 

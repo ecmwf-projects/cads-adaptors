@@ -430,6 +430,14 @@ def xarray_dict_to_netcdf(
     """
     if isinstance(compression_options, str):
         compression_options = STANDARD_COMPRESSION_OPTIONS.get(compression_options, {})
+    user_options = to_netcdf_kwargs.pop("user_options", {})
+
+    # If one variable per file, then split first
+    if user_options.pop("one_variable_per_file", False):
+        var_datasets = {}
+        for out_fname_base, dataset in datasets.items():
+            for var in dataset.data_vars:
+                var_datasets[f"{out_fname_base}_{var}"] = dataset[[var]]
 
     to_netcdf_kwargs.setdefault("engine", compression_options.pop("engine", "h5netcdf"))
     out_nc_files = []
@@ -677,6 +685,10 @@ def open_grib_file_as_xarray_dictionary(
             context.add_stderr(
                 f"Failed to open with xr.open_dataset({grib_file}, **{open_datasets_kwargs}), "
                 "opening with cfgrib.open_datasets instead."
+            )
+            context.add_user_visible_log(
+                "WARNING: Structural differences in grib fields detected, safely opening as a list "
+                "of datasets. This may result in multiple files being created."
             )
             datasets = {
                 f"{fname}_{i}": ds

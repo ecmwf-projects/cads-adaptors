@@ -149,6 +149,14 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
+        # TODO: put in a more general location?
+        if "netcdf_options" in request:
+            self.config.setdefault("post_processing_kwargs", {})
+            self.config["post_processing_kwargs"].setdefault("to_netcdf_kwargs", {})
+            self.config["post_processing_kwargs"]["to_netcdf_kwargs"].update(
+                {"user_options": request.pop("netcdf_options")}
+            )
+            
         # To preserve existing ERA5 functionality the default download_format="as_source"
         self._pre_retrieve(request=request, default_download_format="as_source")
 

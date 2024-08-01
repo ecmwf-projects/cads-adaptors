@@ -31,7 +31,7 @@ complete = [
   "cacholote",
   "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
   "cdsapi",
-  "cfgrib>=0.9.13.0",
+  "cfgrib>=0.9.14.0",
   "cftime",
   "dask",
   "ecmwflibs",
