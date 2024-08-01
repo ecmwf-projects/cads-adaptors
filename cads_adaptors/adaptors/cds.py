@@ -129,7 +129,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             raise TypeError(
                 f"Normalised request is not a dictionary, instead it is of type {type(request)}"
             )
-        self.context.add_stdout(f"{self.config.get('avoid_cache', False)} <---------------------------------------------------- HERE")
+        # Avoid the cache by adding a random key-value pair to the request (if cache avoidance is on)
         if self.config.get("avoid_cache", False):
             random_key = str(randint(0,1e30))
             request['_in_adaptor_no_cache'] = random_key

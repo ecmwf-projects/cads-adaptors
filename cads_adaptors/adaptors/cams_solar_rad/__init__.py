@@ -57,13 +57,28 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         self.context.debug(f'Request is {request!r}')
 
+        # Intersect constraints
+        if self.config.get("intersect_constraints", False):
+            requests = self.intersect_constraints(request)
+            if len(requests) != 1:
+                if len(requests) == 0:
+                    msg = 'Error: no intersection with the constraints.'
+                else:
+                    # TODO: check if indeed this can never happen
+                    msg = 'Error: unexpected intersection with more than 1 constraint.'
+                self.context.add_user_visible_error(msg)
+                raise InvalidRequest(msg)
+            request_after_intersection = requests[0]
+        else:
+            request_after_intersection = request
+
         # Apply mapping
-        self._pre_retrieve(request, default_download_format="as_source")
+        self._pre_retrieve(request_after_intersection, default_download_format="as_source")
         mreq = self.mapped_request
         self.context.debug(f'Mapped request is {mreq!r}')
         
         numeric_user_id = self.__class__.get_numeric_user_id(self.config["user_uid"])
-        result_filename=self.determine_result_filename(request)
+        result_filename=self.determine_result_filename(request_after_intersection)
 
         try:
             self.__class__.solar_rad_retrieve(
