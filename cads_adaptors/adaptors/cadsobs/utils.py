@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 import logging
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Tuple
+from typing import Tuple
 
 import cftime
+import h5netcdf
 import numpy
 import pandas
 import xarray
@@ -16,9 +15,7 @@ from cads_adaptors.adaptors.cadsobs.models import (
     RetrieveFormat,
     RetrieveParams,
 )
-
-if TYPE_CHECKING:
-    import h5netcdf
+from cads_adaptors.exceptions import CadsObsRuntimeError
 
 logger = logging.getLogger(__name__)
 MAX_NUMBER_OF_GROUPS = 10
@@ -51,8 +48,6 @@ def _add_attributes(oncobj: h5netcdf.File, global_attributes: dict):
 
 def _get_url_ncobj(fs: HTTPFileSystem, url: str) -> h5netcdf.File:
     """Open an URL as a netCDF file object with h5netcdf."""
-    import h5netcdf
-
     fobj = fs.open(url)
     logger.debug(f"Reading data from {url}.")
     # xarray won't read bytes object directly with netCDF4
@@ -203,7 +198,7 @@ def _get_param_name_in_data(retrieved_dataset: h5netcdf.File, param_name: str) -
             else:
                 param_name_in_data = f"{coord}|station_configuration"
         case _:
-            raise RuntimeError(f"Unknown parameter name {param_name}")
+            raise CadsObsRuntimeError(f"Unknown parameter name {param_name}")
     return param_name_in_data
 
 
@@ -338,7 +333,7 @@ def _get_code_mapping(
     elif isinstance(incobj, xarray.Dataset):
         attrs = incobj["observed_variable"].attrs
     else:
-        raise RuntimeError("Unsupported input type")
+        raise CadsObsRuntimeError("Unsupported input type")
     if inverse:
         mapping = {c: v for v, c in zip(attrs["labels"], attrs["codes"])}
     else:

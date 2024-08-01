@@ -2,47 +2,23 @@ import os
 from typing import Any, BinaryIO, Union
 
 from cads_adaptors.adaptors import Context, Request, cds
+from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
-from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools.general import ensure_list, split_requests_on_keys
 
-
-def convert_format(
-    result: str,
-    data_format: str,
-    context: Context,
-    **kwargs,
-) -> list:
-    data_format = adaptor_tools.handle_data_format(data_format)
-
-    if data_format in ["netcdf"]:
-        to_netcdf_kwargs: dict[str, Any] = {}
-
-        from cads_adaptors.tools.convertors import grib_to_netcdf_files
-
-        # Give the power to overwrite the to_netcdf kwargs from the request
-        to_netcdf_kwargs = {**to_netcdf_kwargs, **kwargs}
-        try:
-            paths = grib_to_netcdf_files(result, context=context, **to_netcdf_kwargs)
-        except Exception as e:
-            message = (
-                "There was an error converting the GRIB data to netCDF.\n"
-                "It may be that the selection you made was too large and/or complex, "
-                "in which case you could try reducing your selection. "
-                "For further help, or if you believe this to be a problem with the dataset, "
-                "please contact user support."
-            )
-            context.add_user_visible_error(message=message)
-            context.add_stderr(message=f"Exception: {e}")
-            raise e
-    elif data_format in ["grib"]:
-        paths = [result]
-    else:
-        message = "WARNING: Unrecoginsed data_format requested, returning as original grib/grib2 format"
-        context.add_user_visible_log(message=message)
-        context.add_stdout(message=message)
-        paths = [result]
-    return paths
+# This hard requirement of MARS requests should be moved to the proxy MARS client
+ALWAYS_SPLIT_ON: list[str] = [
+    "class",
+    "type",
+    "stream",
+    "levtype",
+    "expver",
+    "domain",
+    "system",
+    "method",
+    "origin",
+]
 
 
 def get_mars_server_list(config) -> list[str]:
@@ -65,7 +41,7 @@ def get_mars_server_list(config) -> list[str]:
         with open(mars_server_list) as f:
             mars_servers = f.read().splitlines()
     else:
-        raise SystemError(
+        raise MarsSystemError(
             "MARS servers cannot be found, this is an error at the system level."
         )
     return mars_servers
@@ -82,7 +58,9 @@ def execute_mars(
     requests = ensure_list(request)
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
-    context.add_stdout(f"Request (after embargo implemented): {requests}")
+
+    split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
+    requests = split_requests_on_keys(requests, split_on_keys)
 
     mars_servers = get_mars_server_list(config)
 
@@ -100,6 +78,7 @@ def execute_mars(
     }
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
 
+    context.add_stdout(f"Request sent to proxy MARS client: {requests}")
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
     context.add_stdout(message=reply_message)
@@ -116,7 +95,7 @@ def execute_mars(
         context.add_user_visible_error(message=error_message)
 
         error_message += f"Exception: {reply.error}\n"
-        raise RuntimeError(error_message)
+        raise MarsRuntimeError(error_message)
 
     if not os.path.getsize(target):
         error_message = (
@@ -126,7 +105,7 @@ def execute_mars(
         context.add_user_visible_error(
             message=error_message,
         )
-        raise RuntimeError(error_message)
+        raise MarsNoDataError(error_message)
 
     return target
 
@@ -141,9 +120,25 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def convert_format(self, *args, **kwargs):
+        from cads_adaptors.tools.convertors import convert_format
+
         return convert_format(*args, **kwargs)
 
+    def daily_reduce(self, *args, **kwargs) -> dict[str, Any]:
+        from cads_adaptors.tools.post_processors import daily_reduce
+
+        kwargs.setdefault("context", self.context)
+        return daily_reduce(*args, **kwargs)
+
+    def monthly_reduce(self, *args, **kwargs) -> dict[str, Any]:
+        from cads_adaptors.tools.post_processors import monthly_reduce
+
+        kwargs.setdefault("context", self.context)
+        return monthly_reduce(*args, **kwargs)
+
     def retrieve(self, request: Request) -> BinaryIO:
+        import dask
+
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
@@ -154,22 +149,23 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
-        # Allow user to provide format conversion kwargs
-        convert_kwargs: dict[str, Any] = {
-            **self.config.get("format_conversion_kwargs", dict()),
-            **request.pop("format_conversion_kwargs", dict()),
-        }
-
         # To preserve existing ERA5 functionality the default download_format="as_source"
         self._pre_retrieve(request=request, default_download_format="as_source")
 
-        result = execute_mars(
+        result: Any = execute_mars(
             self.mapped_request, context=self.context, config=self.config
         )
 
-        paths = self.convert_format(
-            result, data_format, context=self.context, **convert_kwargs
-        )
+        with dask.config.set(scheduler="threads"):
+            result = self.post_process(result)
+
+            # TODO?: Generalise format conversion to be a post-processor
+            paths = self.convert_format(
+                result,
+                data_format,
+                context=self.context,
+                config=self.config,
+            )
 
         # A check to ensure that if there is more than one path, and download_format
         #  is as_source, we over-ride and zip up the files

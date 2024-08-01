@@ -1,6 +1,6 @@
 from typing import Literal
 
-import requests
+from cads_adaptors.exceptions import CadsObsConnectionError
 
 
 class CadsobsApiClient:
@@ -12,18 +12,42 @@ class CadsobsApiClient:
     def _send_request(
         self, method: Literal["GET", "POST"], endpoint: str, payload: dict | None = None
     ):
-        with requests.Session() as session:
-            response = session.request(
-                method=method, url=f"{self.baseurl}/{endpoint}", json=payload
+        import requests
+
+        try:
+            with requests.Session() as session:
+                response = session.request(
+                    method=method, url=f"{self.baseurl}/{endpoint}", json=payload
+                )
+                response.raise_for_status()
+        except requests.ConnectionError:
+            raise CadsObsConnectionError("Can't connect to the observations API.")
+        except requests.HTTPError:
+            message = self._get_error_message(response)
+            raise CadsObsConnectionError(
+                f"Request to observations API failed: {message}"
             )
-            response.raise_for_status()
         return response.json()
+
+    def _get_error_message(self, response) -> str:
+        import requests
+
+        try:
+            message = response.json()["detail"]
+        except requests.JSONDecodeError:
+            # When the exception is not handled well by the API server response.content
+            # will not be JSON parseable. Then we can get the traceback like this.
+            message = response.content.decode("UTF-8")
+        return message
 
     def get_service_definition(self, dataset: str) -> dict:
         return self._send_request("GET", f"{dataset}/service_definition")
 
-    def get_cdm_lite_variables(self):
+    def get_cdm_lite_variables(self) -> dict:
         return self._send_request("GET", "cdm/lite_variables")
+
+    def get_aux_var_mapping(self, dataset: str, source: str) -> dict:
+        return self._send_request("GET", f"{dataset}/{source}/aux_variables_mapping")
 
     def get_objects_to_retrieve(
         self, dataset_name: str, mapped_request: dict, size_limit: int

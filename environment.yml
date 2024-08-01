@@ -8,20 +8,29 @@ channels:
 # - package2
 # DO NOT EDIT ABOVE THIS LINE, ADD DEPENDENCIES BELOW AS SHOWN IN THE EXAMPLE
 dependencies:
-- pip
-- requests
-- pandas
-- python-dateutil
-- cfgrib
-- h5netcdf
-- wget
-- multiurl>=0.3.1
-- pyyaml
-- tqdm
+- aiohttp
+- cdsapi
+- cfgrib>=0.9.14.0
+- cftime
+- dask
 - DateTimeRange
 - fsspec
-- aiohttp
+- h5netcdf
+- jinja2
+- jsonschema
+- multiurl>=0.3.1
+- netcdf4
+- numpy
+- pandas
+- pip
+- pydantic
+- python-dateutil
+- pyyaml
+- requests
+- sqlalchemy
+- tqdm
+- xarray
 - zarr
 - pip:
   - rooki
-  - earthkit-aggregate
+  - earthkit-transforms>=0.3.3

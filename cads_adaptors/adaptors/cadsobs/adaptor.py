@@ -1,15 +1,21 @@
-import logging
 import tempfile
 from pathlib import Path
 
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
-
-logger = logging.getLogger(__name__)
+from cads_adaptors.exceptions import CadsObsRuntimeError
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request):
+        try:
+            output = self._retrieve(request)
+        except Exception as e:
+            self.context.add_user_visible_error(repr(e))
+            raise e
+        return output
+
+    def _retrieve(self, request):
         # TODO: retrieve_data imports various optional dependencies at top level
         from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 
@@ -40,17 +46,23 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             cdm_lite_variables_dict["mandatory"] + cdm_lite_variables_dict["optional"]
         )
         # Handle auxiliary variables
+        aux_var_mapping = cadsobs_client.get_aux_var_mapping(
+            dataset_name, dataset_source
+        )
         requested_auxiliary_variables = self.handle_auxiliary_variables(
-            cdm_lite_variables_dict, mapped_request
+            mapped_request, aux_var_mapping
         )
         cdm_lite_variables = cdm_lite_variables + list(requested_auxiliary_variables)
         # Get the objects that match the request
         object_urls = cadsobs_client.get_objects_to_retrieve(
             dataset_name, mapped_request, size_limit=size_limit
         )
+        # Get the service definition file
         service_definition = cadsobs_client.get_service_definition(dataset_name)
         global_attributes = service_definition["global_attributes"]
-        logger.debug(f"The following objects are going to be filtered: {object_urls}")
+        self.context.debug(
+            f"The following objects are going to be filtered: {object_urls}"
+        )
         output_dir = Path(tempfile.mkdtemp())
         output_path = retrieve_data(
             dataset_name,
@@ -63,23 +75,44 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         return open(output_path, "rb")
 
     def handle_auxiliary_variables(
-        self, cdm_lite_variables_dict: dict[str, list[str]], mapped_request: dict
+        self, mapped_request: dict, aux_var_mapping: dict
     ) -> set[str]:
         """Remove auxiliary variables from the request and add them as extra fields."""
         requested_variables = mapped_request["variables"].copy()
-        requested_auxiliary_variables = set()
-        for variable in requested_variables:
-            for auxvar in cdm_lite_variables_dict["auxiliary"]:
-                if auxvar in variable:
-                    logger.warning(
-                        f"{variable} is an auxiliary variable, it will be included"
-                        f"as an extra {auxvar} column in the output file, not as a "
+        regular_variables = [v for v in requested_variables if v in aux_var_mapping]
+        auxiliary_variables = [
+            v for v in requested_variables if v not in aux_var_mapping
+        ]
+        requested_metadata_fields = set()
+        for regular_variable in regular_variables:
+            for auxvar_dict in aux_var_mapping[regular_variable]:
+                auxvar = auxvar_dict["auxvar"]
+                if auxvar in auxiliary_variables:
+                    metadata_field = auxvar_dict["metadata_name"]
+                    self.context.warning(
+                        f"{auxvar} is an auxiliary variable, it will be included"
+                        f"as an extra {metadata_field} column in the output file, not as a "
                         f"regular variable."
                     )
-                    requested_variables.remove(variable)
-                    requested_auxiliary_variables.add(auxvar)
+                    requested_variables.remove(auxvar)
+                    requested_metadata_fields.add(metadata_field)
+        # Check that there are no orphan auxiliary variables without its regular
+        # variable and if any, add the regular variable
+        inverse_aux_var_mapping = {
+            auxvar_dict["auxvar"]: regular_var
+            for regular_var, auxiliary_vars in aux_var_mapping.items()
+            for auxvar_dict in auxiliary_vars
+        }
+        for auxvar in auxiliary_variables:
+            regular_variable = inverse_aux_var_mapping[auxvar]
+            if regular_variable not in requested_variables:
+                self.context.warning(
+                    f"{auxvar} is auxiliary metadata of variable {regular_variable}, "
+                    f"adding ir to the request."
+                )
+                requested_variables.append(regular_variable)
         mapped_request["variables"] = requested_variables
-        return requested_auxiliary_variables
+        return requested_metadata_fields
 
     def adapt_parameters(self, mapped_request: dict) -> dict:
         # We need these changes right now to adapt the parameters to what we need
@@ -104,14 +137,11 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         """Raise error if many, extract if list."""
         if isinstance(dataset_source, list):
             if len(dataset_source) > 1:
-                self.context.add_user_visible_error(
+                error_message = (
                     "Asking for more than one observation_types in the same"
                     "request is currently unsupported."
                 )
-                raise RuntimeError(
-                    "Asking for more than one observation_types in the same"
-                    "request is currently unsupported."
-                )
+                raise CadsObsRuntimeError(error_message)
             else:
                 # Get the string if there is only one item in the list.
                 dataset_source_str = dataset_source[0]
