@@ -212,7 +212,7 @@ TEST_ADAPTOR_CONFIG = {
     },
 }
 
-
+@pytest.mark.xfail(reason="cads-obs end-point is not available")
 @pytest.mark.parametrize("test_request", [TEST_REQUEST, TEST_REQUEST_ORPHAN_AUXVAR])
 def test_adaptor(tmp_path, monkeypatch, test_request):
     monkeypatch.setattr(
