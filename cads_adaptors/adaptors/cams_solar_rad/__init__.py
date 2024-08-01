@@ -1,12 +1,9 @@
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 
 
 class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
     from typing import Any, BinaryIO
     import logging
-    
-    Request = dict[str, Any]
-    resources: dict[str, int] = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
