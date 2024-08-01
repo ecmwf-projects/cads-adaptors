@@ -50,7 +50,8 @@ complete = [
   "rooki",
   "sqlalchemy",
   "tqdm",
-  "xarray"
+  "xarray",
+  "zarr"
 ]
 tests = [
   "pytest",

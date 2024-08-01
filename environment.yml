@@ -30,6 +30,7 @@ dependencies:
 - sqlalchemy
 - tqdm
 - xarray
+- zarr
 - pip:
   - rooki
   - earthkit-transforms>=0.3.3
