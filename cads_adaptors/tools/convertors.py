@@ -431,6 +431,15 @@ def xarray_dict_to_netcdf(
     if isinstance(compression_options, str):
         compression_options = STANDARD_COMPRESSION_OPTIONS.get(compression_options, {})
 
+    # If one variable per file, then split first
+    if to_netcdf_kwargs.pop("one_variable_per_file", False):
+        var_datasets = {}
+        for out_fname_base, dataset in datasets.items():
+            for var in dataset.data_vars:
+                var_datasets[f"{out_fname_base}_{var}"] = dataset[[var]]
+
+
+        
     to_netcdf_kwargs.setdefault("engine", compression_options.pop("engine", "h5netcdf"))
     out_nc_files = []
     for out_fname_base, dataset in datasets.items():
