@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+from random import randint
 from typing import Any, Union
 
 from cads_adaptors import constraints, costing, mapping
@@ -128,6 +129,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             raise TypeError(
                 f"Normalised request is not a dictionary, instead it is of type {type(request)}"
             )
+        self.context.add_stdout(f"{self.config.get('avoid_cache', False)} <---------------------------------------------------- HERE")
+        if self.config.get("avoid_cache", False):
+            random_key = str(randint(0,1e30))
+            request['_in_adaptor_no_cache'] = random_key
         return request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
