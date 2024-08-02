@@ -430,10 +430,10 @@ def xarray_dict_to_netcdf(
     """
     if isinstance(compression_options, str):
         compression_options = STANDARD_COMPRESSION_OPTIONS.get(compression_options, {})
-    user_options = to_netcdf_kwargs.pop("user_options", {})
+    user_options = to_netcdf_kwargs.pop("user_options", [])
 
     # If one variable per file, then split first
-    if user_options.pop("one_variable_per_file", False):
+    if "one_variable_per_file" in user_options:
         var_datasets = {}
         for out_fname_base, dataset in datasets.items():
             for var in dataset.data_vars:
