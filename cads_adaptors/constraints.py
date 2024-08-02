@@ -516,6 +516,21 @@ def get_keys(constraints: list[dict[str, Any]]) -> set[str]:
     return keys
 
 
+def get_temporal_intersection(
+    selected_ranges: list[DateTimeRange], valid_ranges: list[DateTimeRange]
+) -> list[str]:
+    intersections = []
+    for selected_range in selected_ranges:
+        for valid_range in valid_ranges:
+            intersection = selected_range.intersection(valid_range)
+            if intersection.is_valid_timerange():
+                intersection.start_time_format = "%Y-%m-%d"
+                intersection.end_time_format = "%Y-%m-%d"
+                intersection.separator = "/"
+                intersections.append(str(intersection))
+    return intersections
+
+
 def temporal_intersection_between(
     selected: DateTimeRange, ranges: list[DateTimeRange]
 ) -> bool:
@@ -532,6 +547,7 @@ def gen_time_range_from_string(string: str) -> DateTimeRange:
     time_range = DateTimeRange(dates[0], dates[1])
     time_range.start_time_format = "%Y-%m-%d"
     time_range.end_time_format = "%Y-%m-%d"
+    time_range.separator = "/"
     if time_range.is_valid_timerange():
         return time_range
     else:
@@ -663,11 +679,23 @@ def legacy_intersect_constraints(
         for field in constraint:
             # Constrain the requested values for this field to the permitted
             # ones (by intersecting it with the constraint).
-            constrained_field_value = [
-                v
-                for v in ensure_sequence(output_request.get(field, []))
-                if str(v) in constraint[field]
-            ]
+            if field != "date":
+                constrained_field_value = [
+                    v
+                    for v in ensure_sequence(output_request.get(field, []))
+                    if str(v) in constraint[field]
+                ]
+            else:
+                selected_ranges_as_strings = ensure_sequence(output_request.get(field, []))
+                selected_ranges = [
+                    gen_time_range_from_string(selected_range)
+                    for selected_range in selected_ranges_as_strings
+                ]
+                valid_ranges = [
+                    gen_time_range_from_string(valid_range)
+                    for valid_range in constraint[field]
+                ]
+                constrained_field_value = get_temporal_intersection(selected_ranges, valid_ranges)
 
             # If the intersection is empty, the request as a whole does not
             # meet this constraint and this output_request must be
