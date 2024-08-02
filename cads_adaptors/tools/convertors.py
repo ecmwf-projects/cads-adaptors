@@ -441,6 +441,7 @@ def xarray_dict_to_netcdf(
         for out_fname_base, dataset in datasets.items():
             for var in dataset.data_vars:
                 var_datasets[f"{out_fname_base}_{var}"] = dataset[[var]]
+        datasets = var_datasets
 
     to_netcdf_kwargs.setdefault("engine", compression_options.pop("engine", "h5netcdf"))
     out_nc_files = []
