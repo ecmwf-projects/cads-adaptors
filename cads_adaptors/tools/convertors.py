@@ -428,6 +428,9 @@ def xarray_dict_to_netcdf(
     Convert a dictionary of xarray datasets to netCDF files, where the key of the dictionary
     is used in the filename.
     """
+    context.add_stdout(
+        f"Converting xarray datasets to netCDF files with kwargs: {to_netcdf_kwargs}"
+    )
     if isinstance(compression_options, str):
         compression_options = STANDARD_COMPRESSION_OPTIONS.get(compression_options, {})
     user_options = to_netcdf_kwargs.pop("user_options", [])
