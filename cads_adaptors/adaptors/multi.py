@@ -3,7 +3,7 @@ from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.exceptions import MultiAdaptorNoDataError, InvalidRequest
+from cads_adaptors.exceptions import InvalidRequest, MultiAdaptorNoDataError
 from cads_adaptors.tools.general import ensure_list
 
 
@@ -135,20 +135,22 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
     def _pre_retrieve(self, request, default_download_format="zip"):
         self.input_request = deepcopy(request)
         self.receipt = request.pop("receipt", False)
-        
+
         # Intersect constraints
         if self.config.get("intersect_constraints", False):
             requests_after_intersection = self.intersect_constraints(request)
             if len(requests_after_intersection) == 0:
-                msg = 'Error: no intersection with the constraints.'
+                msg = "Error: no intersection with the constraints."
                 raise InvalidRequest(msg)
         else:
             requests_after_intersection = [request]
-        
+
         self.mapped_request = []
         for request_piece_after_intersection in requests_after_intersection:
-            self.mapped_request.append(mapping.apply_mapping(request_piece_after_intersection, self.mapping))
-        
+            self.mapped_request.append(
+                mapping.apply_mapping(request_piece_after_intersection, self.mapping)
+            )
+
         self.download_format = self.mapped_request[0].pop(
             "download_format", default_download_format
         )
@@ -176,7 +178,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         self.context.add_stdout(
             f"MultiMarsCdsAdaptor, full_request: {self.mapped_request}"
         )
-        
+
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
