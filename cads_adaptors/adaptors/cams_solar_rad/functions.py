@@ -5,8 +5,10 @@ import jinja2
 import traceback
 import re
 
+
 class BadRequest(Exception):
     pass
+
 
 class NoData(Exception):
     pass
@@ -41,14 +43,15 @@ def solar_rad_retrieve(request,
     retrieve_by_wps(req, outfile, ntries, logger)
 
 
-def determine_result_filename(request):
+def determine_result_filename(config, request):
     EXTENSIONS = {
         "csv": "csv",
         "csv_expert": "csv",
         "netcdf": "nc"
     }
+    request_uid = config.get("request_uid", "no-request-uid")
     extension = EXTENSIONS.get(request["format"], "csv")
-    return f"result.{extension}"
+    return f"result-{request_uid}.{extension}"
 
 
 def get_numeric_user_id(ads_user_id):
@@ -112,7 +115,6 @@ def anonymised_user_id(ads_user_id):
     prefix = prefixes[order[(int(ads_user_id) % len(prefixes))]]
 
     return prefix + user_id
-
 
 
 def retrieve_by_wps(req, outfile, ntries, logger):

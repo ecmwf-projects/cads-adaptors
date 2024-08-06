@@ -82,7 +82,9 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         self.context.debug(f"Mapped request is {mreq!r}")
 
         numeric_user_id = get_numeric_user_id(self.config["user_uid"])
-        result_filename = determine_result_filename(request_after_intersection)
+        result_filename = determine_result_filename(
+            self.config, request_after_intersection
+        )
 
         try:
             solar_rad_retrieve(
