@@ -4,8 +4,6 @@ import re
 import time
 import traceback
 
-import jinja2
-
 
 class BadRequest(Exception):
     pass
@@ -288,6 +286,8 @@ def anonymised_user_id(ads_user_id):
 
 def retrieve_by_wps(req, outfile, ntries, logger):
     """Execute a CAMS solar radiation data retrieval through the WPS API."""
+    import jinja2
+
     # Construct the XML to pass
     xml = jinja2.Template(template_xml()).render(req)
     logger.debug("request=" + repr(req))
