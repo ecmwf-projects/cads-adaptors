@@ -131,7 +131,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             )
         # Avoid the cache by adding a random key-value pair to the request (if cache avoidance is on)
         if self.config.get("avoid_cache", False):
-            random_key = str(randint(0, 1e30))
+            random_key = str(randint(0, 2**128))
             request["_in_adaptor_no_cache"] = random_key
         return request
 

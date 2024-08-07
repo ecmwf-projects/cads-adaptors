@@ -145,13 +145,13 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         else:
             requests_after_intersection = [request]
 
-        self.mapped_request = []
+        self.mapped_requests_pieces = []
         for request_piece_after_intersection in requests_after_intersection:
-            self.mapped_request.append(
+            self.mapped_requests_pieces.append(
                 mapping.apply_mapping(request_piece_after_intersection, self.mapping)
             )
 
-        self.download_format = self.mapped_request[0].pop(
+        self.download_format = self.mapped_requests_pieces[0].pop(
             "download_format", default_download_format
         )
 
@@ -176,13 +176,13 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
         mapped_requests = []
         self.context.add_stdout(
-            f"MultiMarsCdsAdaptor, full_request: {self.mapped_request}"
+            f"MultiMarsCdsAdaptor, full_request: {self.mapped_requests_pieces}"
         )
 
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
-            for mapped_request_piece in self.mapped_request:
+            for mapped_request_piece in self.mapped_requests_pieces:
                 this_request = self.split_request(
                     mapped_request_piece, this_values, **this_adaptor.config
                 )
