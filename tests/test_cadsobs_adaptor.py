@@ -5,7 +5,9 @@ from unittest.mock import Mock
 import h5netcdf
 import pytest
 
-from cads_adaptors import ObservationsAdaptor
+from cads_adaptors import Context, ObservationsAdaptor
+from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
+from cads_adaptors.exceptions import CadsObsConnectionError
 
 CDM_LITE_VARIABLES = {
     "mandatory": [
@@ -76,7 +78,7 @@ CDM_LITE_VARIABLES = {
 
 
 class MockerCadsobsApiClient:
-    def __init__(self, baseurl: str):
+    def __init__(self, baseurl: str, context: Context):
         pass
 
     def get_service_definition(self, dataset: str) -> dict:
@@ -97,7 +99,7 @@ class MockerCadsobsApiClient:
         return [
             "https://object-store.os-api.cci2.ecmwf.int/"
             "cds2-obs-alpha-insitu-observations-near-surface-temperature-us/"
-            "insitu-observations-near-surface-temperature-us-climate-reference-network_USCRN_DAILY_200808_30.0_-150.0.nc"
+            "insitu-observations-near-surface-temperature-us-climate-reference-network_uscrn_daily_200808_30.0_-150.0.nc"
         ]
 
     def get_aux_var_mapping(
@@ -141,11 +143,24 @@ class MockerCadsobsApiClient:
         }
 
 
-class ErrorMockerCadsobsApiClient(MockerCadsobsApiClient):
+class ClientErrorMockerCadsobsApiClient(MockerCadsobsApiClient):
     def get_objects_to_retrieve(
         self, dataset_name: str, mapped_request: dict, size_limit: int
     ):
         raise RuntimeError("This is a test error")
+
+
+class BackendErrorCadsobsApiClient(CadsobsApiClient):
+    def _send_request(self, endpoint, method, payload):
+        response = self.requests.Response()
+        response.code = "expired"
+        response.error_type = "expired"
+        response.status_code = 400
+        response._content = (
+            b'{"detail": {"message" : "Error: something failed somehow", '
+            b'"traceback": "this is a traceback" }}'
+        )
+        return response
 
 
 TEST_REQUEST = {
@@ -221,8 +236,6 @@ def test_adaptor(tmp_path, monkeypatch, test_request):
         MockerCadsobsApiClient,
     )
     test_form = {}
-    # + "/v1/AUTH_{public_user}" will be needed to work with S3 ceph public urls, but it
-    # is not needed for this test
 
     adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
     result = adaptor.retrieve(test_request)
@@ -237,11 +250,9 @@ def test_adaptor(tmp_path, monkeypatch, test_request):
 def test_adaptor_error(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
-        ErrorMockerCadsobsApiClient,
+        ClientErrorMockerCadsobsApiClient,
     )
     test_form = {}
-    # + "/v1/AUTH_{public_user}" will be needed to work with S3 ceph public urls, but it
-    # is not needed for this test
 
     adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
     adaptor.context.add_user_visible_error = Mock()
@@ -250,3 +261,37 @@ def test_adaptor_error(tmp_path, monkeypatch):
     expected_error = "RuntimeError('This is a test error')"
     assert repr(e.value) == expected_error
     adaptor.context.add_user_visible_error.assert_called_with(expected_error)
+
+
+def test_connection_error(tmp_path):
+    test_form = {}
+    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor.context.add_user_visible_error = Mock()
+    with pytest.raises(CadsObsConnectionError) as e:
+        adaptor.retrieve(TEST_REQUEST)
+    expected_error = 'CadsObsConnectionError("Can\'t connect to the observations API.")'
+    assert repr(e.value) == expected_error
+    adaptor.context.add_user_visible_error.assert_called_with(expected_error)
+
+
+def test_api_error(tmp_path, monkeypatch):
+    test_form = {}
+    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        BackendErrorCadsobsApiClient,
+    )
+    adaptor.context.add_user_visible_error = Mock()
+    adaptor.context.add_stderr = Mock()
+    with pytest.raises(CadsObsConnectionError) as e:
+        adaptor.retrieve(TEST_REQUEST)
+    expected_visible_error = (
+        "CadsObsConnectionError('Request to observations API failed: "
+        "Error: something failed somehow')"
+    )
+    expected_stderr = (
+        "Observations API failed with the following exception: this is a traceback"
+    )
+    assert repr(e.value) == expected_visible_error
+    adaptor.context.add_user_visible_error.assert_called_with(expected_visible_error)
+    adaptor.context.add_stderr.assert_called_with(expected_stderr)

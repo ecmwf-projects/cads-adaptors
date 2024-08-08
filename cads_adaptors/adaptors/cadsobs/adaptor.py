@@ -40,7 +40,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         # variable name, e.g. VAR_standard_deviation, where standard_deviation is the
         # auxiliary variable. The will be included as additional columns in the output
         # file.
-        cadsobs_client = CadsobsApiClient(obs_api_url)
+        cadsobs_client = CadsobsApiClient(obs_api_url, self.context)
         cdm_lite_variables_dict = cadsobs_client.get_cdm_lite_variables()
         cdm_lite_variables = (
             cdm_lite_variables_dict["mandatory"] + cdm_lite_variables_dict["optional"]

@@ -1,5 +1,5 @@
 PROJECT := cads_adaptors
-CONDA := conda
+CONDA := mamba
 CONDAFLAGS :=
 COV_REPORT := html
 
