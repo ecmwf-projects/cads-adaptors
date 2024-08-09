@@ -54,7 +54,6 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         except Exception as e:
             message = f"KeyError: {dataset_source}"
             self.context.add_stderr(f"{e}")
-            self.context.add_user_visible_error(message)
             raise InvalidRequest(message)
 
         # Note that this mutates mapped_request
@@ -152,7 +151,6 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                     "Asking for more than one observation_types in the same"
                     "request is currently unsupported."
                 )
-                self.context.add_user_visible_error(error_message)
                 raise InvalidRequest(error_message)
             else:
                 # Get the string if there is only one item in the list.
