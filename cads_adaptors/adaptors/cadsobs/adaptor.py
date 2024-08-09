@@ -160,6 +160,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         """Get the original key name so the user know what is missing."""
         inverse_rename = {v: k for k, v in self.mapping["rename"].items()}
         # The key name is in the KeyError instance args.
-        offending_key = inverse_rename[e.args[0]]
+        print(f"{e.args}")
+        offending_key = inverse_rename.get(e.args[1], e.args[1])
         message = f"Invalid request, {offending_key} is missing."
         return message
