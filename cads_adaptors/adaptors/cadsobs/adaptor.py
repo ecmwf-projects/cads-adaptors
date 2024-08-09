@@ -12,9 +12,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         try:
             output = self._retrieve(request)
         except KeyError as e:
-            # message = self.get_key_error_message(e)
             self.context.add_user_visible_error(repr(e))
-            self.context.add_stderr(repr(e))
             raise InvalidRequest(repr(e))
         except Exception as e:
             self.context.add_user_visible_error(repr(e))
@@ -155,12 +153,3 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         else:
             dataset_source_str = dataset_source
         return dataset_source_str
-
-    def get_key_error_message(self, e: KeyError) -> str:
-        """Get the original key name so the user know what is missing."""
-        inverse_rename = {v: k for k, v in self.mapping["rename"].items()}
-        # The key name is in the KeyError instance args.
-        print(f"{e.args}")
-        offending_key = inverse_rename.get(e.args[0], e.args[0])
-        message = f"Invalid request, {offending_key} is missing."
-        return message
