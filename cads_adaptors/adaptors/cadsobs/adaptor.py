@@ -1,6 +1,7 @@
 import tempfile
 from pathlib import Path
 
+from cads_adaptors.adaptors import Request
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 from cads_adaptors.exceptions import CadsObsRuntimeError
@@ -48,7 +49,8 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         aux_var_mapping = cadsobs_client.get_aux_var_mapping(
             dataset_name, dataset_source
         )
-        requested_auxiliary_variables = self.handle_auxiliary_variables(
+        # Note that this mutates mapped_request
+        requested_auxiliary_variables, mapped_request = self.handle_auxiliary_variables(
             mapped_request, aux_var_mapping
         )
         cdm_lite_variables = cdm_lite_variables + list(requested_auxiliary_variables)
@@ -75,7 +77,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
 
     def handle_auxiliary_variables(
         self, mapped_request: dict, aux_var_mapping: dict
-    ) -> set[str]:
+    ) -> tuple[set[str], Request]:
         """Remove auxiliary variables from the request and add them as extra fields."""
         requested_variables = mapped_request["variables"].copy()
         regular_variables = [v for v in requested_variables if v in aux_var_mapping]
@@ -111,7 +113,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                 )
                 requested_variables.append(regular_variable)
         mapped_request["variables"] = requested_variables
-        return requested_metadata_fields
+        return requested_metadata_fields, mapped_request
 
     def adapt_parameters(self, mapped_request: dict) -> dict:
         # We need these changes right now to adapt the parameters to what we need
