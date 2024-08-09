@@ -16,7 +16,6 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         return output
 
     def _retrieve(self, request):
-        # TODO: retrieve_data imports various optional dependencies at top level
         from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 
         # Maps observation_type to source. This sets self.mapped_request
