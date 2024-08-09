@@ -291,6 +291,11 @@ def test_adaptor_wrong_value(monkeypatch):
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
 
+    # And dataset_source variables
+    test_request["time_aggregation"] = "FAKE_VARIABLE"
+    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    with pytest.raises(InvalidRequest):
+        adaptor.retrieve(test_request)
 
 def test_connection_error(tmp_path):
     test_form = {}

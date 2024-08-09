@@ -48,9 +48,16 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             cdm_lite_variables_dict["mandatory"] + cdm_lite_variables_dict["optional"]
         )
         # Handle auxiliary variables
-        aux_var_mapping = cadsobs_client.get_aux_var_mapping(
-            dataset_name, dataset_source
-        )
+        try:
+            aux_var_mapping = cadsobs_client.get_aux_var_mapping(
+                dataset_name, dataset_source
+            )
+        except Exception as e:
+            message = f"KeyError: {dataset_source}"
+            self.context.add_stderr(f"{e}")
+            self.context.add_user_visible_error(message)
+            raise InvalidRequest(message)
+        
         # Note that this mutates mapped_request
         requested_auxiliary_variables = self.handle_auxiliary_variables(aux_var_mapping)
         cdm_lite_variables = cdm_lite_variables + list(requested_auxiliary_variables)
@@ -149,7 +156,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                     "request is currently unsupported."
                 )
                 self.context.add_user_visible_error(error_message)
-                raise CadsObsRuntimeError(error_message)
+                raise InvalidRequest(error_message)
             else:
                 # Get the string if there is only one item in the list.
                 dataset_source_str = dataset_source[0]
