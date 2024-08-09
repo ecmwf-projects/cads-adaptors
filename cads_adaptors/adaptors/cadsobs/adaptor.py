@@ -1,6 +1,7 @@
 import tempfile
 from pathlib import Path
 
+from cads_adaptors.adaptors import Request
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 from cads_adaptors.exceptions import CadsObsRuntimeError
@@ -10,13 +11,16 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request):
         try:
             output = self._retrieve(request)
+        except KeyError as e:
+            message = self.get_key_error_message(e)
+            self.context.add_user_visible_error(message)
+            raise e
         except Exception as e:
             self.context.add_user_visible_error(repr(e))
             raise e
         return output
 
     def _retrieve(self, request):
-        # TODO: retrieve_data imports various optional dependencies at top level
         from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 
         # Maps observation_type to source. This sets self.mapped_request
@@ -40,7 +44,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         # variable name, e.g. VAR_standard_deviation, where standard_deviation is the
         # auxiliary variable. The will be included as additional columns in the output
         # file.
-        cadsobs_client = CadsobsApiClient(obs_api_url)
+        cadsobs_client = CadsobsApiClient(obs_api_url, self.context)
         cdm_lite_variables_dict = cadsobs_client.get_cdm_lite_variables()
         cdm_lite_variables = (
             cdm_lite_variables_dict["mandatory"] + cdm_lite_variables_dict["optional"]
@@ -49,7 +53,8 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         aux_var_mapping = cadsobs_client.get_aux_var_mapping(
             dataset_name, dataset_source
         )
-        requested_auxiliary_variables = self.handle_auxiliary_variables(
+        # Note that this mutates mapped_request
+        requested_auxiliary_variables, mapped_request = self.handle_auxiliary_variables(
             mapped_request, aux_var_mapping
         )
         cdm_lite_variables = cdm_lite_variables + list(requested_auxiliary_variables)
@@ -76,7 +81,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
 
     def handle_auxiliary_variables(
         self, mapped_request: dict, aux_var_mapping: dict
-    ) -> set[str]:
+    ) -> tuple[set[str], Request]:
         """Remove auxiliary variables from the request and add them as extra fields."""
         requested_variables = mapped_request["variables"].copy()
         regular_variables = [v for v in requested_variables if v in aux_var_mapping]
@@ -112,7 +117,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                 )
                 requested_variables.append(regular_variable)
         mapped_request["variables"] = requested_variables
-        return requested_metadata_fields
+        return requested_metadata_fields, mapped_request
 
     def adapt_parameters(self, mapped_request: dict) -> dict:
         # We need these changes right now to adapt the parameters to what we need
@@ -148,3 +153,11 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         else:
             dataset_source_str = dataset_source
         return dataset_source_str
+
+    def get_key_error_message(self, e: KeyError) -> str:
+        """Get the original key name so the user know what is missing."""
+        inverse_rename = {v: k for k, v in self.mapping["rename"].items()}
+        # The key name is in the KeyError instance args.
+        offending_key = inverse_rename[e.args[0]]
+        message = f"Invalid request, {offending_key} is missing."
+        return message
