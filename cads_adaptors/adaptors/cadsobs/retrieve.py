@@ -52,7 +52,7 @@ def retrieve_data(
         # Check if the resulting file is empty
         if len(oncobj.variables) == 0 or len(oncobj.variables["report_timestamp"]) == 0:
             message = "No data was found, try a different parameter combination."
-            context.add_user_visible_error(message)
+            # context.add_user_visible_error(message)
             raise CadsObsRuntimeError(message)
         # Add atributes
         _add_attributes(oncobj, global_attributes)
