@@ -32,7 +32,11 @@ class CadsobsApiClient:
         try:
             response = self._send_request(endpoint, method, payload)
             response.raise_for_status()
-        except requests.ConnectionError:
+        except (
+            requests.ConnectionError,
+            requests.ReadTimeout,
+            requests.ConnectTimeout,
+        ):
             raise CadsObsConnectionError("Can't connect to the observations API.")
         except requests.HTTPError:
             message, traceback = self._get_error_message(response)

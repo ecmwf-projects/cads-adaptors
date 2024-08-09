@@ -262,6 +262,24 @@ def test_adaptor_error(tmp_path, monkeypatch):
     adaptor.context.add_user_visible_error.assert_called_with(expected_error)
 
 
+def test_adaptor_wrong_key(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        MockerCadsobsApiClient,
+    )
+    test_form = {}
+    test_request = TEST_REQUEST.copy()
+    test_request.pop("time_aggregation")
+    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor.context.add_user_visible_error = Mock()
+    with pytest.raises(KeyError) as e:
+        adaptor.retrieve(test_request)
+    expected_error = "KeyError('dataset_source')"
+    assert repr(e.value) == expected_error
+    expected_message = "Invalid request, time_aggregation is missing."
+    adaptor.context.add_user_visible_error.assert_called_with(expected_message)
+
+
 def test_connection_error(tmp_path):
     test_form = {}
     adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
