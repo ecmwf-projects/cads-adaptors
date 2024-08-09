@@ -13,7 +13,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             output = self._retrieve(request)
         except KeyError as e:
             # message = self.get_key_error_message(e)
-            self.context.add_user_visible_log(f"ERROR: {repr(e)}")
+            self.context.add_user_visible_error(repr(e))
             self.context.add_stderr(repr(e))
             raise InvalidRequest(repr(e))
         except Exception as e:
