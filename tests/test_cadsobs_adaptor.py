@@ -297,6 +297,7 @@ def test_adaptor_wrong_value(monkeypatch):
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
 
+
 def test_connection_error(tmp_path):
     test_form = {}
     adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)

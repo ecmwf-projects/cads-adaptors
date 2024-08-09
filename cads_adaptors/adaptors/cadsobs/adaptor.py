@@ -1,10 +1,9 @@
 import tempfile
 from pathlib import Path
 
-from cads_adaptors.adaptors import Request
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
-from cads_adaptors.exceptions import CadsObsRuntimeError, InvalidRequest
+from cads_adaptors.exceptions import InvalidRequest
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
@@ -57,7 +56,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             self.context.add_stderr(f"{e}")
             self.context.add_user_visible_error(message)
             raise InvalidRequest(message)
-        
+
         # Note that this mutates mapped_request
         requested_auxiliary_variables = self.handle_auxiliary_variables(aux_var_mapping)
         cdm_lite_variables = cdm_lite_variables + list(requested_auxiliary_variables)
@@ -83,9 +82,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         )
         return open(output_path, "rb")
 
-    def handle_auxiliary_variables(
-        self, aux_var_mapping: dict
-    ) -> set[str]:
+    def handle_auxiliary_variables(self, aux_var_mapping: dict) -> set[str]:
         """Remove auxiliary variables from the request and add them as extra fields."""
         requested_variables = self.mapped_request["variables"].copy()
         regular_variables = [v for v in requested_variables if v in aux_var_mapping]
