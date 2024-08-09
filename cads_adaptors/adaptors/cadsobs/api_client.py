@@ -44,7 +44,7 @@ class CadsobsApiClient:
             )
         return response.json()
 
-    def _send_request(self, endpoint: str, method: RequestMethod, payload: dict):
+    def _send_request(self, endpoint: str, method: RequestMethod, payload: dict | None):
         with self.requests.Session() as session:
             response = session.request(
                 method=method, url=f"{self.baseurl}/{endpoint}", json=payload
