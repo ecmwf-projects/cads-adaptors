@@ -52,9 +52,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             dataset_name, dataset_source
         )
         # Note that this mutates mapped_request
-        requested_auxiliary_variables = self.handle_auxiliary_variables(
-            aux_var_mapping
-        )
+        requested_auxiliary_variables = self.handle_auxiliary_variables(aux_var_mapping)
         cdm_lite_variables = cdm_lite_variables + list(requested_auxiliary_variables)
         # Get the objects that match the request
         object_urls = cadsobs_client.get_objects_to_retrieve(
@@ -74,13 +72,13 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             object_urls,
             cdm_lite_variables,
             global_attributes,
-            self.context
+            self.context,
         )
         return open(output_path, "rb")
 
     def handle_auxiliary_variables(
         self, aux_var_mapping: dict
-    ) -> tuple[set[str], Request]:
+    ) -> set[str]:
         """Remove auxiliary variables from the request and add them as extra fields."""
         requested_variables = self.mapped_request["variables"].copy()
         regular_variables = [v for v in requested_variables if v in aux_var_mapping]
@@ -116,6 +114,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                 )
                 requested_variables.append(regular_variable)
         self.mapped_request["variables"] = requested_variables
+
         return requested_metadata_fields
 
     def adapt_parameters(self) -> dict:
@@ -125,10 +124,14 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             if key_to_listify in self.mapped_request and not isinstance(
                 self.mapped_request[key_to_listify], list
             ):
-                self.mapped_request[key_to_listify] = [self.mapped_request[key_to_listify]]
+                self.mapped_request[key_to_listify] = [
+                    self.mapped_request[key_to_listify]
+                ]
         # Turn year, month, day strings into integers
         for key_to_int in ["year", "month", "day"]:
-            self.mapped_request[key_to_int] = [int(v) for v in self.mapped_request[key_to_int]]
+            self.mapped_request[key_to_int] = [
+                int(v) for v in self.mapped_request[key_to_int]
+            ]
         # Turn area into latitude and longitude coverage
         if "area" in self.mapped_request:
             area = self.mapped_request.pop("area")

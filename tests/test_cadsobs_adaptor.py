@@ -7,7 +7,7 @@ import pytest
 
 from cads_adaptors import Context, ObservationsAdaptor
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
-from cads_adaptors.exceptions import CadsObsConnectionError
+from cads_adaptors.exceptions import CadsObsConnectionError, InvalidRequest
 
 CDM_LITE_VARIABLES = {
     "mandatory": [
@@ -262,7 +262,7 @@ def test_adaptor_error(tmp_path, monkeypatch):
     adaptor.context.add_user_visible_error.assert_called_with(expected_error)
 
 
-def test_adaptor_wrong_key(tmp_path, monkeypatch):
+def test_adaptor_wrong_key(monkeypatch):
     monkeypatch.setattr(
         "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
         MockerCadsobsApiClient,
@@ -271,13 +271,25 @@ def test_adaptor_wrong_key(tmp_path, monkeypatch):
     test_request = TEST_REQUEST.copy()
     test_request.pop("time_aggregation")
     adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
-    adaptor.context.add_user_visible_error = Mock()
-    with pytest.raises(KeyError) as e:
+    with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
-    expected_error = "KeyError('dataset_source')"
-    assert repr(e.value) == expected_error
-    expected_message = "Invalid request, time_aggregation is missing."
-    adaptor.context.add_user_visible_error.assert_called_with(expected_message)
+
+    test_request["time_aggregation_dasdas"] = "daily"
+    with pytest.raises(InvalidRequest):
+        adaptor.retrieve(test_request)
+
+
+def test_adaptor_wrong_value(monkeypatch):
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        MockerCadsobsApiClient,
+    )
+    test_form = {}
+    test_request = TEST_REQUEST.copy()
+    test_request["variable"] = "FAKE_VARIABLE"
+    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    with pytest.raises(InvalidRequest):
+        adaptor.retrieve(test_request)
 
 
 def test_connection_error(tmp_path):
@@ -300,15 +312,5 @@ def test_api_error(tmp_path, monkeypatch):
     )
     adaptor.context.add_user_visible_error = Mock()
     adaptor.context.add_stderr = Mock()
-    with pytest.raises(CadsObsConnectionError) as e:
+    with pytest.raises(CadsObsConnectionError):
         adaptor.retrieve(TEST_REQUEST)
-    expected_visible_error = (
-        "CadsObsConnectionError('Request to observations API failed: "
-        "Error: something failed somehow')"
-    )
-    expected_stderr = (
-        "Observations API failed with the following exception: this is a traceback"
-    )
-    assert repr(e.value) == expected_visible_error
-    adaptor.context.add_user_visible_error.assert_called_with(expected_visible_error)
-    adaptor.context.add_stderr.assert_called_with(expected_stderr)

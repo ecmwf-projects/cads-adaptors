@@ -16,7 +16,9 @@ class CadsobsApiClient:
         self.context = context
         self.requests = requests
 
-    def raise_user_visible_error(self, message: str, error_type: CadsObsConnectionError):
+    def raise_user_visible_error(
+        self, message: str, error_type=CadsObsConnectionError
+    ):
         self.context.add_user_visible_error(message)
         raise error_type(message)
 
