@@ -16,6 +16,10 @@ class CadsobsApiClient:
         self.context = context
         self.requests = requests
 
+    def raise_user_visible_error(self, message: str, error_type: CadsObsConnectionError):
+        self.context.add_user_visible_error(message)
+        raise error_type(message)
+
     def _send_request_and_capture_exceptions(
         self, method: RequestMethod, endpoint: str, payload: dict | None = None
     ):
@@ -37,14 +41,18 @@ class CadsobsApiClient:
             requests.ReadTimeout,
             requests.ConnectTimeout,
         ):
-            raise CadsObsConnectionError("Can't connect to the observations API.")
+            self.raise_user_visible_error(
+                "Can't connect to the observations API.",
+                CadsObsConnectionError,
+            )
         except requests.HTTPError:
             message, traceback = self._get_error_message(response)
             self.context.add_stderr(
-                f"Observations API failed with the following exception: {traceback}"
+                f"Observations API failed with the following message and traceback: {message} {traceback}"
             )
-            raise CadsObsConnectionError(
-                f"Request to observations API failed: {message}"
+            self.raise_user_visible_error(
+                f"Request to observations API failed: {message}",
+                CadsObsConnectionError,
             )
         return response.json()
 
