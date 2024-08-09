@@ -12,15 +12,14 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         try:
             output = self._retrieve(request)
         except KeyError as e:
-            message = self.get_key_error_message(e)
-            self.context.add_user_visible_error(message)
-            raise InvalidRequest(e)
+            self.context.add_user_visible_error(repr(e))
+            raise InvalidRequest(repr(e))
         except Exception as e:
             self.context.add_user_visible_error(repr(e))
             raise e
         return output
 
-    def retrieve(self, request):
+    def _retrieve(self, request):
         from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 
         # Maps observation_type to source. This sets self.mapped_request
@@ -154,11 +153,3 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         else:
             dataset_source_str = dataset_source
         return dataset_source_str
-
-    def get_key_error_message(self, e: KeyError) -> str:
-        """Get the original key name so the user know what is missing."""
-        inverse_rename = {v: k for k, v in self.mapping["rename"].items()}
-        # The key name is in the KeyError instance args.
-        offending_key = inverse_rename[e.args[0]]
-        message = f"Invalid request, {offending_key} is missing."
-        return message
