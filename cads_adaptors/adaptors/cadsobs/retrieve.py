@@ -3,6 +3,7 @@ from pathlib import Path
 import dask
 import fsspec
 
+from cads_adaptors import Context
 from cads_adaptors.adaptors.cadsobs.csv import to_csv
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs, RetrieveParams
 from cads_adaptors.adaptors.cadsobs.utils import (
@@ -12,7 +13,6 @@ from cads_adaptors.adaptors.cadsobs.utils import (
     _get_output_path,
 )
 from cads_adaptors.exceptions import CadsObsRuntimeError
-from cads_adaptors import Context
 
 
 def retrieve_data(

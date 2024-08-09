@@ -1,10 +1,9 @@
 import tempfile
 from pathlib import Path
 
-from cads_adaptors.adaptors import Request
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
-from cads_adaptors.exceptions import CadsObsRuntimeError, InvalidRequest
+from cads_adaptors.exceptions import InvalidRequest
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
@@ -48,13 +47,18 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             cdm_lite_variables_dict["mandatory"] + cdm_lite_variables_dict["optional"]
         )
         # Handle auxiliary variables
-        aux_var_mapping = cadsobs_client.get_aux_var_mapping(
-            dataset_name, dataset_source
-        )
+        try:
+            aux_var_mapping = cadsobs_client.get_aux_var_mapping(
+                dataset_name, dataset_source
+            )
+        except Exception as e:
+            message = f"KeyError: {dataset_source}"
+            self.context.add_stderr(f"{e}")
+            self.context.add_user_visible_error(message)
+            raise InvalidRequest(message)
+
         # Note that this mutates mapped_request
-        requested_auxiliary_variables = self.handle_auxiliary_variables(
-            aux_var_mapping
-        )
+        requested_auxiliary_variables = self.handle_auxiliary_variables(aux_var_mapping)
         cdm_lite_variables = cdm_lite_variables + list(requested_auxiliary_variables)
         # Get the objects that match the request
         object_urls = cadsobs_client.get_objects_to_retrieve(
@@ -74,13 +78,11 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             object_urls,
             cdm_lite_variables,
             global_attributes,
-            self.context
+            self.context,
         )
         return open(output_path, "rb")
 
-    def handle_auxiliary_variables(
-        self, aux_var_mapping: dict
-    ) -> tuple[set[str], Request]:
+    def handle_auxiliary_variables(self, aux_var_mapping: dict) -> set[str]:
         """Remove auxiliary variables from the request and add them as extra fields."""
         requested_variables = self.mapped_request["variables"].copy()
         regular_variables = [v for v in requested_variables if v in aux_var_mapping]
@@ -116,6 +118,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                 )
                 requested_variables.append(regular_variable)
         self.mapped_request["variables"] = requested_variables
+
         return requested_metadata_fields
 
     def adapt_parameters(self) -> dict:
@@ -125,10 +128,14 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             if key_to_listify in self.mapped_request and not isinstance(
                 self.mapped_request[key_to_listify], list
             ):
-                self.mapped_request[key_to_listify] = [self.mapped_request[key_to_listify]]
+                self.mapped_request[key_to_listify] = [
+                    self.mapped_request[key_to_listify]
+                ]
         # Turn year, month, day strings into integers
         for key_to_int in ["year", "month", "day"]:
-            self.mapped_request[key_to_int] = [int(v) for v in self.mapped_request[key_to_int]]
+            self.mapped_request[key_to_int] = [
+                int(v) for v in self.mapped_request[key_to_int]
+            ]
         # Turn area into latitude and longitude coverage
         if "area" in self.mapped_request:
             area = self.mapped_request.pop("area")
@@ -146,7 +153,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
                     "request is currently unsupported."
                 )
                 self.context.add_user_visible_error(error_message)
-                raise CadsObsRuntimeError(error_message)
+                raise InvalidRequest(error_message)
             else:
                 # Get the string if there is only one item in the list.
                 dataset_source_str = dataset_source[0]
