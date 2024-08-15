@@ -567,7 +567,7 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
         #result = retrieve_archived(context, requests, dataset_dir, regapi.integration_server)
         dataset = 'cams-europe-air-quality-forecasts-archived'
     target = f'/cache/debug/alabala.portocala'
-    client.retrieve(dataset,requests,target)
+    client.retrieve(dataset,{'requests': requests, 'dataset_dir': dataset_dir, 'integration_server': regapi.integration_server} ,target)
     result = MockResultFile(target)
     context.info('... sub-request succeeded after ' +
                  str(time.time() - t0) + 's')
