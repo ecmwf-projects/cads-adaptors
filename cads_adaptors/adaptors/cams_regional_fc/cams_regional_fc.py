@@ -231,6 +231,8 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     if not req_groups:
         raise NoDataException('No data found for this request', '')
     
+    context.add_stdout(f"------------------------------> req_groups number is {len(req_groups)}")
+    
     return req_groups[0]['retrieved_files'][0]
 
 
