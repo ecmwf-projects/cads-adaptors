@@ -31,6 +31,14 @@ from .api_retrieve import api_retrieve
 # when too many archived requests are blocking access to latest data
 ARCHIVED_OFF = False
 
+
+class MockResultFile():
+    def __init__(self, path):
+        self.path = path
+    def __str__(self):
+        return self.path
+
+
 def do_second_mapping(mapping, requests):
     for request in requests:
         for widget in request:
@@ -38,9 +46,6 @@ def do_second_mapping(mapping, requests):
                 request[widget] = [mapping[widget][value] for value in request[widget]]
     return requests
 
-class MockResultFile():
-    def __init__(self, path):
-        self.path = path
 
 def new_cams_regional_fc(context, config, requests, forms_dir=None):
     context.add_stdout("----------> Entering new_cams_regional_fc...")
