@@ -37,6 +37,10 @@ def do_second_mapping(mapping, requests):
                 request[widget] = [mapping[widget][value] for value in request[widget]]
     return requests
 
+class MockResultFile():
+    def __init__(self, path):
+        self.path = path
+
 def new_cams_regional_fc(context, config, requests, forms_dir=None):
     context.add_stdout("----------> Entering new_cams_regional_fc...")
     
@@ -173,12 +177,10 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     }
     
     def create_result_file(self, extension):
-        class MockResultFile():
-            def __init__(self):
-                request_uid = config["request_uid"]
-                self.path = f'/cache/debug/{request_uid}.{extension}'
+        request_uid = config["request_uid"]
+        result_path = f'/cache/debug/{request_uid}.{extension}'
         self.add_stdout("----------> MOCK RESULT FILE HERE")
-        return MockResultFile()
+        return MockResultFile(result_path)
     
     context.create_result_file = create_result_file.__get__(context)
     
@@ -544,6 +546,7 @@ def retrieve_xxx(context, requests, dataset_dir, integration_server):
 
 
 def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
+    from cdsapi import Client
     """Retrieve chunk of uncached fields in a sub-request"""
 
     backend = requests[0]['_backend'][0]
@@ -556,10 +559,16 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     t0 = time.time()
     # result = context.call('adaptor.cams_regional_fc.retrieve_' + backend,
     #                       requests, dataset_dir, regapi.integration_server)
+    client = Client()
     if backend == "latest":
-        result = retrieve_latest(context, requests, dataset_dir, regapi.integration_server)
+        #result = retrieve_latest(context, requests, dataset_dir, regapi.integration_server)
+        dataset = 'cams-europe-air-quality-forecasts-latest'
     else:
-        result = retrieve_archived(context, requests, dataset_dir, regapi.integration_server)
+        #result = retrieve_archived(context, requests, dataset_dir, regapi.integration_server)
+        dataset = 'cams-europe-air-quality-forecasts-archived'
+    target = f'/cache/debug/alabala.portocala'
+    client.retrieve(dataset,requests,target)
+    result = MockResultFile(target)
     context.info('... sub-request succeeded after ' +
                  str(time.time() - t0) + 's')
 
