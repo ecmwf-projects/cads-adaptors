@@ -532,6 +532,12 @@ def retrieve_archived(*args):
 
 
 def retrieve_xxx(context, requests, dataset_dir, integration_server):
+    def create_result_file(self, extension):
+        result_path = f'/cache/debug/alabala_retrieve_xxx.{extension}'
+        self.add_stdout("----------> MOCK RESULT FILE HERE (in retrieve_xxx)")
+        return MockResultFile(result_path)
+
+    context.create_result_file = create_result_file.__get__(context)
 
     # Get an object which will give us information/functionality associated
     # with the Meteo France regional forecast API
