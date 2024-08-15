@@ -246,7 +246,20 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     # Process and merge grib files
     process_grib_files(req_groups, info, context)
     
-    return req_groups[0]['retrieved_files'][0]
+    # Convert to netCDF?
+    if 'convert' in info['stages']:
+        convert_grib(req_groups, info, dataset_dir, context)
+
+    # Zip output files?
+    if 'zip' in info['stages']:
+        zip_files(req_groups, info, context)
+
+    try:
+        return info['result_file']
+    except KeyError:
+        raise Exception('Bug: result_file not set') from None
+    
+    #return req_groups[0]['retrieved_files'][0]
 
 
 def cams_regional_fc(context, requests, forms_dir=None):
