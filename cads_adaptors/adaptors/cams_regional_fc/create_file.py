@@ -16,9 +16,10 @@ def create_file(stage, suffix, info, context, temp_path=None):
         # Check a final result file isn't requested more than once
         if 'result_file' in info:
             raise Exception('Adaptor trying to create >1 result file??')
-        #info['result_file'] = context.create_result_file(suffix)
+        info['result_file'] = context.create_result_file(suffix)
 
         #path = info['result_file'].path
-        path = 'alabala.txt'
+        path = info['result_file'].path
+        #path = 'alabala.txt'
 
     return path
