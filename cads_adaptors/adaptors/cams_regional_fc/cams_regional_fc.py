@@ -3,6 +3,7 @@ import json
 import time
 import zipfile
 import logging
+import random
 from copy import deepcopy
 from datetime import datetime, timedelta
 
@@ -535,7 +536,8 @@ def retrieve_archived(*args):
 
 def retrieve_xxx(context, requests, dataset_dir, integration_server):
     def create_result_file(self, extension):
-        result_path = f'/cache/debug/alabala_retrieve_xxx.{extension}'
+        random_value = str(random.randint(0, 1e9))
+        result_path = f'/cache/debug/{random_value}.{extension}'
         self.add_stdout("----------> MOCK RESULT FILE HERE (in retrieve_xxx)")
         return MockResultFile(result_path)
 
