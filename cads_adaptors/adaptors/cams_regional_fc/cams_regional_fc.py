@@ -237,6 +237,10 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     if not req_groups:
         raise NoDataException('No data found for this request', '')
     
+    for req_group in req_groups:
+        for file_index in range(len(req_group['retrieved_files'])):
+            req_group['retrieved_files'][file_index] = req_group['retrieved_files'][file_index].path
+
     context.add_stdout(f"------------------------------> req_groups number is {len(req_groups[0]['retrieved_files'])}")
     
     # Process and merge grib files
