@@ -537,7 +537,7 @@ def retrieve_archived(*args):
 def retrieve_xxx(context, requests, dataset_dir, integration_server):
     def create_result_file(self, extension):
         random_value = str(random.randint(0, 1e9))
-        result_path = f'/cache/debug/{random_value}.{extension}'
+        result_path = f'/cache/debug/{random_value}{extension}'
         self.add_stdout("----------> MOCK RESULT FILE HERE (in retrieve_xxx)")
         return MockResultFile(result_path)
 
@@ -576,7 +576,8 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     else:
         #result = retrieve_archived(context, requests, dataset_dir, regapi.integration_server)
         dataset = 'cams-europe-air-quality-forecasts-archived'
-    target = f'/cache/debug/alabala.portocala'
+    random_value = str(random.randint(0, 1e9))
+    target = f'/cache/debug/{random_value}.ap'
     client.retrieve(dataset,{'requests': requests, 'dataset_dir': dataset_dir, 'integration_server': regapi.integration_server} ,target)
     result = MockResultFile(target)
     context.info('... sub-request succeeded after ' +
