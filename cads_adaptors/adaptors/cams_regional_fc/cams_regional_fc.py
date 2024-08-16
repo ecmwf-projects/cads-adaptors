@@ -1,7 +1,9 @@
 
+import os
 import json
 import time
 import zipfile
+import tempfile
 import logging
 import random
 from copy import deepcopy
@@ -188,7 +190,14 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
         self.add_stdout("----------> MOCK RESULT FILE HERE")
         return MockResultFile(result_path)
     
+    def create_temp_file(self, extension=".tmp"):
+        fd, path = tempfile.mkstemp(extension)
+        os.close(fd)
+        # self.tempfiles.append(path)
+        return path
+    
     context.create_result_file = create_result_file.__get__(context)
+    context.create_temp_file = create_temp_file.__get__(context)
     
     context.create_result_file(".alabala")
     
