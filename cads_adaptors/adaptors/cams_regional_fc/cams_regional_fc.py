@@ -242,6 +242,7 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
             req_group['retrieved_files'][file_index] = req_group['retrieved_files'][file_index].path
 
     context.add_stdout(f"------------------------------> req_groups number is {len(req_groups[0]['retrieved_files'])}")
+    context.add_stdout(f"------------------------------> INFO:{info}")
     
     # Process and merge grib files
     process_grib_files(req_groups, info, context)
