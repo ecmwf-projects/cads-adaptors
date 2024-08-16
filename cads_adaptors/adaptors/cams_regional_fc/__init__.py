@@ -38,7 +38,7 @@ def debug_input(adaptor, request, message, output_file):
 class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         request["type"] = [t.upper() for t in request["type"]]
-        request["format"] = ['grib']
+        # request["format"] = ['grib']
         result_file = new_cams_regional_fc(self.context, self.config, [request])
             
         return open(result_file.path, "rb")
