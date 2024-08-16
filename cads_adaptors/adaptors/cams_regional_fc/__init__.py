@@ -21,7 +21,7 @@ from .api_retrieve import api_retrieve
 # CHECKLIST:
 # - LATEST: OK
 # - ARCHIVE: OK
-# - RATE LIMITING: TBD
+# - RATE LIMITING: OK
 # - CACHE: TBD
 
 def debug_input(adaptor, request, message, output_file):
