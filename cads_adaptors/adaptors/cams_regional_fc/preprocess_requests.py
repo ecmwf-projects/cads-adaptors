@@ -17,6 +17,7 @@ def preprocess_requests(context, requests, regapi):
 
     # Get output format and remove from requests
     format = requests[0]['format'][0]
+    context.add_stdout(f"-------------------------------> FORMAT:{format}")
     for r in requests:
         r.pop('format', None)
 
