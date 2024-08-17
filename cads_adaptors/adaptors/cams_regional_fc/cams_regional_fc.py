@@ -459,6 +459,8 @@ def _get_local(req_group, cacher, context):
     urls = ({'url': cacher.cache_file_url(field),
              'req': field}
             for field in hcube_tools.unfactorise(reqs))
+    for url in urls:
+        context.add_stdout(f"LOCAL FIELD: {url}")
     # downloader = Downloader(context,
     #                         max_rate=50,
     #                         max_simultaneous=15,
