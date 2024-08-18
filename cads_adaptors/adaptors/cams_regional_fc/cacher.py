@@ -268,7 +268,7 @@ class Cacher:
 
         return (host, path, url)
 
-    def permanent_location(self, field):
+    def old_permanent_location(self, field):
         """Return the host, path and url of the permanent cache file for the
            given field"""
 
@@ -278,6 +278,20 @@ class Cacher:
         path = '/home/datastore/data/' + xpath
         url = 'http://datastore.copernicus-climate.eu/' + xpath
 
+        return (host, path, url)
+    
+    def permanent_location(self, field):
+        """Return the host, path and url of the permanent cache file for the
+           given field"""
+
+        host = 'object-store.os-api.cci2.ecmwf.int'
+        bucket = 'cci2-cams-regional-fc'
+        path = 'permanent' + '/' + self.cache_field_path(field)
+        url = 'https://' + host + '/' + bucket + '/' + path
+        
+        fake_host_for_upload = "localhost"
+        fake_path_for_upload = self.temp_cache_root + '/' + self.cache_field_path(field)
+        #return (host, path, url)
         return (host, path, url)
 
     def old_temporary_location(self, field):
