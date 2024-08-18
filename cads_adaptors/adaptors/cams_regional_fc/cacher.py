@@ -1,6 +1,9 @@
+import io
 import os
 import re
 import stat
+import time
+import boto3
 import jinja2
 import socket
 import threading
@@ -14,6 +17,65 @@ from cds_common.hcube_tools import hcube_intdiff, hcubes_intdiff2, count_fields
 from cds_common.message_iterators import grib_bytes_iterator
 from .remote_copier import RemoteCopier
 from .grib2request import grib2request
+
+
+class Credentials:
+    def __init__(self, url, access, key):
+        self.url    = url
+        self.access = access
+        self.key    = key
+
+
+def upload(destination_credentials, destination_bucket, destination_filepath, local_filepath):
+    client = boto3.client(
+        "s3",
+        aws_access_key_id     = destination_credentials.access,
+        aws_secret_access_key = destination_credentials.key,
+        endpoint_url          = destination_credentials.url
+    )
+
+    resource = boto3.resource(
+        "s3",
+        aws_access_key_id     = destination_credentials.access,
+        aws_secret_access_key = destination_credentials.key,
+        endpoint_url          = destination_credentials.url
+    )
+
+    _bucket = resource.Bucket(destination_bucket)
+    if not _bucket.creation_date:
+        _bucket = client.create_bucket(Bucket=destination_bucket)
+    retry = True
+    _n = 0
+    t0 = time.time()
+    while retry:
+        try:
+            with open(local_filepath, "rb") as fh:
+                file_object = io.BytesIO(fh.read())            
+
+            client.put_object(
+                Bucket=destination_bucket,
+                Key=destination_filepath,
+                Body=file_object.getvalue()
+            )
+            t1 = time.time()
+            retry = False
+            status = 'uploaded'
+        except AssertionError:
+            status = 'interrupted'
+            t1 = time.time()
+            break
+        except Exception as _err:
+            t1 = time.time()
+            print(_err)
+            _n += 1
+            if _n >= 5:
+                retry = False
+            status = f'process ended in error: {_err}'
+    return {
+        'status': status, 
+        'upload_time': t0 - t1, 
+        'upload_size': file_object.tell()
+    }
 
 
 class Cacher:
@@ -154,8 +216,23 @@ class Cacher:
             with self.lock:
                 if self._remote_copier is None:
                     self._remote_copier = RemoteCopier(logger=self.context)
-            self._remote_copier.copy(codes_get_message(msg),
-                                     self.remote_user, host, path)
+            # self._remote_copier.copy(codes_get_message(msg),
+            #                          self.remote_user, host, path)
+            destination_url = os.environ['STORAGE_API_URL']
+            destination_access = os.environ['STORAGE_ADMIN']
+            destination_key = os.environ['STORAGE_PASSWORD']
+            destination_credentials = Credentials(destination_url, destination_access, destination_key)
+
+            destination_bucket = "cci2-cams-regional-fc"
+            destination_filepath = path
+
+            self.context.add_stdout(f'{destination_url}, {destination_access}, {destination_key}, {destination_bucket}')
+            self.context.add_stdout(f'{destination_filepath}, {path}, {host}')
+
+            with NamedTemporaryFile(dir='/cache/tmp/', delete=False) as tmpfile:
+                codes_write(msg, tmpfile)
+            self.context.add_stdout(f'{tmpfile.name}')
+            upload(destination_credentials, destination_bucket, destination_filepath, tmpfile.name)
 
     def get(self, req):
         """Get a file from the cache or raise NotInCache if it doesn't exist"""
@@ -229,13 +306,14 @@ class Cacher:
            given field"""
 
         host = 'object-store.os-api.cci2.ecmwf.int'
-        path = '/cci2-cams-regional-fc/temporary' + '/' + self.cache_field_path(field)
-        url = 'https://' + host + path
+        bucket = 'cci2-cams-regional-fc'
+        path = 'temporary' + '/' + self.cache_field_path(field)
+        url = 'https://' + host + '/' + bucket + '/' + path
         
         fake_host_for_upload = "localhost"
         fake_path_for_upload = self.temp_cache_root + '/' + self.cache_field_path(field)
         #return (host, path, url)
-        return (fake_host_for_upload, fake_path_for_upload, url)
+        return (host, path, url)
 
     def cache_field_path(self, field):
         """Return the field-specific end part of the path of the cache file
