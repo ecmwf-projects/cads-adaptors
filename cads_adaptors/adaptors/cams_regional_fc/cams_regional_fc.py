@@ -248,7 +248,8 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     
     for req_group in req_groups:
         for file_index in range(len(req_group['retrieved_files'])):
-            req_group['retrieved_files'][file_index] = req_group['retrieved_files'][file_index].path
+            if not isinstance(req_group['retrieved_files'][file_index], str):
+                req_group['retrieved_files'][file_index] = req_group['retrieved_files'][file_index].path
 
     context.add_stdout(f"------------------------------> req_groups number is {len(req_groups[0]['retrieved_files'])}")
     context.add_stdout(f"------------------------------> INFO:{info}")
@@ -456,28 +457,28 @@ def _get_local(req_group, cacher, context):
         r['date'] = date_tools.expand_dates_list(r['date'])
 
     # Download local fields
-    urls = ({'url': cacher.cache_file_url(field),
+    urls = ({'url': 'https://object-store.os-api.cci2.ecmwf.int/cci2-cams-regional-fc/temporary/2024-04-26/model=MOCAGE_type=FORECAST_variable=C_POL_RAGW_level=0_time=0000_step=60', #cacher.cache_file_url(field),
              'req': field}
             for field in hcube_tools.unfactorise(reqs))
-    for url in urls:
-        context.add_stdout(f"LOCAL FIELD: {url}")
-    # downloader = Downloader(context,
-    #                         max_rate=50,
-    #                         max_simultaneous=15,
-    #                         combine_method='cat',
-    #                         target_suffix='.grib',
-    #                         response_checker=assert_valid_grib,
-    #                         response_checker_threadsafe=False,
-    #                         combine_in_order=False,
-    #                         write_to_temp=True,
-    #                         request_timeout=[60, 300],
-    #                         max_attempts={404: 1, 'default': 3},
-    #                         nonfatal_codes=[404, 'exception'],
-    #                         retry_wait=5,
-    #                         allow_no_data=True,
-    #                         min_log_level=logging.INFO)
-    # grib_file = downloader.execute(urls)
-    grib_file = None
+    # for url in urls:
+    #     context.add_stdout(f"LOCAL FIELD: {url}")
+    downloader = Downloader(context,
+                            max_rate=50,
+                            max_simultaneous=15,
+                            combine_method='cat',
+                            target_suffix='.grib',
+                            response_checker=assert_valid_grib,
+                            response_checker_threadsafe=False,
+                            combine_in_order=False,
+                            write_to_temp=True,
+                            request_timeout=[60, 300],
+                            max_attempts={404: 1, 'default': 3},
+                            nonfatal_codes=[404, 'exception'],
+                            retry_wait=5,
+                            allow_no_data=True,
+                            min_log_level=logging.INFO)
+    grib_file = downloader.execute(urls)
+    #grib_file = None
 
     # Identify uncached fields - the ones not present in the file
     cached, uncached = which_fields_in_file(reqs, grib_file, context)
