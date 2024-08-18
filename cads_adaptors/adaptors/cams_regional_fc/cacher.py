@@ -203,7 +203,7 @@ class Cacher:
 
         return (host, path, url)
 
-    def temporary_location(self, field):
+    def old_temporary_location(self, field):
         """Return the host, path and url of the temporary cache file for the
            given field"""
 
@@ -223,6 +223,19 @@ class Cacher:
             url = path
 
         return (host, path, url)
+    
+    def temporary_location(self, field):
+        """Return the host, path and url of the temporary cache file for the
+           given field"""
+
+        host = 'object-store.os-api.cci2.ecmwf.int'
+        path = '/cci2-cams-regional-fc/temporary' + '/' + self.cache_field_path(field)
+        url = 'https://' + host + path
+        
+        fake_host_for_upload = "localhost"
+        fake_path_for_upload = self.temp_cache_root + '/' + self.cache_field_path(field)
+        #return (host, path, url)
+        return (fake_host_for_upload, fake_path_for_upload, url)
 
     def cache_field_path(self, field):
         """Return the field-specific end part of the path of the cache file

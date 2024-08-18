@@ -457,9 +457,10 @@ def _get_local(req_group, cacher, context):
         r['date'] = date_tools.expand_dates_list(r['date'])
 
     # Download local fields
-    urls = ({'url': 'https://object-store.os-api.cci2.ecmwf.int/cci2-cams-regional-fc/temporary/2024-04-26/model=MOCAGE_type=FORECAST_variable=C_POL_RAGW_level=0_time=0000_step=60', #cacher.cache_file_url(field),
+    urls = ({'url': cacher.cache_file_url(field),
              'req': field}
             for field in hcube_tools.unfactorise(reqs))
+    # CAREFUL! "urls" is a generator and will be consumed by the first iteration
     # for url in urls:
     #     context.add_stdout(f"LOCAL FIELD: {url}")
     downloader = Downloader(context,
