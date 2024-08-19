@@ -61,8 +61,9 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     context.add_stdout(f"----------> integration_server: {config.get('integration_server', False)}")
     
     mapping = config.pop("mapping", {})
-    requests = do_mapping(mapping, requests)
     
+    requests = do_mapping(mapping, requests)
+    context.add_stdout(f"----------> MAPPINF: {mapping}")
     context.request = {"mapping": mapping}
     
     def create_result_file(self, extension):
