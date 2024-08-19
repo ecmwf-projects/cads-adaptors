@@ -51,6 +51,7 @@ def do_second_mapping(mapping, requests):
 
 def new_cams_regional_fc(context, config, requests, forms_dir=None):
     context.add_stdout("----------> Entering new_cams_regional_fc...")
+    context.add_stdout(f"----------> INITIAL REQUEST(S): {requests}")
     
     # Get an object which will give us information/functionality associated
     # with the Meteo France regional forecast API
@@ -135,7 +136,7 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     requests = do_second_mapping(second_mapping_that_I_do_not_understand, requests)
     
     context.request = {"mapping": config.pop("mapping", {})}
-    
+
     def create_result_file(self, extension):
         request_uid = config["request_uid"]
         result_path = f'/cache/debug/{request_uid}.{extension}'
