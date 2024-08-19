@@ -51,7 +51,6 @@ def do_second_mapping(mapping, requests):
 
 def new_cams_regional_fc(context, config, requests, forms_dir=None):
     context.add_stdout("----------> Entering new_cams_regional_fc...")
-    context.add_stdout(f"----------> INITIAL REQUEST(S): {requests}")
     
     # Get an object which will give us information/functionality associated
     # with the Meteo France regional forecast API
@@ -60,80 +59,6 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
         logger=context)
     
     context.add_stdout(f"----------> integration_server: {config.get('integration_server', False)}")
-    
-    second_mapping_that_I_do_not_understand = {
-        "model": {
-            "chimere": "CHIMERE",
-            "dehm": "DEHM",
-            "emep": "EMEP",
-            "ensemble": "ENS",
-            "euradim": "EURADIM",
-            "gemaq": "GEMAQ",
-            "lotos": "LOTOS",
-            "match": "MATCH",
-            "minni": "MINNI",
-            "mocage": "MOCAGE",
-            "monarch": "MONARCH",
-            "silam": "SILAM"
-        },
-        "time": {
-            "00:00": "0000",
-            "01:00": "0100",
-            "02:00": "0200",
-            "03:00": "0300",
-            "04:00": "0400",
-            "05:00": "0500",
-            "06:00": "0600",
-            "07:00": "0700",
-            "08:00": "0800",
-            "09:00": "0900",
-            "10:00": "1000",
-            "11:00": "1100",
-            "12:00": "1200",
-            "13:00": "1300",
-            "14:00": "1400",
-            "15:00": "1500",
-            "16:00": "1600",
-            "17:00": "1700",
-            "18:00": "1800",
-            "19:00": "1900",
-            "20:00": "2000",
-            "21:00": "2100",
-            "22:00": "2200",
-            "23:00": "2300"
-        },
-        "variable": {
-            "alder_pollen": "C_POL_ALDER",
-            "ammonia": "NH3_USI",
-            "birch_pollen": "C_POL_BIRCH",
-            "carbon_monoxide": "CO_USI",
-            "dust": "DUST_USI",
-            "formaldehyde": "HCHO_USI",
-            "glyoxal": "CHOCHO_USI",
-            "grass_pollen": "C_POL_GRASS",
-            "mugwort_pollen": "C_POL_MUGW",
-            "nitrogen_dioxide": "NO2_USI",
-            "nitrogen_monoxide": "NO_USI",
-            "non_methane_vocs": "NMVOC_USI",
-            "olive_pollen": "C_POL_OLIVE",
-            "ozone": "O3_USI",
-            "particulate_matter_10um": "PM10_USI",
-            "particulate_matter_2.5um": "PM25_USI",
-            "peroxyacyl_nitrates": "PANS_USI",
-            "pm10_sea_salt_dry": "DYNSAL_USI",
-            "pm10_wildfires": "PM_WF_USI",
-            "pm2.5_anthropogenic_fossil_fuel_carbon": "EC_FF_USI",
-            "pm2.5_anthropogenic_wood_burning_carbon": "EC_WB_USI",
-            "pm2.5_total_organic_matter": "PM25_OM_USI",
-            "ragweed_pollen": "C_POL_RAGW",
-            "residential_elementary_carbon": "EC_RES_USI",
-            "secondary_inorganic_aerosol": "SIA_USI",
-            "sulphur_dioxide": "SO2_USI",
-            "total_elementary_carbon": "EC_TOT_USI"
-        }
-    }
-    
-    requests = do_second_mapping(second_mapping_that_I_do_not_understand, requests)
     
     context.request = {"mapping": config.pop("mapping", {})}
 
@@ -156,11 +81,11 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     
     # Pre-process requests
     requests, info = preprocess_requests(context, requests, regapi)
-    for i in range(len(requests)):
-        leadtime_hour = requests[i]["leadtime_hour"]
-        requests[i].pop('leadtime_hour', None)
-        requests[i]["step"] = leadtime_hour
-        #requests[i]["format"] = 'grib'
+    # for i in range(len(requests)):
+    #     leadtime_hour = requests[i]["leadtime_hour"]
+    #     requests[i].pop('leadtime_hour', None)
+    #     requests[i]["step"] = leadtime_hour
+    #     #requests[i]["format"] = 'grib'
     context.add_stdout(f"----------> REQUESTS: {requests}")
     
     # If converting to NetCDF then different groups of grib files may need to be
