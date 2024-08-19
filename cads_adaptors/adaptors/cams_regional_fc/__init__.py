@@ -51,10 +51,16 @@ class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         #result_file_path = debug_input(self, request, "From CAMSEuropeAirQualityForecastsAdaptorForLatestData:", 'dummy.txt')
         result_file = retrieve_latest(self.context, request['requests'], request['dataset_dir'], request['integration_server'])
-        return open(result_file.path, "rb")
+        if hasattr(result_file, "path"):
+            return open(result_file.path, "rb")
+        else:
+            return None
     
 class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         #result_file_path = debug_input(self, request, "From CAMSEuropeAirQualityForecastsAdaptorForArchivedData:", 'dummy.txt')
         result_file = retrieve_archived(self.context, request['requests'], request['dataset_dir'], request['integration_server'])
-        return open(result_file.path, "rb")
+        if hasattr(result_file, "path"):
+            return open(result_file.path, "rb")
+        else:
+            return None
