@@ -134,55 +134,7 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     
     requests = do_second_mapping(second_mapping_that_I_do_not_understand, requests)
     
-    context.request = {"mapping": {
-            "remap": {
-                "model": {
-                    "ensemble_median": "ensemble",
-                    "eurad_im": "euradim",
-                    "gem_aq": "gemaq",
-                    "lotos_euros": "lotos"
-                },
-                "time": {
-                    "00_00": "00:00",
-                    "01_00": "01:00",
-                    "02_00": "02:00",
-                    "03_00": "03:00",
-                    "04_00": "04:00",
-                    "05_00": "05:00",
-                    "06_00": "06:00",
-                    "07_00": "07:00",
-                    "08_00": "08:00",
-                    "09_00": "09:00",
-                    "10_00": "10:00",
-                    "11_00": "11:00",
-                    "12_00": "12:00",
-                    "13_00": "13:00",
-                    "14_00": "14:00",
-                    "15_00": "15:00",
-                    "16_00": "16:00",
-                    "17_00": "17:00",
-                    "18_00": "18:00",
-                    "19_00": "19:00",
-                    "20_00": "20:00",
-                    "21_00": "21:00",
-                    "22_00": "22:00",
-                    "23_00": "23:00"
-                },
-                "variable": {
-                    "particulate_matter_10_\u00b5m": "particulate_matter_10um",
-                    "particulate_matter_2_5_\u00b5m": "particulate_matter_2.5um",
-                    "pm10_sea_salt_only": "pm10_sea_salt_dry",
-                    "pm10_wildfires_only": "pm10_wildfires",
-                    "pm2_5_anthropogenic_fossil_fuel_carbon_only": "pm2.5_anthropogenic_fossil_fuel_carbon",
-                    "pm2_5_anthropogenic_wood_burning_carbon_only": "pm2.5_anthropogenic_wood_burning_carbon",
-                    "pm2_5_total_organic_matter_only": "pm2.5_total_organic_matter"
-                }
-            },
-            "rename": {
-                "leadtime_hour": "step"
-            }
-        }
-    }
+    context.request = {"mapping": config.pop("mapping", {})}
     
     def create_result_file(self, extension):
         request_uid = config["request_uid"]
