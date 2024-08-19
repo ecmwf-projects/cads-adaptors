@@ -495,10 +495,15 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     else:
         #result = retrieve_archived(context, requests, dataset_dir, regapi.integration_server)
         dataset = 'cams-europe-air-quality-forecasts-archived'
+    
     random_value = str(random.randint(0, 1e9))
     target = f'/cache/debug/{random_value}.ap'
-    client.retrieve(dataset,{'requests': requests, 'dataset_dir': dataset_dir, 'integration_server': regapi.integration_server} ,target)
-    result = MockResultFile(target)
+    try:
+        client.retrieve(dataset,{'requests': requests, 'dataset_dir': dataset_dir, 'integration_server': regapi.integration_server}, target)
+        result = MockResultFile(target)
+    except:
+        result = None
+    
     context.info('... sub-request succeeded after ' +
                  str(time.time() - t0) + 's')
 
