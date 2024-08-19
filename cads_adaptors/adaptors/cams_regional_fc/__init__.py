@@ -38,11 +38,12 @@ def debug_input(adaptor, request, message, output_file):
 class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         self.context.add_stdout(f"----------> INITIAL REQUEST: {request}")
-        self.mapped_request = self.apply_mapping(request)
-        self.context.add_stdout(f"----------> MAPPED REQUEST: {self.mapped_request}")
+        #self.mapped_request = self.apply_mapping(request)
+        #self.context.add_stdout(f"----------> MAPPED REQUEST: {self.mapped_request}")
+        #ALSO send [self.mapped_request] to new_cams_regional_fc
         # request["type"] = [t.upper() for t in request["type"]]
         # request["format"] = ['grib']
-        result_file = new_cams_regional_fc(self.context, self.config, [self.mapped_request])
+        result_file = new_cams_regional_fc(self.context, self.config, [request])
             
         return open(result_file.path, "rb")
 

@@ -41,7 +41,7 @@ class MockResultFile():
         return self.path
 
 
-def do_second_mapping(mapping, requests):
+def do_mapping(mapping, requests):
     for request in requests:
         for widget in request:
             if widget in mapping:
@@ -60,8 +60,11 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     
     context.add_stdout(f"----------> integration_server: {config.get('integration_server', False)}")
     
-    context.request = {"mapping": config.pop("mapping", {})}
-
+    mapping = config.pop("mapping", {})
+    requests = do_mapping(mapping, requests)
+    
+    context.request = {"mapping": mapping}
+    
     def create_result_file(self, extension):
         request_uid = config["request_uid"]
         result_path = f'/cache/debug/{request_uid}.{extension}'
@@ -81,11 +84,11 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     
     # Pre-process requests
     requests, info = preprocess_requests(context, requests, regapi)
-    # for i in range(len(requests)):
-    #     leadtime_hour = requests[i]["leadtime_hour"]
-    #     requests[i].pop('leadtime_hour', None)
-    #     requests[i]["step"] = leadtime_hour
-    #     #requests[i]["format"] = 'grib'
+    for i in range(len(requests)):
+        leadtime_hour = requests[i]["leadtime_hour"]
+        requests[i].pop('leadtime_hour', None)
+        requests[i]["step"] = leadtime_hour
+        #requests[i]["format"] = 'grib'
     context.add_stdout(f"----------> REQUESTS: {requests}")
     
     # If converting to NetCDF then different groups of grib files may need to be
