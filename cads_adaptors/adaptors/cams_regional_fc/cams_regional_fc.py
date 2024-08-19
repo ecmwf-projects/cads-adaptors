@@ -49,7 +49,7 @@ def do_mapping(mapping, requests):
     return requests
 
 
-def new_cams_regional_fc(context, config, requests, forms_dir=None):
+def new_cams_regional_fc(context, config, mapping, requests, forms_dir=None):
     context.add_stdout("----------> Entering new_cams_regional_fc...")
     
     # Get an object which will give us information/functionality associated
@@ -60,10 +60,8 @@ def new_cams_regional_fc(context, config, requests, forms_dir=None):
     
     context.add_stdout(f"----------> integration_server: {config.get('integration_server', False)}")
     
-    mapping = config.pop("mapping", {})
-    
+    context.add_stdout(f"----------> MAPPING: {mapping}")
     requests = do_mapping(mapping, requests)
-    context.add_stdout(f"----------> MAPPINF: {mapping}")
     context.request = {"mapping": mapping}
     
     def create_result_file(self, extension):

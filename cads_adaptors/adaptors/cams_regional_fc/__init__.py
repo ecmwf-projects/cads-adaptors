@@ -43,7 +43,7 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
         #ALSO send [self.mapped_request] to new_cams_regional_fc
         # request["type"] = [t.upper() for t in request["type"]]
         # request["format"] = ['grib']
-        result_file = new_cams_regional_fc(self.context, self.config, [request])
+        result_file = new_cams_regional_fc(self.context, self.config, self.mapping, [request])
             
         return open(result_file.path, "rb")
 
