@@ -217,5 +217,7 @@ def area_selector_paths(
                     ds_area.to_netcdf(out_fname)
                     out_paths.append(out_fname)
                 else:
-                    raise NotImplementedError(f"Output format not recognised {out_format}")
+                    raise NotImplementedError(
+                        f"Output format not recognised {out_format}"
+                    )
     return out_paths
