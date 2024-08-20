@@ -140,7 +140,14 @@ def area_selector(
     # open object as earthkit data object
     ek_d = data.from_source("file", infile)
 
-    ds = ek_d.to_xarray(**to_xarray_kwargs)
+    try:
+        ds = ek_d.to_xarray(**to_xarray_kwargs)
+    except NotImplementedError:
+        context.logger.debug(
+            f"could not convert {ek_d.__class__.__name__} to xarray; "
+            "returning the original data"
+        )
+        return ds
 
     spatial_info = eka_tools.get_spatial_info(ds)
     lon_key = spatial_info["lon_key"]
