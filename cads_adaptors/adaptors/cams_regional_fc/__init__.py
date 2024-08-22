@@ -1,4 +1,5 @@
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.adaptors.cds import Request
 from typing import Any, BinaryIO
 import logging
@@ -38,12 +39,21 @@ def debug_input(adaptor, request, message, output_file):
 class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         self.context.add_stdout(f"----------> INITIAL REQUEST: {request}")
+        
+        # Intersect constraints
+        if self.config.get("intersect_constraints", False):
+            requests = self.intersect_constraints(request)
+            if len(requests) == 0:
+                msg = "Error: no intersection with the constraints."
+                raise InvalidRequest(msg)
+        else:
+            requests = [request]
         #self.mapped_request = self.apply_mapping(request)
         #self.context.add_stdout(f"----------> MAPPED REQUEST: {self.mapped_request}")
         #ALSO send [self.mapped_request] to new_cams_regional_fc
         # request["type"] = [t.upper() for t in request["type"]]
         # request["format"] = ['grib']
-        result_file = new_cams_regional_fc(self.context, self.config, self.mapping, [request])
+        result_file = new_cams_regional_fc(self.context, self.config, self.mapping, requests)
             
         return open(result_file.path, "rb")
 
