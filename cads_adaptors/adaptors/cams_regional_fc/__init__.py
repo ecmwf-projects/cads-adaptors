@@ -39,6 +39,7 @@ def debug_input(adaptor, request, message, output_file):
 class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         self.context.add_stdout(f"----------> INITIAL REQUEST: {request}")
+        request.pop('_in_adaptor_no_cache',None)
         
         # Intersect constraints
         if self.config.get("intersect_constraints", False):
