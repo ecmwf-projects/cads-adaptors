@@ -3,7 +3,7 @@ from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.exceptions import MultiAdaptorNoDataError
+from cads_adaptors.exceptions import InvalidRequest, MultiAdaptorNoDataError
 from cads_adaptors.tools.general import ensure_list
 
 
@@ -132,6 +132,29 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
         return convert_format(*args, **kwargs)
 
+    def _pre_retrieve(self, request, default_download_format="zip"):
+        self.input_request = deepcopy(request)
+        self.receipt = request.pop("receipt", False)
+
+        # Intersect constraints
+        if self.config.get("intersect_constraints", False):
+            requests_after_intersection = self.intersect_constraints(request)
+            if len(requests_after_intersection) == 0:
+                msg = "Error: no intersection with the constraints."
+                raise InvalidRequest(msg)
+        else:
+            requests_after_intersection = [request]
+
+        self.mapped_requests_pieces = []
+        for request_piece_after_intersection in requests_after_intersection:
+            self.mapped_requests_pieces.append(
+                mapping.apply_mapping(request_piece_after_intersection, self.mapping)
+            )
+
+        self.download_format = self.mapped_requests_pieces[0].pop(
+            "download_format", default_download_format
+        )
+
     def retrieve(self, request: Request):
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
         import dask
@@ -153,23 +176,24 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
         mapped_requests = []
         self.context.add_stdout(
-            f"MultiMarsCdsAdaptor, full_request: {self.mapped_request}"
+            f"MultiMarsCdsAdaptor, full_request: {self.mapped_requests_pieces}"
         )
+
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
-
-            this_request = self.split_request(
-                self.mapped_request, this_values, **this_adaptor.config
-            )
-            self.context.add_stdout(
-                f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
-            )
-
-            if len(this_request) > 0:
-                mapped_requests.append(
-                    mapping.apply_mapping(this_request, this_adaptor.mapping)
+            for mapped_request_piece in self.mapped_requests_pieces:
+                this_request = self.split_request(
+                    mapped_request_piece, this_values, **this_adaptor.config
                 )
+                self.context.add_stdout(
+                    f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
+                )
+
+                if len(this_request) > 0:
+                    mapped_requests.append(
+                        mapping.apply_mapping(this_request, this_adaptor.mapping)
+                    )
 
         self.context.add_stdout(
             f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}"

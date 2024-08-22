@@ -198,17 +198,26 @@ def area_selector_paths(
         # We try to select the area for all paths, if any fail we return the original paths
         out_paths = []
         for path in paths:
-            ds_area = area_selector(path, context, area=area)
-            if out_format in ["nc", "netcdf"]:
-                out_fname = ".".join(
-                    path.split(".")[:-1]
-                    + ["area-subset"]
-                    + [str(a) for a in area]
-                    + ["nc"]
+            try:
+                ds_area = area_selector(path, context, area=area)
+            except NotImplementedError:
+                context.logger.debug(
+                    f"could not convert {path} to xarray; returning the original data"
                 )
-                context.logger.debug(f"out_fname: {out_fname}")
-                ds_area.to_netcdf(out_fname)
-                out_paths.append(out_fname)
+                out_paths.append(path)
             else:
-                raise NotImplementedError(f"Output format not recognised {out_format}")
+                if out_format in ["nc", "netcdf"]:
+                    out_fname = ".".join(
+                        path.split(".")[:-1]
+                        + ["area-subset"]
+                        + [str(a) for a in area]
+                        + ["nc"]
+                    )
+                    context.logger.debug(f"out_fname: {out_fname}")
+                    ds_area.to_netcdf(out_fname)
+                    out_paths.append(out_fname)
+                else:
+                    raise NotImplementedError(
+                        f"Output format not recognised {out_format}"
+                    )
     return out_paths
