@@ -78,7 +78,7 @@ def apply_schema(requests, context):
     mandatory_keys = ['variable', 'model', 'level', 'date', 'type', 'time',
                       'leadtime_hour', 'format']
     recognised_keys = sorted(set(mandatory_keys).union(
-        ['area', 'no_cache', '_in_adaptor_no_cache', '_local_subarea']))
+        ['area', 'no_cache', '_local_subarea']))
 
     schema = {
         '_draft': '7',
