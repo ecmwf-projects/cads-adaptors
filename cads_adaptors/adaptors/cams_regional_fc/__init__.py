@@ -23,7 +23,7 @@ from .api_retrieve import api_retrieve
 # - LATEST: OK
 # - ARCHIVE: OK
 # - RATE LIMITING: OK
-# - CACHE: TBD
+# - CACHE: OK
 
 def debug_input(adaptor, request, message, output_file):
     # dumping the config and request
