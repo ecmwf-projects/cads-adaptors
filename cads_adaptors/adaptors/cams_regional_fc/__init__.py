@@ -45,6 +45,10 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
         # Intersect constraints
         if self.config.get("intersect_constraints", False):
             requests = self.intersect_constraints(request)
+            # TODO: inhibit the cache avoidance mechanism from normalise_request
+            # when called from intersect_constraints
+            for subrequest in requests:
+                 subrequest.pop('_in_adaptor_no_cache',None)
             if len(requests) == 0:
                 msg = "Error: no intersection with the constraints."
                 raise InvalidRequest(msg)
