@@ -82,6 +82,7 @@ def new_cams_regional_fc(context, config, mapping, requests, forms_dir=None):
     context.create_result_file(".alabala")
     
     # Pre-process requests
+    context.add_stdout(f"----------> REQUESTS before preprocess: {requests}")
     requests, info = preprocess_requests(context, requests, regapi)
     for i in range(len(requests)):
         leadtime_hour = requests[i]["leadtime_hour"]

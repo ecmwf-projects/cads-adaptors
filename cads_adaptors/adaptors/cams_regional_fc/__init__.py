@@ -40,6 +40,7 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         self.context.add_stdout(f"----------> INITIAL REQUEST: {request}")
         request.pop('_in_adaptor_no_cache',None)
+        self.context.add_stdout(f"----------> PURE REQUEST: {request}")
         
         # Intersect constraints
         if self.config.get("intersect_constraints", False):
@@ -49,6 +50,7 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
                 raise InvalidRequest(msg)
         else:
             requests = [request]
+        self.context.add_stdout(f"----------> INTERSECTED REQUESTS: {requests}")
         #self.mapped_request = self.apply_mapping(request)
         #self.context.add_stdout(f"----------> MAPPED REQUEST: {self.mapped_request}")
         #ALSO send [self.mapped_request] to new_cams_regional_fc
