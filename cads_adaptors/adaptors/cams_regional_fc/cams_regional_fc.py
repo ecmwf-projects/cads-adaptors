@@ -61,7 +61,8 @@ def new_cams_regional_fc(context, config, mapping, requests, forms_dir=None):
     context.add_stdout(f"----------> integration_server: {config.get('integration_server', False)}")
     
     context.add_stdout(f"----------> MAPPING: {mapping}")
-    requests = do_mapping(mapping, requests)
+    #part of the initial adaptor specific mapping substitute
+    #requests = do_mapping(mapping, requests)
     context.request = {"mapping": mapping}
     
     def create_result_file(self, extension):
@@ -84,11 +85,12 @@ def new_cams_regional_fc(context, config, mapping, requests, forms_dir=None):
     # Pre-process requests
     context.add_stdout(f"----------> REQUESTS before preprocess: {requests}")
     requests, info = preprocess_requests(context, requests, regapi)
-    for i in range(len(requests)):
-        leadtime_hour = requests[i]["leadtime_hour"]
-        requests[i].pop('leadtime_hour', None)
-        requests[i]["step"] = leadtime_hour
-        #requests[i]["format"] = 'grib'
+    #part of the initial adaptor specific mapping substitute
+    # for i in range(len(requests)):
+    #     leadtime_hour = requests[i]["leadtime_hour"]
+    #     requests[i].pop('leadtime_hour', None)
+    #     requests[i]["step"] = leadtime_hour
+    #     #requests[i]["format"] = 'grib'
     context.add_stdout(f"----------> REQUESTS: {requests}")
     
     # If converting to NetCDF then different groups of grib files may need to be

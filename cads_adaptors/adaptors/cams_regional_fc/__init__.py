@@ -55,9 +55,12 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
         else:
             requests = [request]
         self.context.add_stdout(f"----------> INTERSECTED REQUESTS: {requests}")
+        
+        # apply mapping
+        requests = [self.apply_mapping(request) for request in requests]
         #self.mapped_request = self.apply_mapping(request)
         #self.context.add_stdout(f"----------> MAPPED REQUEST: {self.mapped_request}")
-        #ALSO send [self.mapped_request] to new_cams_regional_fc
+        #ALSO send [self.mapped_request] to new_cams_regional_fc instead of requests
         # request["type"] = [t.upper() for t in request["type"]]
         # request["format"] = ['grib']
         result_file = new_cams_regional_fc(self.context, self.config, self.mapping, requests)
