@@ -185,14 +185,14 @@ def area_selector(
         context.logger.debug(f"ds_area: {ds_area}")
 
         # Ensure that there are no length zero dimensions
-        for dim in ds_area.dims:
+        for dim in [lat_key, lon_key]:
             if len(ds_area[dim]) == 0:
-                context.add_user_visible_error(
-                    "Area selection resulted in a dataset with zero length dimension"
+                message = (
+                    f"Area selection resulted in a dataset with zero length dimension for: {dim}.\n"
+                    "Please ensure that your area selection covers at least one point in the data."
                 )
-                raise InvalidRequest(
-                    "Area selection resulted in a dataset with zero length dimension"
-                )
+                context.add_user_visible_error(message)
+                raise InvalidRequest(message)
 
         return ds_area
 
