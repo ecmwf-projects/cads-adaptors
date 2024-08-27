@@ -191,7 +191,7 @@ def area_selector(
                     f"Area selection resulted in a dataset with zero length dimension for: {dim}.\n"
                     "Please ensure that your area selection covers at least one point in the data."
                 )
-                context.add_user_visible_error(message)
+                # context.add_user_visible_error(message)
                 raise InvalidRequest(message)
 
         return ds_area
