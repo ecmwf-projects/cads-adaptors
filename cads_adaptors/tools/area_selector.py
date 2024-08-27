@@ -7,6 +7,7 @@ from earthkit import data
 from earthkit.transforms import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
+from cads_adaptors.exceptions import InvalidRequest
 
 
 def incompatible_area_error(
@@ -182,6 +183,17 @@ def area_selector(
 
         ds_area = xr.concat(sub_selections, dim=lon_key)
         context.logger.debug(f"ds_area: {ds_area}")
+
+        # Ensure that there are no length zero dimensions
+        for dim in ds_area.dims:
+            if len(ds_area[dim]) == 0:
+                context.add_user_visible_error(
+                    "Area selection resulted in a dataset with zero length dimension"
+                )
+                raise InvalidRequest(
+                    "Area selection resulted in a dataset with zero length dimension"
+                )
+
         return ds_area
 
     else:
