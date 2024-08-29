@@ -1,23 +1,8 @@
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.adaptors.cds import Request
-from typing import Any, BinaryIO
-import logging
+from typing import BinaryIO
 import json
-
-import time
-import zipfile
-import logging
-from copy import deepcopy
-from datetime import datetime, timedelta
-
-import traceback
-# from cdscompute.decorators import configure
-from cdscompute.errors import NoDataException
-from cds_common.cams.regional_fc_api import regional_fc_api
-from .cams_regional_fc import cams_regional_fc,new_cams_regional_fc,retrieve_latest,retrieve_archived
-from .api_retrieve import api_retrieve
-
 
 # CHECKLIST:
 # - LATEST: OK
@@ -38,6 +23,7 @@ def debug_input(adaptor, request, message, output_file):
 
 class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
+        from .cams_regional_fc import new_cams_regional_fc
         self.context.add_stdout(f"----------> INITIAL REQUEST: {request}")
         request.pop('_in_adaptor_no_cache',None)
         self.context.add_stdout(f"----------> PURE REQUEST: {request}")
@@ -69,6 +55,7 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
 
 class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
+        from .cams_regional_fc import retrieve_latest
         #result_file_path = debug_input(self, request, "From CAMSEuropeAirQualityForecastsAdaptorForLatestData:", 'dummy.txt')
         result_file = retrieve_latest(self.context, request['requests'], request['dataset_dir'], request['integration_server'])
         if hasattr(result_file, "path"):
@@ -78,6 +65,7 @@ class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
     
 class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
+        from .cams_regional_fc import retrieve_archived
         #result_file_path = debug_input(self, request, "From CAMSEuropeAirQualityForecastsAdaptorForArchivedData:", 'dummy.txt')
         result_file = retrieve_archived(self.context, request['requests'], request['dataset_dir'], request['integration_server'])
         if hasattr(result_file, "path"):
