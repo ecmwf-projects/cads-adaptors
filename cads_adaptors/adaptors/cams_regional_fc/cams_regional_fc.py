@@ -491,7 +491,9 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     t0 = time.time()
     # result = context.call('adaptor.cams_regional_fc.retrieve_' + backend,
     #                       requests, dataset_dir, regapi.integration_server)
-    client = Client()
+    ADS_API_URL = "https://" + os.environ['ADS_SERVER_NAME'] + os.environ['API_ROOT_PATH']
+    ADS_API_KEY = os.environ['HIGH_PRIORITY_CADS_API_KEY']
+    client = Client(url = ADS_API_URL, key= ADS_API_KEY)
     if backend == "latest":
         #result = retrieve_latest(context, requests, dataset_dir, regapi.integration_server)
         dataset = 'cams-europe-air-quality-forecasts-latest'
