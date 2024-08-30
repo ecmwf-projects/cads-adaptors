@@ -16,8 +16,7 @@ classifiers = [
 dependencies = [
   # Only mandatory dependencies required by the broker and retrieve-api images
   "DateTimeRange",
-  "jsonschema",
-  "tabulate"
+  "jsonschema"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]
@@ -50,6 +49,7 @@ complete = [
   "requests",
   "rooki",
   "sqlalchemy",
+  "tabulate",
   "tqdm",
   "xarray"
 ]
