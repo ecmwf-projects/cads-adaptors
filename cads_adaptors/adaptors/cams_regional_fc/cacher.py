@@ -25,7 +25,7 @@ class Credentials:
         self.access = access
         self.key    = key
 
-
+TRUST_THAT_BUCKET_EXISTS = True
 def upload(destination_credentials, destination_bucket, destination_filepath, local_filepath):
     client = boto3.client(
         "s3",
@@ -34,16 +34,17 @@ def upload(destination_credentials, destination_bucket, destination_filepath, lo
         endpoint_url          = destination_credentials.url
     )
 
-    resource = boto3.resource(
-        "s3",
-        aws_access_key_id     = destination_credentials.access,
-        aws_secret_access_key = destination_credentials.key,
-        endpoint_url          = destination_credentials.url
-    )
+    if not TRUST_THAT_BUCKET_EXISTS:
+        resource = boto3.resource(
+            "s3",
+            aws_access_key_id     = destination_credentials.access,
+            aws_secret_access_key = destination_credentials.key,
+            endpoint_url          = destination_credentials.url
+        )
 
-    _bucket = resource.Bucket(destination_bucket)
-    if not _bucket.creation_date:
-        _bucket = client.create_bucket(Bucket=destination_bucket)
+        _bucket = resource.Bucket(destination_bucket)
+        if not _bucket.creation_date:
+            _bucket = client.create_bucket(Bucket=destination_bucket)
     retry = True
     _n = 0
     t0 = time.time()
