@@ -15,10 +15,11 @@ def convert_grib(req_groups, info, dataset_dir, context):
         regfc_defns = yaml.safe_load(f)
 
     # Convert to NetCDF?
-    if info['format'] in [Formats.netcdf, Formats.netcdf_cdm]:
+    if info['format'] in [Formats.netcdf, Formats.netcdf_zip,
+                          Formats.netcdf_cdm]:
         for req_group in req_groups:
             req_group['nc_file'] = create_file('convert', '.nc', info, context)
-            if info['format'] == Formats.netcdf:
+            if info['format'] in (Formats.netcdf, Formats.netcdf_zip):
                 convert_grib_to_netcdf(req_group['requests'],
                                        req_group['grib_file'],
                                        req_group['nc_file'],

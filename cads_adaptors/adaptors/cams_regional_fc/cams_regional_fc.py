@@ -102,9 +102,9 @@ def new_cams_regional_fc(context, config, mapping, requests, forms_dir=None):
     else:
         req_groups = [{'group_id': None, 'requests': requests}]
         
-    # Output a zip file if creating >1 NetCDF file. netcdf_cdm format files
-    # are always zipped.
-    if len(req_groups) > 1 or info['format'] == Formats.netcdf_cdm:
+    # Output a zip file if creating >1 NetCDF file or if requested
+    if len(req_groups) > 1 or info['format'] in (Formats.netcdf_zip,
+                                                 Formats.netcdf_cdm):
         info['stages'].append('zip')
         
     dataset_dir = "/src/cads-adaptors/cads_adaptors/adaptors/cams_regional_fc/config"
@@ -184,9 +184,9 @@ def cams_regional_fc(context, requests, forms_dir=None):
     else:
         req_groups = [{'group_id': None, 'requests': requests}]
 
-    # Output a zip file if creating >1 NetCDF file. netcdf_cdm format files
-    # are always zipped.
-    if len(req_groups) > 1 or info['format'] == Formats.netcdf_cdm:
+    # Output a zip file if creating >1 NetCDF file or if requested
+    if len(req_groups) > 1 or info['format'] in (Formats.netcdf_zip,
+                                                 Formats.netcdf_cdm):
         info['stages'].append('zip')
 
     dataset_dir = forms_dir + '/' + context.request['metadata']['resource']
