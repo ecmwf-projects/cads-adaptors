@@ -92,7 +92,10 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         for regular_variable in regular_variables:
             for auxvar_dict in aux_var_mapping[regular_variable]:
                 auxvar = auxvar_dict["auxvar"]
-                if auxvar in auxiliary_variables:
+                # Two regular variables may be mapped to the same aux variable
+                # The second check "auxvar in requested_variables" is added to avoid
+                # passing through here twice.
+                if auxvar in auxiliary_variables and auxvar in requested_variables:
                     metadata_field = auxvar_dict["metadata_name"]
                     self.context.warning(
                         f"{auxvar} is an auxiliary variable, it will be included"
