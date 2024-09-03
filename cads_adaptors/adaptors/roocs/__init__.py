@@ -38,7 +38,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             raise RoocsRuntimeError(response.status)
         urls += [response.provenance(), response.provenance_image()]
 
-        paths = url_tools.try_download(urls, context=self.context)
+        paths = url_tools.try_download(urls, context=self.context, timeout=30)
 
         return download_tools.DOWNLOAD_FORMATS["zip"](paths)
 
