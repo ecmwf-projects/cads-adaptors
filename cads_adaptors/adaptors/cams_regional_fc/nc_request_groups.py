@@ -30,8 +30,8 @@ def nc_request_groups(context, reqs, info):
     # we're using a converter that can't handle >1 time dimension
     groups2 = {}
     for group_id, reqs in groups.items():
-        split_by_date = (info['format'] == Formats.netcdf and
-                         overlapping_vtimes(reqs))
+        split_by_date = (info['format'] in (Formats.netcdf, Formats.netcdf_zip)
+                         and overlapping_vtimes(reqs))
         if split_by_date:
             for id, rs in split_and_group(reqs, ['date']).items():
                 groups2[group_id + id] = rs
