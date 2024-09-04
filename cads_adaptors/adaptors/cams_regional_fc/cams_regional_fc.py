@@ -493,7 +493,7 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     #                       requests, dataset_dir, regapi.integration_server)
     ADS_API_URL = "https://" + os.environ['ADS_SERVER_NAME'] + os.environ['API_ROOT_PATH']
     ADS_API_KEY = os.environ['HIGH_PRIORITY_CADS_API_KEY']
-    client = Client(url = ADS_API_URL, key= ADS_API_KEY)
+    client = Client(url = ADS_API_URL, key= ADS_API_KEY, wait_until_complete=False)
     if backend == "latest":
         #result = retrieve_latest(context, requests, dataset_dir, regapi.integration_server)
         dataset = 'cams-europe-air-quality-forecasts-latest'
@@ -503,11 +503,26 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     
     random_value = str(random.randint(0, 1e9))
     target = f'/cache/debug/{random_value}.ap'
+    request_uid = None
     try:
-        client.retrieve(dataset,{'requests': requests, 'dataset_dir': dataset_dir, 'integration_server': regapi.integration_server}, target)
+        response = client.retrieve(dataset, 
+            {
+                'requests': requests, 
+                'dataset_dir': dataset_dir, 
+                'integration_server': regapi.integration_server
+            })
+        request_uid = response.request_uid
+        message = f"Sub-request {request_uid} has been launched (via the CDSAPI)."
+        context.add_stdout(message)
+        response.download(target)
         result = MockResultFile(target)
-    except:
-        result = None
+    except Exception as e:
+        if not request_uid:
+            request_uid = "with no ID assigned"
+        message = f"Sub-request {request_uid} failed: {e!r}"
+        context.add_stderr(message)
+        raise RuntimeError(message)
+        #result = None
     
     context.info('... sub-request succeeded after ' +
                  str(time.time() - t0) + 's')
