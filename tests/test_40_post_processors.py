@@ -42,6 +42,7 @@ def test_daily_reduce():
         assert len(out_xarray_dict) == 1
         assert list(out_xarray_dict)[0] == "test_0_daily-mean"
         assert isinstance(out_xarray_dict["test_0_daily-mean"], xr.Dataset)
+        assert isinstance(out_xarray_dict["test_0_daily-mean"].attrs["history"], str)
 
 
 def test_monthly_reduce():
@@ -60,3 +61,28 @@ def test_monthly_reduce():
         assert len(out_xarray_dict) == 1
         assert list(out_xarray_dict)[0] == "test_0_monthly-mean"
         assert isinstance(out_xarray_dict["test_0_monthly-mean"], xr.Dataset)
+        assert isinstance(out_xarray_dict["test_0_monthly-mean"].attrs["history"], str)
+
+
+def test_update_history():
+    in_xarray = xr.Dataset(
+        {
+            "temperature": xr.DataArray([1, 2, 3]),
+        }
+    )
+    # Check that history is added to an xarray which does not haev history
+    assert "history" not in in_xarray.attrs
+    out_xarray = post_processors.update_history(in_xarray, "Test history create")
+    assert isinstance(out_xarray, xr.Dataset)
+    assert out_xarray.attrs["history"] == "Test history create"
+
+    # Check that history is updated in an xarray which already has history
+    out_xarray = post_processors.update_history(out_xarray, "Test history update")
+    assert isinstance(out_xarray, xr.Dataset)
+    assert out_xarray.attrs["history"] == "Test history create\nTest history update"
+
+    # Check that warning raised, but no fail if history is not a string
+    out_xarray.attrs["history"] = 1
+    out_xarray = post_processors.update_history(out_xarray, "Test history update")
+    assert isinstance(out_xarray, xr.Dataset)
+    assert out_xarray.attrs["history"] == 1

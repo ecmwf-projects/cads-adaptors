@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+from random import randint
 from typing import Any, Union
 
 from cads_adaptors import constraints, costing, mapping
@@ -23,8 +24,12 @@ def _reorganise_open_dataset_and_to_netcdf_kwargs(
     to_netcdf_kwargs = {
         **post_processing_kwargs.pop("to_netcdf_kwargs", dict()),
     }
+
     # rename and expand_dims is now done as a "post open" step, to assist in other post-processing
-    post_open_datasets_kwargs = config.get("post_open_datasets_kwargs", {})
+    #  Due to a bug, we allow this to be stored in the top level of the config
+    post_open_datasets_kwargs = post_processing_kwargs.get(
+        "post_open_datasets_kwargs", config.get("post_open_datasets_kwargs", {})
+    )
     for key in ["rename", "expand_dims"]:
         if key in to_netcdf_kwargs:
             post_open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
@@ -123,6 +128,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             raise TypeError(
                 f"Normalised request is not a dictionary, instead it is of type {type(request)}"
             )
+        # Avoid the cache by adding a random key-value pair to the request (if cache avoidance is on)
+        if self.config.get("avoid_cache", False):
+            random_key = str(randint(0, 2**128))
+            request["_in_adaptor_no_cache"] = random_key
         return request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
@@ -132,15 +141,22 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     # and currently only implemented for retrieve methods
     def _pre_retrieve(self, request: Request, default_download_format="zip"):
         self.input_request = deepcopy(request)
+        self.context.debug(f"Input request:\n{self.input_request}")
         self.receipt = request.pop("receipt", False)
 
         # Extract post-process steps from the request before mapping:
         self.post_process_steps = self.pp_mapping(request.pop("post_process", []))
+        self.context.debug(
+            f"Post-process steps extracted from request:\n{self.post_process_steps}"
+        )
 
         self.mapped_request = self.apply_mapping(request)  # type: ignore
 
         self.download_format = self.mapped_request.pop(
             "download_format", default_download_format
+        )
+        self.context.debug(
+            f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_request}"
         )
 
     def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -155,6 +171,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def post_process(self, result: Any) -> dict[str, Any]:
         """Perform post-process steps on the retrieved data."""
         for i, pp_step in enumerate(self.post_process_steps):
+            self.context.add_stdout(
+                f"Performing post-process step {i+1} of {len(self.post_process_steps)}: {pp_step}"
+            )
             # TODO: pp_mapping should have ensured "method" is always present
 
             if "method" not in pp_step:
@@ -163,9 +182,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 )
                 continue
 
-            method_name = pp_step["method"]
+            method_name = pp_step.pop("method")
             # TODO: Add extra condition to limit pps from dataset configurations
-            if hasattr(self, method_name):
+            if not hasattr(self, method_name):
                 self.context.add_user_visible_error(
                     message=f"Post-processor method '{method_name}' not available for this dataset"
                 )
@@ -175,21 +194,28 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             # post processing is done on xarray objects,
             # so on first pass we ensure result is opened as xarray
             if i == 0:
-                post_processing_kwargs = self.config.get("post_processing_kwargs", {})
-
                 from cads_adaptors.tools.convertors import (
                     open_result_as_xarray_dictionary,
                 )
 
+                post_processing_kwargs = self.config.get("post_processing_kwargs", {})
+
+                open_datasets_kwargs = post_processing_kwargs.get(
+                    "open_datasets_kwargs", {}
+                )
+                post_open_datasets_kwargs = post_processing_kwargs.get(
+                    "post_open_datasets_kwargs", {}
+                )
+                self.context.add_stdout(
+                    f"Opening result: {result} as xarray dictionary with kwargs:\n"
+                    f"open_dataset_kwargs: {open_datasets_kwargs}\n"
+                    f"post_open_datasets_kwargs: {post_open_datasets_kwargs}"
+                )
                 result = open_result_as_xarray_dictionary(
                     result,
                     context=self.context,
-                    open_datasets_kwargs=post_processing_kwargs.get(
-                        "open_datasets_kwargs", {}
-                    ),
-                    post_open_kwargs=post_processing_kwargs.get(
-                        "post_open_datasets_kwargs", {}
-                    ),
+                    open_datasets_kwargs=open_datasets_kwargs,
+                    post_open_datasets_kwargs=post_open_datasets_kwargs,
                 )
 
             result = method(result, **pp_step)

@@ -24,6 +24,7 @@ except ImportError:  # pragma: no cover
 
 from cads_adaptors.adaptors import AbstractAdaptor, Context, DummyAdaptor
 from cads_adaptors.adaptors.cadsobs.adaptor import ObservationsAdaptor
+from cads_adaptors.adaptors.cams_solar_rad import CamsSolarRadiationTimeseriesAdaptor
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, DummyCdsAdaptor
 from cads_adaptors.adaptors.insitu import (
     InsituDatabaseCdsAdaptor,
@@ -55,4 +56,5 @@ __all__ = [
     "MultiMarsCdsAdaptor",
     "RoocsCdsAdaptor",
     "ObservationsAdaptor",
+    "CamsSolarRadiationTimeseriesAdaptor",
 ]

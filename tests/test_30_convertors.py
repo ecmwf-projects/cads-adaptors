@@ -129,6 +129,7 @@ def test_grib_to_netcdf():
 EXTENSION_MAPPING = {
     "grib": ".grib",
     "netcdf": ".nc",
+    "netcdf_legacy": ".nc",
 }
 
 
@@ -169,3 +170,72 @@ def test_convert_format_to_grib(url, target_format="grib"):
         # Can't convert from netcdf to grib yet, so ensure in extension is the same as input
         _, out_ext = os.path.splitext(converted_files[0])
         assert out_ext == ext
+
+
+def test_convert_format_to_netcdf_legacy(
+    url=TEST_GRIB_FILE, target_format="netcdf_legacy"
+):
+    remote_file = requests.get(url)
+    _, ext = os.path.splitext(url)
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        os.chdir(tmpdirname)
+        tmp_file = f"test.{ext}"
+        with open(tmp_file, "wb") as f:
+            f.write(remote_file.content)
+
+        converted_files = convertors.convert_format(
+            tmp_file, target_format=target_format
+        )
+        assert isinstance(converted_files, list)
+        assert len(converted_files) == 1
+        _, out_ext = os.path.splitext(converted_files[0])
+        assert out_ext == EXTENSION_MAPPING.get(target_format, f".{target_format}")
+
+
+def test_safely_rename_variable():
+    import xarray as xr
+
+    ds = xr.Dataset(
+        {
+            "time": xr.DataArray([1, 2, 3], dims="time"),
+            "temperature": xr.DataArray([1, 2, 3], dims="time"),
+            "humidity": xr.DataArray([4, 5, 6], dims="time"),
+        }
+    )
+
+    ds_1 = convertors.safely_rename_variable(ds, {"temperature": "temp"})
+    assert "temperature" not in ds_1
+    assert "temp" in ds_1
+
+    ds_2 = convertors.safely_rename_variable(ds, {"time": "valid_time"})
+    assert "time" not in ds_2
+    assert "valid_time" in ds_2
+
+
+def test_safely_expand_dims():
+    import xarray as xr
+
+    ds = xr.Dataset(
+        {
+            "temperature": xr.DataArray([1, 2, 3], dims="time"),
+        },
+        coords={
+            "lat": xr.DataArray(1),
+            "lon": xr.DataArray(2),
+            "time": xr.DataArray([1, 2, 3], dims="time"),
+        },
+    )
+    assert "lat" not in ds.dims
+    assert "lon" not in ds.dims
+    assert "time" in ds.dims
+    assert "lat" not in ds.temperature.dims
+    assert "lat" not in ds.temperature.dims
+    assert "time" in ds.temperature.dims
+
+    ds_1 = convertors.safely_expand_dims(ds, ["lat", "lon"])
+    assert "lat" in ds_1.dims
+    assert "lon" in ds_1.dims
+    assert "time" in ds_1.dims
+    assert "lat" in ds_1.temperature.dims
+    assert "lat" in ds_1.temperature.dims
+    assert "time" in ds_1.temperature.dims

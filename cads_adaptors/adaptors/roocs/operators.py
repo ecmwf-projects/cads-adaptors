@@ -2,6 +2,8 @@ import calendar
 import types
 import typing as T
 
+from cads_adaptors.exceptions import RoocsValueError
+
 DEFAULT_DATE_FORMAT = "%Y-%m-%d"
 
 
@@ -141,7 +143,7 @@ class Subset(Operator):
                     extents = extents.split(delimiter)
                     break
             else:
-                raise ValueError(f"invalid area argument: {extents}")
+                raise RoocsValueError(f"invalid area argument: {extents}")
 
         # reorder extents from MARS-style (NWSE) to rooki-style (WSEN)
         extents_order = [1, 2, 3, 0]
