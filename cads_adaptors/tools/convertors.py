@@ -689,6 +689,10 @@ def open_grib_file_as_xarray_dictionary(
     # Option for manual split of the grib file into list of xr.Datasets using list of open_ds_kwargs
     context.add_stdout(f"Opening {grib_file} with kwargs: {open_datasets_kwargs}")
     if isinstance(open_datasets_kwargs, list):
+        # Do any automatic splitting of the open_datasets_kwargs:
+        open_datasets_kwargs = split_open_kwargs_on_keys(
+            grib_file, open_datasets_kwargs, context=context
+        )
         datasets: dict[str, xr.Dataset] = {}
         for i, open_ds_kwargs in enumerate(open_datasets_kwargs):
             # Default engine is cfgrib
