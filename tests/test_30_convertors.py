@@ -253,7 +253,7 @@ def test_split_open_kwarg_on_keys():
         tmp_grib_file = "test.grib"
         with open(tmp_grib_file, "wb") as f:
             f.write(grib_file.content)
-        
+
         new_open_ds_kwargs = convertors.split_open_kwargs_on_keys(
             tmp_grib_file, open_ds_kwargs
         )

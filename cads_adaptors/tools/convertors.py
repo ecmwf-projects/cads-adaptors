@@ -1,3 +1,4 @@
+import itertools
 import os
 from typing import Any, Callable, NoReturn
 
@@ -634,46 +635,40 @@ def split_open_kwargs_on_keys(
     open_datasets_kwargs: dict[str, Any] | list[dict[str, Any]],
     context: Context = Context(),
 ) -> list[dict[str, Any]]:
-    import itertools
-
     import earthkit.data as ekd
 
-    if isinstance(open_datasets_kwargs, list):
-        return [
-            split_open_kwargs_on_keys(grib_file, open_ds_kwargs, context=context)
-            for open_ds_kwargs in open_datasets_kwargs
-        ]
+    out_open_datasets_kwargs: list[dict[str, Any]] = []
+    for open_ds_kwargs in ensure_list(open_datasets_kwargs):
+        split_on_keys: list[str] | None = open_ds_kwargs.pop("split_on", None)
+        if split_on_keys is None:
+            out_open_datasets_kwargs.append(open_ds_kwargs)
+            continue
 
-    split_on_keys: list[str] | None = open_datasets_kwargs.pop("split_on", None)
-    if split_on_keys is None:
-        return [open_datasets_kwargs]
+        base_filter_by_keys = open_ds_kwargs.get("filter_by_keys", {})
+        base_tag = str(open_ds_kwargs.get("tag", ""))
 
-    base_filter_by_keys = open_datasets_kwargs.get("filter_by_keys", {})
-    base_tag = str(open_datasets_kwargs.get("tag", ""))
+        ekd_ds = ekd.from_source("file", grib_file)
+        unique_key_values = dict()
+        for k in split_on_keys:
+            try:
+                unique_key_values.update(ekd_ds.unique_values(k))
+            except KeyError:
+                context.add_stderr(f"key {k} not found in dataset, skipping")
 
-    ekd_ds = ekd.from_source("file", grib_file)
-    unique_key_values = dict()
-    for k in split_on_keys:
-        try:
-            unique_key_values.update(ekd_ds.unique_values(k))
-        except KeyError:
-            context.add_stderr(f"key {k} not found in dataset, skipping")
+        keys, values = zip(*unique_key_values.items())
+        split_combinations = [dict(zip(keys, p)) for p in itertools.product(*values)]
 
-    keys, values = zip(*unique_key_values.items())
-    split_combinations = [dict(zip(keys, p)) for p in itertools.product(*values)]
+        for combination in split_combinations:
+            filter_by_keys = {**base_filter_by_keys, **combination}
+            tag = "_".join([base_tag] + [f"{k}-{v}" for k, v in combination.items()])
+            out_open_datasets_kwargs.append(
+                {
+                    **open_ds_kwargs,
+                    **{"filter_by_keys": filter_by_keys.copy(), "tag": tag},
+                }
+            )
 
-    out_kwargs = []
-    for combination in split_combinations:
-        filter_by_keys = {**base_filter_by_keys, **combination}
-        tag = "_".join([base_tag] + [f"{k}-{v}" for k, v in combination.items()])
-        out_kwargs.append(
-            {
-                **open_datasets_kwargs,
-                **{"filter_by_keys": filter_by_keys.copy(), "tag": tag},
-            }
-        )
-
-    return out_kwargs
+    return out_open_datasets_kwargs
 
 
 def open_grib_file_as_xarray_dictionary(
