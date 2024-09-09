@@ -239,3 +239,27 @@ def test_safely_expand_dims():
     assert "lat" in ds_1.temperature.dims
     assert "lat" in ds_1.temperature.dims
     assert "time" in ds_1.temperature.dims
+
+
+def test_split_open_kwarg_on_keys():
+    grib_file = requests.get(TEST_GRIB_FILE)
+    open_ds_kwargs = {
+        "test_kwarg": 1,
+        "tag": "tag",
+        "split_on": ["paramId"],
+    }
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        os.chdir(tmpdirname)
+        tmp_grib_file = "test.grib"
+        with open(tmp_grib_file, "wb") as f:
+            f.write(grib_file.content)
+        
+        new_open_ds_kwargs = convertors.split_open_kwargs_on_keys(
+            tmp_grib_file, open_ds_kwargs
+        )
+        assert isinstance(new_open_ds_kwargs, list)
+        assert len(new_open_ds_kwargs) == 2
+        assert "tag_paramId-130" in [d["tag"] for d in new_open_ds_kwargs]
+        assert "tag_paramId-129" in [d["tag"] for d in new_open_ds_kwargs]
+        assert not any("split_on" in d for d in new_open_ds_kwargs)
+        assert all("test_kwarg" in d for d in new_open_ds_kwargs)

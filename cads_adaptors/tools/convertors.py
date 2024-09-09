@@ -632,7 +632,6 @@ def open_netcdf_as_xarray_dictionary(
 def split_open_kwargs_on_keys(
     grib_file: str,
     open_datasets_kwargs: dict[str, Any] | list[dict[str, Any]],
-    split_on_keys: list[str],
     context: Context = Context(),
 ) -> list[dict[str, Any]]:
     import itertools
@@ -641,9 +640,13 @@ def split_open_kwargs_on_keys(
 
     if isinstance(open_datasets_kwargs, list):
         return [
-            split_open_kwargs_on_keys(grib_file, open_ds_kwargs, split_on_keys, context)
+            split_open_kwargs_on_keys(grib_file, open_ds_kwargs, context=context)
             for open_ds_kwargs in open_datasets_kwargs
         ]
+
+    split_on_keys: list[str] | None = open_datasets_kwargs.pop("split_on", None)
+    if split_on_keys is None:
+        return [open_datasets_kwargs]
 
     base_filter_by_keys = open_datasets_kwargs.get("filter_by_keys", {})
     base_tag = str(open_datasets_kwargs.get("tag", ""))
