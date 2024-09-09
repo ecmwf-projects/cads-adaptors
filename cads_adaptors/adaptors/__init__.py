@@ -202,6 +202,6 @@ class DummyAdaptor(AbstractAdaptor):
                     fp.write(random.read(length))
                     size -= length
         toc = time.perf_counter()
-        self.context.add_stdout(f"Elapsed time to write {size} B: {toc - tic} s")
+        self.context.add_stdout(f"Elapsed time to write: {toc - tic} s")
 
         return dummy_file.open("rb")
