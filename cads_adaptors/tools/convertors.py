@@ -103,8 +103,8 @@ def result_to_grib_files(
                 out_results += unknown_filetype_to_grib_files(
                     v,
                     context=context,
-                    tag=k,
-                    **kwargs,  # NOTE: tag is not actually used in function
+                    tag=k,  # NOTE: tag is not actually used in function
+                    **kwargs,
                 )
             return out_results
 
@@ -159,8 +159,8 @@ def result_to_netcdf_files(
                 out_results += unknown_filetype_to_netcdf_files(
                     v,
                     context=context,
-                    tag=k,
-                    **kwargs,  # NOTE: tag is not actually used in function
+                    tag=k,  # NOTE: tag is not actually used in function
+                    **kwargs,
                 )
             return out_results
         elif result_type == xr.Dataset:
