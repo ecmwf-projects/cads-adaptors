@@ -241,7 +241,7 @@ def test_safely_expand_dims():
     assert "time" in ds_1.temperature.dims
 
 
-def test_split_open_kwarg_on_keys():
+def test_prepare_open_datasets_kwargs():
     grib_file = requests.get(TEST_GRIB_FILE)
     open_ds_kwargs = {
         "test_kwarg": 1,
@@ -254,7 +254,7 @@ def test_split_open_kwarg_on_keys():
         with open(tmp_grib_file, "wb") as f:
             f.write(grib_file.content)
 
-        new_open_ds_kwargs = convertors.split_open_kwargs_on_keys(
+        new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs(
             tmp_grib_file, open_ds_kwargs
         )
         assert isinstance(new_open_ds_kwargs, list)
