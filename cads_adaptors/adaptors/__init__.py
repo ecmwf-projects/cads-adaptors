@@ -189,12 +189,19 @@ class DummyAdaptor(AbstractAdaptor):
         except Exception:
             time_sleep = 0
 
+        self.context.add_stdout(f"Sleeping {time_sleep} s")
         time.sleep(time_sleep)
+
         dummy_file = self.cache_tmp_path / "dummy.grib"
+        self.context.add_stdout(f"Writing {size} B to {dummy_file!s}")
+        tic = time.perf_counter()
         with dummy_file.open("wb") as fp:
             with open("/dev/urandom", "rb") as random:
                 while size > 0:
                     length = min(size, 10240)
                     fp.write(random.read(length))
                     size -= length
+        toc = time.perf_counter()
+        self.context.add_stdout(f"Elapsed time to write {size} B: {toc - tic} s")
+
         return dummy_file.open("rb")
