@@ -405,10 +405,13 @@ def open_result_as_xarray_dictionary(
     where the key will be used in any filenames created from the dataset.
     """
     if isinstance(result, str):
-        datasets = open_file_as_xarray_dictionary(result, context=context, **kwargs)
+        return open_file_as_xarray_dictionary(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
-        datasets = {"data": result}
-    elif isinstance(result, dict):
+        return {"data": result}
+    elif isinstance(result, (dict, list, tuple)):
+        # Convert to dictionary to handle in same way
+        if isinstance(result, (list, tuple)):
+            result = {f"data_{i}": res for i, res in enumerate(result)}
         datasets = {}
         for k, v in result.items():
             if isinstance(v, str):
@@ -417,39 +420,14 @@ def open_result_as_xarray_dictionary(
                 )
             elif isinstance(v, xr.Dataset):
                 datasets[k] = v
-            else:
-                add_user_log_and_raise_error(
-                    "Incorrect result type, "
-                    "if result dictionary it must be of type: dict[str, str | xr.Dataset]."
-                    f"result:\n{result}",
-                    context=context,
-                    thisError=ValueError,
-                )
-    elif isinstance(result, list):
-        datasets = {}
-        for k, v in enumerate(result):
-            if isinstance(v, str):
-                datasets.update(
-                    open_file_as_xarray_dictionary(v, context=context, **kwargs)
-                )
-            elif isinstance(v, xr.Dataset):
-                datasets[f"data_{k}"] = v
-            else:
-                add_user_log_and_raise_error(
-                    "Incorrect result type, "
-                    "if result list it must be of type: list[str | xr.Dataset]."
-                    f"result:\n{result}",
-                    context=context,
-                    thisError=ValueError,
-                )
-    else:
-        add_user_log_and_raise_error(
-            f"Unable to open result of type {type(result)} as an xarray dataset.",
-            context=context,
-            thisError=ValueError,
-        )
 
-    return datasets
+        return datasets
+
+    add_user_log_and_raise_error(
+        f"Unable to open result as an xarray dataset: \n{result}",
+        context=context,
+        thisError=ValueError,
+    )
 
 
 def open_file_as_xarray_dictionary(
@@ -577,7 +555,7 @@ def open_netcdf_as_xarray_dictionary(
     return datasets
 
 
-def prepare_open_datasets_kwargs(
+def prepare_open_datasets_kwargs_grib(
     grib_file: str,
     open_datasets_kwargs: dict[str, Any] | list[dict[str, Any]],
     context: Context = Context(),
@@ -645,7 +623,7 @@ def open_grib_file_as_xarray_dictionary(
 
     # Do any automatic splitting of the open_datasets_kwargs,
     #  This will add kwargs to the open_datasets_kwargs
-    open_datasets_kwargs = prepare_open_datasets_kwargs(
+    open_datasets_kwargs = prepare_open_datasets_kwargs_grib(
         grib_file, open_datasets_kwargs, context=context, **kwargs
     )
 
