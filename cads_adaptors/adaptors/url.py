@@ -4,16 +4,22 @@ from cads_adaptors.adaptors import Request, cds
 
 
 class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.area: list[Any] | None = None
+
+    def pre_mapping_modifications(self, request: Request[str, Any]) -> Request[str, Any]:
+        request = super().pre_mapping_modifications(request)
+
         # TODO: Remove legacy syntax all together
-        if "format" in request:
-            _download_format = request.pop("format")
-            request.setdefault("download_format", _download_format)
+        _download_format = request.pop("format", "zip")
+        request.setdefault("download_format", _download_format)
 
-        area = request.pop("area", None)
-        if self.download_format is None:
-            self.download_format = "zip"
+        self.area = request.pop("area", None)
 
+        return request
+
+    def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import area_selector, url_tools
 
         # Convert request to list of URLs
@@ -37,7 +43,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
             )
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
-        if area is not None:
-            paths = area_selector.area_selector_paths(paths, area, self.context)
+        if self.area is not None:
+            paths = area_selector.area_selector_paths(paths, self.area, self.context)
 
         return self.make_download_object(paths)
