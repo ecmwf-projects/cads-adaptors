@@ -7,7 +7,7 @@ from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.validation import enforce
-
+from cads_adaptors.exceptions import InvalidRequest
 
 # TODO: temporary function to reorder the open_dataset_kwargs and to_netcdf_kwargs
 #  to align with post-processing framework. When datasets have been updated, this should be removed.
@@ -66,7 +66,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             self.context = context
         # The following attributes are updated during the retireve method
         self.input_request: Request = dict()
-        self.mapped_request: Request = dict()
+        self.intersected_requests: list[dict[str, Any]] = []
+        self.mapped_requests: list[dict[str, Any]] = []
+
+        self.mapped_request: Request = dict()  # This is to be deprecated, in favour of mapped_requests
         self.download_format: str = "zip"
         self.receipt: bool = False
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
@@ -115,8 +118,58 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
         return costs
+    
+    def pre_mapping_modifications(self, request: Request) -> Request:
+
+        # Move the receipt flag from the request to the adaptor attributes (currently not in use)
+        self.receipt = request.pop("receipt", False)
+
+        # Extract post-process steps from the request before applying the mapping
+        self.post_process_steps = request.pop("post_process", [])
+        self.context.debug(
+            f"Post-process steps extracted from request:\n{self.post_process_steps}"
+        )
+
+        return request
 
     def normalise_request(self, request: Request) -> Request:
+        """
+        Normalise the request prior to submission to the broker.
+        We update the adaptor attributes so that we do not comprimise other communication between methods.
+        """
+        # Make a copy of the original request for debugging purposes
+        self.input_request = deepcopy(request)
+        self.context.debug(f"Input request:\n{self.input_request}")
+        # If specified by the adaptor, intersect the request with the constraints.
+        # The intersected_request is a list of requests
+        if self.config.get("intersect_constraints", False):
+            self.request_intersected = self.intersect_constraints(request)
+            if len(self.request_intersected) == 0:
+                msg = "Error: no intersection with the constraints."
+                self.context.add_user_visible_error(message=msg)
+                raise InvalidRequest(msg)
+        else:
+            self.request_intersected = [request]
+
+        # Map the list of requests
+        self.mapped_requests = [
+            self.apply_mapping(i_request) for i_request in self.request_intersected
+        ]
+
+        # Remove the download_format from the request and set it as an attribute
+        download_format = list(set([
+            i_request["download_format"]
+            for i_request in self.mapped_requests if "download_format" in i_request
+        ]))
+        if len(download_format) > 1:
+            message = (
+                "Multiple download formats specified in the request, "
+                f"using the first one found: {download_format[0]}."
+            )
+            self.context.add_user_visible_error(message=message)
+
+        self.download_format = download_format[0]
+
         schemas = self.schemas
         if not isinstance(schemas, list):
             schemas = [schemas]
@@ -124,11 +177,19 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if adaptor_schema := self.adaptor_schema:
             schemas = schemas + [adaptor_schema]
         for schema in schemas:
-            request = enforce.enforce(request, schema, self.context.logger)
-        if not isinstance(request, dict):
-            raise TypeError(
-                f"Normalised request is not a dictionary, instead it is of type {type(request)}"
-            )
+            self.mapped_requests = [
+                enforce.enforce(i_request, schema, self.context.logger)
+                for i_request in self.mapped_requests
+            ]
+
+        # For backwards compatibility, we set self.mapped_request to the first request, and assume
+        #  it is the only one. Adaptors should be updated to use self.mapped_requests instead.
+        self.mapped_request = self.mapped_requests[0]
+
+        self.context.debug(
+            f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_requests}"
+        )
+
         # Avoid the cache by adding a random key-value pair to the request (if cache avoidance is on)
         if self.config.get("avoid_cache", False):
             random_key = str(randint(0, 2**128))
@@ -138,27 +199,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
 
-    # This is essentially a second __init__, but only for when we have a request at hand
-    # and currently only implemented for retrieve methods
-    def _pre_retrieve(self, request: Request, default_download_format="zip"):
-        self.input_request = deepcopy(request)
-        self.context.debug(f"Input request:\n{self.input_request}")
-        self.receipt = request.pop("receipt", False)
-
-        # Extract post-process steps from the request before mapping:
-        self.post_process_steps = self.pp_mapping(request.pop("post_process", []))
-        self.context.debug(
-            f"Post-process steps extracted from request:\n{self.post_process_steps}"
-        )
-
-        self.mapped_request = self.apply_mapping(request)  # type: ignore
-
-        self.download_format = self.mapped_request.pop(
-            "download_format", default_download_format
-        )
-        self.context.debug(
-            f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_request}"
-        )
 
     def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Map the post-process steps from the request to the correct functions."""
@@ -171,7 +211,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def post_process(self, result: Any) -> dict[str, Any]:
         """Perform post-process steps on the retrieved data."""
-        for i, pp_step in enumerate(self.post_process_steps):
+        for i, pp_step in enumerate(self.pp_mapping(self.post_process_steps)):
             self.context.add_stdout(
                 f"Performing post-process step {i+1} of {len(self.post_process_steps)}: {pp_step}"
             )

@@ -74,10 +74,9 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         else:
             request_after_intersection = request
 
-        # Apply mapping
-        self._pre_retrieve(
-            request_after_intersection, default_download_format="as_source"
-        )
+        if self.download_format is None:
+            self.download_format = "as_source"
+
         mreq = self.mapped_request
         self.context.debug(f"Mapped request is {mreq!r}")
 

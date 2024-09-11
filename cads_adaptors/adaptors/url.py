@@ -11,8 +11,8 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
             request.setdefault("download_format", _download_format)
 
         area = request.pop("area", None)
-
-        self._pre_retrieve(request=request)
+        if self.download_format is None:
+            self.download_format = "zip"
 
         from cads_adaptors.tools import area_selector, url_tools
 

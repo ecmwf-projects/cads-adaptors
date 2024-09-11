@@ -19,10 +19,21 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         return output
 
     def _retrieve(self, request):
+
+        # TODO: update adaptor to handle multple requests, at present it only handles one.
+        #  We check the mapped request has length 1 and set mapped_request to that
+        if len(self.mapped_requests) > 1:
+            message = (
+                "The Observations adaptor can only handle one request at a time. "
+                "Returning first request only."
+            )
+            self.context.add_user_visible_error(message)
+        self.mapped_request = self.mapped_requests[0]
+
         from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 
-        # Maps observation_type to source. This sets self.mapped_request
-        self._pre_retrieve(request)
+        if self.download_format is None:
+            self.download_format = "zip"
 
         # Catalogue credentials are in config, which is parsed from adaptor.json
         obs_api_url = self.config["obs_api_url"]
