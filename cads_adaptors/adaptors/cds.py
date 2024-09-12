@@ -85,7 +85,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         costs["number_of_fields"] = costs["size"]
         return costs
     
-    def pre_mapping_modifications(self, request: Request) -> Request:
+    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
 
         # Move the receipt flag from the request to the adaptor attributes (currently not in use)
         self.receipt = request.pop("receipt", False)

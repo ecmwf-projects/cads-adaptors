@@ -141,7 +141,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         kwargs.setdefault("context", self.context)
         return monthly_reduce(*args, **kwargs)
 
-    def pre_mapping_modifications(self, request: Request[str, Any]) -> Request[str, Any]:
+    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
         request = super().pre_mapping_modifications(request)
 
         # TODO: Remove legacy syntax all together
@@ -160,7 +160,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         return request
 
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def retrieve(self, request: dict[str, Any]) -> BinaryIO:
         import dask
 
         result: Any = execute_mars(
