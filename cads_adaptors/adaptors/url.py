@@ -10,7 +10,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         # Always intersect constraints for URL requests
         self.intersect_constraints: bool = True
 
-    def pre_mapping_modifications(self, request: Request[str, Any]) -> Request[str, Any]:
+    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
         request = super().pre_mapping_modifications(request)
 
         # TODO: Remove legacy syntax all together
@@ -21,7 +21,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return request
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def retrieve(self, request: dict[str, Any]) -> BinaryIO:
         from cads_adaptors.tools import area_selector, url_tools
 
         requests_urls = url_tools.requests_to_urls(
