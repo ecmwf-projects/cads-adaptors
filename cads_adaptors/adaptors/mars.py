@@ -142,6 +142,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         return monthly_reduce(*args, **kwargs)
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+        """This is implemented in normalise_request, before the mapping is applied"""
         request = super().pre_mapping_modifications(request)
 
         # TODO: Remove legacy syntax all together
@@ -152,6 +153,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             self.data_format = "netcdf"
             request.setdefault("download_format", "zip")
+
         download_format = request.pop("download_format", "as_source")
 
         # Apply any mapping
@@ -161,6 +163,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         })
 
         self.download_format = mapped_formats["download_format"]
+
+        # TODO: Add this extra mapping to apply_mapping?
         self.data_format = adaptor_tools.handle_data_format(mapped_formats["data_format"])
 
         return request
