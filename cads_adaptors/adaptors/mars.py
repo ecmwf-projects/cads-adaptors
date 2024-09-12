@@ -163,6 +163,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: dict[str, Any]) -> BinaryIO:
         import dask
 
+        self.context.add_stdout(f"self.input_request: {self.input_request}")
+        self.context.add_stdout(f"self.mapped_request: {self.mapped_request}")
+        self.context.add_stdout(f"self.mapped_requests: {self.mapped_requests}")
+
         result: Any = execute_mars(
             self.mapped_requests, context=self.context, config=self.config
         )
