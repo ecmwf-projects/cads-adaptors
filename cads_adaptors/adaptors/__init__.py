@@ -176,7 +176,7 @@ class AbstractAdaptor(abc.ABC):
     @abc.abstractmethod
     def retrieve(self, request: Request) -> BinaryIO:
         """
-        Retrive file associated with the request.
+        Retrieve file associated with the request.
 
         Parameters
         ----------
