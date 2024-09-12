@@ -14,8 +14,13 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         request = super().pre_mapping_modifications(request)
 
         # TODO: Remove legacy syntax all together
-        _download_format = request.pop("format", "zip")
-        request.setdefault("download_format", _download_format)
+        download_format = request.pop("format", "zip")
+        download_format = request.pop("download_format", download_format)
+        # Apply any mapping
+        mapped_formats = self.apply_mapping({
+            "download_format": download_format,
+        })
+        self.download_format = mapped_formats["download_format"]
 
         self.area = request.pop("area", None)
 

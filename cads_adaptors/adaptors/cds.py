@@ -126,20 +126,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             self.apply_mapping(i_request) for i_request in self.request_intersected
         ]
 
-        # Remove the download_format from the request and set it as an attribute
-        download_format = list(set([
-            i_request.pop("download_format")
-            for i_request in self.mapped_requests if "download_format" in i_request
-        ]))
-        if len(download_format) > 1:
-            message = (
-                "Multiple download formats specified in the request, "
-                f"using the first one found: {download_format[0]}."
-            )
-            self.context.add_user_visible_error(message=message)
-
-        self.download_format = download_format[0]
-
         # Implement embargo if specified
         if self.embargo is not None:
             from cads_adaptors.tools.date_tools import implement_embargo
