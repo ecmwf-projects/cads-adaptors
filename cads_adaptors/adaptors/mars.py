@@ -147,15 +147,21 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
-        data_format = adaptor_tools.handle_data_format(data_format)
-        self.data_format = data_format
 
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             self.data_format = "netcdf"
             request.setdefault("download_format", "zip")
-        
-        request.setdefault("download_format", "as_source")
+        download_format = request.pop("download_format", "as_source")
+
+        # Apply any mapping
+        mapped_formats = self.apply_mapping({
+            "data_format": data_format,
+            "download_format": download_format,
+        })
+
+        self.download_format = mapped_formats["download_format"]
+        self.data_format = adaptor_tools.handle_data_format(mapped_formats["data_format"])
 
         return request
 
