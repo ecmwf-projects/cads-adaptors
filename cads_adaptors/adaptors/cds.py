@@ -139,7 +139,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Implement embargo if specified
         if self.embargo is not None:
             from cads_adaptors.tools.date_tools import implement_embargo
-            requests, cacheable_embargo = implement_embargo(requests, self.embargo)
+            self.mapped_requests, cacheable_embargo = implement_embargo(self.mapped_requests, self.embargo)
             if not cacheable_embargo:
                 # Add an uncacheable key to the request
                 random_key = str(randint(0, 2**128))
