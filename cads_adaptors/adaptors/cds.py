@@ -171,6 +171,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if self.config.get("avoid_cache", False):
             random_key = str(randint(0, 2**128))
             request["_in_adaptor_no_cache"] = random_key
+            
         return request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:

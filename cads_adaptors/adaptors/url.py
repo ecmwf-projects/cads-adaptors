@@ -24,6 +24,8 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: dict[str, Any]) -> BinaryIO:
         from cads_adaptors.tools import area_selector, url_tools
 
+        request = self.normalise_request(request)
+
         requests_urls = url_tools.requests_to_urls(
             self.mapped_requests,
             patterns=self.config["patterns"],
