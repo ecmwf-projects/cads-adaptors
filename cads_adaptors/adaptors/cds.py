@@ -35,9 +35,13 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.mapped_requests: list[dict[str, Any]] = []
 
         self.mapped_request: Request = dict()  # This is to be deprecated, in favour of mapped_requests
+
+        # Additional options useful as attributes
         self.download_format: str = "zip"
         self.receipt: bool = False
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
+        self.intersect_constraints: bool = config.get("intersect_constraints", False)
+        self.embargo: dict[str, int] | None = config.get("embargo", None)
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
 
@@ -104,7 +108,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.context.debug(f"Input request:\n{self.input_request}")
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
-        if self.config.get("intersect_constraints", False):
+        if self.intersect_constraints:
             self.request_intersected = self.intersect_constraints(request)
             if len(self.request_intersected) == 0:
                 msg = "Error: no intersection with the constraints."
@@ -132,6 +136,16 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         self.download_format = download_format[0]
 
+        # Implement embargo if specified
+        if self.embargo is not None:
+            from cads_adaptors.tools.date_tools import implement_embargo
+            requests, cacheable_embargo = implement_embargo(requests, self.embargo)
+            if not cacheable_embargo:
+                # Add an uncacheable key to the request
+                random_key = str(randint(0, 2**128))
+                request["_part_of_request_under_embargo"] = random_key
+
+
         schemas = self.schemas
         if not isinstance(schemas, list):
             schemas = [schemas]
@@ -143,6 +157,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 enforce.enforce(i_request, schema, self.context.logger)
                 for i_request in self.mapped_requests
             ]
+
 
         # For backwards compatibility, we set self.mapped_request to the first request, and assume
         #  it is the only one. Adaptors should be updated to use self.mapped_requests instead.

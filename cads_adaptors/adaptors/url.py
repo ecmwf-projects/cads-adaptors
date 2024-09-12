@@ -7,6 +7,8 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.area: list[Any] | None = None
+        # Always intersect constraints for URL requests
+        self.intersect_constraints: bool = True
 
     def pre_mapping_modifications(self, request: Request[str, Any]) -> Request[str, Any]:
         request = super().pre_mapping_modifications(request)
@@ -22,13 +24,8 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.tools import area_selector, url_tools
 
-        # Convert request to list of URLs
-        requests = [
-            self.apply_mapping(request)
-            for request in self.intersect_constraints(request)
-        ]
         requests_urls = url_tools.requests_to_urls(
-            requests,
+            self.mapped_requests,
             patterns=self.config["patterns"],
         )
 

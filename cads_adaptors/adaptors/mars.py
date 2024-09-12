@@ -56,6 +56,7 @@ def execute_mars(
     from cads_mars_server import client as mars_client
 
     requests = ensure_list(request)
+    # Implement embargo if it is set in the config (this is done in normalize request, but leaving it here for now)
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
 
