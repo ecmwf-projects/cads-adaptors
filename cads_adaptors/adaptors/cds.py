@@ -106,6 +106,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Make a copy of the original request for debugging purposes
         self.input_request = deepcopy(request)
         self.context.debug(f"Input request:\n{self.input_request}")
+
+        # Apply any pre-mapping modifications
+        request = self.pre_mapping_modifications(request)
+
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
         if self.intersect_constraints:
@@ -124,7 +128,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # Remove the download_format from the request and set it as an attribute
         download_format = list(set([
-            i_request["download_format"]
+            i_request.pop("download_format")
             for i_request in self.mapped_requests if "download_format" in i_request
         ]))
         if len(download_format) > 1:
@@ -171,7 +175,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if self.config.get("avoid_cache", False):
             random_key = str(randint(0, 2**128))
             request["_in_adaptor_no_cache"] = random_key
-            
+
         return request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
