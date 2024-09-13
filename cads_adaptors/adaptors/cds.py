@@ -29,12 +29,13 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             self.context = Context()
         else:
             self.context = context
-        # The following attributes are updated during the retireve method
-        self.input_request: Request = dict()
-        self.intersected_requests: list[dict[str, Any]] = []
-        self.mapped_requests: list[dict[str, Any]] = []
 
-        self.mapped_request: Request = dict()  # This is to be deprecated, in favour of mapped_requests
+        # The following attributes are used to store the request at different stages retrieve process
+        self.input_request: dict[str, Any] | None = None
+        self.intersected_requests: list[dict[str, Any]] | None = None
+        self.mapped_requests: list[dict[str, Any]] | None = None
+        # TODO: Deprecate self.mapped_request in favour of mapped_requests
+        self.mapped_request: dict[str, Any] | None = None
 
         # Additional options useful as attributes
         self.download_format: str = "zip"
@@ -86,6 +87,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return costs
     
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+        """
+        This method is called before the mapping is applied to the request. This will differ for each
+        adaptor, so is separated out from the normalise_request method.
+        """
 
         # Move the receipt flag from the request to the adaptor attributes (currently not in use)
         self.receipt = request.pop("receipt", False)
@@ -100,26 +105,29 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def normalise_request(self, request: Request) -> Request:
         """
-        Normalise the request prior to submission to the broker.
-        We update the adaptor attributes so that we do not comprimise other communication between methods.
+        Normalise the request prior to submission to the broker, and at the start of the retrieval.
+        This is executed on the retrieve-api pod, and then repeated on the worker pod.
+
+        The returned request needs to be compatible with the web-portal, it is currently what is used
+        on the "Your requests" page, hence it should not be modified to much from the user's request.
         """
         # Make a copy of the original request for debugging purposes
         self.input_request = deepcopy(request)
         self.context.debug(f"Input request:\n{self.input_request}")
 
         # Apply any pre-mapping modifications
-        request = self.pre_mapping_modifications(request)
+        working_request = self.pre_mapping_modifications(deepcopy(request))
 
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
         if self.intersect_constraints:
-            self.request_intersected = self.intersect_constraints(request)
+            self.request_intersected = self.intersect_constraints(working_request)
             if len(self.request_intersected) == 0:
                 msg = "Error: no intersection with the constraints."
                 self.context.add_user_visible_error(message=msg)
                 raise InvalidRequest(msg)
         else:
-            self.request_intersected = [request]
+            self.request_intersected = [working_request]
 
         # Map the list of requests
         self.mapped_requests = [
@@ -156,13 +164,14 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 enforce.enforce(i_request, schema, self.context.logger)
                 for i_request in self.mapped_requests
             ]
-
+        
+        # At this point, the self.mapped_requests could be used to create a requesthash
 
         # For backwards compatibility, we set self.mapped_request to the first request, and assume
         #  it is the only one. Adaptors should be updated to use self.mapped_requests instead.
         self.mapped_request = self.mapped_requests[0]
 
-        self.context.debug(
+        self.context.add_stdout(
             f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_requests}"
         )
 
@@ -176,6 +185,26 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
 
+    # TODO: replace call to _pre_retrieve with normalise_request
+    def _pre_retrieve(self, request: Request, default_download_format="zip"):
+        self.input_request = deepcopy(request)
+        self.context.debug(f"Input request:\n{self.input_request}")
+        self.receipt = request.pop("receipt", False)
+
+        # Extract post-process steps from the request before mapping:
+        self.post_process_steps = request.pop("post_process", [])
+        self.context.debug(
+            f"Post-process steps extracted from request:\n{self.post_process_steps}"
+        )
+
+        self.mapped_request = self.apply_mapping(request)  # type: ignore
+
+        self.download_format = self.mapped_request.pop(
+            "download_format", default_download_format
+        )
+        self.context.debug(
+            f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_request}"
+        )
 
     def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Map the post-process steps from the request to the correct functions."""
