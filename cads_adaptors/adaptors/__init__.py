@@ -152,7 +152,7 @@ class AbstractAdaptor(abc.ABC):
         Returns
         -------
         dict[str, int]
-            Estimated costs.
+            Estimated costs, where the key is the cost name/type (e.g. size/precise_size) and the value is the maximum cost for that type.
         """
         pass
 
