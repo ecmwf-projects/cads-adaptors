@@ -91,10 +91,7 @@ class AbstractAdaptor(abc.ABC):
     ) -> None:
         self.form = form
         self.config = config
-        if context is None:
-            self.context = Context()
-        else:
-            self.context = context
+        self.context = Context() if context is None else context
         self.cache_tmp_path = (
             pathlib.Path() if cache_tmp_path is None else cache_tmp_path
         )
