@@ -1,5 +1,6 @@
 import abc
 import contextlib
+import pathlib
 from typing import Any, BinaryIO
 
 import cads_adaptors.tools.logger
@@ -183,6 +184,7 @@ class AbstractAdaptor(abc.ABC):
         self,
         form: list[dict[str, Any]] | dict[str, Any] | None,
         context: Context | None = None,
+        cache_tmp_path: pathlib.Path | None = None,
         **config: Any,
     ) -> None:
         self.form = form
@@ -191,6 +193,9 @@ class AbstractAdaptor(abc.ABC):
             self.context = Context()
         else:
             self.context = context
+        self.cache_tmp_path = (
+            pathlib.Path() if cache_tmp_path is None else cache_tmp_path
+        )
 
     @abc.abstractmethod
     def normalise_request(self, request: Request) -> Request:
@@ -271,7 +276,9 @@ class DummyAdaptor(AbstractAdaptor):
 
         size = int(request.get("size", 0))
         elapsed = request.get("elapsed", "0:00:00.000")
-        try:
+        if isinstance(elapsed, float):
+            time_sleep = elapsed
+        else:
             time_elapsed = datetime.time.fromisoformat("0" + elapsed)
             time_sleep = datetime.timedelta(
                 hours=time_elapsed.hour,
@@ -279,14 +286,20 @@ class DummyAdaptor(AbstractAdaptor):
                 seconds=time_elapsed.second,
                 microseconds=time_elapsed.microsecond,
             ).total_seconds()
-        except Exception:
-            time_sleep = 0
 
+        self.context.add_stdout(f"Sleeping {time_sleep} s")
         time.sleep(time_sleep)
-        with open("dummy.grib", "wb") as fp:
+
+        dummy_file = self.cache_tmp_path / "dummy.grib"
+        self.context.add_stdout(f"Writing {size} B to {dummy_file!s}")
+        tic = time.perf_counter()
+        with dummy_file.open("wb") as fp:
             with open("/dev/urandom", "rb") as random:
                 while size > 0:
                     length = min(size, 10240)
                     fp.write(random.read(length))
                     size -= length
-        return open("dummy.grib", "rb")
+        toc = time.perf_counter()
+        self.context.add_stdout(f"Elapsed time to write the file: {toc - tic} s")
+
+        return dummy_file.open("rb")
