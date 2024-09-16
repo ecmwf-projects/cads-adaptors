@@ -154,7 +154,7 @@ class AbstractAdaptor(abc.ABC):
         request : Request
             Incoming request.
         **kwargs : Any
-            Additional parameters.
+            Additional parameters, specific to the particular method's implementation.
 
         Returns
         -------
