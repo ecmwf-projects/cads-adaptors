@@ -145,7 +145,7 @@ class AbstractAdaptor(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def estimate_costs(self, request: Request) -> dict[str, int]:
+    def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         """
         Estimate the costs associated with the request.
 
@@ -153,6 +153,8 @@ class AbstractAdaptor(abc.ABC):
         ----------
         request : Request
             Incoming request.
+        **kwargs : Any
+            Additional parameters, specific to the particular method's implementation.
 
         Returns
         -------
@@ -202,7 +204,7 @@ class DummyAdaptor(AbstractAdaptor):
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return {}
 
-    def estimate_costs(self, request: Request) -> dict[str, int]:
+    def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         size = int(request.get("size", 0))
         time = int(request.get("time", 0.0))
         return {"size": size, "time": time}
