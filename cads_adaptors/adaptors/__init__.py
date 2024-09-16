@@ -146,14 +146,55 @@ class AbstractAdaptor(abc.ABC):
 
     @abc.abstractmethod
     def estimate_costs(self, request: Request) -> dict[str, int]:
+        """
+        Estimate the costs associated with the request.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+
+        Returns
+        -------
+        dict[str, int]
+            Estimated costs,
+            where the key is the cost name/type (e.g. size/precise_size)
+            and the value is the maximum cost for that type.
+        """
         pass
 
     @abc.abstractmethod
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
+        """
+        Get licences associated with the request.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+
+        Returns
+        -------
+        list[tuple[str, int]]
+            List of tuples with licence ID and version.
+        """
         pass
 
     @abc.abstractmethod
-    def retrieve(self, request: Request) -> Any:
+    def retrieve(self, request: Request) -> BinaryIO:
+        """
+        Retrieve file associated with the request.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+
+        Returns
+        -------
+        BinaryIO
+            Opened file.
+        """
         pass
 
 
