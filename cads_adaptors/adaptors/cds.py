@@ -41,7 +41,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.download_format: str = "zip"
         self.receipt: bool = False
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
-        self.intersect_constraints: bool = config.get("intersect_constraints", False)
+        self.intersect_constraints_bool: bool = config.get("intersect_constraints", False)
         self.embargo: dict[str, int] | None = config.get("embargo", None)
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
@@ -120,7 +120,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
-        if self.intersect_constraints:
+        if self.intersect_constraints_bool:
             self.request_intersected = self.intersect_constraints(working_request)
             if len(self.request_intersected) == 0:
                 msg = "Error: no intersection with the constraints."

@@ -8,7 +8,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         super().__init__(*args, **kwargs)
         self.area: list[Any] | None = None
         # Always intersect constraints for URL requests
-        self.intersect_constraints: bool = True
+        self.intersect_constraints_bool: bool = True
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
         request = super().pre_mapping_modifications(request)
