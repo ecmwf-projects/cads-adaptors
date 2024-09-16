@@ -50,12 +50,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return constraints.validate_constraints(self.form, request, self.constraints)
 
     def intersect_constraints(self, request: Request) -> list[Request]:
-        return [
-            self.normalise_request(request)
-            for request in constraints.legacy_intersect_constraints(
+        return constraints.legacy_intersect_constraints(
                 request, self.constraints, context=self.context
             )
-        ]
 
     def apply_mapping(self, request: Request) -> Request:
         return mapping.apply_mapping(request, self.mapping)
