@@ -254,9 +254,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.context.add_stdout(
             f"Creating download object as {download_format} with paths:\n{paths}\n and kwargs:\n{kwargs}"
         )
-        self.context.add_user_visible_log(
-            f"Creating download object as {download_format} with files:\n{filenames}"
-        )
+        # self.context.add_user_visible_log(
+        #     f"Creating download object as {download_format} with files:\n{filenames}"
+        # )
         try:
             return download_tools.DOWNLOAD_FORMATS[download_format](paths, **kwargs)
         except Exception as err:
