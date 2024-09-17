@@ -43,8 +43,11 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
         self.intersect_constraints_bool: bool = config.get("intersect_constraints", False)
         self.embargo: dict[str, int] | None = config.get("embargo", None)
+        # Flag to ensure we only normalise the request once
+        self.normalised : bool = False
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
+
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
@@ -108,6 +111,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         The returned request needs to be compatible with the web-portal, it is currently what is used
         on the "Your requests" page, hence it should not be modified to much from the user's request.
         """
+        if self.normalised:
+            return request
+        
         # Make a copy of the original request for debugging purposes
         self.input_request = deepcopy(request)
         self.context.debug(f"Input request:\n{self.input_request}")
@@ -177,6 +183,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             random_key = str(randint(0, 2**128))
             request["_in_adaptor_no_cache"] = random_key
 
+        self.normalised = True
         return request
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
