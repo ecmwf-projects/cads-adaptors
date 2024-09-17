@@ -186,6 +186,30 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.normalised = True
         return request
 
+    def set_download_format(self, download_format, default_download_format="zip"):
+        """
+        This checks that the requested download format is supported by the adaptor, and if not, defaults
+        """
+
+        # Apply any mapping
+        mapped_formats = self.apply_mapping({
+            "download_format": download_format,
+        })
+
+        # Apply any mapping
+        self.download_format = self.set_download_format(
+            mapped_formats["download_format"]
+        )
+
+        from cads_adaptors.download_tools import DOWNLOAD_FORMATS
+        if self.download_format not in DOWNLOAD_FORMATS:
+            self.context.add_user_visible_log(
+                "WARNING: Download format not supported for this dataset. "
+                f"Defaulting to {default_download_format}."
+            )
+            self.download_format = default_download_format
+
+
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
 

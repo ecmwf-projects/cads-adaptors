@@ -11,17 +11,15 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         self.intersect_constraints_bool: bool = self.config.get("intersect_constraints", True)
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+        
         request = super().pre_mapping_modifications(request)
+        default_download_format = "zip"
 
         # TODO: Remove legacy syntax all together
-        download_format = request.pop("format", "zip")
+        download_format = request.pop("format", default_download_format)
         download_format = request.pop("download_format", download_format)
-        # Apply any mapping
-        mapped_formats = self.apply_mapping({
-            "download_format": download_format,
-        })
-        self.download_format = mapped_formats["download_format"]
-
+        self.set_download_format(download_format)
+        
         self.area = request.pop("area", None)
 
         return request
