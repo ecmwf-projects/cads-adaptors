@@ -130,7 +130,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 self.context.add_user_visible_error(message=msg)
                 raise InvalidRequest(msg)
         else:
-            self.request_intersected = [working_request]
+            self.request_intersected = ensure_list(working_request)
 
         # Map the list of requests
         self.mapped_requests = [
