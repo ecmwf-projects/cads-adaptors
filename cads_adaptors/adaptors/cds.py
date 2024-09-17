@@ -190,6 +190,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return self.licences
 
     # TODO: replace call to _pre_retrieve with normalise_request
+    #      Still used in CamsSolarRadiationTimeseriesAdaptor
     def _pre_retrieve(self, request: Request, default_download_format="zip"):
         self.input_request = deepcopy(request)
         self.context.debug(f"Input request:\n{self.input_request}")
