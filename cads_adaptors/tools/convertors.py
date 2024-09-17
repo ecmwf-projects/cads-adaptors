@@ -571,7 +571,8 @@ def prepare_open_datasets_kwargs_grib(
     for open_ds_kwargs in ensure_list(open_datasets_kwargs):
         open_ds_kwargs.update(kwargs)
         split_on_keys: list[str] | None = open_ds_kwargs.pop("split_on", None)
-        if split_on_keys is None:
+        split_on_keys_alias: dict[str, str] | None = open_ds_kwargs.pop("split_on_alias", None)
+        if split_on_keys is None and split_on_keys_alias is None:
             out_open_datasets_kwargs.append(open_ds_kwargs)
             continue
 
@@ -585,6 +586,24 @@ def prepare_open_datasets_kwargs_grib(
                 unique_key_values.update(ekd_ds.unique_values(k))
             except KeyError:
                 context.add_stderr(f"key {k} not found in dataset, skipping")
+
+        # If differences are detected in key (k1), we split on value key (k2),
+        #  e.g. for ERA5, if there are differences in expver, we split on stepType
+        for k1, k2 in split_on_keys_alias.items():
+            k1_unique_values: list[str] = []
+            try:
+                k1_unique_values = ekd_ds.unique_values(k1)[k1]
+            except KeyError:
+                context.add_stderr(f"key {k1} not found in dataset, skipping")
+            
+            if len(k1_unique_values) > 1:
+                try:
+                    unique_key_values.update(ekd_ds.unique_values(k2))
+                except KeyError:
+                    context.add_stderr(f"key {k2} not found in dataset, splitting on {k1} instead")
+                    unique_key_values.update(ekd_ds.unique_values(k1))
+
+            continue
 
         keys, values = zip(*unique_key_values.items())
         split_combinations = [dict(zip(keys, p)) for p in itertools.product(*values)]
