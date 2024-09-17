@@ -153,17 +153,13 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             self.data_format = "netcdf"
             request.setdefault("download_format", "zip")
-
-        download_format = request.pop("download_format", "as_source")
+        
+        default_download_format="as_source"
+        download_format = request.pop("download_format", default_download_format)
+        self.set_download_format(download_format, default_download_format=default_download_format)
 
         # Apply any mapping
-        mapped_formats = self.apply_mapping({
-            "data_format": data_format,
-            "download_format": download_format,
-        })
-
-        self.download_format = mapped_formats["download_format"]
-
+        mapped_formats = self.apply_mapping({"data_format": data_format})
         # TODO: Add this extra mapping to apply_mapping?
         self.data_format = adaptor_tools.handle_data_format(mapped_formats["data_format"])
 
