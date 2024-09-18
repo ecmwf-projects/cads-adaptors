@@ -2,12 +2,13 @@ import os
 import pathlib
 from copy import deepcopy
 from random import randint
-from typing import Any, Union
+from typing import Any, BinaryIO, Union
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.validation import enforce
+
 
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
@@ -185,7 +186,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self,
         paths: str | list[str],
         **kwargs,
-    ):
+    ) -> BinaryIO | list[BinaryIO]:
         from cads_adaptors.tools import download_tools
 
         # Ensure paths and filenames are lists
@@ -288,5 +289,5 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> Any:
+    def retrieve(self, request: Request) -> BinaryIO:
         pass

@@ -4,7 +4,7 @@ from cads_adaptors.adaptors import Request, cds
 
 
 class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
+    def retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
         # TODO: Remove legacy syntax all together
         if "format" in request:
             _download_format = request.pop("format")

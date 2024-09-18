@@ -571,7 +571,9 @@ def prepare_open_datasets_kwargs_grib(
     for open_ds_kwargs in ensure_list(open_datasets_kwargs):
         open_ds_kwargs.update(kwargs)
         split_on_keys: list[str] | None = open_ds_kwargs.pop("split_on", None)
-        split_on_keys_alias: dict[str, str] | None = open_ds_kwargs.pop("split_on_alias", None)
+        split_on_keys_alias: dict[str, str] | None = open_ds_kwargs.pop(
+            "split_on_alias", None
+        )
         if split_on_keys is None and split_on_keys_alias is None:
             out_open_datasets_kwargs.append(open_ds_kwargs)
             continue
@@ -595,12 +597,14 @@ def prepare_open_datasets_kwargs_grib(
                 k1_unique_values = ekd_ds.unique_values(k1)[k1]
             except KeyError:
                 context.add_stderr(f"key {k1} not found in dataset, skipping")
-            
+
             if len(k1_unique_values) > 1:
                 try:
                     unique_key_values.update(ekd_ds.unique_values(k2))
                 except KeyError:
-                    context.add_stderr(f"key {k2} not found in dataset, splitting on {k1} instead")
+                    context.add_stderr(
+                        f"key {k2} not found in dataset, splitting on {k1} instead"
+                    )
                     unique_key_values.update(ekd_ds.unique_values(k1))
 
             continue
