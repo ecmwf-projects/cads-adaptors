@@ -1,10 +1,10 @@
-from typing import Any, BinaryIO
+from typing import Any
 
 from cads_adaptors.adaptors import Request, cds
 
 
 class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> cds.T_MULTI_RETRIEVE:
         # TODO: Remove legacy syntax all together
         if "format" in request:
             _download_format = request.pop("format")

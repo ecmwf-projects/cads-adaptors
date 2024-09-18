@@ -1,10 +1,8 @@
-from typing import BinaryIO
-
 from cads_adaptors.adaptors import Request, cds
 
 
 class LegacyCdsAdaptor(cds.AbstractCdsAdaptor):
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> cds.T_MULTI_RETRIEVE:
         import cdsapi
 
         # parse input options

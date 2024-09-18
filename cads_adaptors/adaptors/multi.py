@@ -1,13 +1,13 @@
 from copy import deepcopy
 from typing import Any, BinaryIO
 
-from cads_adaptors import AbstractCdsAdaptor, mapping
-from cads_adaptors.adaptors import Request
+from cads_adaptors import mapping
+from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import InvalidRequest, MultiAdaptorNoDataError
 from cads_adaptors.tools.general import ensure_list
 
 
-class MultiAdaptor(AbstractCdsAdaptor):
+class MultiAdaptor(cds.AbstractCdsAdaptor):
     @staticmethod
     def split_request(
         full_request: Request,  # User request
@@ -51,7 +51,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
     def split_adaptors(
         self, request: Request
-    ) -> dict[str, tuple[AbstractCdsAdaptor, Request]]:
+    ) -> dict[str, tuple[cds.AbstractCdsAdaptor, Request]]:
         from cads_adaptors.tools import adaptor_tools
 
         sub_adaptors = {}
@@ -92,7 +92,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             "download_format", default_download_format
         )
 
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> cds.T_MULTI_RETRIEVE:
         self._pre_retrieve(request, default_download_format="zip")
 
         self.context.add_stdout(f"MultiAdaptor, full_request: {self.mapped_request}")
@@ -155,7 +155,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             "download_format", default_download_format
         )
 
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> cds.T_MULTI_RETRIEVE:
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
         import dask
 

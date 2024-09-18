@@ -3,12 +3,12 @@ from pathlib import Path
 from typing import BinaryIO
 
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+from cads_adaptors.adaptors.cds import T_MULTI_RETRIEVE, AbstractCdsAdaptor, Request
 from cads_adaptors.exceptions import InvalidRequest
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> T_MULTI_RETRIEVE:
         try:
             output = self._retrieve(request)
         except KeyError as e:

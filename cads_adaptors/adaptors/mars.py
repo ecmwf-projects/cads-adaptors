@@ -1,5 +1,5 @@
 import os
-from typing import Any, BinaryIO, Union
+from typing import Any, Union
 
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
@@ -113,7 +113,7 @@ def execute_mars(
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> cds.T_MULTI_RETRIEVE:
         result = execute_mars(request, context=self.context)
         return open(result, "rb")
 
@@ -136,7 +136,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         kwargs.setdefault("context", self.context)
         return monthly_reduce(*args, **kwargs)
 
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> cds.T_MULTI_RETRIEVE:
         import dask
 
         # TODO: Remove legacy syntax all together

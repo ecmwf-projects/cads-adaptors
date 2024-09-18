@@ -1,11 +1,10 @@
 import os
 import time
 import zipfile
-from typing import BinaryIO
 
 from cads_adaptors import mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.adaptors.cds import T_MULTI_RETRIEVE, AbstractCdsAdaptor
 
 
 class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
@@ -15,7 +14,7 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
             "collection_id", self.config.get("uri", "not specified")
         )
 
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> T_MULTI_RETRIEVE:
         import requests
         import sqlalchemy
 

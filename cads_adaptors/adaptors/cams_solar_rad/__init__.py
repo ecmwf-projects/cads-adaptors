@@ -1,5 +1,3 @@
-from typing import BinaryIO
-
 from cads_adaptors.adaptors.cams_solar_rad.functions import (
     BadRequest,
     NoData,
@@ -7,7 +5,7 @@ from cads_adaptors.adaptors.cams_solar_rad.functions import (
     get_numeric_user_id,
     solar_rad_retrieve,
 )
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+from cads_adaptors.adaptors.cds import T_MULTI_RETRIEVE, AbstractCdsAdaptor, Request
 from cads_adaptors.exceptions import InvalidRequest
 
 
@@ -56,7 +54,7 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
             }
         )
 
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> T_MULTI_RETRIEVE:
         self.context.debug(f"Request is {request!r}")
 
         # Intersect constraints

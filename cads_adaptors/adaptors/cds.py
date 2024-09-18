@@ -10,6 +10,8 @@ from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.validation import enforce
 
+T_MULTI_RETRIEVE = BinaryIO | list[BinaryIO]
+
 
 # TODO: temporary function to reorder the open_dataset_kwargs and to_netcdf_kwargs
 #  to align with post-processing framework. When datasets have been updated, this should be removed.
@@ -76,7 +78,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.config = _reorganise_open_dataset_and_to_netcdf_kwargs(self.config)
 
     @abc.abstractmethod
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> T_MULTI_RETRIEVE:
         pass
 
     def retrieve(self, request: Request) -> BinaryIO:
@@ -337,5 +339,5 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> T_MULTI_RETRIEVE:
         raise NotImplementedError
