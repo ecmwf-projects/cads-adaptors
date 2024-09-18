@@ -56,7 +56,7 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
             }
         )
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
         self.context.debug(f"Request is {request!r}")
 
         # Intersect constraints

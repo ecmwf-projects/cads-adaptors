@@ -127,7 +127,7 @@ def as_source(paths: List[str], **kwargs) -> Union[BinaryIO, List[BinaryIO]]:
         return list_paths(paths, **kwargs)
 
 
-DOWNLOAD_FORMATS: Dict[str, Callable] = {
+DOWNLOAD_FORMATS: Dict[str, Callable[..., BinaryIO | list[BinaryIO]]] = {
     "zip": zip_paths,
     "tgz": targz_paths,
     "list": list_paths,

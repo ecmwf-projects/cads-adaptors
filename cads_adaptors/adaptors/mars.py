@@ -113,9 +113,9 @@ def execute_mars(
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
         result = execute_mars(request, context=self.context)
-        return open(result)  # type: ignore
+        return open(result, "rb")
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -136,7 +136,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         kwargs.setdefault("context", self.context)
         return monthly_reduce(*args, **kwargs)
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
         import dask
 
         # TODO: Remove legacy syntax all together

@@ -92,7 +92,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             "download_format", default_download_format
         )
 
-    def retrieve(self, request: Request):
+    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
         self._pre_retrieve(request, default_download_format="zip")
 
         self.context.add_stdout(f"MultiAdaptor, full_request: {self.mapped_request}")
@@ -103,11 +103,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
             try:
-                this_result = adaptor.retrieve(req)
+                this_result = ensure_list(adaptor.multi_retrieve(req))
             except Exception as err:
                 exception_logs[adaptor_tag] = f"{err}"
             else:
-                results.append(this_result)
+                results.extend(this_result)
 
         if len(results) == 0:
             raise MultiAdaptorNoDataError(
@@ -155,7 +155,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             "download_format", default_download_format
         )
 
-    def retrieve(self, request: Request):
+    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
         import dask
 

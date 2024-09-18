@@ -1,8 +1,9 @@
+import abc
 import os
 import pathlib
 from copy import deepcopy
 from random import randint
-from typing import Any, Union
+from typing import Any, BinaryIO, Union
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
@@ -73,6 +74,15 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # TODO: remove this when datasets have been updated to match new configuation
         self.config = _reorganise_open_dataset_and_to_netcdf_kwargs(self.config)
+
+    @abc.abstractmethod
+    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+        pass
+
+    def retrieve(self, request: Request) -> BinaryIO:
+        result = self.multi_retrieve(request)
+        assert not isinstance(result, list)
+        return result
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
@@ -327,5 +337,5 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> Any:
-        pass
+    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+        raise NotImplementedError

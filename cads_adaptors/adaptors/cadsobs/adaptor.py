@@ -1,13 +1,14 @@
 import tempfile
 from pathlib import Path
+from typing import BinaryIO
 
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 from cads_adaptors.exceptions import InvalidRequest
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request):
+    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
         try:
             output = self._retrieve(request)
         except KeyError as e:
@@ -18,7 +19,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             raise e
         return output
 
-    def _retrieve(self, request):
+    def _retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 
         # Maps observation_type to source. This sets self.mapped_request

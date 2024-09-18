@@ -19,7 +19,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         self.facet_search = self.config.get("facet_search", dict())
         self.operators = self.config.get("operators", dict())
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
         from cads_adaptors.tools import download_tools, url_tools
 
         os.environ["ROOK_URL"] = self.config.get("ROOK_URL", ROOK_URL)

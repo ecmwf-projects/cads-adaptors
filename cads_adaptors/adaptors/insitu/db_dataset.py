@@ -15,7 +15,7 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
             "collection_id", self.config.get("uri", "not specified")
         )
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
         import requests
         import sqlalchemy
 

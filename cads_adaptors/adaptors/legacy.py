@@ -4,7 +4,7 @@ from cads_adaptors.adaptors import Request, cds
 
 
 class LegacyCdsAdaptor(cds.AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
+    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
         import cdsapi
 
         # parse input options
