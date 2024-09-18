@@ -103,11 +103,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
             try:
-                this_result = adaptor.retrieve(req)
+                this_result: list[BinaryIO] = adaptor.retrieve(req)
             except Exception as err:
                 exception_logs[adaptor_tag] = f"{err}"
             else:
-                results.append(this_result)
+                results += this_result
 
         if len(results) == 0:
             raise MultiAdaptorNoDataError(
