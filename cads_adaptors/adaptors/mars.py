@@ -136,7 +136,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         kwargs.setdefault("context", self.context)
         return monthly_reduce(*args, **kwargs)
 
-    def retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def retrieve(self, request: Request) -> BinaryIO:
         import dask
 
         # TODO: Remove legacy syntax all together
