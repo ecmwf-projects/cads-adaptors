@@ -1,9 +1,8 @@
 import os
 import re
-from typing import BinaryIO
 
 from cads_adaptors import mapping
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+from cads_adaptors.adaptors.cds import T_MULTI_RETRIEVE, AbstractCdsAdaptor, Request
 from cads_adaptors.exceptions import RoocsRuntimeError, RoocsValueError
 
 ROOK_URL = "http://compute.mips.copernicus-climate.eu/wps"
@@ -19,7 +18,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         self.facet_search = self.config.get("facet_search", dict())
         self.operators = self.config.get("operators", dict())
 
-    def multi_retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def multi_retrieve(self, request: Request) -> T_MULTI_RETRIEVE:
         from cads_adaptors.tools import download_tools, url_tools
 
         os.environ["ROOK_URL"] = self.config.get("ROOK_URL", ROOK_URL)
