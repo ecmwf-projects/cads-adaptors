@@ -125,17 +125,17 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
         if self.intersect_constraints_bool:
-            self.request_intersected = self.intersect_constraints(working_request)
-            if len(self.request_intersected) == 0:
+            self.intersected_requests = self.intersect_constraints(working_request)
+            if len(self.intersected_requests) == 0:
                 msg = "Error: no intersection with the constraints."
                 self.context.add_user_visible_error(message=msg)
                 raise InvalidRequest(msg)
         else:
-            self.request_intersected = ensure_list(working_request)
+            self.intersected_requests = ensure_list(working_request)
 
         # Map the list of requests
         self.mapped_requests = [
-            self.apply_mapping(i_request) for i_request in self.request_intersected
+            self.apply_mapping(i_request) for i_request in self.intersected_requests
         ]
 
         # Implement embargo if specified
