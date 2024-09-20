@@ -1,4 +1,5 @@
 import os
+import pathlib
 from copy import deepcopy
 from random import randint
 from typing import Any, Union
@@ -52,18 +53,15 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self,
         form: list[dict[str, Any]] | dict[str, Any] | None,
         context: Context | None = None,
+        cache_tmp_path: pathlib.Path | None = None,
         **config: Any,
-    ):
-        self.form = form
+    ) -> None:
         self.collection_id = config.get("collection_id", "unknown-collection")
         self.constraints = config.pop("constraints", [])
         self.mapping = config.pop("mapping", {})
         self.licences: list[tuple[str, int]] = config.pop("licences", [])
-        self.config = config
-        if context is None:
-            self.context = Context()
-        else:
-            self.context = context
+        super().__init__(form, context, cache_tmp_path, **config)
+
         # The following attributes are updated during the retireve method
         self.input_request: Request = dict()
         self.mapped_request: Request = dict()
@@ -90,9 +88,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def apply_mapping(self, request: Request) -> Request:
         return mapping.apply_mapping(request, self.mapping)
 
-    def estimate_costs(
-        self, request: Request, cost_threshold: str = "max_costs"
-    ) -> dict[str, int]:
+    def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
+        cost_threshold = kwargs.get("cost_threshold", "max_costs")
         costing_config: dict[str, Any] = self.config.get("costing", dict())
         costing_kwargs: dict[str, Any] = costing_config.get("costing_kwargs", dict())
         cost_threshold = (

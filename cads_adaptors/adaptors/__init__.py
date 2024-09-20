@@ -189,10 +189,7 @@ class AbstractAdaptor(abc.ABC):
     ) -> None:
         self.form = form
         self.config = config
-        if context is None:
-            self.context = Context()
-        else:
-            self.context = context
+        self.context = Context() if context is None else context
         self.cache_tmp_path = (
             pathlib.Path() if cache_tmp_path is None else cache_tmp_path
         )
@@ -243,15 +240,60 @@ class AbstractAdaptor(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def estimate_costs(self, request: Request) -> dict[str, int]:
+    def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
+        """
+        Estimate the costs associated with the request.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+        **kwargs : Any
+            Additional parameters, specific to the particular method's implementation.
+
+        Returns
+        -------
+        dict[str, int]
+            Estimated costs,
+            where the key is the cost name/type (e.g. size/precise_size)
+            and the value is the maximum cost for that type.
+        """
         pass
 
     @abc.abstractmethod
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
+        """
+        Get licences associated with the request.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+
+        Returns
+        -------
+        list[tuple[str, int]]
+            List of tuples with licence ID and version.
+        """
         pass
 
     @abc.abstractmethod
-    def retrieve(self, request: Request) -> Any:
+    def retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+        """
+        Retrieve file associated with the request.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+
+        Returns
+        -------
+        BinaryIO | list[BinaryIO]
+            Opened file, or a list of opened files. Returning a list of files is
+            for internal operations only (e.g. multi-adaptors), and should not be
+            returned to the cads-api-processing-service (yet).
+        """
         pass
 
 
@@ -259,7 +301,7 @@ class DummyAdaptor(AbstractAdaptor):
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return {}
 
-    def estimate_costs(self, request: Request) -> dict[str, int]:
+    def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         size = int(request.get("size", 0))
         time = int(request.get("time", 0.0))
         return {"size": size, "time": time}

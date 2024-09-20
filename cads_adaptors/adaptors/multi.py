@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any
+from typing import Any, BinaryIO
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
@@ -99,11 +99,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         sub_adaptors = self.split_adaptors(self.mapped_request)
 
-        results = []
+        results: list[BinaryIO] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
             try:
-                this_result = adaptor.retrieve(req)
+                this_result: list[BinaryIO] = ensure_list(adaptor.retrieve(req))
             except Exception as err:
                 exception_logs[adaptor_tag] = f"{err}"
             else:
