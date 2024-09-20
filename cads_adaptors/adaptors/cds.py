@@ -5,9 +5,10 @@ from typing import Any, Union
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
+from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.validation import enforce
-from cads_adaptors.exceptions import InvalidRequest
+
 
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
@@ -41,21 +42,22 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.download_format: str = "zip"
         self.receipt: bool = False
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
-        self.intersect_constraints_bool: bool = config.get("intersect_constraints", False)
+        self.intersect_constraints_bool: bool = config.get(
+            "intersect_constraints", False
+        )
         self.embargo: dict[str, int] | None = config.get("embargo", None)
         # Flag to ensure we only normalise the request once
-        self.normalised : bool = False
+        self.normalised: bool = False
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
-
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
 
     def intersect_constraints(self, request: Request) -> list[Request]:
         return constraints.legacy_intersect_constraints(
-                request, self.constraints, context=self.context
-            )
+            request, self.constraints, context=self.context
+        )
 
     def apply_mapping(self, request: Request) -> Request:
         return mapping.apply_mapping(request, self.mapping)
@@ -85,13 +87,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
         return costs
-    
+
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
         """
-        This method is called before the mapping is applied to the request. This will differ for each
+        Method called before the mapping is applied to the request. This will differ for each
         adaptor, so is separated out from the normalise_request method.
         """
-
         # Move the receipt flag from the request to the adaptor attributes (currently not in use)
         self.receipt = request.pop("receipt", False)
 
@@ -113,7 +114,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         """
         if self.normalised:
             return request
-        
+
         # Make a copy of the original request for debugging purposes
         self.input_request = deepcopy(request)
         self.context.debug(f"Input request:\n{self.input_request}")
@@ -140,21 +141,19 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Implement embargo if specified
         if self.embargo is not None:
             from cads_adaptors.tools.date_tools import implement_embargo
+
             try:
                 self.mapped_requests, cacheable_embargo = implement_embargo(
                     self.mapped_requests, self.embargo
                 )
             except ValueError as e:
-                self.context.add_user_visible_error(
-                    message=f"{e}"
-                )
+                self.context.add_user_visible_error(message=f"{e}")
                 raise InvalidRequest(e)
 
             if not cacheable_embargo:
                 # Add an uncacheable key to the request
                 random_key = str(randint(0, 2**128))
                 request["_part_of_request_under_embargo"] = random_key
-
 
         schemas = self.schemas
         if not isinstance(schemas, list):
@@ -167,7 +166,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 enforce.enforce(i_request, schema, self.context.logger)
                 for i_request in self.mapped_requests
             ]
-        
+
         # At this point, the self.mapped_requests could be used to create a requesthash
 
         # For backwards compatibility, we set self.mapped_request to the first request, and assume
@@ -187,14 +186,13 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return request
 
     def set_download_format(self, download_format, default_download_format="zip"):
-        """
-        This checks that the requested download format is supported by the adaptor, and if not, defaults
-        """
-
+        """Check that requested download format is supported by the adaptor, and if not set to default."""
         # Apply any mapping
-        mapped_formats = self.apply_mapping({
-            "download_format": download_format,
-        })
+        mapped_formats = self.apply_mapping(
+            {
+                "download_format": download_format,
+            }
+        )
 
         self.download_format = mapped_formats["download_format"]
         if isinstance(self.download_format, list):
@@ -202,20 +200,18 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 assert len(self.download_format) == 1
             except AssertionError:
                 message = "Multiple download formats specified, only one is allowed"
-                self.context.add_user_visible_error(
-                    message=message
-                )
+                self.context.add_user_visible_error(message=message)
                 raise InvalidRequest(message)
             self.download_format = self.download_format[0]
 
         from cads_adaptors.download_tools import DOWNLOAD_FORMATS
+
         if self.download_format not in DOWNLOAD_FORMATS:
             self.context.add_user_visible_log(
                 "WARNING: Download format not supported for this dataset. "
                 f"Defaulting to {default_download_format}."
             )
             self.download_format = default_download_format
-
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences

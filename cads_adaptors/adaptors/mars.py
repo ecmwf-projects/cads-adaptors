@@ -1,5 +1,5 @@
 import os
-from typing import Any, BinaryIO, Union
+from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
@@ -56,7 +56,9 @@ def execute_mars(
     from cads_mars_server import client as mars_client
 
     requests = ensure_list(request)
-    # Implement embargo if it is set in the config (this is done in normalize request, but leaving it here for now)
+    # Implement embargo if it is set in the config
+    # This is now done in normalize request, but leaving it here for now, as running twice is not a problem
+    #  and the some adaptors may not use normalise_request yet
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
 
@@ -142,7 +144,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         return monthly_reduce(*args, **kwargs)
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
-        """This is implemented in normalise_request, before the mapping is applied"""
+        """Implemented in normalise_request, before the mapping is applied."""
         request = super().pre_mapping_modifications(request)
 
         # TODO: Remove legacy syntax all together
@@ -153,18 +155,21 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             self.data_format = "netcdf"
             request.setdefault("download_format", "zip")
-        
-        default_download_format="as_source"
+
+        default_download_format = "as_source"
         download_format = request.pop("download_format", default_download_format)
-        self.set_download_format(download_format, default_download_format=default_download_format)
+        self.set_download_format(
+            download_format, default_download_format=default_download_format
+        )
 
         # Apply any mapping
         mapped_formats = self.apply_mapping({"data_format": data_format})
         # TODO: Add this extra mapping to apply_mapping?
-        self.data_format = adaptor_tools.handle_data_format(mapped_formats["data_format"])
+        self.data_format = adaptor_tools.handle_data_format(
+            mapped_formats["data_format"]
+        )
 
         return request
-
 
     def retrieve(self, request: dict[str, Any]) -> BinaryIO:
         import dask

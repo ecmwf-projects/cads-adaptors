@@ -1,4 +1,4 @@
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors.cams_solar_rad.functions import (
     BadRequest,
@@ -56,35 +56,41 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
             }
         )
 
+    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Implemented in normalise_request, before the mapping is applied."""
+        request = super().pre_mapping_modifications(request)
+
+        default_download_format = "as_source"
+        download_format = request.pop("download_format", default_download_format)
+        self.set_download_format(
+            download_format, default_download_format=default_download_format
+        )
+
     def retrieve(self, request: Request) -> BinaryIO:
         self.context.debug(f"Request is {request!r}")
 
-        # Intersect constraints
-        if self.config.get("intersect_constraints", False):
-            requests = self.intersect_constraints(request)
-            if len(requests) != 1:
-                if len(requests) == 0:
-                    msg = "Error: no intersection with the constraints."
-                else:
-                    # TODO: check if indeed this can never happen
-                    msg = "Error: unexpected intersection with more than 1 constraint."
-                self.context.add_user_visible_error(msg)
-                raise InvalidRequest(msg)
-            request_after_intersection = requests[0]
-        else:
-            request_after_intersection = request
+        self.normalise_request(request)
+        # TODO: handle lists of requests, normalise_request has the power to implement_constraints
+        #  which produces a list of complete hypercube requests.
+        try:
+            assert len(self.mapped_requests) == 1
+        except AssertionError:
+            if len(self.mapped_requests) == 0:
+                msg = "Error: no intersection with the constraints."
+            else:
+                msg = "Error: unexpected intersection with more than 1 constraint."
+            self.context.add_user_visible_log(
+                f"WARNING: More than one request was mapped: {self.mapped_requests}, "
+                f"returning the first one only:\n{self.mapped_requests[0]}"
+            )
+            self.context.add_user_visible_error(msg)
+            raise InvalidRequest(msg)
 
-        # Apply mapping
-        self._pre_retrieve(
-            request_after_intersection, default_download_format="as_source"
-        )
-        mreq = self.mapped_request
+        mreq = self.mapped_requests[0]
         self.context.debug(f"Mapped request is {mreq!r}")
 
         numeric_user_id = get_numeric_user_id(self.config["user_uid"])
-        result_filename = determine_result_filename(
-            self.config, request_after_intersection
-        )
+        result_filename = determine_result_filename(self.config, mreq)
 
         try:
             solar_rad_retrieve(

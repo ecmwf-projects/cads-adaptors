@@ -1,6 +1,6 @@
 from typing import Any, BinaryIO
 
-from cads_adaptors.adaptors import Request, cds
+from cads_adaptors.adaptors import cds
 
 
 class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -8,10 +8,11 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         super().__init__(*args, **kwargs)
         self.area: list[Any] | None = None
         # URL adaptor should default to intersecting constraints
-        self.intersect_constraints_bool: bool = self.config.get("intersect_constraints", True)
+        self.intersect_constraints_bool: bool = self.config.get(
+            "intersect_constraints", True
+        )
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
-        
         request = super().pre_mapping_modifications(request)
         default_download_format = "zip"
 
@@ -19,7 +20,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         download_format = request.pop("format", default_download_format)
         download_format = request.pop("download_format", download_format)
         self.set_download_format(download_format)
-        
+
         self.area = request.pop("area", None)
 
         return request
