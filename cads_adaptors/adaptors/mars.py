@@ -122,7 +122,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.data_format: str | None = None
 

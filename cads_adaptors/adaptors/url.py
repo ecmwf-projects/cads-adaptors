@@ -4,7 +4,7 @@ from cads_adaptors.adaptors import cds
 
 
 class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.area: list[Any] | None = None
         # URL adaptor should default to intersecting constraints
@@ -29,7 +29,8 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         from cads_adaptors.tools import area_selector, url_tools
 
         request = self.normalise_request(request)
-
+        assert self.mapped_requests is not None # Type-setting
+        
         requests_urls = url_tools.requests_to_urls(
             self.mapped_requests,
             patterns=self.config["patterns"],

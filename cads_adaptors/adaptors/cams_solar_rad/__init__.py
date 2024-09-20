@@ -66,12 +66,12 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
             download_format, default_download_format=default_download_format
         )
 
+        return request
+
     def retrieve(self, request: Request) -> BinaryIO:
         self.context.debug(f"Request is {request!r}")
 
         self.normalise_request(request)
-        # TODO: handle lists of requests, normalise_request has the power to implement_constraints
-        #  which produces a list of complete hypercube requests.
         try:
             assert len(self.mapped_requests) == 1
         except AssertionError:

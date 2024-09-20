@@ -19,7 +19,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         form: list[dict[str, Any]] | dict[str, Any] | None,
         context: Context | None = None,
         **config: Any,
-    ):
+    ) -> None:
         self.form = form
         self.collection_id = config.get("collection_id", "unknown-collection")
         self.constraints = config.pop("constraints", [])
@@ -33,10 +33,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # The following attributes are used to store the request at different stages retrieve process
         self.input_request: dict[str, Any] | None = None
-        self.intersected_requests: list[dict[str, Any]] | None = None
-        self.mapped_requests: list[dict[str, Any]] | None = None
+        self.intersected_requests: list[dict[str, Any]] = list()
+        self.mapped_requests: list[dict[str, Any]] = list()
         # TODO: Deprecate self.mapped_request in favour of mapped_requests
-        self.mapped_request: dict[str, Any] | None = None
+        self.mapped_request: dict[str, Any] = dict()
 
         # Additional options useful as attributes
         self.download_format: str = "zip"
@@ -148,7 +148,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 )
             except ValueError as e:
                 self.context.add_user_visible_error(message=f"{e}")
-                raise InvalidRequest(e)
+                raise InvalidRequest(f"{e}")
 
             if not cacheable_embargo:
                 # Add an uncacheable key to the request
@@ -312,6 +312,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         paths = ensure_list(paths)
         filenames = [os.path.basename(path) for path in paths]
         # TODO: use request-id instead of hash
+        if self.input_request is None:
+            self.input_request = {}
         kwargs.setdefault(
             "base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}"
         )
