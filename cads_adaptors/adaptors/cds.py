@@ -196,10 +196,17 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "download_format": download_format,
         })
 
-        # Apply any mapping
-        self.download_format = self.set_download_format(
-            mapped_formats["download_format"]
-        )
+        self.download_format = mapped_formats["download_format"]
+        if isinstance(self.download_format, list):
+            try:
+                assert len(self.download_format) == 1
+            except AssertionError:
+                message = "Multiple download formats specified, only one is allowed"
+                self.context.add_user_visible_error(
+                    message=message
+                )
+                raise InvalidRequest(message)
+            self.download_format = self.download_format[0]
 
         from cads_adaptors.download_tools import DOWNLOAD_FORMATS
         if self.download_format not in DOWNLOAD_FORMATS:
