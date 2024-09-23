@@ -180,7 +180,7 @@ class AbstractAdaptor(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def retrieve(self, request: Request) -> BinaryIO:
+    def retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
         """
         Retrieve file associated with the request.
 
@@ -191,8 +191,10 @@ class AbstractAdaptor(abc.ABC):
 
         Returns
         -------
-        BinaryIO
-            Opened file.
+        BinaryIO | list[BinaryIO]
+            Opened file, or a list of opened files. Returning a list of files is
+            for internal operations only (e.g. multi-adaptors), and should not be
+            returned to the cads-api-processing-service (yet).
         """
         pass
 
