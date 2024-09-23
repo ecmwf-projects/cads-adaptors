@@ -579,7 +579,7 @@ def prepare_open_datasets_kwargs_grib(
             continue
 
         base_filter_by_keys = open_ds_kwargs.get("filter_by_keys", {})
-        base_tag = str(open_ds_kwargs.get("tag", ""))
+        base_tag: list = ensure_list(open_ds_kwargs.get("tag", []))
 
         ekd_ds = ekd.from_source("file", grib_file)
         unique_key_values = dict()
@@ -617,7 +617,7 @@ def prepare_open_datasets_kwargs_grib(
 
         for combination in split_combinations:
             filter_by_keys = {**base_filter_by_keys, **combination}
-            tag = "_".join([base_tag] + [f"{k}-{v}" for k, v in combination.items()])
+            tag = "_".join(base_tag + [f"{k}-{v}" for k, v in combination.items()])
             out_open_datasets_kwargs.append(
                 {
                     **open_ds_kwargs,
