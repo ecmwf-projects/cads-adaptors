@@ -120,7 +120,22 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.context.debug(f"Input request:\n{self.input_request}")
 
         # Apply any pre-mapping modifications
-        working_request = self.pre_mapping_modifications(deepcopy(request))
+        working_request = deepcopy(request)
+
+        # Enforce the schema on the input request
+        schemas = self.schemas
+        if not isinstance(schemas, list):
+            schemas = [schemas]
+        # Apply first dataset schemas, then adaptor schema
+        if adaptor_schema := self.adaptor_schema:
+            schemas = schemas + [adaptor_schema]
+        for schema in schemas:
+            working_request = enforce.enforce(
+                working_request, schema, self.context.logger
+            )
+
+        # Pre-mapping modifications
+        working_request = self.pre_mapping_modifications(working_request)
 
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
@@ -154,18 +169,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 # Add an uncacheable key to the request
                 random_key = str(randint(0, 2**128))
                 request["_part_of_request_under_embargo"] = random_key
-
-        schemas = self.schemas
-        if not isinstance(schemas, list):
-            schemas = [schemas]
-        # Apply first dataset schemas, then adaptor schema
-        if adaptor_schema := self.adaptor_schema:
-            schemas = schemas + [adaptor_schema]
-        for schema in schemas:
-            self.mapped_requests = [
-                enforce.enforce(i_request, schema, self.context.logger)
-                for i_request in self.mapped_requests
-            ]
 
         # At this point, the self.mapped_requests could be used to create a requesthash
 
