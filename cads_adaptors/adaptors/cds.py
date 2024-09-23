@@ -290,4 +290,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        pass
+        dummy_file = self.cache_tmp_path / "dummy.grib"
+        with dummy_file.open("wb") as fp:
+            fp.write(b"dummy content")
+        return dummy_file.open("rb")

@@ -583,7 +583,7 @@ def prepare_open_datasets_kwargs_grib(
 
         ekd_ds = ekd.from_source("file", grib_file)
         unique_key_values = dict()
-            
+
         if split_on_keys is not None:
             for k in split_on_keys:
                 try:
