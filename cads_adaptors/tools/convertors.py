@@ -169,6 +169,7 @@ def result_to_netcdf_files(
         thisError=ValueError,
     )
 
+
 def result_to_netcdf_legacy_files(
     result: Any,
     context: Context = Context(),
