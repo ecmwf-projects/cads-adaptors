@@ -5,8 +5,8 @@ from cads_adaptors.adaptors.cams_solar_rad.functions import (
     NoData,
     determine_result_filename,
     get_numeric_user_id,
-    to_scalars_values,
     solar_rad_retrieve,
+    to_scalars_values,
 )
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 from cads_adaptors.exceptions import InvalidRequest

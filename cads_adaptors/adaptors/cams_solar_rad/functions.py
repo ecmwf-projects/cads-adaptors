@@ -45,7 +45,7 @@ def to_scalars_values(request):
     request = copy.deepcopy(request)
     is_possible = True
     for key in request:
-        if isinstance(request[key], (list,tuple,set)):
+        if isinstance(request[key], (list, tuple, set)):
             if len(request[key]) == 1:
                 request[key] = list(request[key])[0]
             else:
