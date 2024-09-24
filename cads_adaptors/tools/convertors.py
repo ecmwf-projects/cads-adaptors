@@ -74,6 +74,7 @@ def result_to_grib_files(
     context.add_stdout(
         f"Converting result ({result}) to grib files with kwargs: {kwargs}"
     )
+    result_type = type(result)
     if isinstance(result, str):
         return unknown_filetype_to_grib_files(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
@@ -133,6 +134,7 @@ def result_to_netcdf_files(
     context.add_stdout(
         f"Converting result ({result}) to netCDF files with kwargs: {kwargs}"
     )
+    result_type = type(result)
     if isinstance(result, str):
         return unknown_filetype_to_netcdf_files(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
