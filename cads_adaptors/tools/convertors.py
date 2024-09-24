@@ -141,9 +141,9 @@ def result_to_netcdf_files(
     elif isinstance(result, xr.Dataset):
         return xarray_dict_to_netcdf({"data": result}, context=context, **kwargs)
 
-    elif isinstance(result, (list, dict)):
-        # Convert list or dict to handle in same way
-        if isinstance(result, list):
+    elif isinstance(result, (list, dict, tuple)):
+        # Convert list to a dict to handle in same way
+        if isinstance(result, (list, tuple)):
             result = {f"data_{i}": res for i, res in enumerate(result)}
 
         # Ensure objects are same type (This may not be necessary, but it implies something is wrong)
@@ -376,6 +376,11 @@ def xarray_dict_to_netcdf(
     Convert a dictionary of xarray datasets to netCDF files, where the key of the dictionary
     is used in the filename.
     """
+    # Check if compression_options or out_fname_prefix have been provided in to_netcdf_kwargs
+    compression_options = to_netcdf_kwargs.pop("compression_options", compression_options)
+    out_fname_prefix = to_netcdf_kwargs.pop("out_fname_prefix", out_fname_prefix)
+
+    # Fetch any preset compression options
     if isinstance(compression_options, str):
         compression_options = STANDARD_COMPRESSION_OPTIONS.get(compression_options, {})
 
