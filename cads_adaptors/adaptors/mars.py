@@ -171,7 +171,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return request
 
-    def retrieve(self, request: dict[str, Any]) -> BinaryIO:
+    def retrieve(self, request: dict[str, Any]) -> BinaryIO | list[BinaryIO]:
         import dask
 
         # Call normalise_request to set self.mapped_requests
