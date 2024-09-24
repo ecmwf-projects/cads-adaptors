@@ -198,7 +198,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 raise InvalidRequest(message)
             self.download_format = self.download_format[0]
 
-        from cads_adaptors.download_tools import DOWNLOAD_FORMATS
+        from cads_adaptors.tools.download_tools import DOWNLOAD_FORMATS
 
         if self.download_format not in DOWNLOAD_FORMATS:
             self.context.add_user_visible_log(
