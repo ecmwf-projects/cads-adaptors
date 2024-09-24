@@ -2,12 +2,47 @@ import os
 import pathlib
 from copy import deepcopy
 from random import randint
-from typing import Any, BinaryIO, Union
+from typing import Any, Union
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.validation import enforce
+
+
+# TODO: temporary function to reorder the open_dataset_kwargs and to_netcdf_kwargs
+#  to align with post-processing framework. When datasets have been updated, this should be removed.
+def _reorganise_open_dataset_and_to_netcdf_kwargs(
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    # If defined in older "format_conversion_kwargs" then rename as post_processing_kwargs.
+    #  Preference for post_processing_kwargs over format_conversion_kwargs
+    post_processing_kwargs: dict[str, Any] = {
+        **config.pop("format_conversion_kwargs", dict()),
+        **config.pop("post_processing_kwargs", dict()),
+    }
+
+    to_netcdf_kwargs = {
+        **post_processing_kwargs.pop("to_netcdf_kwargs", dict()),
+    }
+
+    # rename and expand_dims is now done as a "post open" step, to assist in other post-processing
+    #  Due to a bug, we allow this to be stored in the top level of the config
+    post_open_datasets_kwargs = post_processing_kwargs.get(
+        "post_open_datasets_kwargs", config.get("post_open_datasets_kwargs", {})
+    )
+    for key in ["rename", "expand_dims"]:
+        if key in to_netcdf_kwargs:
+            post_open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
+
+    post_processing_kwargs.update(
+        {
+            "post_open_datasets_kwargs": post_open_datasets_kwargs,
+            "to_netcdf_kwargs": to_netcdf_kwargs,
+        }
+    )
+    config.update({"post_processing_kwargs": post_processing_kwargs})
+    return config
 
 
 class AbstractCdsAdaptor(AbstractAdaptor):
@@ -35,6 +70,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
+
+        # TODO: remove this when datasets have been updated to match new configuation
+        self.config = _reorganise_open_dataset_and_to_netcdf_kwargs(self.config)
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
@@ -186,7 +224,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self,
         paths: str | list[str],
         **kwargs,
-    ) -> BinaryIO | list[BinaryIO]:
+    ):
         from cads_adaptors.tools import download_tools
 
         # Ensure paths and filenames are lists
@@ -289,8 +327,5 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
-        dummy_file = self.cache_tmp_path / "dummy.grib"
-        with dummy_file.open("wb") as fp:
-            fp.write(b"dummy content")
-        return dummy_file.open("rb")
+    def retrieve(self, request: Request) -> Any:
+        pass
