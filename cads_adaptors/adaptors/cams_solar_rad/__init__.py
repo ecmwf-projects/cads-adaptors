@@ -5,6 +5,7 @@ from cads_adaptors.adaptors.cams_solar_rad.functions import (
     NoData,
     determine_result_filename,
     get_numeric_user_id,
+    to_scalars_values,
     solar_rad_retrieve,
 )
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
@@ -88,6 +89,13 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
 
         mreq = self.mapped_requests[0]
         self.context.debug(f"Mapped request is {mreq!r}")
+        mreq, to_scalars_values_was_possible = to_scalars_values(mreq)
+        try:
+            assert to_scalars_values_was_possible
+        except AssertionError:
+            msg = "Error: some request dimensions do not have scalar values."
+            self.context.add_user_visible_error(msg)
+            raise InvalidRequest(msg)
 
         numeric_user_id = get_numeric_user_id(self.config["user_uid"])
         result_filename = determine_result_filename(self.config, mreq)

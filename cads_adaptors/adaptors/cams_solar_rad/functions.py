@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import logging
 import re
@@ -23,16 +24,16 @@ def solar_rad_retrieve(
 
     # Set expert_mode depending on format
     req["expert_mode"] = {True: "true", False: "false"}.get(
-        req["format"][0] == "csv_expert"
+        req["format"] == "csv_expert"
     )
 
     # Set the MIME type from the format
-    if req["format"][0].startswith("csv"):
+    if req["format"].startswith("csv"):
         req["mimetype"] = "text/csv"
-    elif req["format"][0] == "netcdf":
+    elif req["format"] == "netcdf":
         req["mimetype"] = "application/x-netcdf"
     else:
-        raise BadRequest(f'Unrecognised format: "{req["format"][0]}"')
+        raise BadRequest(f'Unrecognised format: "{req["format"]}"')
 
     # We could use the URL API or the WPS API. Only WPS has the option for
     # NetCDF and it has better error handling.
@@ -40,10 +41,25 @@ def solar_rad_retrieve(
     retrieve_by_wps(req, outfile, ntries, logger)
 
 
+def to_scalars_values(request):
+    request = copy.deepcopy(request)
+    is_possible = True
+    for key in request:
+        if isinstance(request[key], (list,tuple,set)):
+            if len(request[key]) == 1:
+                request[key] = list(request[key])[0]
+            else:
+                is_possible = False
+        elif isinstance(request[key], dict):
+            request[key], part_is_possible = to_scalars_values(request[key])
+            is_possible &= part_is_possible
+    return request, is_possible
+
+
 def determine_result_filename(config, request):
     EXTENSIONS = {"csv": "csv", "csv_expert": "csv", "netcdf": "nc"}
     request_uid = config.get("request_uid", "no-request-uid")
-    extension = EXTENSIONS.get(request["format"][0], "csv")
+    extension = EXTENSIONS.get(request["format"], "csv")
     return f"result-{request_uid}.{extension}"
 
 
