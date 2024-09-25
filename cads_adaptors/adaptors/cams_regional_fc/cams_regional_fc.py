@@ -477,6 +477,7 @@ def retrieve_xxx(context, requests, dataset_dir, integration_server):
     return file
 
 
+MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES = 3
 def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     from cdsapi import Client
     """Retrieve chunk of uncached fields in a sub-request"""
@@ -514,7 +515,16 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
         request_uid = response.request_uid
         message = f"Sub-request {request_uid} has been launched (via the CDSAPI)."
         context.add_stdout(message)
-        response.download(target)
+        
+        for i_retry in range(MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES):
+            try:
+                response.download(target)
+                break
+            except Exception as e:
+                context.add_stdout(f"Attempt {i_retry+1} to download the result of sub-request {request_uid} failed: {e!r}")
+                if i_retry+1 == MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES:
+                    raise
+        
         result = MockResultFile(target)
     except Exception as e:
         if not request_uid:
