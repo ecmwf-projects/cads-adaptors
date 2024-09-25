@@ -702,7 +702,7 @@ def legacy_intersect_constraints(
                     selected_ranges, valid_ranges
                 )
 
-            # If the intersection is empty, and we do not consider patial requests,
+            # If the intersection is empty, and we do not allow patial requests,
             # then request as a whole does not meet this constraint and this output_request must be
             # discarded.
             if constrained_field_value:
