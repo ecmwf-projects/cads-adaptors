@@ -714,7 +714,7 @@ def legacy_intersect_constraints(
         if len(output_request) != 0:
             requests.append(output_request)
 
-    if len(requests) == 0:
+    if not allow_partial and len(requests) == 0:
         context.add_user_visible_error(
             "Your request has not produce a valid combination of values, please check your selection.\n"
             "If using the cdsapi, please ensure that the values in your request match the values provided"
