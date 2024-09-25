@@ -67,10 +67,11 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             request = request["inputs"]
         # "precise_size" is a new costing method that is more accurate than "size
         if "precise_size" in costing_config.get(cost_threshold, {}):
+            # Ensure request is normalised and intersected_contraints is applied
+            request = self.normalise_request(request)
             costs["precise_size"] = costing.estimate_precise_size(
                 self.form,
-                request,
-                self.constraints,
+                self.mapped_requests,
                 **costing_kwargs,
             )
         # size is a fast and rough estimate of the number of fields

@@ -87,94 +87,36 @@ def count_combinations(
     return n_granules
 
 
-def estimate_granules(
-    form_key_values: dict[str, set[Any]],
-    selection: dict[str, set[str]],
-    _constraints: list[dict[str, set[str]]],
-    weighted_keys: dict[str, int] = dict(),  # Mapping of widget key to weight
-    weighted_values: dict[
-        str, dict[str, int]
-    ] = dict(),  # Mapping of widget key to values-weights
-    safe: bool = True,
-) -> int:
-    if len(_constraints) > 0:
-        # Ensure contraints are sets
-        _constraints = [
-            {k: set(v) for k, v in constraint.items()} for constraint in _constraints
-        ]
-        constraint_keys = constraints.get_keys(_constraints)
-        always_valid = constraints.get_always_valid_params(
-            form_key_values, constraint_keys
-        )
-        selected_but_always_valid = {
-            k: v for k, v in selection.items() if k in always_valid
-        }
-        selected_constrained = {
-            k: v for k, v in selection.items() if k not in always_valid.keys()
-        }
-        found = []
-        # Apply constraints prior to ensure real cost is calculated
-        for constraint in _constraints:
-            intersection = {}
-            ok = True
-            for key, values in constraint.items():
-                if key in selected_constrained.keys():
-                    common = values.intersection(selected_constrained[key])
-                    if common:
-                        intersection.update({key: common})
-                    else:
-                        ok = False
-                        break
-                else:
-                    ok = False
-                    break
-            if ok:
-                intersection.update(selected_but_always_valid)
-                if intersection not in found:
-                    found.append(intersection)
-    else:
-        selected_but_always_valid = {}
-        found = [selection]
-    if safe:
-        return count_combinations(found, weighted_keys, weighted_values)
-    else:
-        return sum([math.prod([len(e) for e in d.values()]) for d in found])
-
 
 def estimate_precise_size(
     form: list[dict[str, Any]] | dict[str, Any] | None,
-    selection: dict[str, set[str]],
-    _constraints: list[dict[str, set[str]]],
+    mapped_intersected_selection: list[dict[str, set[str]]],
     ignore_keys: list[str] = [],
     weight: int = 1,
     weighted_keys: dict = {},
     weighted_values: dict = {},
-    safe: bool = True,
     **kwargs,
 ) -> int:
     ignore_keys += get_excluded_keys(form)
 
-    form_key_values = constraints.parse_form(form)
+    # form_key_values = constraints.parse_form(form)
 
-    # Build selection for calculating costs, any missing fields are filled with a DUMMY value,
-    #  This may be problematic for DateRangeWidget
-    this_selection: dict[str, set[str]] = {
-        widget: ensure_set(selection.get(widget, list(values)[0]))
-        for widget, values in form_key_values.items()
-        if widget not in ignore_keys
-    }
-    return (
-        estimate_granules(
-            form_key_values,
-            this_selection,
-            _constraints,
-            weighted_keys=weighted_keys,
-            weighted_values=weighted_values,
-            safe=safe,
-            **kwargs,
-        )
-        * weight
-    )
+    # # Ensure any missing fields are filled with a DUMMY value
+    # mapped_intersected_selection = [{
+    #     widget: ensure_set(selection.get(widget, list(values)[0]))
+    #     for widget, values in form_key_values.items()
+    #     if widget not in ignore_keys
+    # } for selection in mapped_intersected_selection]
+
+    mapped_intersected_selection = [{
+        widget: ensure_set(values) for widget, values in selection.items() if widget not in ignore_keys
+    } for selection in mapped_intersected_selection]
+
+    return count_combinations(
+        mapped_intersected_selection,
+        weighted_keys=weighted_keys,
+        weighted_values=weighted_values,
+    ) * weight
 
 
 def get_excluded_keys(
