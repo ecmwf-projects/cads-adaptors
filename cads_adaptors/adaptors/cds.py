@@ -110,9 +110,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.input_request = deepcopy(request)
         self.context.debug(f"Input request:\n{self.input_request}")
 
-        # Apply any pre-mapping modifications
-        working_request = deepcopy(request)
-
         # Enforce the schema on the input request
         schemas = self.schemas
         if not isinstance(schemas, list):
@@ -121,12 +118,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if adaptor_schema := self.adaptor_schema:
             schemas = schemas + [adaptor_schema]
         for schema in schemas:
-            working_request = enforce.enforce(
-                working_request, schema, self.context.logger
+            request = enforce.enforce(
+                request, schema, self.context.logger
             )
 
         # Pre-mapping modifications
-        working_request = self.pre_mapping_modifications(working_request)
+        working_request = self.pre_mapping_modifications(deepcopy(request))
 
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
