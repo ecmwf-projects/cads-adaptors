@@ -91,6 +91,7 @@ def estimate_precise_size(
     weight: int = 1,
     weighted_keys: dict = {},
     weighted_values: dict = {},
+    extra: dict = {},
     **kwargs,
 ) -> int:
     ignore_keys += get_excluded_keys(form)
@@ -108,7 +109,7 @@ def estimate_precise_size(
     mapped_intersected_selection = [
         {
             widget: ensure_set(values)
-            for widget, values in selection.items()
+            for widget, values in {**extra, **selection}.items()
             if widget not in ignore_keys
         }
         for selection in mapped_intersected_selection
