@@ -68,7 +68,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # "precise_size" is a new costing method that is more accurate than "size
         if "precise_size" in costing_config.get(cost_threshold, {}):
             # Ensure request is normalised and intersected_contraints is applied
-            request = self.normalise_request(request)
+            # request = self.normalise_request(request)
             # # Hack to include in costs
             # extra = {
             #     thing: getattr(self, thing)
@@ -77,7 +77,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             # }
             costs["precise_size"] = costing.estimate_precise_size(
                 self.form,
-                self.mapped_requests,
+                self.intersect_constraints(request),  # Schema? To slow for web-portal
                 **costing_kwargs,
             )
         # size is a fast and rough estimate of the number of fields
@@ -102,7 +102,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         return request
 
-    def normalise_request(self, request: Request) -> Request:
+    def normalise_request(self, request: Request, do_embargo: bool = True) -> Request:
         """
         Normalise the request prior to submission to the broker, and at the start of the retrieval.
         This is executed on the retrieve-api pod, and then repeated on the worker pod.
