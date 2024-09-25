@@ -1,11 +1,10 @@
-from copy import deepcopy
 from typing import Any, BinaryIO
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.exceptions import InvalidRequest, MultiAdaptorNoDataError
-from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.exceptions import MultiAdaptorNoDataError
 from cads_adaptors.tools import adaptor_tools
+from cads_adaptors.tools.general import ensure_list
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
@@ -85,7 +84,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return sub_adaptors
 
-
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
         request = super().pre_mapping_modifications(request)
 
@@ -95,7 +93,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
         return request
 
     def retrieve(self, request: Request):
-        # self._pre_retrieve(request, default_download_format="zip")
         request = self.normalise_request(request)
         # TODO: handle lists of requests, normalise_request has the power to implement_constraints
         #  which produces a list of complete hypercube requests.
@@ -107,7 +104,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 f"returning the first one only:\n{self.mapped_requests[0]}"
             )
         self.mapped_request = self.mapped_requests[0]
-
 
         self.context.add_stdout(f"MultiAdaptor, full_request: {self.mapped_request}")
 
@@ -182,7 +178,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         request = self.normalise_request(request)
         # This will apply any top level multi-adaptor mapping, currently not used but could potentially
         #   be useful to reduce the repetitive config in each sub-adaptor of adaptor.json
-        
+
         # self.mapped_requests contains the schema-checked, intersected and (top-level mapping) mapped request
         self.context.add_stdout(
             f"MultiMarsCdsAdaptor, full_request: {self.mapped_requests}"
@@ -212,7 +208,9 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         result = execute_mars(mapped_requests, context=self.context, config=self.config)
 
         with dask.config.set(scheduler="threads"):
-            paths = self.convert_format(result, self.data_format, self.context, self.config)
+            paths = self.convert_format(
+                result, self.data_format, self.context, self.config
+            )
 
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"

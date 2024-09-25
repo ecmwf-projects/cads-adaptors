@@ -118,9 +118,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if adaptor_schema := self.adaptor_schema:
             schemas = schemas + [adaptor_schema]
         for schema in schemas:
-            request = enforce.enforce(
-                request, schema, self.context.logger
-            )
+            request = enforce.enforce(request, schema, self.context.logger)
 
         # Pre-mapping modifications
         working_request = self.pre_mapping_modifications(deepcopy(request))
@@ -206,28 +204,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
-
-    # TODO: replace call to _pre_retrieve with normalise_request
-    #      Still used in CamsSolarRadiationTimeseriesAdaptor
-    def _pre_retrieve(self, request: Request, default_download_format="zip"):
-        self.input_request = deepcopy(request)
-        self.context.debug(f"Input request:\n{self.input_request}")
-        self.receipt = request.pop("receipt", False)
-
-        # Extract post-process steps from the request before mapping:
-        self.post_process_steps = request.pop("post_process", [])
-        self.context.debug(
-            f"Post-process steps extracted from request:\n{self.post_process_steps}"
-        )
-
-        self.mapped_request = self.apply_mapping(request)  # type: ignore
-
-        self.download_format = self.mapped_request.pop(
-            "download_format", default_download_format
-        )
-        self.context.debug(
-            f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_request}"
-        )
 
     def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Map the post-process steps from the request to the correct functions."""
