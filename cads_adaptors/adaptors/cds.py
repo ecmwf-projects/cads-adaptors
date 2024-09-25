@@ -69,16 +69,15 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if "precise_size" in costing_config.get(cost_threshold, {}):
             # Ensure request is normalised and intersected_contraints is applied
             request = self.normalise_request(request)
-            # Hack to include in costs
-            extra = {
-                thing: getattr(self, thing)
-                for thing in ["data_format", "download_format"]
-                if hasattr(self, thing)
-            }
+            # # Hack to include in costs
+            # extra = {
+            #     thing: getattr(self, thing)
+            #     for thing in ["data_format", "download_format"]
+            #     if hasattr(self, thing)
+            # }
             costs["precise_size"] = costing.estimate_precise_size(
                 self.form,
                 self.mapped_requests,
-                extra=extra,
                 **costing_kwargs,
             )
         # size is a fast and rough estimate of the number of fields
