@@ -3,8 +3,6 @@ import math
 import warnings
 from typing import Any
 
-from . import constraints
-
 EXCLUDED_WIDGETS = [
     "GeographicExtentWidget",
     "UnknownWidget",
@@ -78,14 +76,12 @@ def count_combinations(
         w_granules = [1 for _ in granules]
 
     for key, weight in weighted_keys.items():
-        w_granules = [
-            w_granule * weight
-            for w_granule, granule in zip(w_granules, granules)
-            if key in granule
-        ]
+        for i, (w_granule, granule) in enumerate(zip(w_granules, granules)):
+            if key in granule:
+                w_granules[i] = w_granule * weight
+
     n_granules = sum(w_granules)
     return n_granules
-
 
 
 def estimate_precise_size(
@@ -99,6 +95,7 @@ def estimate_precise_size(
 ) -> int:
     ignore_keys += get_excluded_keys(form)
 
+    # form_keys = [widget["name"] for widget in form if "name" in widget]
     # form_key_values = constraints.parse_form(form)
 
     # # Ensure any missing fields are filled with a DUMMY value
@@ -108,15 +105,23 @@ def estimate_precise_size(
     #     if widget not in ignore_keys
     # } for selection in mapped_intersected_selection]
 
-    mapped_intersected_selection = [{
-        widget: ensure_set(values) for widget, values in selection.items() if widget not in ignore_keys
-    } for selection in mapped_intersected_selection]
+    mapped_intersected_selection = [
+        {
+            widget: ensure_set(values)
+            for widget, values in selection.items()
+            if widget not in ignore_keys
+        }
+        for selection in mapped_intersected_selection
+    ]
 
-    return count_combinations(
-        mapped_intersected_selection,
-        weighted_keys=weighted_keys,
-        weighted_values=weighted_values,
-    ) * weight
+    return (
+        count_combinations(
+            mapped_intersected_selection,
+            weighted_keys=weighted_keys,
+            weighted_values=weighted_values,
+        )
+        * weight
+    )
 
 
 def get_excluded_keys(
