@@ -77,7 +77,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             # }
             costs["precise_size"] = costing.estimate_precise_size(
                 self.form,
-                self.intersect_constraints(request),  # Schema? To slow for web-portal
+                self.intersect_constraints(request, allow_partial=True),  # Schema? To slow for web-portal
                 **costing_kwargs,
             )
         # size is a fast and rough estimate of the number of fields
