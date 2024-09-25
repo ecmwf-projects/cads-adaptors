@@ -377,7 +377,9 @@ def xarray_dict_to_netcdf(
     is used in the filename.
     """
     # Check if compression_options or out_fname_prefix have been provided in to_netcdf_kwargs
-    compression_options = to_netcdf_kwargs.pop("compression_options", compression_options)
+    compression_options = to_netcdf_kwargs.pop(
+        "compression_options", compression_options
+    )
     out_fname_prefix = to_netcdf_kwargs.pop("out_fname_prefix", out_fname_prefix)
 
     # Fetch any preset compression options
@@ -597,7 +599,7 @@ def prepare_open_datasets_kwargs_grib(
                     context.add_stderr(f"key {k} not found in dataset, skipping")
                 else:
                     # If only one unique value, we don't need to split
-                    if len(_unique_key_values[k]) > 1:                
+                    if len(_unique_key_values[k]) > 1:
                         unique_key_values.update(_unique_key_values)
 
         if split_on_keys_alias is not None:
@@ -619,13 +621,18 @@ def prepare_open_datasets_kwargs_grib(
                             unique_key_values.update(ekd_ds.unique_values(k1))
                         else:
                             # If only one unique value, we don't need to split
-                            if len(k2_unique_key_values[k2]) > 1:                
+                            if len(k2_unique_key_values[k2]) > 1:
                                 unique_key_values.update(k2_unique_key_values)
 
-
+        # Create all combinations of unique key:value dictionaries
+        # i.e. {k1: [v1, v2], k2: [v3, v4]} ->
+        #      [{k1: v1, k2: v3}, {k1: v1, k2: v4}, {k1: v2, k2: v3}, {k1: v2, k2: v4}]
         keys, values = zip(*unique_key_values.items())
-        split_combinations = [dict(zip(keys, p)) for p in itertools.product(*values)]
+        split_combinations: list[dict[str, str]] = [
+            dict(zip(keys, p)) for p in itertools.product(*values)
+        ]
 
+        # Iterate of combinations and create an open_datasets_kwargs for the combination
         for combination in split_combinations:
             filter_by_keys = {**base_filter_by_keys, **combination}
             tag = "_".join(base_tag + [f"{k}-{v}" for k, v in combination.items()])
