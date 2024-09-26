@@ -61,7 +61,7 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             )
         except requests.exceptions.ConnectionError as e:
             # The way "multiurl" uses "requests" at the moment, the read timeouts raise requests.exceptions.ConnectionError.
-            if kwargs.get("fail_on_timeout_for_any_part", False):
+            if kwargs.get("fail_on_timeout_for_any_part", True):
                 context.add_user_visible_error(
                     "Your request has not found some of the data expected to be present.\n"
                     "This may be due to temporary connectivity issues with the source data.\n"
