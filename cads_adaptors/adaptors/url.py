@@ -1,28 +1,38 @@
 from typing import Any, BinaryIO
 
-from cads_adaptors.adaptors import Request, cds
+from cads_adaptors.adaptors import cds
 
 
 class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO | list[BinaryIO]:
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.area: list[Any] | None = None
+        # URL adaptor should default to intersecting constraints
+        self.intersect_constraints_bool: bool = self.config.get(
+            "intersect_constraints", True
+        )
+
+    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+        request = super().pre_mapping_modifications(request)
+        default_download_format = "zip"
+
         # TODO: Remove legacy syntax all together
-        if "format" in request:
-            _download_format = request.pop("format")
-            request.setdefault("download_format", _download_format)
+        download_format = request.pop("format", default_download_format)
+        download_format = request.pop("download_format", download_format)
+        self.set_download_format(download_format)
 
-        area = request.pop("area", None)
+        self.area = request.pop("area", None)
 
-        self._pre_retrieve(request=request)
+        return request
 
+    def retrieve(self, request: dict[str, Any]) -> BinaryIO | list[BinaryIO]:
         from cads_adaptors.tools import area_selector, url_tools
 
-        # Convert request to list of URLs
-        requests = [
-            self.apply_mapping(request)
-            for request in self.intersect_constraints(request)
-        ]
+        request = self.normalise_request(request)
+        assert self.mapped_requests is not None  # Type-setting
+
         requests_urls = url_tools.requests_to_urls(
-            requests,
+            self.mapped_requests,
             patterns=self.config["patterns"],
         )
 
@@ -37,7 +47,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
             )
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
-        if area is not None:
-            paths = area_selector.area_selector_paths(paths, area, self.context)
+        if self.area is not None:
+            paths = area_selector.area_selector_paths(paths, self.area, self.context)
 
         return self.make_download_object(paths)
