@@ -1,5 +1,4 @@
-import os
-from typing import Any, Union
+from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
@@ -48,7 +47,7 @@ def get_mars_server_list(config) -> list[str]:
 
 
 def execute_mars(
-    request: Union[Request, list],
+    request: dict[str, Any] | list[dict[str, Any]],
     context: Context,
     config: dict[str, Any] = dict(),
     target: str = "data.grib",
@@ -56,6 +55,9 @@ def execute_mars(
     from cads_mars_server import client as mars_client
 
     requests = ensure_list(request)
+    # Implement embargo if it is set in the config
+    # This is now done in normalize request, but leaving it here for now, as running twice is not a problem
+    #  and the some adaptors may not use normalise_request yet
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
 
@@ -119,6 +121,10 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.data_format: str | None = None
+
     def convert_format(self, *args, **kwargs):
         from cads_adaptors.tools.convertors import convert_format
 
@@ -136,24 +142,42 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         kwargs.setdefault("context", self.context)
         return monthly_reduce(*args, **kwargs)
 
-    def multi_retrieve(self, request: Request) -> cds.T_MULTI_RETRIEVE:
-        import dask
+    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Implemented in normalise_request, before the mapping is applied."""
+        request = super().pre_mapping_modifications(request)
 
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
-        data_format = adaptor_tools.handle_data_format(data_format)
 
-        # Account from some horribleness from teh legacy system:
+        # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
-            data_format = "netcdf"
+            self.data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
-        # To preserve existing ERA5 functionality the default download_format="as_source"
-        self._pre_retrieve(request=request, default_download_format="as_source")
+        default_download_format = "as_source"
+        download_format = request.pop("download_format", default_download_format)
+        self.set_download_format(
+            download_format, default_download_format=default_download_format
+        )
+
+        # Apply any mapping
+        mapped_formats = self.apply_mapping({"data_format": data_format})
+        # TODO: Add this extra mapping to apply_mapping?
+        self.data_format = adaptor_tools.handle_data_format(
+            mapped_formats["data_format"]
+        )
+
+        return request
+
+    def multi_retrieve(self, request: Request) -> cds.T_MULTI_RETRIEVE:
+        import dask
+
+        # Call normalise_request to set self.mapped_requests
+        request = self.normalise_request(request)
 
         result: Any = execute_mars(
-            self.mapped_request, context=self.context, config=self.config
+            self.mapped_requests, context=self.context, config=self.config
         )
 
         with dask.config.set(scheduler="threads"):
@@ -162,7 +186,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             # TODO?: Generalise format conversion to be a post-processor
             paths = self.convert_format(
                 result,
-                data_format,
+                self.data_format,
                 context=self.context,
                 config=self.config,
             )

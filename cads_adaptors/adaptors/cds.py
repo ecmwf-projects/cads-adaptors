@@ -7,45 +7,11 @@ from typing import Any, BinaryIO, Union
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
+from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.validation import enforce
 
 T_MULTI_RETRIEVE = BinaryIO | list[BinaryIO]
-
-
-# TODO: temporary function to reorder the open_dataset_kwargs and to_netcdf_kwargs
-#  to align with post-processing framework. When datasets have been updated, this should be removed.
-def _reorganise_open_dataset_and_to_netcdf_kwargs(
-    config: dict[str, Any],
-) -> dict[str, Any]:
-    # If defined in older "format_conversion_kwargs" then rename as post_processing_kwargs.
-    #  Preference for post_processing_kwargs over format_conversion_kwargs
-    post_processing_kwargs: dict[str, Any] = {
-        **config.pop("format_conversion_kwargs", dict()),
-        **config.pop("post_processing_kwargs", dict()),
-    }
-
-    to_netcdf_kwargs = {
-        **post_processing_kwargs.pop("to_netcdf_kwargs", dict()),
-    }
-
-    # rename and expand_dims is now done as a "post open" step, to assist in other post-processing
-    #  Due to a bug, we allow this to be stored in the top level of the config
-    post_open_datasets_kwargs = post_processing_kwargs.get(
-        "post_open_datasets_kwargs", config.get("post_open_datasets_kwargs", {})
-    )
-    for key in ["rename", "expand_dims"]:
-        if key in to_netcdf_kwargs:
-            post_open_datasets_kwargs[key] = to_netcdf_kwargs.pop(key)
-
-    post_processing_kwargs.update(
-        {
-            "post_open_datasets_kwargs": post_open_datasets_kwargs,
-            "to_netcdf_kwargs": to_netcdf_kwargs,
-        }
-    )
-    config.update({"post_processing_kwargs": post_processing_kwargs})
-    return config
 
 
 class AbstractCdsAdaptor(AbstractAdaptor):
@@ -71,11 +37,14 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.download_format: str = "zip"
         self.receipt: bool = False
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
+        self.intersect_constraints_bool: bool = config.get(
+            "intersect_constraints", False
+        )
+        self.embargo: dict[str, int] | None = config.get("embargo", None)
+        # Flag to ensure we only normalise the request once
+        self.normalised: bool = False
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
-
-        # TODO: remove this when datasets have been updated to match new configuation
-        self.config = _reorganise_open_dataset_and_to_netcdf_kwargs(self.config)
 
     @abc.abstractmethod
     def multi_retrieve(self, request: Request) -> T_MULTI_RETRIEVE:
@@ -90,12 +59,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return constraints.validate_constraints(self.form, request, self.constraints)
 
     def intersect_constraints(self, request: Request) -> list[Request]:
-        return [
-            self.normalise_request(request)
-            for request in constraints.legacy_intersect_constraints(
-                request, self.constraints, context=self.context
-            )
-        ]
+        return constraints.legacy_intersect_constraints(
+            request, self.constraints, context=self.context
+        )
 
     def apply_mapping(self, request: Request) -> Request:
         return mapping.apply_mapping(request, self.mapping)
@@ -125,7 +91,41 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         costs["number_of_fields"] = costs["size"]
         return costs
 
+    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+        """
+        Method called before the mapping is applied to the request. This will differ for each
+        adaptor, so is separated out from the normalise_request method.
+        """
+        # Move the receipt flag from the request to the adaptor attributes (currently not in use)
+        self.receipt = request.pop("receipt", False)
+
+        # Extract post-process steps from the request before applying the mapping
+        self.post_process_steps = request.pop("post_process", [])
+        self.context.debug(
+            f"Post-process steps extracted from request:\n{self.post_process_steps}"
+        )
+
+        return request
+
     def normalise_request(self, request: Request) -> Request:
+        """
+        Normalise the request prior to submission to the broker, and at the start of the retrieval.
+        This is executed on the retrieve-api pod, and then repeated on the worker pod.
+
+        The returned request needs to be compatible with the web-portal, it is currently what is used
+        on the "Your requests" page, hence it should not be modified to much from the user's request.
+        """
+        if self.normalised:
+            return request
+
+        # Make a copy of the original request for debugging purposes
+        self.input_request = deepcopy(request)
+        self.context.debug(f"Input request:\n{self.input_request}")
+
+        # Apply any pre-mapping modifications
+        working_request = deepcopy(request)
+
+        # Enforce the schema on the input request
         schemas = self.schemas
         if not isinstance(schemas, list):
             schemas = [schemas]
@@ -133,29 +133,104 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if adaptor_schema := self.adaptor_schema:
             schemas = schemas + [adaptor_schema]
         for schema in schemas:
-            request = enforce.enforce(request, schema, self.context.logger)
-        if not isinstance(request, dict):
-            raise TypeError(
-                f"Normalised request is not a dictionary, instead it is of type {type(request)}"
+            working_request = enforce.enforce(
+                working_request, schema, self.context.logger
             )
+
+        # Pre-mapping modifications
+        working_request = self.pre_mapping_modifications(working_request)
+
+        # If specified by the adaptor, intersect the request with the constraints.
+        # The intersected_request is a list of requests
+        if self.intersect_constraints_bool:
+            self.intersected_requests = self.intersect_constraints(working_request)
+            if len(self.intersected_requests) == 0:
+                msg = "Error: no intersection with the constraints."
+                self.context.add_user_visible_error(message=msg)
+                raise InvalidRequest(msg)
+        else:
+            self.intersected_requests = ensure_list(working_request)
+
+        # Map the list of requests
+        self.mapped_requests = [
+            self.apply_mapping(i_request) for i_request in self.intersected_requests
+        ]
+
+        # Implement embargo if specified
+        if self.embargo is not None:
+            from cads_adaptors.tools.date_tools import implement_embargo
+
+            try:
+                self.mapped_requests, cacheable_embargo = implement_embargo(
+                    self.mapped_requests, self.embargo
+                )
+            except ValueError as e:
+                self.context.add_user_visible_error(message=f"{e}")
+                raise InvalidRequest(f"{e}")
+
+            if not cacheable_embargo:
+                # Add an uncacheable key to the request
+                random_key = str(randint(0, 2**128))
+                request["_part_of_request_under_embargo"] = random_key
+
+        # At this point, the self.mapped_requests could be used to create a requesthash
+
+        # For backwards compatibility, we set self.mapped_request to the first request, and assume
+        #  it is the only one. Adaptors should be updated to use self.mapped_requests instead.
+        self.mapped_request = self.mapped_requests[0]
+
+        self.context.add_stdout(
+            f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_requests}"
+        )
+
         # Avoid the cache by adding a random key-value pair to the request (if cache avoidance is on)
         if self.config.get("avoid_cache", False):
             random_key = str(randint(0, 2**128))
             request["_in_adaptor_no_cache"] = random_key
+
+        self.normalised = True
         return request
+
+    def set_download_format(self, download_format, default_download_format="zip"):
+        """Check that requested download format is supported by the adaptor, and if not set to default."""
+        # Apply any mapping
+        mapped_formats = self.apply_mapping(
+            {
+                "download_format": download_format,
+            }
+        )
+
+        self.download_format = mapped_formats["download_format"]
+        if isinstance(self.download_format, list):
+            try:
+                assert len(self.download_format) == 1
+            except AssertionError:
+                message = "Multiple download formats specified, only one is allowed"
+                self.context.add_user_visible_error(message=message)
+                raise InvalidRequest(message)
+            self.download_format = self.download_format[0]
+
+        from cads_adaptors.tools.download_tools import DOWNLOAD_FORMATS
+
+        if self.download_format not in DOWNLOAD_FORMATS:
+            self.context.add_user_visible_log(
+                "WARNING: Download format not supported for this dataset. "
+                f"Defaulting to {default_download_format}."
+            )
+            self.download_format = default_download_format
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
 
-    # This is essentially a second __init__, but only for when we have a request at hand
-    # and currently only implemented for retrieve methods
+    # TODO: replace call to _pre_retrieve with normalise_request
+    #      Still used in CamsSolarRadiationTimeseriesAdaptor
     def _pre_retrieve(self, request: Request, default_download_format="zip"):
         self.input_request = deepcopy(request)
         self.context.debug(f"Input request:\n{self.input_request}")
         self.receipt = request.pop("receipt", False)
 
         # Extract post-process steps from the request before mapping:
-        self.post_process_steps = self.pp_mapping(request.pop("post_process", []))
+        self.post_process_steps = request.pop("post_process", [])
         self.context.debug(
             f"Post-process steps extracted from request:\n{self.post_process_steps}"
         )
@@ -180,7 +255,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def post_process(self, result: Any) -> dict[str, Any]:
         """Perform post-process steps on the retrieved data."""
-        for i, pp_step in enumerate(self.post_process_steps):
+        for i, pp_step in enumerate(self.pp_mapping(self.post_process_steps)):
             self.context.add_stdout(
                 f"Performing post-process step {i+1} of {len(self.post_process_steps)}: {pp_step}"
             )
@@ -243,6 +318,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         paths = ensure_list(paths)
         filenames = [os.path.basename(path) for path in paths]
         # TODO: use request-id instead of hash
+        if self.input_request is None:
+            self.input_request = {}
         kwargs.setdefault(
             "base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}"
         )

@@ -22,8 +22,18 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
     def _retrieve(self, request: Request) -> BinaryIO:
         from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 
-        # Maps observation_type to source. This sets self.mapped_request
-        self._pre_retrieve(request)
+        # Maps observation_type to source. This sets self.mapped_requests
+        request = self.normalise_request(request)
+        # TODO: handle lists of requests, normalise_request has the power to implement_constraints
+        #  which produces a list of complete hypercube requests.
+        try:
+            assert len(self.mapped_requests) == 1
+        except AssertionError:
+            self.context.add_user_visible_log(
+                f"WARNING: More than one request was mapped: {self.mapped_requests}, "
+                f"returning the first one only:\n{self.mapped_requests[0]}"
+            )
+        self.mapped_request = self.mapped_requests[0]
 
         # Catalogue credentials are in config, which is parsed from adaptor.json
         obs_api_url = self.config["obs_api_url"]
