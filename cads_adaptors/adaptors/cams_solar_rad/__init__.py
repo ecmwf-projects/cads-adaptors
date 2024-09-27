@@ -1,4 +1,4 @@
-from typing import Any, BinaryIO
+from typing import Any
 
 from cads_adaptors.adaptors.cams_solar_rad.functions import (
     BadRequest,

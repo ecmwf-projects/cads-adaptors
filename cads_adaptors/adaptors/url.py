@@ -25,7 +25,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return request
 
-    def multi_retrieve(self, request: Request) -> cds.T_MULTI_RETRIEVE:
+    def multi_retrieve(self, request: cds.Request) -> cds.T_MULTI_RETRIEVE:
         from cads_adaptors.tools import area_selector, url_tools
 
         request = self.normalise_request(request)

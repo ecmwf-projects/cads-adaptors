@@ -1,4 +1,5 @@
-from typing import Any, BinaryIO
+import os
+from typing import Any
 
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
