@@ -11,6 +11,7 @@ from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.validation import enforce
 
+
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
     adaptor_schema: dict[str, Any] = {}
@@ -46,8 +47,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     @abc.abstractmethod
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         """
-        This is to separate the internal retrieval of data and post-processing,
-        from the returning of an open file object for the retrive-api.
+        Return a list of results, which are paths to files that have been downloaded,
+        and post-processed if necessary.
+        This is to separate the internal processing from the returning of an open file
+        object for the retrive-api.
         It is required for adaptors used by the multi-adaptor.
         """
         pass
@@ -310,9 +313,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def make_download_object(
         self,
-        paths: str | list[str],
+        paths: list[str],
         **kwargs,
-    ):
+    ) -> BinaryIO:
         from cads_adaptors.tools import download_tools
 
         # Ensure paths and filenames are lists
@@ -353,7 +356,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     "There was an error whilst preparing your data for download, "
                     "please try submitting you request again. "
                     "If the problem persists, please contact user support. "
-                    f"Files being prepared for download: {filenames}\n"
+                    "Files being prepared for download:\n"
+                    "\n -".join(filenames)
                 )
             )
             self.context.add_stderr(

@@ -25,7 +25,9 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return request
 
-    def retrieve(self, request: dict[str, Any]) -> BinaryIO | list[BinaryIO]:
+    def retrieve_list_of_results(
+        self, request: dict[str, Any]
+    ) -> BinaryIO | list[BinaryIO]:
         from cads_adaptors.tools import area_selector, url_tools
 
         request = self.normalise_request(request)
@@ -50,4 +52,4 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         if self.area is not None:
             paths = area_selector.area_selector_paths(paths, self.area, self.context)
 
-        return self.make_download_object(paths)
+        return paths
