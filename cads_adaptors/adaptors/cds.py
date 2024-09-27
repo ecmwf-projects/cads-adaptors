@@ -104,7 +104,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         return request
 
-    def normalise_request(self, request: Request, do_embargo: bool = True) -> Request:
+    def normalise_request(self, request: Request) -> Request:
         """
         Normalise the request prior to submission to the broker, and at the start of the retrieval.
         This is executed on the retrieve-api pod, and then repeated on the worker pod.
