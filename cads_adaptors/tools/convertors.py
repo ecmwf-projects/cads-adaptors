@@ -1,3 +1,4 @@
+import itertools
 import os
 from typing import Any, Callable, NoReturn
 
@@ -375,6 +376,13 @@ def xarray_dict_to_netcdf(
     Convert a dictionary of xarray datasets to netCDF files, where the key of the dictionary
     is used in the filename.
     """
+    # Check if compression_options or out_fname_prefix have been provided in to_netcdf_kwargs
+    compression_options = to_netcdf_kwargs.pop(
+        "compression_options", compression_options
+    )
+    out_fname_prefix = to_netcdf_kwargs.pop("out_fname_prefix", out_fname_prefix)
+
+    # Fetch any preset compression options
     if isinstance(compression_options, str):
         compression_options = STANDARD_COMPRESSION_OPTIONS.get(compression_options, {})
 
@@ -554,6 +562,90 @@ def open_netcdf_as_xarray_dictionary(
     return datasets
 
 
+def prepare_open_datasets_kwargs_grib(
+    grib_file: str,
+    open_datasets_kwargs: dict[str, Any] | list[dict[str, Any]],
+    context: Context = Context(),
+    **kwargs,
+) -> list[dict[str, Any]]:
+    """
+    Prepare open_datasets_kwargs for opening a grib file. This includes splitting the kwargs based on
+    the contents of the grib file, and adding any additional kwargs.
+    """
+    import earthkit.data as ekd
+
+    out_open_datasets_kwargs: list[dict[str, Any]] = []
+    for open_ds_kwargs in ensure_list(open_datasets_kwargs):
+        open_ds_kwargs.update(kwargs)
+        split_on_keys: list[str] | None = open_ds_kwargs.pop("split_on", None)
+        split_on_keys_alias: dict[str, str] | None = open_ds_kwargs.pop(
+            "split_on_alias", None
+        )
+        if split_on_keys is None and split_on_keys_alias is None:
+            out_open_datasets_kwargs.append(open_ds_kwargs)
+            continue
+
+        base_filter_by_keys = open_ds_kwargs.get("filter_by_keys", {})
+        base_tag: list = ensure_list(open_ds_kwargs.get("tag", []))
+
+        ekd_ds = ekd.from_source("file", grib_file)
+        unique_key_values = dict()
+
+        if split_on_keys is not None:
+            for k in split_on_keys:
+                try:
+                    _unique_key_values = ekd_ds.unique_values(k)
+                except KeyError:
+                    context.add_stderr(f"key {k} not found in dataset, skipping")
+                else:
+                    # If only one unique value, we don't need to split
+                    if len(_unique_key_values[k]) > 1:
+                        unique_key_values.update(_unique_key_values)
+
+        if split_on_keys_alias is not None:
+            # If differences are detected in key (k1), we split on value key (k2),
+            #  e.g. for ERA5, if there are differences in expver, we split on stepType
+            for k1, k2 in split_on_keys_alias.items():
+                try:
+                    k1_unique_values: list[str] = ekd_ds.unique_values(k1)[k1]
+                except KeyError:
+                    context.add_stderr(f"key {k1} not found in dataset, skipping")
+                else:
+                    if len(k1_unique_values) > 1:
+                        try:
+                            k2_unique_key_values = ekd_ds.unique_values(k2)
+                        except KeyError:
+                            context.add_stderr(
+                                f"key {k2} not found in dataset, splitting on {k1} instead"
+                            )
+                            unique_key_values.update(ekd_ds.unique_values(k1))
+                        else:
+                            # If only one unique value, we don't need to split
+                            if len(k2_unique_key_values[k2]) > 1:
+                                unique_key_values.update(k2_unique_key_values)
+
+        # Create all combinations of unique key:value dictionaries
+        # i.e. {k1: [v1, v2], k2: [v3, v4]} ->
+        #      [{k1: v1, k2: v3}, {k1: v1, k2: v4}, {k1: v2, k2: v3}, {k1: v2, k2: v4}]
+        keys, values = zip(*unique_key_values.items())
+        split_combinations: list[dict[str, str]] = [
+            dict(zip(keys, p)) for p in itertools.product(*values)
+        ]
+
+        # Iterate of combinations and create an open_datasets_kwargs for the combination
+        for combination in split_combinations:
+            filter_by_keys = {**base_filter_by_keys, **combination}
+            tag = "_".join(base_tag + [f"{k}-{v}" for k, v in combination.items()])
+            out_open_datasets_kwargs.append(
+                {
+                    **open_ds_kwargs,
+                    **{"filter_by_keys": filter_by_keys.copy(), "tag": tag},
+                }
+            )
+
+    return out_open_datasets_kwargs
+
+
 def open_grib_file_as_xarray_dictionary(
     grib_file: str,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
@@ -569,50 +661,66 @@ def open_grib_file_as_xarray_dictionary(
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {}
 
-    # Option for manual split of the grib file into list of xr.Datasets using list of open_ds_kwargs
+    # Ensure chunks and engine are set
+    kwargs.setdefault("chunks", DEFAULT_CHUNKS)
+    kwargs.setdefault("engine", "cfgrib")
+
+    # Do any automatic splitting of the open_datasets_kwargs,
+    #  This will add kwargs to the open_datasets_kwargs
+    open_datasets_kwargs = prepare_open_datasets_kwargs_grib(
+        grib_file, open_datasets_kwargs, context=context, **kwargs
+    )
+
+    # If we only have one set of open_datasets_kwargs, set the error handling to "raise"
+    #  so that if any problems are detected, we know to open safely with cfgrib.open_datasets
+    #  By default, cfgrib will just warn, ignore and continue, which may result in missed variables
+    if len(open_datasets_kwargs) == 1:
+        open_datasets_kwargs[0].setdefault("errors", "raise")
+
     context.add_stdout(f"Opening {grib_file} with kwargs: {open_datasets_kwargs}")
-    if isinstance(open_datasets_kwargs, list):
-        datasets: dict[str, xr.Dataset] = {}
-        for i, open_ds_kwargs in enumerate(open_datasets_kwargs):
-            # Default engine is cfgrib
-            open_ds_kwargs.setdefault("engine", "cfgrib")
-            open_ds_kwargs.setdefault("chunks", DEFAULT_CHUNKS)
-            # Any defined kwargs are used for all datasets
-            open_ds_kwargs.update(kwargs)
-            ds_tag = open_ds_kwargs.pop("tag", i)
-            try:
-                ds = xr.open_dataset(grib_file, **open_ds_kwargs)
-            except Exception:
-                ds = None
-            if ds:
-                datasets[f"{fname}_{ds_tag}"] = ds
-    else:
-        open_datasets_kwargs.setdefault("chunks", DEFAULT_CHUNKS)
-        # Include any additional kwargs, this may be useful for post-processing
-        open_datasets_kwargs.update(kwargs)
-        open_datasets_kwargs.setdefault("errors", "raise")
-        # First try and open with xarray as a single dataset,
-        # xarray.open_dataset will handle a number of the potential conflicts in fields
-        ds_tag = open_datasets_kwargs.pop("tag", "0")
+
+    # Open grib file as a dictionary of datasets
+    datasets: dict[str, xr.Dataset] = {}
+    for i, open_ds_kwargs in enumerate(open_datasets_kwargs):
+        ds_tag = open_ds_kwargs.pop("tag", i)
         try:
-            datasets = {
-                f"{fname}_{ds_tag}": xr.open_dataset(grib_file, **open_datasets_kwargs)
-            }
+            ds = xr.open_dataset(grib_file, **open_ds_kwargs)
         except Exception:
-            context.add_stderr(
-                f"Failed to open with xr.open_dataset({grib_file}, **{open_datasets_kwargs}), "
-                "opening with cfgrib.open_datasets instead."
+            ds = None
+        if ds:
+            datasets[f"{fname}_{ds_tag}"] = ds
+
+    if len(datasets) == 0:
+        context.add_stderr(
+            "Failed to open any valid hypercube with xarray.open_dataset, "
+            "opening with cfgrib.open_datasets instead. "
+            f"\nGRIB file={grib_file}"
+            f"\nopen_dataset_kwargs = {open_datasets_kwargs})."
+        )
+        context.add_user_visible_log(
+            "WARNING: Structural differences in grib fields detected when opening in xarray. "
+            "Opening the grib file safely, however this may result in files "
+            "with non-intuitive filenames."
+        )
+
+        # Use the first set of open_datasets_kwargs to open the grib file. Generally, if we are here,
+        #  there is only set. However, if there is not necessarily an automatic way to
+        #  decide if there are more than one.
+        open_ds_kwargs = open_datasets_kwargs[0]
+
+        # Remove tag and filter_by_keys from open_ds_kwargs as they are used
+        #  for informed splitting
+        open_datasets_kwargs = {
+            k: v
+            for k, v in open_ds_kwargs.items()
+            if k not in ["tag", "filter_by_keys"]
+        }
+        datasets = {
+            f"{fname}_{i}": ds
+            for i, ds in enumerate(
+                cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
             )
-            context.add_user_visible_log(
-                "WARNING: Structural differences in grib fields detected, safely opening as a list "
-                "of datasets. This may result in multiple files being created."
-            )
-            datasets = {
-                f"{fname}_{i}": ds
-                for i, ds in enumerate(
-                    cfgrib.open_datasets(grib_file, **open_datasets_kwargs)
-                )
-            }
+        }
 
     datasets = post_open_datasets_modifications(datasets, **post_open_datasets_kwargs)
 
