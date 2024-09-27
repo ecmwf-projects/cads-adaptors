@@ -42,6 +42,8 @@ def remove_duplicates(found: list[dict[str, set[str]]]) -> list[dict[str, str]]:
     combinations: list[tuple[tuple[Any, Any], ...]] = []
     for d in found:
         combinations += compute_combination_tuples(d)
+    print("combinations:", len(combinations))
+    
     return [dict(granule) for granule in set(combinations)]
 
 
@@ -61,6 +63,7 @@ def count_combinations(
         return n_unique_granules(found)
 
     granules = remove_duplicates(found)
+    print("granules:", len(granules))
 
     if len(weighted_values) > 0:
         w_granules = []  # Weight of each granule
@@ -105,7 +108,7 @@ def estimate_precise_size(
     #     for widget, values in form_key_values.items()
     #     if widget not in ignore_keys
     # } for selection in mapped_intersected_selection]
-
+    print("selection1:", len(mapped_intersected_selection))
     mapped_intersected_selection = [
         {
             widget: ensure_set(values)
@@ -114,6 +117,7 @@ def estimate_precise_size(
         }
         for selection in mapped_intersected_selection
     ]
+    print("selection2:", len(mapped_intersected_selection))
 
     return (
         count_combinations(
