@@ -1,15 +1,15 @@
+import abc
 import os
 import pathlib
 from copy import deepcopy
 from random import randint
-from typing import Any, Union
+from typing import Any, BinaryIO
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.validation import enforce
-
 
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
@@ -42,6 +42,19 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.normalised: bool = False
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
+
+    @abc.abstractmethod
+    def retrieve_list_of_results(self, request: Request) -> list[str]:
+        """
+        This is to separate the internal retrieval of data and post-processing,
+        from the returning of an open file object for the retrive-api.
+        It is required for adaptors used by the multi-adaptor.
+        """
+        pass
+
+    def retrieve(self, request: Request) -> BinaryIO:
+        result = self.retrieve_list_of_results(request)
+        return self.make_download_object(result)
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
@@ -353,7 +366,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def make_receipt(
         self,
-        input_request: Union[Request, None] = None,
+        input_request: Request | None = None,
         download_size: Any = None,
         filenames: list = [],
         **kwargs,
@@ -404,5 +417,5 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> Any:
-        pass
+    def retrieve(self, request: Request) -> BinaryIO:
+        raise NotImplementedError
