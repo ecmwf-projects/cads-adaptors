@@ -95,26 +95,22 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         sub_adaptors = self.split_adaptors(self.mapped_request)
 
-        results: list[str] = []
+        paths: list[str] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
             try:
-                this_result: list[BinaryIO] = adaptor.retrieve_list_of_results(req)
+                this_result = adaptor.retrieve_list_of_results(req)
             except Exception as err:
                 exception_logs[adaptor_tag] = f"{err}"
             else:
-                results.extend(this_result)
+                paths.extend(this_result)
 
-        if len(results) == 0:
+        if len(paths) == 0:
             raise MultiAdaptorNoDataError(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
                 f"{exception_logs}"
             )
 
-        # close files
-        [res.close() for res in results]
-        # get the paths
-        paths = [res.name for res in results]
         self.context.add_stdout(f"MultiAdaptor, result paths:\n{paths}")
 
         return paths

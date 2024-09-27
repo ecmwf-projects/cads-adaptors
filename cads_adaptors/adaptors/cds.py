@@ -1,4 +1,3 @@
-import abc
 import os
 import pathlib
 from copy import deepcopy
@@ -421,4 +420,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        pass
+        dummy_file = self.cache_tmp_path / "dummy.grib"
+        with dummy_file.open("w") as fp:
+            fp.write("DUMMY CONTENT")
+        return open(dummy_file, "rb")

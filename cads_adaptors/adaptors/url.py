@@ -27,7 +27,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def retrieve_list_of_results(
         self, request: dict[str, Any]
-    ) -> BinaryIO | list[BinaryIO]:
+    ) -> list[str]:
         from cads_adaptors.tools import area_selector, url_tools
 
         request = self.normalise_request(request)
