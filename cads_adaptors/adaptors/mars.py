@@ -118,7 +118,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def retrieve(self, request: Request) -> BinaryIO:
         result = execute_mars(request, context=self.context)
-        return open(result)  # type: ignore
+        return open(result, "rb")
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
