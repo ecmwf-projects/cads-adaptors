@@ -82,7 +82,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # "precise_size" is a new costing method that is more accurate than "size
         if "precise_size" in max_costs:
-            self.context.add_stdout(f"Computing precise size for request:\n{request}")
+            self.context.add_stdout(f"Computing precise size for selection.")
             intersected_constraints = self.intersect_constraints(
                 request, allow_partial=True
             )
