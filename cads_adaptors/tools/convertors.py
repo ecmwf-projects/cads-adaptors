@@ -74,6 +74,7 @@ def result_to_grib_files(
     context.add_stdout(
         f"Converting result ({result}) to grib files with kwargs: {kwargs}"
     )
+    result_type = type(result)
     if isinstance(result, str):
         return unknown_filetype_to_grib_files(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
@@ -82,73 +83,46 @@ def result_to_grib_files(
             "Please note that post-processing uses xarray.Datasets. "
         )
         return xarray_dict_to_netcdf({"data": result}, context=context, **kwargs)
-    elif isinstance(result, list):
-        # Ensure objects are same type (This may not be necessary, but it probably implies something is wrong)
-        _result_type: list[type] = list(set([type(r) for r in result]))
-        assert (
-            len(_result_type) == 1
-        ), f"Result list contains mixed types: {_result_type}"
-        result_type = _result_type[0]
-        if result_type is str:
-            out_results = []
-            for res in result:
-                out_results += unknown_filetype_to_grib_files(
-                    res, context=context, **kwargs
-                )
-            return out_results
-        elif result_type == xr.Dataset:
-            context.add_user_visible_error(
-                "Cannot convert xarray dataset to grib, returning as netCDF."
-            )
-            return xarray_dict_to_netcdf(
-                {f"data_{i}": res for i, res in enumerate(result)},
-                context=context,
-                **kwargs,
-            )
-        else:
-            add_user_log_and_raise_error(
-                f"Unable to convert result of type {result_type} to grib files. result:\n{result}",
-                context=context,
-                thisError=ValueError,
-            )
+    elif isinstance(result, (list, dict, tuple)):
+        # Convert list to a dict to handle in same way
+        if isinstance(result, (list, tuple)):
+            result = {f"data_{i}": res for i, res in enumerate(result)}
 
-    elif isinstance(result, dict):
         # Ensure all values are of the same type
-        # (This may not be necessary, but it probably implies something is wrong)
+        # (This may not be necessary, but it implies something is wrong)
         _result_type = list(set([type(r) for r in result.values()]))
         assert (
             len(_result_type) == 1
-        ), f"Result dictionary contains mixed types: {_result_type}"
+        ), f"Result object contains mixed types: {_result_type}"
         result_type = _result_type[0]
 
         if result_type is str:
             out_results = []
             for k, v in result.items():
                 out_results += unknown_filetype_to_grib_files(
-                    v, context=context, tag=k, **kwargs
+                    v,
+                    context=context,
+                    tag=k,  # NOTE: tag is not actually used in function
+                    **kwargs,
                 )
             return out_results
+
         elif result_type == xr.Dataset:
             context.add_user_visible_error(
                 "Cannot convert xarray dataset to grib, returning as netCDF."
+                "Please note that post-processing uses xarray.Datasets. "
             )
             return xarray_dict_to_netcdf(
-                {k: res for k, res in result.items()},
+                result,
                 context=context,
                 **kwargs,
             )
-        else:
-            add_user_log_and_raise_error(
-                f"Unable to convert result of type {result_type} to grib files. result:\n{result}",
-                context=context,
-                thisError=ValueError,
-            )
-    else:
-        add_user_log_and_raise_error(
-            f"Unable to convert result of type {type(result)} to grib files. result:\n{result}",
-            context=context,
-            thisError=ValueError,
-        )
+
+    add_user_log_and_raise_error(
+        f"Unable to convert result of type {result_type} to grib files. result:\n{result}",
+        context=context,
+        thisError=ValueError,
+    )
 
 
 def result_to_netcdf_files(
@@ -160,69 +134,42 @@ def result_to_netcdf_files(
     context.add_stdout(
         f"Converting result ({result}) to netCDF files with kwargs: {kwargs}"
     )
+    result_type = type(result)
     if isinstance(result, str):
         return unknown_filetype_to_netcdf_files(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
         return xarray_dict_to_netcdf({"data": result}, context=context, **kwargs)
 
-    elif isinstance(result, list):
-        # Ensure objects are same type (This may not be necessary, but it probably implies something is wrong)
-        _result_type: list[type] = list(set([type(r) for r in result]))
-        assert (
-            len(_result_type) == 1
-        ), f"Result list contains mixed types: {_result_type}"
-        result_type = _result_type[0]
-        if result_type is str:
-            out_results = []
-            for res in result:
-                out_results += unknown_filetype_to_netcdf_files(
-                    res, context=context, **kwargs
-                )
-            return out_results
+    elif isinstance(result, (list, dict, tuple)):
+        # Convert list to a dict to handle in same way
+        if isinstance(result, (list, tuple)):
+            result = {f"data_{i}": res for i, res in enumerate(result)}
 
-        elif result_type == xr.Dataset:
-            return xarray_dict_to_netcdf(
-                {f"data_{i}": res for i, res in enumerate(result)},
-                context=context,
-                **kwargs,
-            )
-
-        else:
-            add_user_log_and_raise_error(
-                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}",
-                context=context,
-                thisError=ValueError,
-            )
-    elif isinstance(result, dict):
-        # Ensure all values are of the same type
-        # (This may not be necessary, but it probably implies something is wrong)
+        # Ensure objects are same type (This may not be necessary, but it implies something is wrong)
         _result_type = list(set([type(r) for r in result.values()]))
         assert (
             len(_result_type) == 1
-        ), f"Result dictionary contains mixed types: {_result_type}"
+        ), f"Result object contains mixed types: {_result_type}"
         result_type = _result_type[0]
+
         if result_type is str:
             out_results = []
             for k, v in result.items():
                 out_results += unknown_filetype_to_netcdf_files(
-                    v, context=context, tag=k, **kwargs
+                    v,
+                    context=context,
+                    tag=k,  # NOTE: tag is not actually used in function
+                    **kwargs,
                 )
             return out_results
         elif result_type == xr.Dataset:
             return xarray_dict_to_netcdf(result, context=context, **kwargs)
-        else:
-            add_user_log_and_raise_error(
-                f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}",
-                context=context,
-                thisError=ValueError,
-            )
 
-    else:
-        add_user_log_and_raise_error(
-            f"Unable to convert result of type {type(result)} to netCDF files. result:\n{result}",
-            context=context,
-            thisError=ValueError,
-        )
+    add_user_log_and_raise_error(
+        f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}",
+        context=context,
+        thisError=ValueError,
+    )
 
 
 def result_to_netcdf_legacy_files(
@@ -457,10 +404,13 @@ def open_result_as_xarray_dictionary(
     where the key will be used in any filenames created from the dataset.
     """
     if isinstance(result, str):
-        datasets = open_file_as_xarray_dictionary(result, context=context, **kwargs)
+        return open_file_as_xarray_dictionary(result, context=context, **kwargs)
     elif isinstance(result, xr.Dataset):
-        datasets = {"data": result}
-    elif isinstance(result, dict):
+        return {"data": result}
+    elif isinstance(result, (dict, list, tuple)):
+        # Convert to dictionary to handle in same way
+        if isinstance(result, (list, tuple)):
+            result = {f"data_{i}": res for i, res in enumerate(result)}
         datasets = {}
         for k, v in result.items():
             if isinstance(v, str):
@@ -469,39 +419,14 @@ def open_result_as_xarray_dictionary(
                 )
             elif isinstance(v, xr.Dataset):
                 datasets[k] = v
-            else:
-                add_user_log_and_raise_error(
-                    "Incorrect result type, "
-                    "if result dictionary it must be of type: dict[str, str | xr.Dataset]."
-                    f"result:\n{result}",
-                    context=context,
-                    thisError=ValueError,
-                )
-    elif isinstance(result, list):
-        datasets = {}
-        for k, v in enumerate(result):
-            if isinstance(v, str):
-                datasets.update(
-                    open_file_as_xarray_dictionary(v, context=context, **kwargs)
-                )
-            elif isinstance(v, xr.Dataset):
-                datasets[f"data_{k}"] = v
-            else:
-                add_user_log_and_raise_error(
-                    "Incorrect result type, "
-                    "if result list it must be of type: list[str | xr.Dataset]."
-                    f"result:\n{result}",
-                    context=context,
-                    thisError=ValueError,
-                )
-    else:
-        add_user_log_and_raise_error(
-            f"Unable to open result of type {type(result)} as an xarray dataset.",
-            context=context,
-            thisError=ValueError,
-        )
 
-    return datasets
+        return datasets
+
+    add_user_log_and_raise_error(
+        f"Unable to open result as an xarray dataset: \n{result}",
+        context=context,
+        thisError=ValueError,
+    )
 
 
 def open_file_as_xarray_dictionary(
