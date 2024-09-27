@@ -1,4 +1,4 @@
-from typing import Any, BinaryIO
+from typing import Any
 
 from cads_adaptors.adaptors import cds
 
@@ -25,9 +25,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return request
 
-    def retrieve_list_of_results(
-        self, request: dict[str, Any]
-    ) -> list[str]:
+    def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         from cads_adaptors.tools import area_selector, url_tools
 
         request = self.normalise_request(request)

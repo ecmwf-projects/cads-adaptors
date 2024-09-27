@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, BinaryIO
+from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
