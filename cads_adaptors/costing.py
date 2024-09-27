@@ -89,8 +89,8 @@ def estimate_precise_size(
     mapped_intersected_selection: list[dict[str, set[str]]],
     ignore_keys: list[str] = [],
     weight: int = 1,
-    weighted_keys: dict = {},
-    weighted_values: dict = {},
+    weighted_keys: dict[str, int] = {},
+    weighted_values: dict[str, dict[str, int]] = {},
     # extra: dict = {},
     **kwargs,
 ) -> int:

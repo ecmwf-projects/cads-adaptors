@@ -61,31 +61,38 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         cost_threshold = (
             cost_threshold if cost_threshold in costing_config else "max_costs"
         )
-        costs = {}
+        max_costs = costing_config.get(cost_threshold, {})
+        costs: dict[str, int] = {}
         # Safety net, not all stacks have the latest version of the api:
         if "inputs" in request:
             request = request["inputs"]
-        # "precise_size" is a new costing method that is more accurate than "size
-        if "precise_size" in costing_config.get(cost_threshold, {}):
-            # Ensure request is normalised and intersected_contraints is applied
-            # request = self.normalise_request(request)
-            # # Hack to include in costs
-            # extra = {
-            #     thing: getattr(self, thing)
-            #     for thing in ["data_format", "download_format"]
-            #     if hasattr(self, thing)
-            # }
-            costs["precise_size"] = costing.estimate_precise_size(
-                self.form,
-                self.intersect_constraints(
-                    request, allow_partial=True
-                ),  # Schema? To slow for web-portal
-                **costing_kwargs,
-            )
         # size is a fast and rough estimate of the number of fields
         costs["size"] = costing.estimate_number_of_fields(self.form, request)
+        # TODO: Can this safety net be removed yet?
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
+        #  Exit here if fast cost estimates is above threshold, precise-size can OOM kill the retreive-api
+        for key, value in costs.items():
+            if value > max_costs.get(
+                key, 1e6
+            ):  # This is a hard-coded limit which should protect the system
+                return costs
+
+        # "precise_size" is a new costing method that is more accurate than "size
+        if "precise_size" in max_costs:
+            self.context.add_stdout(f"Computing precise size for request:\n{request}")
+            intersected_constraints = self.intersect_constraints(
+                request, allow_partial=True
+            )
+            self.context.add_stdout(
+                f"{len(intersected_constraints)} intersected constraints hypercubes found."
+            )
+            costs["precise_size"] = costing.estimate_precise_size(
+                self.form,
+                intersected_constraints,  # Schema? To slow for web-portal
+                **costing_kwargs,
+            )
+        self.context.add_stdout(f"Computed costs: {costs}")
         return costs
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
