@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import logging
 import re
@@ -38,6 +39,21 @@ def solar_rad_retrieve(
     # NetCDF and it has better error handling.
     # retrieve_by_url(req, outfile, logger)
     retrieve_by_wps(req, outfile, ntries, logger)
+
+
+def to_scalars_values(request):
+    request = copy.deepcopy(request)
+    is_possible = True
+    for key in request:
+        if isinstance(request[key], (list, tuple, set)):
+            if len(request[key]) == 1:
+                request[key] = list(request[key])[0]
+            else:
+                is_possible = False
+        elif isinstance(request[key], dict):
+            request[key], part_is_possible = to_scalars_values(request[key])
+            is_possible &= part_is_possible
+    return request, is_possible
 
 
 def determine_result_filename(config, request):
