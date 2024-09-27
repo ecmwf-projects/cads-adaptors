@@ -83,15 +83,16 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # "precise_size" is a new costing method that is more accurate than "size
         if "precise_size" in max_costs:
             self.context.add_stdout(f"Computing precise size for selection.")
-            intersected_constraints = self.intersect_constraints(
+            # Make a set to remove duplicates
+            intersected_selection = set(self.intersect_constraints(
                 request, allow_partial=True
-            )
+            ))
             self.context.add_stdout(
-                f"{len(intersected_constraints)} intersected constraints hypercubes found."
+                f"{len(intersected_selection)} intersected selection hypercubes found."
             )
             costs["precise_size"] = costing.estimate_precise_size(
                 self.form,
-                intersected_constraints,  # Schema? To slow for web-portal
+                intersected_selection,  # Schema? To slow for web-portal
                 **costing_kwargs,
             )
         self.context.add_stdout(f"Computed costs: {costs}")

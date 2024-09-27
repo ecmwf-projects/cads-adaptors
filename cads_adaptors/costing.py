@@ -42,7 +42,7 @@ def remove_duplicates(found: list[dict[str, set[str]]]) -> list[dict[str, str]]:
     combinations: list[tuple[tuple[Any, Any], ...]] = []
     for d in found:
         combinations += compute_combination_tuples(d)
-    print("combinations:", len(combinations))
+    print("combinations1:", len(combinations))
     
     return [dict(granule) for granule in set(combinations)]
 
@@ -51,7 +51,7 @@ def n_unique_granules(found: list[dict[str, set[str]]]) -> int:
     combinations: list[tuple[tuple[Any, Any], ...]] = []
     for d in found:
         combinations += compute_combination_tuples(d)
-    print(len(combinations))
+    print("combinations2:", len(combinations))
     return len(set(combinations))
 
 
@@ -89,7 +89,7 @@ def count_combinations(
 
 def estimate_precise_size(
     form: list[dict[str, Any]] | dict[str, Any] | None,
-    mapped_intersected_selection: list[dict[str, set[str]]],
+    mapped_intersected_selection: set[dict[str, set[str]]],
     ignore_keys: list[str] = [],
     weight: int = 1,
     weighted_keys: dict[str, int] = {},
