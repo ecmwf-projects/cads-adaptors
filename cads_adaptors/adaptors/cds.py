@@ -44,7 +44,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
 
-    @abc.abstractmethod
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         """
         Return a list of results, which are paths to files that have been downloaded,
@@ -53,7 +52,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         object for the retrive-api.
         It is required for adaptors used by the multi-adaptor.
         """
-        pass
+        raise NotImplementedError
 
     def retrieve(self, request: Request) -> BinaryIO:
         result = self.retrieve_list_of_results(request)
@@ -422,4 +421,4 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        raise NotImplementedError
+        pass
