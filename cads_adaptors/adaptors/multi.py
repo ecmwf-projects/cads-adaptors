@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, BinaryIO
+from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
@@ -70,10 +70,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
 
             if len(this_request) > 0:
-                this_request["download_format"] = "list"
-                this_request["receipt"] = False
-                # Now try to normalise the request
-
                 try:
                     this_request = this_adaptor.normalise_request(this_request)
                 except Exception:
@@ -92,42 +88,36 @@ class MultiAdaptor(AbstractCdsAdaptor):
             "download_format", default_download_format
         )
 
-    def retrieve(self, request: Request):
+    def retrieve_list_of_results(self, request: Request) -> list[str]:
         self._pre_retrieve(request, default_download_format="zip")
 
         self.context.add_stdout(f"MultiAdaptor, full_request: {self.mapped_request}")
 
         sub_adaptors = self.split_adaptors(self.mapped_request)
 
-        results: list[BinaryIO] = []
+        paths: list[str] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
             try:
-                this_result: list[BinaryIO] = ensure_list(adaptor.retrieve(req))
+                this_result = adaptor.retrieve_list_of_results(req)
             except Exception as err:
                 exception_logs[adaptor_tag] = f"{err}"
             else:
-                results += this_result
+                paths.extend(this_result)
 
-        if len(results) == 0:
+        if len(paths) == 0:
             raise MultiAdaptorNoDataError(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
                 f"{exception_logs}"
             )
 
-        # close files
-        [res.close() for res in results]
-        # get the paths
-        paths = [res.name for res in results]
         self.context.add_stdout(f"MultiAdaptor, result paths:\n{paths}")
 
-        return self.make_download_object(
-            paths,
-        )
+        return paths
 
 
 class MultiMarsCdsAdaptor(MultiAdaptor):
-    def convert_format(self, *args, **kwargs):
+    def convert_format(self, *args, **kwargs) -> list[str]:
         from cads_adaptors.tools.convertors import convert_format
 
         return convert_format(*args, **kwargs)
@@ -155,7 +145,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             "download_format", default_download_format
         )
 
-    def retrieve(self, request: Request):
+    def retrieve_list_of_results(self, request: Request) -> list[str]:
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
         import dask
 
@@ -206,4 +196,4 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"
 
-        return self.make_download_object(paths)
+        return paths

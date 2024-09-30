@@ -2,7 +2,7 @@ import os
 import pathlib
 from copy import deepcopy
 from random import randint
-from typing import Any, Union
+from typing import Any, BinaryIO
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
@@ -42,6 +42,20 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.normalised: bool = False
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
+
+    def retrieve_list_of_results(self, request: Request) -> list[str]:
+        """
+        Return a list of results, which are paths to files that have been downloaded,
+        and post-processed if necessary.
+        This is to separate the internal processing from the returning of an open file
+        object for the retrive-api.
+        It is required for adaptors used by the multi-adaptor.
+        """
+        raise NotImplementedError
+
+    def retrieve(self, request: Request) -> BinaryIO:
+        result = self.retrieve_list_of_results(request)
+        return self.make_download_object(result)
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
@@ -297,9 +311,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def make_download_object(
         self,
-        paths: str | list[str],
+        paths: list[str],
         **kwargs,
-    ):
+    ) -> BinaryIO:
         from cads_adaptors.tools import download_tools
 
         # Ensure paths and filenames are lists
@@ -340,7 +354,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     "There was an error whilst preparing your data for download, "
                     "please try submitting you request again. "
                     "If the problem persists, please contact user support. "
-                    f"Files being prepared for download: {filenames}\n"
+                    "Files being prepared for download:\n"
+                    "\n -".join(filenames)
                 )
             )
             self.context.add_stderr(
@@ -353,7 +368,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def make_receipt(
         self,
-        input_request: Union[Request, None] = None,
+        input_request: Request | None = None,
         download_size: Any = None,
         filenames: list = [],
         **kwargs,
@@ -404,5 +419,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> Any:
-        pass
+    def retrieve(self, request: Request) -> BinaryIO:
+        dummy_file = self.cache_tmp_path / "dummy.grib"
+        with dummy_file.open("w") as fp:
+            fp.write("DUMMY CONTENT")
+        return open(dummy_file, "rb")
