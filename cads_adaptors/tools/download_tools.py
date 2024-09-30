@@ -113,7 +113,7 @@ def as_source(paths: List[str], **kwargs) -> BinaryIO:
         raise ValueError("as_source can only be used for a single file.")
 
 
-DOWNLOAD_FORMATS: Dict[str, Callable] = {
+DOWNLOAD_FORMATS: Dict[str, Callable[..., BinaryIO]] = {
     "zip": zip_paths,
     "tgz": targz_paths,
     "as_source": as_source,
