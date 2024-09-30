@@ -75,7 +75,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if "precise_size" in max_costs:
             # Hard-coded limit designed to protect the system,
             # checking 10^7 fields is expensive, and not needed
-            if costs["size"] > 1e10:
+            if costs["size"] > 1e7:
                 costs["precise_size"] = costs["size"]
             else:
                 # Remove duplicates from the list of dicts,

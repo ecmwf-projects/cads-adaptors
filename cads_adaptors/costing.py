@@ -29,7 +29,7 @@ def combination_tuples_iterater(
     for d in found:
         keys, values = zip(*d.items())
         for v in itertools.product(*values):
-            _hash = hash(v) % 100000000
+            _hash = hash(v)
             if _hash in seen_granules:
                 continue
             seen_granules.add(_hash)
