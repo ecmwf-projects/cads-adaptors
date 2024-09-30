@@ -92,7 +92,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     intersected_selection.append(i_c)
 
             self.context.add_stdout(
-                f"{len(intersected_selection)} intersected selection hypercubes found."
+                f"{intersected_selection} intersected selection hypercubes found."
             )
             costs["precise_size"] = costing.estimate_weighted_size(
                 self.form,
