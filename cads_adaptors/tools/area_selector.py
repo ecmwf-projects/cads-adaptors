@@ -226,7 +226,7 @@ def area_selector_paths(
                         + ["nc"]
                     )
                     context.logger.debug(f"out_fname: {out_fname}")
-                    ds_area.to_netcdf(out_fname)
+                    ds_area.compute().to_netcdf(out_fname)
                     out_paths.append(out_fname)
                 else:
                     raise NotImplementedError(
