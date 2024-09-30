@@ -88,7 +88,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             "download_format", default_download_format
         )
 
-    def retrieve_list_of_results(self, request: Request):
+    def retrieve_list_of_results(self, request: Request) -> list[str]:
         self._pre_retrieve(request, default_download_format="zip")
 
         self.context.add_stdout(f"MultiAdaptor, full_request: {self.mapped_request}")
@@ -145,7 +145,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             "download_format", default_download_format
         )
 
-    def retrieve_list_of_results(self, request: Request):
+    def retrieve_list_of_results(self, request: Request) -> list[str]:
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
         import dask
 
