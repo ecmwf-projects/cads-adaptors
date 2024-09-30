@@ -23,7 +23,7 @@ def ensure_set(input_item):
 
 def combination_tuples_iterater(
     found: list[dict[str, set[str]]],
-) -> Generator[tuple[tuple[str, str]]]:
+) -> Generator[tuple[tuple[Any, Any], ...], None, None]:
     if not found:
         yield tuple()
     for d in found:
@@ -38,11 +38,12 @@ def count_weighted_size(
     weighted_values: dict[str, dict[str, int]] = dict(),
 ) -> int:  # TODO: integer is not strictly required
 
-    n_granules = 0
-    for granule in combination_tuples_iterater(found):
+    n_granules: int = 0
+    for _granule in combination_tuples_iterater(found):
+        granule = dict(_granule)
         w_granule = 1
         for key, w_values in weighted_values.items():
-            w_granule *= w_values.get(granule.get(key, {}), 1)
+            w_granule *= int(w_values.get(granule.get(key, {}), 1))
         for key, weight in weighted_keys.items():
             w_granule *= weight if key in granule else 1
         n_granules += w_granule
@@ -72,7 +73,7 @@ def count_weighted_size(
 
 def estimate_precise_size(
     form: list[dict[str, Any]] | dict[str, Any] | None,
-    mapped_intersected_selection: set[dict[str, set[str]]],
+    mapped_intersected_selection: list[dict[str, set[str]]],
     ignore_keys: list[str] = [],
     weight: int = 1,
     weighted_keys: dict[str, int] = {},
