@@ -108,8 +108,6 @@ def estimate_precise_size(
     #     for widget, values in form_key_values.items()
     #     if widget not in ignore_keys
     # } for selection in mapped_intersected_selection]
-    print("selection1:", len(mapped_intersected_selection))
-    return 999
     mapped_intersected_selection = [
         {
             widget: ensure_set(values)
@@ -118,6 +116,8 @@ def estimate_precise_size(
         }
         for selection in mapped_intersected_selection
     ]
+    print("selection1:", len(mapped_intersected_selection))
+    return 999
     quick_size = 0
     for selection in mapped_intersected_selection:
         quick_size += estimate_number_of_fields(form, selection)
