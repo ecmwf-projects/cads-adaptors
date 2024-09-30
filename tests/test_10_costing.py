@@ -88,6 +88,20 @@ def test_estimate_precise_size_long() -> None:
         == 10
     )
 
+    # Handle duplicates
+    assert (
+        costing.estimate_weighted_size(
+            form,
+            [
+                {"param": {"Z"}},
+                {"param": {"Z"}, "level": {"500"}},
+                {"param": {"Z"}, "level": {"500"}, "model": {"a", "b"}},
+                {"param": {"Z", "T"}, "level": {"500", "700"}, "model": {"a", "b"}},
+                {"param": {"Z"}, "time": {"01", "02"}, "level": {"500"}},
+            ],
+        )
+        == 12
+    )
 
 def test_estimate_precise_size_weighted_keys() -> None:
     form = [

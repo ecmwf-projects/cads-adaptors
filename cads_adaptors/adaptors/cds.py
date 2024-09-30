@@ -72,20 +72,20 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
 
-        # # Exit here if fast cost estimates is above threshold, precise_size can OOM kill the retreive-api
-        # for key, value in costs.items():
-        #     if value > max_costs.get(
-        #         key, 1e6
-        #     ):  # This is a hard-coded limit which should protect the system
-        #         self.context.add_stdout(f"Returning quick costs: {costs}")
-        #         return costs
+        # Exit here if fast cost estimates is above threshold, precise_size can OOM kill the retreive-api
+        for key, value in costs.items():
+            if value > max_costs.get(
+                key, 1e6
+            ):  # This is a hard-coded limit designed to protect the system
+                self.context.add_stdout(f"Returning quick costs: {costs}")
+                return costs
 
         # "precise_size" is a new costing method that is more accurate than "size
         if "precise_size" in max_costs:
             self.context.add_stdout("Computing precise size for selection.")
 
-            # Remove duplicates from the list of dicts, This means we don't have to remove duplicates
-            #  at the granular level, which causes memory issues.
+            # Remove duplicates from the list of dicts, this means we don't have to remove as man duplicates
+            #  at the granular level, which can be expensive
             intersected_selection = []
             for i_c in self.intersect_constraints(request, allow_partial=True):
                 if i_c not in intersected_selection:

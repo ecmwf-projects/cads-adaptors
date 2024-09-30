@@ -25,9 +25,14 @@ def combination_tuples_iterater(
 ) -> Generator[tuple[tuple[Any, Any], ...], None, None]:
     if not found:
         yield tuple()
+    seen_granules = set()
     for d in found:
         keys, values = zip(*d.items())
         for v in itertools.product(*values):
+            _hash = hash(v)
+            if _hash in seen_granules:
+                continue
+            seen_granules.add(_hash)
             yield tuple(zip(keys, v))
 
 
@@ -37,11 +42,7 @@ def count_weighted_size(
     weighted_values: dict[str, dict[str, int]] = dict(),
 ) -> int:  # TODO: integer is not strictly required
     n_granules: int = 0
-    seen_granules = set()
     for _granule in combination_tuples_iterater(found):
-        if hash(_granule) in seen_granules:
-            continue
-        seen_granules.add(hash(_granule))
         granule = dict(_granule)
         w_granule = 1
         for key, w_values in weighted_values.items():
@@ -72,12 +73,6 @@ def estimate_weighted_size(
         }
         for selection in mapped_intersected_selection
     ]
-
-    if len(weighted_keys) == 0 and len(weighted_values) == 0:
-        quick_size = 0
-        for selection in mapped_intersected_selection:
-            quick_size += estimate_number_of_fields(form, selection)
-        return quick_size * weight
 
     return (
         count_weighted_size(
