@@ -75,7 +75,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Exit here if fast cost estimates is above threshold, precise_size can OOM kill the retreive-api
         for key, value in costs.items():
             if value > max_costs.get(
-                key, 1e6
+                key, 1e7
             ):  # This is a hard-coded limit designed to protect the system
                 self.context.add_stdout(f"Returning quick costs: {costs}")
                 return costs
