@@ -82,12 +82,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # "precise_size" is a new costing method that is more accurate than "size
         if "precise_size" in max_costs:
-            self.context.add_stdout(f"Computing precise size for selection.")
-
-            # intersected_selection = self.intersect_constraints(request, allow_partial=True)
+            self.context.add_stdout("Computing precise size for selection.")
 
             # Remove duplicates from the list of dicts, This means we don't have to remove duplicates
-            #  at the granular level
+            #  at the granular level, which causes memory issues.
             intersected_selection = []
             for i_c in self.intersect_constraints(request, allow_partial=True):
                 if i_c not in intersected_selection:
@@ -96,7 +94,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             self.context.add_stdout(
                 f"{len(intersected_selection)} intersected selection hypercubes found."
             )
-            costs["precise_size"] = costing.estimate_precise_size(
+            costs["precise_size"] = costing.estimate_weighted_size(
                 self.form,
                 intersected_selection,
                 **costing_kwargs,

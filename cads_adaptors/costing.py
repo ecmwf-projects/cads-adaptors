@@ -1,6 +1,5 @@
 import itertools
 import math
-import warnings
 from typing import Any, Generator
 
 EXCLUDED_WIDGETS = [
@@ -37,41 +36,19 @@ def count_weighted_size(
     weighted_keys: dict[str, int] = dict(),
     weighted_values: dict[str, dict[str, int]] = dict(),
 ) -> int:  # TODO: integer is not strictly required
-
     n_granules: int = 0
     for _granule in combination_tuples_iterater(found):
         granule = dict(_granule)
         w_granule = 1
         for key, w_values in weighted_values.items():
-            w_granule *= int(w_values.get(granule.get(key, {}), 1))
+            w_granule *= int(w_values.get(granule.get(key), 1))
         for key, weight in weighted_keys.items():
             w_granule *= weight if key in granule else 1
         n_granules += w_granule
     return n_granules
 
-    # if len(weighted_values) > 0:
-    #     w_granules = []  # Weight of each granule
-    #     for granule in combination_tuples_iterater(found):
-    #         w_granule = 1
-    #         for key, w_values in weighted_values.items():
-    #             if key in granule:
-    #                 for value, weight in w_values.items():
-    #                     if value == granule[key]:
-    #                         w_granule *= weight
-    #         w_granules.append(w_granule)
-    # else:
-    #     w_granules = [1 for _ in granules]
 
-    # for key, weight in weighted_keys.items():
-    #     for i, (w_granule, granule) in enumerate(zip(w_granules, granules)):
-    #         if key in granule:
-    #             w_granules[i] = w_granule * weight
-
-    # n_granules = sum(w_granules)
-    # return n_granules
-
-
-def estimate_precise_size(
+def estimate_weighted_size(
     form: list[dict[str, Any]] | dict[str, Any] | None,
     mapped_intersected_selection: list[dict[str, set[str]]],
     ignore_keys: list[str] = [],
@@ -83,15 +60,6 @@ def estimate_precise_size(
 ) -> int:
     ignore_keys += get_excluded_keys(form)
 
-    # form_keys = [widget["name"] for widget in form if "name" in widget]
-    # form_key_values = constraints.parse_form(form)
-
-    # # Ensure any missing fields are filled with a DUMMY value
-    # mapped_intersected_selection = [{
-    #     widget: ensure_set(selection.get(widget, list(values)[0]))
-    #     for widget, values in form_key_values.items()
-    #     if widget not in ignore_keys
-    # } for selection in mapped_intersected_selection]
     mapped_intersected_selection = [
         {
             widget: ensure_set(values)
@@ -106,7 +74,7 @@ def estimate_precise_size(
         for selection in mapped_intersected_selection:
             quick_size += estimate_number_of_fields(form, selection)
         return quick_size * weight
-    
+
     return (
         count_weighted_size(
             mapped_intersected_selection,
