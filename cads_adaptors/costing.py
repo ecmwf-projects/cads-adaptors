@@ -1,7 +1,7 @@
 import itertools
 import math
 import warnings
-from typing import Any
+from typing import Any, Generator
 
 EXCLUDED_WIDGETS = [
     "GeographicExtentWidget",
@@ -21,70 +21,53 @@ def ensure_set(input_item):
     return input_item
 
 
-def compute_combinations(d: dict[str, set[str]]) -> list[dict[str, str]]:
-    warnings.warn("compute_combinations is deprecated", DeprecationWarning)
-    if not d:
-        return []
-    keys, values = zip(*d.items())
-    return [dict(zip(keys, v)) for v in itertools.product(*values)]
-
-
-def compute_combination_tuples(
-    d: dict[str, set[str]],
-) -> list[tuple[tuple[Any, Any], ...]]:
-    if not d:
-        return []
-    keys, values = zip(*d.items())
-    return [tuple(zip(keys, v)) for v in itertools.product(*values)]
-
-
-def remove_duplicates(found: list[dict[str, set[str]]]) -> list[dict[str, str]]:
-    combinations: list[tuple[tuple[Any, Any], ...]] = []
+def combination_tuples_iterater(
+    found: list[dict[str, set[str]]],
+) -> Generator[tuple[tuple[str, str]]]:
+    if not found:
+        yield tuple()
     for d in found:
-        combinations += compute_combination_tuples(d)
-    print("combinations1:", len(combinations))
-    
-    return [dict(granule) for granule in set(combinations)]
+        keys, values = zip(*d.items())
+        for v in itertools.product(*values):
+            yield tuple(zip(keys, v))
 
 
-def n_unique_granules(found: list[dict[str, set[str]]]) -> int:
-    combinations: list[tuple[tuple[Any, Any], ...]] = []
-    for d in found:
-        combinations += compute_combination_tuples(d)
-    print("combinations2:", len(combinations))
-    return len(set(combinations))
-
-
-def count_combinations(
+def count_weighted_size(
     found: list[dict[str, set[str]]],
     weighted_keys: dict[str, int] = dict(),
     weighted_values: dict[str, dict[str, int]] = dict(),
 ) -> int:  # TODO: integer is not strictly required
-    if len(weighted_keys) == 0 and len(weighted_values) == 0:
-        return n_unique_granules(found)
 
-    granules = remove_duplicates(found)
-
-    if len(weighted_values) > 0:
-        w_granules = []  # Weight of each granule
-        for granule in granules:
-            w_granule = 1
-            for key, w_values in weighted_values.items():
-                if key in granule:
-                    for value, weight in w_values.items():
-                        if value == granule[key]:
-                            w_granule *= weight
-            w_granules.append(w_granule)
-    else:
-        w_granules = [1 for _ in granules]
-
-    for key, weight in weighted_keys.items():
-        for i, (w_granule, granule) in enumerate(zip(w_granules, granules)):
-            if key in granule:
-                w_granules[i] = w_granule * weight
-
-    n_granules = sum(w_granules)
+    n_granules = 0
+    for granule in combination_tuples_iterater(found):
+        w_granule = 1
+        for key, w_values in weighted_values.items():
+            w_granule *= w_values.get(granule.get(key, {}), 1)
+        for key, weight in weighted_keys.items():
+            w_granule *= weight if key in granule else 1
+        n_granules += w_granule
     return n_granules
+
+    # if len(weighted_values) > 0:
+    #     w_granules = []  # Weight of each granule
+    #     for granule in combination_tuples_iterater(found):
+    #         w_granule = 1
+    #         for key, w_values in weighted_values.items():
+    #             if key in granule:
+    #                 for value, weight in w_values.items():
+    #                     if value == granule[key]:
+    #                         w_granule *= weight
+    #         w_granules.append(w_granule)
+    # else:
+    #     w_granules = [1 for _ in granules]
+
+    # for key, weight in weighted_keys.items():
+    #     for i, (w_granule, granule) in enumerate(zip(w_granules, granules)):
+    #         if key in granule:
+    #             w_granules[i] = w_granule * weight
+
+    # n_granules = sum(w_granules)
+    # return n_granules
 
 
 def estimate_precise_size(
@@ -116,15 +99,15 @@ def estimate_precise_size(
         }
         for selection in mapped_intersected_selection
     ]
-    print("selection1:", len(mapped_intersected_selection))
-    quick_size = 0
-    for selection in mapped_intersected_selection:
-        quick_size += estimate_number_of_fields(form, selection)
-    print("quick_size: ", quick_size)
-    return quick_size
 
+    if len(weighted_keys) == 0 and len(weighted_values) == 0:
+        quick_size = 0
+        for selection in mapped_intersected_selection:
+            quick_size += estimate_number_of_fields(form, selection)
+        return quick_size * weight
+    
     return (
-        count_combinations(
+        count_weighted_size(
             mapped_intersected_selection,
             weighted_keys=weighted_keys,
             weighted_values=weighted_values,
