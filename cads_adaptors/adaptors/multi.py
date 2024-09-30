@@ -1,9 +1,9 @@
-from copy import deepcopy
-from typing import Any, BinaryIO
+from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.exceptions import InvalidRequest, MultiAdaptorNoDataError
+from cads_adaptors.exceptions import MultiAdaptorNoDataError
+from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 
 
@@ -70,10 +70,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
 
             if len(this_request) > 0:
-                this_request["download_format"] = "list"
-                this_request["receipt"] = False
-                # Now try to normalise the request
-
                 try:
                     this_request = this_adaptor.normalise_request(this_request)
                 except Exception:
@@ -84,105 +80,106 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return sub_adaptors
 
-    def _pre_retrieve(self, request, default_download_format="zip"):
-        self.input_request = deepcopy(request)
-        self.receipt = request.pop("receipt", False)
-        self.mapped_request = mapping.apply_mapping(request, self.mapping)
-        self.download_format = self.mapped_request.pop(
-            "download_format", default_download_format
-        )
+    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+        request = super().pre_mapping_modifications(request)
 
-    def retrieve(self, request: Request):
-        self._pre_retrieve(request, default_download_format="zip")
+        download_format = request.pop("download_format", "zip")
+        self.set_download_format(download_format)
+
+        return request
+
+    def retrieve_list_of_results(self, request: Request) -> list[str]:
+        request = self.normalise_request(request)
+        # TODO: handle lists of requests, normalise_request has the power to implement_constraints
+        #  which produces a list of complete hypercube requests.
+        try:
+            assert len(self.mapped_requests) == 1
+        except AssertionError:
+            self.context.add_user_visible_log(
+                f"WARNING: More than one request was mapped: {self.mapped_requests}, "
+                f"returning the first one only:\n{self.mapped_requests[0]}"
+            )
+        self.mapped_request = self.mapped_requests[0]
 
         self.context.add_stdout(f"MultiAdaptor, full_request: {self.mapped_request}")
 
         sub_adaptors = self.split_adaptors(self.mapped_request)
 
-        results: list[BinaryIO] = []
+        paths: list[str] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
             try:
-                this_result: list[BinaryIO] = ensure_list(adaptor.retrieve(req))
+                this_result = adaptor.retrieve_list_of_results(req)
             except Exception as err:
                 exception_logs[adaptor_tag] = f"{err}"
             else:
-                results += this_result
+                paths.extend(this_result)
 
-        if len(results) == 0:
+        if len(paths) == 0:
             raise MultiAdaptorNoDataError(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
                 f"{exception_logs}"
             )
 
-        # close files
-        [res.close() for res in results]
-        # get the paths
-        paths = [res.name for res in results]
         self.context.add_stdout(f"MultiAdaptor, result paths:\n{paths}")
 
-        return self.make_download_object(
-            paths,
-        )
+        return paths
 
 
 class MultiMarsCdsAdaptor(MultiAdaptor):
-    def convert_format(self, *args, **kwargs):
+    def convert_format(self, *args, **kwargs) -> list[str]:
         from cads_adaptors.tools.convertors import convert_format
 
         return convert_format(*args, **kwargs)
 
-    def _pre_retrieve(self, request, default_download_format="zip"):
-        self.input_request = deepcopy(request)
-        self.receipt = request.pop("receipt", False)
+    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Implemented in normalise_request, before the mapping is applied."""
+        request = super().pre_mapping_modifications(request)
 
-        # Intersect constraints
-        if self.config.get("intersect_constraints", False):
-            requests_after_intersection = self.intersect_constraints(request)
-            if len(requests_after_intersection) == 0:
-                msg = "Error: no intersection with the constraints."
-                raise InvalidRequest(msg)
-        else:
-            requests_after_intersection = [request]
-
-        self.mapped_requests_pieces = []
-        for request_piece_after_intersection in requests_after_intersection:
-            self.mapped_requests_pieces.append(
-                mapping.apply_mapping(request_piece_after_intersection, self.mapping)
-            )
-
-        self.download_format = self.mapped_requests_pieces[0].pop(
-            "download_format", default_download_format
-        )
-
-    def retrieve(self, request: Request):
-        """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
-        import dask
-
-        from cads_adaptors.adaptors.mars import execute_mars
-        from cads_adaptors.tools import adaptor_tools
-
-        # Format of data files, grib or netcdf
+        # TODO: Remove legacy syntax all together
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
-        data_format = adaptor_tools.handle_data_format(data_format)
 
-        # Account from some horribleness from teh legacy system:
+        # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
-        self._pre_retrieve(request, default_download_format="as_source")
-
-        mapped_requests = []
-        self.context.add_stdout(
-            f"MultiMarsCdsAdaptor, full_request: {self.mapped_requests_pieces}"
+        default_download_format = "as_source"
+        download_format = request.pop("download_format", default_download_format)
+        self.set_download_format(
+            download_format, default_download_format=default_download_format
         )
 
+        # Apply any mapping
+        mapped_formats = self.apply_mapping({"data_format": data_format})
+        # TODO: Add this extra mapping to apply_mapping?
+        self.data_format = adaptor_tools.handle_data_format(
+            mapped_formats["data_format"]
+        )
+        return request
+
+    def retrieve_list_of_results(self, request: Request) -> list[str]:
+        """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
+        import dask
+
+        from cads_adaptors.adaptors.mars import execute_mars
+
+        request = self.normalise_request(request)
+        # This will apply any top level multi-adaptor mapping, currently not used but could potentially
+        #   be useful to reduce the repetitive config in each sub-adaptor of adaptor.json
+
+        # self.mapped_requests contains the schema-checked, intersected and (top-level mapping) mapped request
+        self.context.add_stdout(
+            f"MultiMarsCdsAdaptor, full_request: {self.mapped_requests}"
+        )
+
+        # We now split the mapped_request into sub-adaptors
+        mapped_requests = []
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
-            for mapped_request_piece in self.mapped_requests_pieces:
+            for mapped_request_piece in self.mapped_requests:
                 this_request = self.split_request(
                     mapped_request_piece, this_values, **this_adaptor.config
                 )
@@ -201,9 +198,11 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         result = execute_mars(mapped_requests, context=self.context, config=self.config)
 
         with dask.config.set(scheduler="threads"):
-            paths = self.convert_format(result, data_format, self.context, self.config)
+            paths = self.convert_format(
+                result, self.data_format, self.context, self.config
+            )
 
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"
 
-        return self.make_download_object(paths)
+        return paths

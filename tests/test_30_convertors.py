@@ -6,9 +6,12 @@ import requests
 
 from cads_adaptors.tools import convertors
 
+# GRIB file with multiple level types
 TEST_GRIB_FILE = (
     "https://get.ecmwf.int/repository/test-data/cfgrib/era5-levels-members.grib"
 )
+# GRIB file with multiple expver and stream values
+TEST_GRIB_FILE_2 = "https://get.ecmwf.int/repository/test-data/cfgrib/era5-2t-tp-mwp-multi-expver-and-stream.grib"
 TEST_NC_FILE = (
     "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc"
 )
@@ -239,3 +242,51 @@ def test_safely_expand_dims():
     assert "lat" in ds_1.temperature.dims
     assert "lat" in ds_1.temperature.dims
     assert "time" in ds_1.temperature.dims
+
+
+def test_prepare_open_datasets_kwargs_grib():
+    grib_file = requests.get(TEST_GRIB_FILE)
+    open_ds_kwargs = {
+        "test_kwarg": 1,
+        "tag": "tag",
+        "split_on": ["paramId"],
+    }
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        os.chdir(tmpdirname)
+        tmp_grib_file = "test.grib"
+        with open(tmp_grib_file, "wb") as f:
+            f.write(grib_file.content)
+
+        new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
+            tmp_grib_file, open_ds_kwargs
+        )
+    assert isinstance(new_open_ds_kwargs, list)
+    assert len(new_open_ds_kwargs) == 2
+    assert "tag_paramId-130" in [d["tag"] for d in new_open_ds_kwargs]
+    assert "tag_paramId-129" in [d["tag"] for d in new_open_ds_kwargs]
+    assert not any("split_on" in d for d in new_open_ds_kwargs)
+    assert all("test_kwarg" in d for d in new_open_ds_kwargs)
+
+    # Test split_on_alias, if differences detected in k, then split on v
+    grib_file_2 = requests.get(TEST_GRIB_FILE_2)
+    open_ds_kwargs = {
+        "test_kwarg": 1,
+        "tag": "tag",
+        "split_on_alias": {"expver": "stepType"},
+    }
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        os.chdir(tmpdirname)
+        tmp_grib_file = "test2.grib"
+        with open(tmp_grib_file, "wb") as f:
+            f.write(grib_file_2.content)
+
+        new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
+            tmp_grib_file, open_ds_kwargs
+        )
+
+    assert isinstance(new_open_ds_kwargs, list)
+    assert len(new_open_ds_kwargs) == 2
+    assert "tag_stepType-instant" in [d["tag"] for d in new_open_ds_kwargs]
+    assert "tag_stepType-accum" in [d["tag"] for d in new_open_ds_kwargs]
+    assert not any("split_on_alias" in d for d in new_open_ds_kwargs)
+    assert all("test_kwarg" in d for d in new_open_ds_kwargs)

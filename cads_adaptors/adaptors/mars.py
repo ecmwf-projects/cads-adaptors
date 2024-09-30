@@ -118,7 +118,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def retrieve(self, request: Request) -> BinaryIO:
         result = execute_mars(request, context=self.context)
-        return open(result)  # type: ignore
+        return open(result, "rb")
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -171,7 +171,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return request
 
-    def retrieve(self, request: dict[str, Any]) -> BinaryIO | list[BinaryIO]:
+    def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         import dask
 
         # Call normalise_request to set self.mapped_requests
@@ -197,4 +197,4 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"
 
-        return self.make_download_object(paths)
+        return paths

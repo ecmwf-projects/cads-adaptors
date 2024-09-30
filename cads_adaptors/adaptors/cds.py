@@ -2,7 +2,7 @@ import os
 import pathlib
 from copy import deepcopy
 from random import randint
-from typing import Any, Union
+from typing import Any, BinaryIO
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
@@ -42,6 +42,20 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.normalised: bool = False
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
+
+    def retrieve_list_of_results(self, request: Request) -> list[str]:
+        """
+        Return a list of results, which are paths to files that have been downloaded,
+        and post-processed if necessary.
+        This is to separate the internal processing from the returning of an open file
+        object for the retrive-api.
+        It is required for adaptors used by the multi-adaptor.
+        """
+        raise NotImplementedError
+
+    def retrieve(self, request: Request) -> BinaryIO:
+        result = self.retrieve_list_of_results(request)
+        return self.make_download_object(result)
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
@@ -110,9 +124,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.input_request = deepcopy(request)
         self.context.debug(f"Input request:\n{self.input_request}")
 
-        # Apply any pre-mapping modifications
-        working_request = deepcopy(request)
-
         # Enforce the schema on the input request
         schemas = self.schemas
         if not isinstance(schemas, list):
@@ -121,12 +132,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if adaptor_schema := self.adaptor_schema:
             schemas = schemas + [adaptor_schema]
         for schema in schemas:
-            working_request = enforce.enforce(
-                working_request, schema, self.context.logger
-            )
+            request = enforce.enforce(request, schema, self.context.logger)
 
         # Pre-mapping modifications
-        working_request = self.pre_mapping_modifications(working_request)
+        working_request = self.pre_mapping_modifications(deepcopy(request))
 
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
@@ -210,28 +219,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
 
-    # TODO: replace call to _pre_retrieve with normalise_request
-    #      Still used in CamsSolarRadiationTimeseriesAdaptor
-    def _pre_retrieve(self, request: Request, default_download_format="zip"):
-        self.input_request = deepcopy(request)
-        self.context.debug(f"Input request:\n{self.input_request}")
-        self.receipt = request.pop("receipt", False)
-
-        # Extract post-process steps from the request before mapping:
-        self.post_process_steps = request.pop("post_process", [])
-        self.context.debug(
-            f"Post-process steps extracted from request:\n{self.post_process_steps}"
-        )
-
-        self.mapped_request = self.apply_mapping(request)  # type: ignore
-
-        self.download_format = self.mapped_request.pop(
-            "download_format", default_download_format
-        )
-        self.context.debug(
-            f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_request}"
-        )
-
     def pp_mapping(self, in_pp_config: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Map the post-process steps from the request to the correct functions."""
         from cads_adaptors.tools.post_processors import pp_config_mapping
@@ -297,9 +284,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def make_download_object(
         self,
-        paths: str | list[str],
+        paths: list[str],
         **kwargs,
-    ):
+    ) -> BinaryIO:
         from cads_adaptors.tools import download_tools
 
         # Ensure paths and filenames are lists
@@ -340,7 +327,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     "There was an error whilst preparing your data for download, "
                     "please try submitting you request again. "
                     "If the problem persists, please contact user support. "
-                    f"Files being prepared for download: {filenames}\n"
+                    "Files being prepared for download:\n"
+                    "\n -".join(filenames)
                 )
             )
             self.context.add_stderr(
@@ -353,7 +341,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def make_receipt(
         self,
-        input_request: Union[Request, None] = None,
+        input_request: Request | None = None,
         download_size: Any = None,
         filenames: list = [],
         **kwargs,
@@ -404,5 +392,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> Any:
-        pass
+    def retrieve(self, request: Request) -> BinaryIO:
+        dummy_file = self.cache_tmp_path / "dummy.grib"
+        with dummy_file.open("w") as fp:
+            fp.write("DUMMY CONTENT")
+        return open(dummy_file, "rb")
