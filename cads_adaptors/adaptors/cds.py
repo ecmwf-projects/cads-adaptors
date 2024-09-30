@@ -86,7 +86,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             intersected_selection = self.intersect_constraints(request, allow_partial=True)
 
             # # Remove duplicates from the list of dicts
-            # # Found not to be a big bottleneck, but could be optimised
+            # # Found not to be a big bottleneck, but could be added back for optimisation
             # intersected_selection = []
             # for i_c in self.intersect_constraints(request, allow_partial=True):
             #     if i_c not in intersected_selection:

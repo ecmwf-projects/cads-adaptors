@@ -109,6 +109,7 @@ def estimate_precise_size(
     #     if widget not in ignore_keys
     # } for selection in mapped_intersected_selection]
     print("selection1:", len(mapped_intersected_selection))
+    return 999
     mapped_intersected_selection = [
         {
             widget: ensure_set(values)
