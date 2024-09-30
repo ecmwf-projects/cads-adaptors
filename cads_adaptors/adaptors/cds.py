@@ -72,34 +72,25 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
 
-        # Exit here if fast cost estimates is above threshold, precise_size can OOM kill the retreive-api
-        # for key, value in costs.items():
-        #     if value > max_costs.get(
-        #         key, 1e7
-        #     ):  # This is a hard-coded limit designed to protect the system
-        #         self.context.add_stdout(f"Returning quick costs: {costs}")
-        #         return costs
-
-        # "precise_size" is a new costing method that is more accurate than "size
         if "precise_size" in max_costs:
-            self.context.add_stdout("Computing precise size for selection.")
+            # Hard-coded limit designed to protect the system,
+            # checking 10^7 fields is expensive, and not needed
+            if costs["size"] > 1e10:
+                costs["precise_size"] = costs["size"]
+            else:
+                # Remove duplicates from the list of dicts,
+                #  so we don't have to remove as many duplicates
+                #  at the granular level, which can be expensive
+                intersected_selection = []
+                for i_c in self.intersect_constraints(request, allow_partial=True):
+                    if i_c not in intersected_selection:
+                        intersected_selection.append(i_c)
+                costs["precise_size"] = costing.estimate_weighted_size(
+                    self.form,
+                    intersected_selection,
+                    **costing_kwargs,
+                )
 
-            # Remove duplicates from the list of dicts, this means we don't have to remove as man duplicates
-            #  at the granular level, which can be expensive
-            intersected_selection = []
-            for i_c in self.intersect_constraints(request, allow_partial=True):
-                if i_c not in intersected_selection:
-                    intersected_selection.append(i_c)
-
-            self.context.add_stdout(
-                f"{len(intersected_selection)} intersected selection hypercubes found."
-            )
-            costs["precise_size"] = costing.estimate_weighted_size(
-                self.form,
-                intersected_selection,
-                **costing_kwargs,
-            )
-        self.context.add_stdout(f"Computed costs: {costs}")
         return costs
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:

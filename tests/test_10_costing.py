@@ -1,7 +1,6 @@
 from cads_adaptors import costing
 
 
-
 def test_estimate_precise_size_basic() -> None:
     form = [
         {
@@ -102,6 +101,7 @@ def test_estimate_precise_size_long() -> None:
         )
         == 12
     )
+
 
 def test_estimate_precise_size_weighted_keys() -> None:
     form = [

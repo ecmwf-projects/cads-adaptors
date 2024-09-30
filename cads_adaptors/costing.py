@@ -29,7 +29,7 @@ def combination_tuples_iterater(
     for d in found:
         keys, values = zip(*d.items())
         for v in itertools.product(*values):
-            _hash = hash(v)
+            _hash = hash(v) % 100000000
             if _hash in seen_granules:
                 continue
             seen_granules.add(_hash)
@@ -43,10 +43,10 @@ def count_weighted_size(
 ) -> int:  # TODO: integer is not strictly required
     n_granules: int = 0
     for _granule in combination_tuples_iterater(found):
-        granule = dict(_granule)
+        granule: dict[str, str] = dict(_granule)
         w_granule = 1
         for key, w_values in weighted_values.items():
-            w_granule *= int(w_values.get(granule.get(key), 1))
+            w_granule *= int(w_values.get(granule.get(key, "__NULL__"), 1))
         for key, weight in weighted_keys.items():
             w_granule *= weight if key in granule else 1
         n_granules += w_granule
