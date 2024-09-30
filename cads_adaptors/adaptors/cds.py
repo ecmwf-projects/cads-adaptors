@@ -84,10 +84,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if "precise_size" in max_costs:
             self.context.add_stdout(f"Computing precise size for selection.")
             # Make a set to remove duplicates
+            intersected_selection = self.intersect_constraints(request, allow_partial=True)
+            # Remove duplicates from the list of dicts
             intersected_selection = [
-                dict(i_c) for i_c in set(tuple(self.intersect_constraints(
-                    request, allow_partial=True
-                )))
+                dict(i_c_t) for i_c_t in {tuple(i_c.items()) for i_c in intersected_selection}
             ]
             self.context.add_stdout(
                 f"{len(intersected_selection)} intersected selection hypercubes found."
