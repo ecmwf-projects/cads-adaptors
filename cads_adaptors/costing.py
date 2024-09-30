@@ -117,11 +117,11 @@ def estimate_precise_size(
         for selection in mapped_intersected_selection
     ]
     print("selection1:", len(mapped_intersected_selection))
-    return 999
     quick_size = 0
     for selection in mapped_intersected_selection:
         quick_size += estimate_number_of_fields(form, selection)
     print("quick_size: ", quick_size)
+    return quick_size
 
     return (
         count_combinations(
