@@ -139,8 +139,6 @@ def test_multi_adaptor_split_adaptors():
     # Check that the sub-adaptors have the correct values
     for adaptor in ["mean", "max"]:
         sub_adaptor_request = sub_adaptors[adaptor][1]
-        sub_adaptor_request.pop("download_format")
-        sub_adaptor_request.pop("receipt")
         assert sub_adaptor_request == ADAPTOR_CONFIG["adaptors"][adaptor]["values"]
 
     for adaptor_tag, [adaptor, req] in sub_adaptors.items():

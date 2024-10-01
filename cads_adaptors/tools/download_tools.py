@@ -1,11 +1,9 @@
 import itertools
 import os
 import zipfile
-from typing import Any, BinaryIO, Callable, Dict, List, Union
+from typing import Any, BinaryIO, Callable, Dict, List
 
 import yaml
-
-from cads_adaptors.tools.general import ensure_list
 
 # compression parameters for the supported file types
 # feel free to adjust or add entries
@@ -107,29 +105,16 @@ def targz_paths(
     return open(target, "rb")
 
 
-def list_paths(
-    paths: List[str],
-    **kwargs,
-) -> List[BinaryIO]:
-    if kwargs.get("receipt") is not None:
-        receipt_fname = f"receipt-{kwargs.get('base_target', 'nohash')}.yaml"
-        with open(receipt_fname, "w") as receipt_file:
-            yaml.safe_dump(kwargs.get("receipt"), stream=receipt_file, indent=2)
-        paths.append(receipt_fname)
-    return [open(path, "rb") for path in ensure_list(paths)]
-
-
-def as_source(paths: List[str], **kwargs) -> Union[BinaryIO, List[BinaryIO]]:
+def as_source(paths: List[str], **kwargs) -> BinaryIO:
     # Only return as_source if a single path, otherwise list MUST be requested
     if len(paths) == 1:
         return open(paths[0], "rb")
     else:
-        return list_paths(paths, **kwargs)
+        raise ValueError("as_source can only be used for a single file.")
 
 
-DOWNLOAD_FORMATS: Dict[str, Callable] = {
+DOWNLOAD_FORMATS: Dict[str, Callable[..., BinaryIO]] = {
     "zip": zip_paths,
     "tgz": targz_paths,
-    "list": list_paths,
     "as_source": as_source,
 }

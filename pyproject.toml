@@ -16,6 +16,7 @@ classifiers = [
 dependencies = [
   # Only mandatory dependencies required by the broker and retrieve-api images
   "DateTimeRange",
+  "python-dateutil",
   "jsonschema"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"

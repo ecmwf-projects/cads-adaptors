@@ -5,6 +5,7 @@ import unittest
 import numpy as np
 import xarray as xr
 
+from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.area_selector import (
     area_selector,
     get_dim_slices,
@@ -214,6 +215,14 @@ class TestAreaSelectorOOB(unittest.TestCase):
             self.assertTrue(
                 np.allclose(result.longitude.values, test_result.longitude.values)
             )
+
+    # Test that InvalidRequest exception raised when a dimension has zero length
+    def test_area_selector_zero_length_dim(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            test_file = os.path.join(temp_dir, self.input_file)
+            self.ds.to_netcdf(test_file)
+            with self.assertRaises(InvalidRequest):
+                area_selector(test_file, area=[50.4, -10.6, 50.3, -10.5])
 
 
 if __name__ == "__main__":
