@@ -60,7 +60,6 @@ def estimate_weighted_size(
     weight: int = 1,
     weighted_keys: dict[str, int] = {},
     weighted_values: dict[str, dict[str, int]] = {},
-    # extra: dict = {},
     **kwargs,
 ) -> int:
     ignore_keys += get_excluded_keys(form)
