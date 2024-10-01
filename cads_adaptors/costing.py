@@ -53,7 +53,7 @@ def count_weighted_size(
     return n_granules
 
 
-def estimate_weighted_size(
+def estimate_precise_size(
     form: list[dict[str, Any]] | dict[str, Any] | None,
     mapped_intersected_selection: list[dict[str, set[str]]],
     ignore_keys: list[str] = [],

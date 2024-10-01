@@ -105,7 +105,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 for i_c in self.intersect_constraints(request, allow_partial=True):
                     if i_c not in intersected_selection:
                         intersected_selection.append(i_c)
-                costs["precise_size"] = costing.estimate_weighted_size(
+                costs["precise_size"] = costing.estimate_precise_size(
                     self.form,
                     intersected_selection,
                     **costing_kwargs,

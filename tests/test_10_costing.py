@@ -18,24 +18,24 @@ def test_estimate_precise_size_basic() -> None:
     ]
 
     assert (
-        costing.estimate_weighted_size(form, [{"param": {"Z", "T"}, "level": {"500"}}])
+        costing.estimate_precise_size(form, [{"param": {"Z", "T"}, "level": {"500"}}])
         == 2
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form, [{"param": {"Z", "T"}, "level": {"500", "850"}}]
         )
         == 4
     )
 
     assert (
-        costing.estimate_weighted_size(form, [{"param": {"Z"}, "level": {"500"}}]) == 1
+        costing.estimate_precise_size(form, [{"param": {"Z"}, "level": {"500"}}]) == 1
     )
-    assert costing.estimate_weighted_size(form, [{"param": {"Z"}}]) == 1
+    assert costing.estimate_precise_size(form, [{"param": {"Z"}}]) == 1
 
     # We still count keys not in form:
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form, [{"param": {"Z"}, "time": {"12:00", "00:00"}, "level": {"500"}}]
         )
         == 2
@@ -62,7 +62,7 @@ def test_estimate_precise_size_long() -> None:
     ]
 
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [
                 {"param": {"Z"}},
@@ -74,7 +74,7 @@ def test_estimate_precise_size_long() -> None:
     )
 
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [
                 {"param": {"Z"}},
@@ -89,7 +89,7 @@ def test_estimate_precise_size_long() -> None:
 
     # Handle duplicates
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [
                 {"param": {"Z"}},
@@ -120,31 +120,31 @@ def test_estimate_precise_size_weighted_keys() -> None:
     ]
 
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form, [{"param": {"Z"}, "level": {"500"}}], weighted_keys={"param": 2}
         )
         == 2
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form, [{"param": {"Z"}, "level": {"500"}}], weighted_keys={"level": 3}
         )
         == 3
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form, [{"param": {"Z", "T"}, "level": {"500"}}], weighted_keys={"param": 2}
         )
         == 4
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form, [{"param": {"Z"}}], weighted_keys={"level": 2}
         )
         == 1
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [{"param": {"Z", "T"}, "level": {"500"}}, {"param": {"Z"}, "a": {"b"}}],
             weighted_keys={"param": 2},
@@ -152,7 +152,7 @@ def test_estimate_precise_size_weighted_keys() -> None:
         == 6
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [{"param": {"Z", "T"}, "level": {"500"}}, {"level": {"500"}, "a": {"b"}}],
             weighted_keys={"param": 2},
@@ -178,7 +178,7 @@ def test_estimate_precise_size_weighted_values() -> None:
     ]
 
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [{"param": {"Z"}, "level": {"500"}}],
             weighted_values={"param": {"Z": 2}},
@@ -186,7 +186,7 @@ def test_estimate_precise_size_weighted_values() -> None:
         == 2
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [{"param": {"T"}, "level": {"500"}}],
             weighted_values={"param": {"Z": 2}},
@@ -194,7 +194,7 @@ def test_estimate_precise_size_weighted_values() -> None:
         == 1
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [{"param": {"Z", "T"}, "level": {"500"}}],
             weighted_values={"param": {"Z": 2}},
@@ -202,7 +202,7 @@ def test_estimate_precise_size_weighted_values() -> None:
         == 3
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [{"param": {"Z", "T"}, "level": {"500"}}],
             weighted_values={"param": {"Z": 2}, "level": {"500": 3}},
@@ -210,7 +210,7 @@ def test_estimate_precise_size_weighted_values() -> None:
         == 9
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [{"param": {"Z", "T"}, "level": {"600"}}],
             weighted_values={"param": {"Z": 2}, "level": {"500": 3}},
@@ -218,7 +218,7 @@ def test_estimate_precise_size_weighted_values() -> None:
         == 3
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [{"param": {"Q", "T"}, "level": {"500"}}],
             weighted_values={"param": {"Z": 2}, "level": {"500": 3}},
@@ -226,7 +226,7 @@ def test_estimate_precise_size_weighted_values() -> None:
         == 6
     )
     assert (
-        costing.estimate_weighted_size(
+        costing.estimate_precise_size(
             form,
             [
                 {"param": {"Z", "T"}, "level": {"600"}},
