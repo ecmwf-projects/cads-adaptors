@@ -72,10 +72,16 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
 
+        # If any simple cost is exceeded, return here as precise_size is a more expensive calculation
+        for key, max_cost in max_costs.items():
+            if costs.get(key, 0) > max_cost:
+                return costs
+
         if "precise_size" in max_costs:
             # Hard-coded limit designed to protect the system,
-            # checking 10^7 fields is expensive, and not needed
-            if costs["size"] > 1e7:
+            # checking 10^6 fields is expensive and generally not needed as costs will be exceeded.
+            # 10^6 is conservative, could consider increasing to 10^7
+            if costs["size"] > 1e6:
                 costs["precise_size"] = costs["size"]
             else:
                 # Remove duplicates from the list of dicts,

@@ -40,7 +40,7 @@ def count_weighted_size(
     found: list[dict[str, set[str]]],
     weighted_keys: dict[str, int] = dict(),
     weighted_values: dict[str, dict[str, int]] = dict(),
-) -> int:  # TODO: integer is not strictly required
+) -> int:
     n_granules: int = 0
     for _granule in combination_tuples_iterater(found):
         granule: dict[str, str] = dict(_granule)
@@ -73,14 +73,11 @@ def estimate_weighted_size(
         for selection in mapped_intersected_selection
     ]
 
-    return (
-        count_weighted_size(
-            mapped_intersected_selection,
-            weighted_keys=weighted_keys,
-            weighted_values=weighted_values,
-        )
-        * weight
-    )
+    return count_weighted_size(
+        mapped_intersected_selection,
+        weighted_keys=weighted_keys,
+        weighted_values=weighted_values,
+    ) * weight
 
 
 def get_excluded_keys(
