@@ -704,7 +704,7 @@ def legacy_intersect_constraints(
 
             # If the intersection is empty, and we do not allow patial requests,
             # then request as a whole does not meet this constraint and this output_request must be
-            # discarded.
+            # discarded. If we allow partial requests, then we just move on to the next key
             if constrained_field_value:
                 output_request[field] = constrained_field_value
             elif not allow_partial:
