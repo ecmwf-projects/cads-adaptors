@@ -714,6 +714,7 @@ def legacy_intersect_constraints(
         if len(output_request) != 0:
             requests.append(output_request)
 
+    # An empty request is valid if we allow partial requests.
     if not allow_partial and len(requests) == 0:
         context.add_user_visible_error(
             "Your request has not produce a valid combination of values, please check your selection.\n"
