@@ -73,11 +73,14 @@ def estimate_precise_size(
         for selection in mapped_intersected_selection
     ]
 
-    return count_weighted_size(
-        mapped_intersected_selection,
-        weighted_keys=weighted_keys,
-        weighted_values=weighted_values,
-    ) * weight
+    return (
+        count_weighted_size(
+            mapped_intersected_selection,
+            weighted_keys=weighted_keys,
+            weighted_values=weighted_values,
+        )
+        * weight
+    )
 
 
 def get_excluded_keys(
