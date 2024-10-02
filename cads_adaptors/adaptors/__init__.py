@@ -45,7 +45,7 @@ class Context:
     def add_stdout(
         self, message: str, log_type: str = "info", session: Any | None = None, **kwargs
     ) -> None:
-        self.logger.info(message)
+        getattr(self.logger, log_type)(message)
 
     def add_stderr(
         self,
