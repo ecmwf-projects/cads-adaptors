@@ -216,7 +216,7 @@ class DummyAdaptor(AbstractAdaptor):
         return []
 
     def normalise_request(self, request: Request) -> dict[str, Any]:
-        size = int(request.get("size", 0))
+        size = request.get("size", 0)
 
         elapsed = request.get("elapsed", 0)
         if isinstance(elapsed, str):
@@ -231,9 +231,12 @@ class DummyAdaptor(AbstractAdaptor):
             ).total_seconds()
 
         format = request.get("format", "grib")
-        assert format in ["grib", "netcdf", "zip"]
 
-        request = request | {"size": size, "elapsed": elapsed, "format": format}
+        request = request | {
+            "size": int(size),
+            "elapsed": float(elapsed),
+            "format": str(format),
+        }
         return dict(sorted(request.items()))
 
     def retrieve(self, request: Request) -> BinaryIO:
@@ -241,7 +244,7 @@ class DummyAdaptor(AbstractAdaptor):
 
         request = self.normalise_request(request)
         size = request["size"]
-        time_sleep = request["elapsed"]
+        elapsed = request["elapsed"]
         format = request["format"]
         cached_retrieve = cacholote.cacheable(
             self.retrieve, collection_id=self.config.get("collection_id")
@@ -251,8 +254,8 @@ class DummyAdaptor(AbstractAdaptor):
             case "grib":
                 # Write and cache grib file
                 dummy_file = self.cache_tmp_path / "dummy.grib"
-                self.context.add_stdout(f"Sleeping {time_sleep} s")
-                time.sleep(time_sleep)
+                self.context.add_stdout(f"Sleeping {elapsed} s")
+                time.sleep(elapsed)
 
                 self.context.add_stdout(f"Writing {size} B to {dummy_file!s}")
                 tic = time.perf_counter()
@@ -288,10 +291,12 @@ class DummyAdaptor(AbstractAdaptor):
                     for values in itertools.product(*request.values())
                 ]
                 grib_size = size // len(requests)
+                grib_elapsed = elapsed / len(requests)
                 with zipfile.ZipFile(dummy_file, "w") as zip_fp:
                     for i, request in enumerate(requests):
                         request["format"] = "grib"
                         request["size"] = grib_size + (size % len(requests)) * (not i)
+                        request["elapsed"] = grib_elapsed
                         with cacholote.config.set(return_cache_entry=False):
                             grib_fp = cached_retrieve(request)
                         with zip_fp.open(f"dummy_{i}.grib", "w") as zip_grib_fp:
