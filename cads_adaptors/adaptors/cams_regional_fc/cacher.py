@@ -269,18 +269,6 @@ class Cacher:
             host, path, url = self.temporary_location(field)
 
         return (host, path, url)
-
-    def old_permanent_location(self, field):
-        """Return the host, path and url of the permanent cache file for the
-           given field"""
-
-        host = 'datastore'
-        xpath = 'cataloguedata-cams/cams50_europe_air_quality_forecasts/' + \
-                self.cache_field_path(field)
-        path = '/home/datastore/data/' + xpath
-        url = 'http://datastore.copernicus-climate.eu/' + xpath
-
-        return (host, path, url)
     
     def permanent_location(self, field):
         """Return the host, path and url of the permanent cache file for the
@@ -293,27 +281,6 @@ class Cacher:
         
         fake_host_for_upload = "localhost"
         fake_path_for_upload = self.temp_cache_root + '/' + self.cache_field_path(field)
-        #return (host, path, url)
-        return (host, path, url)
-
-    def old_temporary_location(self, field):
-        """Return the host, path and url of the temporary cache file for the
-           given field"""
-
-        # Distribute the cache across the compute nodes by field day-of-month
-        day = int(field['date'].split('-')[-1])
-        assert day >= 1 and day <= 31
-        if len(self.compute_nodes):
-            host = self.compute_nodes[(day - 1) % len(self.compute_nodes)]
-        else:
-            host = "localhost"
-
-        path = self.temp_cache_root + '/' + self.cache_field_path(field)
-        #url = 'http://' + socket.gethostbyname(host) + path
-        if host != "localhost":
-            url = 'http://' + self.compute_dns[host] + path
-        else:
-            url = path
 
         return (host, path, url)
     
@@ -328,7 +295,7 @@ class Cacher:
         
         fake_host_for_upload = "localhost"
         fake_path_for_upload = self.temp_cache_root + '/' + self.cache_field_path(field)
-        #return (host, path, url)
+
         return (host, path, url)
 
     def cache_field_path(self, field):
