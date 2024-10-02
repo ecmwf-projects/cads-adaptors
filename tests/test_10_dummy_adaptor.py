@@ -31,7 +31,7 @@ def test_dummy_adaptor_zip(tmp_path: pathlib.Path) -> None:
     assert grib_file == str(tmp_path / "dummy.grib")
     assert os.path.getsize(grib_file) == 1
 
-    zip_file = dummy_adaptor.retrieve({"size": 4, "foo": [0, 1], "format": "zip"}).name
+    zip_file = dummy_adaptor.retrieve({"size": 3, "foo": [0, 1], "format": "zip"}).name
     unzipped_path = tmp_path / "unzipped"
     with zipfile.ZipFile(zip_file) as zip_fp:
         assert zip_fp.namelist() == ["dummy_0.grib", "dummy_1.grib"]
