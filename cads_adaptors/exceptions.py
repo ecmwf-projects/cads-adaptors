@@ -66,3 +66,6 @@ class RoocsRuntimeError(RuntimeError):
 
 class RoocsValueError(ValueError):
     """Raised when a ROOCS request fails due to a value error."""
+
+class CdsFormatConversionError(RuntimeError):
+    """Raised when a CDS post-processing request fails."""

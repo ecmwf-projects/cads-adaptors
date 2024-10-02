@@ -8,6 +8,7 @@ import xarray as xr
 from cads_adaptors.adaptors import Context
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.exceptions import CdsFormatConversionError
 
 STANDARD_COMPRESSION_OPTIONS = {
     "default": {
@@ -33,7 +34,7 @@ DEFAULT_CHUNKS = {
 def add_user_log_and_raise_error(
     message: str,
     context: Context = Context(),
-    thisError=ValueError,
+    thisError=CdsFormatConversionError,
 ) -> NoReturn:
     context.add_user_visible_error(message)
     raise thisError(message)
@@ -44,12 +45,15 @@ def convert_format(
     target_format: str,
     context: Context = Context(),
     config: dict[str, Any] = {},
+    **runtime_kwargs: dict[str, dict[str, Any]],
 ) -> list[str]:
     target_format = adaptor_tools.handle_data_format(target_format)
     post_processing_kwargs = config.get("post_processing_kwargs", {})
     context.add_stdout(
         f"Converting result ({result}) to {target_format} with kwargs: {post_processing_kwargs}"
     )
+    for k, v in runtime_kwargs.items():
+        post_processing_kwargs.setdefault(k, {}).update(v)
 
     convertor: None | Callable = CONVERTORS.get(target_format, None)
 
@@ -122,7 +126,6 @@ def result_to_grib_files(
     add_user_log_and_raise_error(
         f"Unable to convert result of type {result_type} to grib files. result:\n{result}",
         context=context,
-        thisError=ValueError,
     )
 
 
@@ -169,7 +172,6 @@ def result_to_netcdf_files(
     add_user_log_and_raise_error(
         f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}",
         context=context,
-        thisError=ValueError,
     )
 
 
@@ -236,7 +238,6 @@ def result_to_netcdf_legacy_files(
         add_user_log_and_raise_error(
             f"Unable to convert result of type {type(result)} to 'netcdf_legacy' files. result:\n{result}",
             context=context,
-            thisError=ValueError,
         )
 
     if filter_rules:
@@ -273,7 +274,7 @@ def result_to_netcdf_legacy_files(
             "We are unable to convert this GRIB data to netCDF, "
             "please download as GRIB and convert to netCDF locally.\n"
         )
-        add_user_log_and_raise_error(message, context=context, thisError=RuntimeError)
+        add_user_log_and_raise_error(message, context=context)
 
     return nc_files
 
@@ -301,7 +302,7 @@ def unknown_filetype_to_grib_files(
         return [infile]
     else:
         add_user_log_and_raise_error(
-            f"Unknown file type: {infile}", context=context, thisError=ValueError
+            f"Unknown file type: {infile}", context=context
         )
 
 
@@ -319,7 +320,7 @@ def unknown_filetype_to_netcdf_files(
         return grib_to_netcdf_files(infile, context=context, **kwargs)
     else:
         add_user_log_and_raise_error(
-            f"Unknown file type: {infile}", context=context, thisError=ValueError
+            f"Unknown file type: {infile}", context=context
         )
 
 
@@ -355,7 +356,7 @@ def grib_to_netcdf_files(
         )
         context.add_user_visible_error(message=message)
         context.add_stderr(message=message)
-        raise RuntimeError(message)
+        raise CdsFormatConversionError(message)
 
     out_nc_files = xarray_dict_to_netcdf(
         datasets, context=context, to_netcdf_kwargs=to_netcdf_kwargs
@@ -370,6 +371,7 @@ def xarray_dict_to_netcdf(
     compression_options: str | dict[str, Any] = "default",
     to_netcdf_kwargs: dict[str, Any] = {},
     out_fname_prefix: str = "",
+    out_dir: str = "",
     **kwargs,
 ) -> list[str]:
     """
@@ -381,6 +383,7 @@ def xarray_dict_to_netcdf(
         "compression_options", compression_options
     )
     out_fname_prefix = to_netcdf_kwargs.pop("out_fname_prefix", out_fname_prefix)
+    out_dir = to_netcdf_kwargs.pop("out_dir", out_dir)
 
     # Fetch any preset compression options
     if isinstance(compression_options, str):
@@ -394,7 +397,7 @@ def xarray_dict_to_netcdf(
                 "encoding": {var: compression_options for var in dataset},
             }
         )
-        out_fname = f"{out_fname_prefix}{out_fname_base}.nc"
+        out_fname = os.path.join(out_dir, f"{out_fname_prefix}{out_fname_base}.nc")
         context.add_stdout(f"Writing {out_fname} with kwargs:\n{to_netcdf_kwargs}")
         dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
         out_nc_files.append(out_fname)
@@ -433,7 +436,6 @@ def open_result_as_xarray_dictionary(
     add_user_log_and_raise_error(
         f"Unable to open result as an xarray dataset: \n{result}",
         context=context,
-        thisError=ValueError,
     )
 
 
@@ -455,7 +457,6 @@ def open_file_as_xarray_dictionary(
         add_user_log_and_raise_error(
             f"Unable to open file {infile} as an xarray dataset.",
             context=context,
-            thisError=ValueError,
         )
 
 
@@ -485,7 +486,7 @@ def safely_rename_variable(dataset: xr.Dataset, rename: dict[str, str]) -> xr.Da
         if (new_name not in rename_order) or (
             rename_order.index(conflict) > rename_order.index(new_name)
         ):
-            raise ValueError(
+            raise CdsFormatConversionError(
                 f"Refusing to to rename to existing variable name: {conflict}->{new_name}"
             )
 

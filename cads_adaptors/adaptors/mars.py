@@ -197,6 +197,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 self.data_format,
                 context=self.context,
                 config=self.config,
+                to_netcdf_kwargs={
+                    "out_dir": self.cache_tmp_path
+                },
             )
 
         # A check to ensure that if there is more than one path, and download_format
