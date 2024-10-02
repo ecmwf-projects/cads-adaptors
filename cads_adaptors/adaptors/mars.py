@@ -1,6 +1,5 @@
 import os
 from typing import Any, BinaryIO
-import pathlib
 
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
@@ -52,12 +51,10 @@ def execute_mars(
     request: dict[str, Any] | list[dict[str, Any]],
     context: Context,
     config: dict[str, Any] = dict(),
-    target_dir: str | pathlib.Path = pathlib.Path("./"),
-    target_file: str = "data.grib",
+    target: str = "data.grib",
 ) -> str:
     from cads_mars_server import client as mars_client
 
-    target = pathlib.Path(target_dir) / target_file
     requests = ensure_list(request)
     # Implement embargo if it is set in the config
     # This is now done in normalize request, but leaving it here for now, as running twice is not a problem
@@ -120,7 +117,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
-        result = execute_mars(request, context=self.context, target_dir=self.cache_tmp_path)
+        result = execute_mars(request, context=self.context)
         return open(result, "rb")
 
 
@@ -179,9 +176,16 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
+        
+        execute_mars_kwargs = {
+            "context": self.context,
+            "config": self.config,
+        }
+        if self.data_format in ["grib"]:
+            execute_mars_kwargs.update({"target_dir": self.cache_tmp_path})
 
         result: Any = execute_mars(
-            self.mapped_requests, context=self.context, config=self.config, target_dir=self.cache_tmp_path
+            self.mapped_requests, **execute_mars_kwargs
         )
 
         with dask.config.set(scheduler="threads"):
