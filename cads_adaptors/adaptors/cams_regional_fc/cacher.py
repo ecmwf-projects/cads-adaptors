@@ -25,6 +25,7 @@ class Credentials:
         self.access = access
         self.key    = key
 
+DESTINATION_BUCKET = "cci2-cams-regional-fc-test"
 TRUST_THAT_BUCKET_EXISTS = True
 def upload(destination_credentials, destination_bucket, destination_filepath, local_filepath):
     client = boto3.client(
@@ -224,7 +225,7 @@ class Cacher:
             destination_key = os.environ['STORAGE_PASSWORD']
             destination_credentials = Credentials(destination_url, destination_access, destination_key)
 
-            destination_bucket = "cci2-cams-regional-fc"
+            destination_bucket = DESTINATION_BUCKET
             destination_filepath = path
 
             self.context.add_stdout(f'{destination_url}, {destination_access}, {destination_key}, {destination_bucket}')
@@ -286,7 +287,7 @@ class Cacher:
            given field"""
 
         host = 'object-store.os-api.cci2.ecmwf.int'
-        bucket = 'cci2-cams-regional-fc'
+        bucket = DESTINATION_BUCKET
         path = 'permanent' + '/' + self.cache_field_path(field)
         url = 'https://' + host + '/' + bucket + '/' + path
         
@@ -321,7 +322,7 @@ class Cacher:
            given field"""
 
         host = 'object-store.os-api.cci2.ecmwf.int'
-        bucket = 'cci2-cams-regional-fc'
+        bucket = DESTINATION_BUCKET
         path = 'temporary' + '/' + self.cache_field_path(field)
         url = 'https://' + host + '/' + bucket + '/' + path
         
