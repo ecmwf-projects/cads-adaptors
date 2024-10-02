@@ -7,8 +7,6 @@ import time
 import zipfile
 from typing import Any, BinaryIO
 
-import cacholote
-
 import cads_adaptors.tools.general
 import cads_adaptors.tools.logger
 
@@ -239,6 +237,8 @@ class DummyAdaptor(AbstractAdaptor):
         return dict(sorted(request.items()))
 
     def retrieve(self, request: Request) -> BinaryIO:
+        import cacholote
+
         request = self.normalise_request(request)
         size = request["size"]
         time_sleep = request["elapsed"]
