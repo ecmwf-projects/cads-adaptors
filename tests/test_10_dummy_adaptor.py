@@ -14,9 +14,9 @@ def test_dummy_adaptor_cache_tmp_path(tmp_path: pathlib.Path) -> None:
 
 def test_dummy_adaptor_netcdf(tmp_path: pathlib.Path) -> None:
     dummy_adaptor = cads_adaptors.DummyAdaptor(None, cache_tmp_path=tmp_path)
-    grib_file = dummy_adaptor.retrieve({"size": 1}).name
-    assert grib_file == str(tmp_path / "dummy.grib")
-    assert os.path.getsize(grib_file) == 1
+    grib_file = dummy_adaptor.retrieve({"size": 1})
+    assert grib_file.name == str(tmp_path / "dummy.grib")
+    assert os.path.getsize(grib_file.name) == 1
 
     netcdf_file = dummy_adaptor.retrieve({"size": 1, "format": "netcdf"})
     assert netcdf_file.name == str(tmp_path / "dummy.nc")
