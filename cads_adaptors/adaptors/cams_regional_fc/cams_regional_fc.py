@@ -41,40 +41,23 @@ class MockResultFile():
         return self.path
 
 
-def do_mapping(mapping, requests):
-    for request in requests:
-        for widget in request:
-            if widget in mapping:
-                request[widget] = [mapping[widget][value] for value in request[widget]]
-    return requests
-
-
-def new_cams_regional_fc(context, config, mapping, requests, forms_dir=None):
-    context.add_stdout("----------> Entering new_cams_regional_fc...")
-    
+def cams_regional_fc(context, config, mapping, requests, forms_dir=None):
     # Get an object which will give us information/functionality associated
     # with the Meteo France regional forecast API
     regapi = regional_fc_api(
         integration_server=config.get('integration_server', False),
         logger=context)
     
-    context.add_stdout(f"----------> integration_server: {config.get('integration_server', False)}")
-    
-    context.add_stdout(f"----------> MAPPING: {mapping}")
-    #part of the initial adaptor specific mapping substitute
-    #requests = do_mapping(mapping, requests)
     context.request = {"mapping": mapping}
     
     def create_result_file(self, extension):
         request_uid = config["request_uid"]
         result_path = f'/cache/debug/{request_uid}.{extension}'
-        self.add_stdout("----------> MOCK RESULT FILE HERE")
         return MockResultFile(result_path)
     
     def create_temp_file(self, extension=".tmp"):
         fd, path = tempfile.mkstemp(extension)
         os.close(fd)
-        # self.tempfiles.append(path)
         return path
     
     context.create_result_file = create_result_file.__get__(context)
@@ -83,15 +66,7 @@ def new_cams_regional_fc(context, config, mapping, requests, forms_dir=None):
     context.create_result_file(".alabala")
     
     # Pre-process requests
-    context.add_stdout(f"----------> REQUESTS before preprocess: {requests}")
     requests, info = preprocess_requests(context, requests, regapi)
-    #part of the initial adaptor specific mapping substitute
-    # for i in range(len(requests)):
-    #     leadtime_hour = requests[i]["leadtime_hour"]
-    #     requests[i].pop('leadtime_hour', None)
-    #     requests[i]["step"] = leadtime_hour
-    #     #requests[i]["format"] = 'grib'
-    context.add_stdout(f"----------> REQUESTS: {requests}")
     
     # If converting to NetCDF then different groups of grib files may need to be
     # converted separately. Split and group the requests into groups that can be
@@ -133,87 +108,10 @@ def new_cams_regional_fc(context, config, mapping, requests, forms_dir=None):
         for file_index in range(len(req_group['retrieved_files'])):
             if not isinstance(req_group['retrieved_files'][file_index], str):
                 req_group['retrieved_files'][file_index] = req_group['retrieved_files'][file_index].path
-
-    context.add_stdout(f"------------------------------> req_groups number is {len(req_groups[0]['retrieved_files'])}")
-    context.add_stdout(f"------------------------------> INFO:{info}")
     
     # Process and merge grib files
     process_grib_files(req_groups, info, context)
     
-    # Convert to netCDF?
-    if 'convert' in info['stages']:
-        convert_grib(req_groups, info, dataset_dir, context)
-
-    # Zip output files?
-    if 'zip' in info['stages']:
-        zip_files(req_groups, info, context)
-
-    try:
-        return info['result_file']
-    except KeyError:
-        raise Exception('Bug: result_file not set') from None
-    
-    #return req_groups[0]['retrieved_files'][0]
-
-
-def cams_regional_fc(context, requests, forms_dir=None):
-    """Main work routine for handling a request for CAMS regional forecast
-       data"""
-
-    if forms_dir is None:
-        forms_dir = cds_forms_dir()
-
-    # Get the content of the adaptor.yaml
-    fullconfig = {} if context.fullconfig is None else context.fullconfig
-
-    # Get an object which will give us information/functionality associated
-    # with the Meteo France regional forecast API
-    regapi = regional_fc_api(
-        integration_server=fullconfig.get('integration_server', False),
-        logger=context)
-
-    # Pre-process requests
-    requests, info = preprocess_requests(context, requests, regapi)
-
-    # If converting to NetCDF then different groups of grib files may need to be
-    # converted separately. Split and group the requests into groups that can be
-    # converted together.
-    if 'convert' in info['stages']:
-        grps = nc_request_groups(context, requests, info)
-        req_groups = [{'group_id': k, 'requests': v} for k, v in grps.items()]
-    else:
-        req_groups = [{'group_id': None, 'requests': requests}]
-
-    # Output a zip file if creating >1 NetCDF file or if requested
-    if len(req_groups) > 1 or info['format'] in (Formats.netcdf_zip,
-                                                 Formats.netcdf_cdm):
-        info['stages'].append('zip')
-
-    dataset_dir = forms_dir + '/' + context.request['metadata']['resource']
-
-    # Initialisation for function that can understand GRIB file contents
-    grib2request_init(dataset_dir)
-
-    # Get locally stored fields
-    get_local(req_groups, context)
-
-    # Divide non-local fields betwen latest and archived
-    set_backend(req_groups, regapi, dataset_dir, context)
-
-    # Retrieve non-local latest (fast-access) fields
-    get_latest(req_groups, regapi, dataset_dir, context)
-
-    # Retrieve non-local archived (slow-access) fields
-    get_archived(req_groups, regapi, dataset_dir, context)
-
-    # Remove groups that had no matching data
-    req_groups = [x for x in req_groups if 'retrieved_files' in x]
-    if not req_groups:
-        raise NoDataException('No data found for this request', '')
-
-    # Process and merge grib files
-    process_grib_files(req_groups, info, context)
-
     # Convert to netCDF?
     if 'convert' in info['stages']:
         convert_grib(req_groups, info, dataset_dir, context)
@@ -362,7 +260,6 @@ def _get_local(req_group, cacher, context):
                             allow_no_data=True,
                             min_log_level=logging.INFO)
     grib_file = downloader.execute(urls)
-    #grib_file = None
 
     # Identify uncached fields - the ones not present in the file
     cached, uncached = which_fields_in_file(reqs, grib_file, context)
@@ -390,7 +287,7 @@ def get_latest(req_groups, regapi, dataset_dir, context):
         for reqs in hcube_tools.hcubes_chunk(
                 req_group['uncached_latest_requests'], 5000):
 
-            grib_file = new_retrieve_subrequest(reqs, req_group, regapi,
+            grib_file = retrieve_subrequest(reqs, req_group, regapi,
                                             dataset_dir, context)
 
             # Fields may have expired from the latest backend by the time the
@@ -418,7 +315,7 @@ def get_archived(req_groups, regapi, dataset_dir, context):
         for reqs in hcube_tools.hcubes_chunk(
                 req_group['uncached_archived_requests'], 900):
 
-            new_retrieve_subrequest(reqs, req_group, regapi, dataset_dir, context)
+            retrieve_subrequest(reqs, req_group, regapi, dataset_dir, context)
 
 
 def retrieve_latest(*args):
@@ -460,7 +357,6 @@ def retrieve_xxx(context, requests, dataset_dir, integration_server):
     def create_result_file(self, extension):
         random_value = str(random.randint(0, 1e9))
         result_path = f'/cache/debug/{random_value}{extension}'
-        self.add_stdout("----------> MOCK RESULT FILE HERE (in retrieve_xxx)")
         return MockResultFile(result_path)
 
     context.create_result_file = create_result_file.__get__(context)
@@ -478,7 +374,7 @@ def retrieve_xxx(context, requests, dataset_dir, integration_server):
 
 
 MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES = 3
-def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
+def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     from cdsapi import Client
     """Retrieve chunk of uncached fields in a sub-request"""
 
@@ -490,16 +386,12 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     context.info('Executing sub-request to retrieve uncached fields: ' +
                  repr(requests))
     t0 = time.time()
-    # result = context.call('adaptor.cams_regional_fc.retrieve_' + backend,
-    #                       requests, dataset_dir, regapi.integration_server)
     ADS_API_URL = "https://" + os.environ['ADS_SERVER_NAME'] + os.environ['API_ROOT_PATH']
     ADS_API_KEY = os.environ['HIGH_PRIORITY_CADS_API_KEY']
     client = Client(url = ADS_API_URL, key= ADS_API_KEY, wait_until_complete=False)
     if backend == "latest":
-        #result = retrieve_latest(context, requests, dataset_dir, regapi.integration_server)
         dataset = 'cams-europe-air-quality-forecasts-latest'
     else:
-        #result = retrieve_archived(context, requests, dataset_dir, regapi.integration_server)
         dataset = 'cams-europe-air-quality-forecasts-archived'
     
     random_value = str(random.randint(0, 1e9))
@@ -532,43 +424,12 @@ def new_retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
         message = f"Sub-request {request_uid} failed: {e!r}"
         context.add_stderr(message)
         raise RuntimeError(message)
-        #result = None
     
     context.info('... sub-request succeeded after ' +
                  str(time.time() - t0) + 's')
 
     if result is not None:
-        # Download result to a local file
-        context.info(f"----------------------------------------> {result}")
-        grib_file = result #context.get_data(result)
-        req_group['retrieved_files'] = req_group.get('retrieved_files', []) + \
-                                       [grib_file]
-    else:
-        context.info('... but found no data')
-        grib_file = None
-
-    return grib_file
-
-
-def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
-    """Retrieve chunk of uncached fields in a sub-request"""
-
-    backend = requests[0]['_backend'][0]
-    assert backend in ['latest', 'archived']
-
-    # Retrieve uncached fields in sub-requests to allow a different QOS to be
-    # applied to avoid overloading the Meteo France API.
-    context.info('Executing sub-request to retrieve uncached fields: ' +
-                 repr(requests))
-    t0 = time.time()
-    result = context.call('adaptor.cams_regional_fc.retrieve_' + backend,
-                          requests, dataset_dir, regapi.integration_server)
-    context.info('... sub-request succeeded after ' +
-                 str(time.time() - t0) + 's')
-
-    if result is not None:
-        # Download result to a local file
-        grib_file = context.get_data(result)
+        grib_file = result
         req_group['retrieved_files'] = req_group.get('retrieved_files', []) + \
                                        [grib_file]
     else:
@@ -583,9 +444,7 @@ def reassign_missing_to_archive(reqs, grib_file, req_group, regapi, context):
        backend"""
 
     # Which are in the file and which aren't?
-    context.add_stdout(f"----------> {grib_file}")
     if grib_file:
-        context.add_stdout(f"----------> {grib_file.path}")
         grib_file_path = grib_file.path
     else:
         grib_file_path = None
