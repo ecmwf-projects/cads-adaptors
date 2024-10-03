@@ -27,7 +27,7 @@ class Credentials:
 
 DESTINATION_BUCKET = "cci2-cams-regional-fc-test"
 TRUST_THAT_BUCKET_EXISTS = True
-def upload(destination_credentials, destination_bucket, destination_filepath, local_filepath):
+def upload(destination_credentials, destination_bucket, destination_filepath, data_to_transfer):
     client = boto3.client(
         "s3",
         aws_access_key_id     = destination_credentials.access,
@@ -51,8 +51,7 @@ def upload(destination_credentials, destination_bucket, destination_filepath, lo
     t0 = time.time()
     while retry:
         try:
-            with open(local_filepath, "rb") as fh:
-                file_object = io.BytesIO(fh.read())            
+            file_object = io.BytesIO(data_to_transfer)            
 
             client.put_object(
                 Bucket=destination_bucket,
@@ -215,11 +214,6 @@ class Cacher:
         else:
             self.context.debug('CACHER: writing to remote file: ' +
                                repr((host, path)))
-            with self.lock:
-                if self._remote_copier is None:
-                    self._remote_copier = RemoteCopier(logger=self.context)
-            # self._remote_copier.copy(codes_get_message(msg),
-            #                          self.remote_user, host, path)
             destination_url = os.environ['STORAGE_API_URL']
             destination_access = os.environ['STORAGE_ADMIN']
             destination_key = os.environ['STORAGE_PASSWORD']
@@ -231,10 +225,7 @@ class Cacher:
             self.context.add_stdout(f'{destination_url}, {destination_access}, {destination_key}, {destination_bucket}')
             self.context.add_stdout(f'{destination_filepath}, {path}, {host}')
 
-            with NamedTemporaryFile(dir='/cache/tmp/', delete=False) as tmpfile:
-                codes_write(msg, tmpfile)
-            self.context.add_stdout(f'{tmpfile.name}')
-            upload(destination_credentials, destination_bucket, destination_filepath, tmpfile.name)
+            upload(destination_credentials, destination_bucket, destination_filepath, codes_get_message(msg))
 
     def get(self, req):
         """Get a file from the cache or raise NotInCache if it doesn't exist"""
