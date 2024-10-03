@@ -1,0 +1,775 @@
+# This file contains metadata on the variables and models of the CAMS regional
+# forecast. It is the hand-written authoritative source of information on each.
+
+# For the variable entries...
+# frontend_api_name:
+#   Name used by CDS API
+# backend_api_name:
+#   Name used by Meteo France API
+# hidden:
+#   Set to True to prevent the variable appearing on the form. Does not prevent
+#   API access
+# form_label:
+#   Label to use on download form
+# var_table_units:
+#   Units to appear in variables.yaml
+# grib_representations:
+#   List of dicts of GRIB key-value pairs that can identify this variable.
+#   It's a list because some variable encodings were changed, meaning >1 entry
+#   required
+# eccodes_definition:
+#   Information used to define parameter definition tables that allow ecCodes to
+#   recognise parameters it otherwise wouldn't. This is used by the new netCDF
+#   converter.
+# netcdf:
+#   Used in conversion from GRIB to netCDF by the legacy converter
+
+variable:
+- frontend_api_name: alder_pollen
+  backend_api_name: C_POL_ALDER
+  standard_name:
+  hidden: false
+  form_label: Alder pollen
+  var_table_units: grains m<sup>-3</sup>
+  grib_representations:
+  - parameterNumber: 59
+    constituentType: 62100
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: AlderPollen
+    name: Alder pollen
+    paramId: 999001
+    units: 'grains m**-3'
+  netcdf:
+    varname: apg_conc
+    species: Alder Pollen Grain
+    shortname: ALDERPOLLEN
+    units: grains/m3
+    scale: 1
+
+- frontend_api_name: ammonia
+  backend_api_name: NH3_USI
+  standard_name: mass_concentration_of_ammonia_in_air
+  hidden: false
+  form_label: Ammonia
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 9
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: nh3density
+    name: Ammonia
+    paramId: 999002
+    units: 'kg m**-3'
+  netcdf:
+    varname: nh3_conc
+    species: Ammonia
+    shortname: NH3
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: birch_pollen
+  backend_api_name: C_POL_BIRCH
+  standard_name:
+  hidden: false
+  form_label: Birch pollen
+  var_table_units: grains m<sup>-3</sup>
+  grib_representations:
+  - parameterNumber: 59
+    constituentType: 64000
+    productDefinitionTemplateNumber: 40
+  - parameterNumber: 59
+    constituentType: 62101
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: BirchPollen
+    name: Birch pollen
+    paramId: 999003
+    units: 'grains m**-3'
+  netcdf:
+    varname: bpg_conc
+    species: Birch Pollen Grain
+    shortname: BIRCH_POLLEN
+    units: grains/m3
+    scale: 1
+
+- frontend_api_name: carbon_monoxide
+  backend_api_name: CO_USI
+  standard_name: mass_concentration_of_carbon_monoxide_in_air
+  hidden: false
+  form_label: Carbon monoxide
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 4
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: codensity
+    name: Carbon monoxide
+    paramId: 999004
+    units: 'kg m**-3'
+  netcdf:
+    varname: co_conc
+    species: Carbon Monoxide
+    shortname: CO
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: dust
+  backend_api_name: DUST_USI
+  standard_name: mass_concentration_of_dust_in_air
+  hidden: false
+  form_label: Dust
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 62001
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: dustdensity
+    name: Dust
+    paramId: 999005
+    units: 'kg m**-3'
+  netcdf:
+    varname: dust
+    species: Dust
+    shortname: Dust
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: formaldehyde
+  backend_api_name: HCHO_USI
+  standard_name: mass_concentration_of_formaldehyde_in_air
+  hidden: false
+  form_label: Formaldehyde
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 7
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: hchodensity
+    name: Formaldehyde
+    paramId: 999024
+    units: 'kg m**-3'
+  netcdf:
+    varname: hcho_conc
+    species: Formaldehyde
+    shortname: HCHO
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: glyoxal
+  backend_api_name: CHOCHO_USI
+  standard_name:
+  hidden: false
+  form_label: Glyoxal
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 10038
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: chochodensity
+    name: Glyoxal
+    paramId: 999025
+    units: 'kg m**-3'
+  netcdf:
+    varname: chocho_conc
+    species: Glyoxal
+    shortname: CHOCHO
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: grass_pollen
+  backend_api_name: C_POL_GRASS
+  standard_name:
+  hidden: false
+  form_label: Grass pollen
+  var_table_units: grains m<sup>-3</sup>
+  grib_representations:
+  - parameterNumber: 59
+    constituentType: 64001
+    productDefinitionTemplateNumber: 40
+  - parameterNumber: 59
+    constituentType: 62300
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: GrassPollen
+    name: Grass pollen
+    paramId: 999006
+    units: 'grains m**-3'
+  netcdf:
+    varname: gpg_conc
+    species: Grass Pollen Grain
+    shortname: GRASSPOLLEN
+    units: grains/m3
+    scale: 1
+
+- frontend_api_name: mugwort_pollen
+  backend_api_name: C_POL_MUGW
+  standard_name:
+  hidden: false
+  form_label: Mugwort pollen
+  var_table_units: grains m<sup>-3</sup>
+  grib_representations:
+  - parameterNumber: 59
+    constituentType: 62201
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: MugwortPollen
+    name: Mugwort pollen
+    paramId: 999007
+    units: 'grains m**-3'
+  netcdf:
+    varname: mpg_conc
+    species: Mugwort Pollen Grain
+    shortname: MUGWORTPOLLEN
+    units: grains/m3
+    scale: 1
+
+- frontend_api_name: nitrogen_dioxide
+  backend_api_name: NO2_USI
+  standard_name: mass_concentration_of_nitrogen_dioxide_in_air
+  hidden: false
+  form_label: Nitrogen dioxide
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 5
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: no2density
+    name: Nitrogen dioxide
+    paramId: 999008
+    units: 'kg m**-3'
+  netcdf:
+    varname: no2_conc
+    species: Nitrogen Dioxide
+    shortname: NO2
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: nitrogen_monoxide
+  backend_api_name: NO_USI
+  standard_name: mass_concentration_of_nitrogen_monoxide_in_air
+  hidden: false
+  form_label: Nitrogen monoxide
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 11
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: nodensity
+    name: Nitrogen monoxide
+    paramId: 999009
+    units: 'kg m**-3'
+  netcdf:
+    varname: no_conc
+    species: Nitrogen Monoxide
+    shortname: 'NO'
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: non_methane_vocs
+  backend_api_name: NMVOC_USI
+  standard_name: mass_concentration_of_nmvoc_expressed_as_carbon_in_air
+  hidden: false
+  form_label: Non-methane VOCs
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 60013
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: NonMethaneVOCs
+    name: Non-methane volatile organic compounds
+    paramId: 999010
+    units: 'kg m**-3'
+  netcdf:
+    varname: nmvoc_conc
+    species: Non-Methane Volatile Organic Compounds
+    shortname: NMVOC
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: olive_pollen
+  backend_api_name: C_POL_OLIVE
+  standard_name:
+  hidden: false
+  form_label: Olive pollen
+  var_table_units: grains m<sup>-3</sup>
+  grib_representations:
+  - parameterNumber: 59
+    constituentType: 64002
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: OlivePollen
+    name: Olive pollen
+    paramId: 999011
+    units: 'grains m**-3'
+  netcdf:
+    varname: opg_conc
+    species: Olive Pollen Grain
+    shortname: OLIVEPOLLEN
+    units: grains/m3
+    scale: 1
+
+- frontend_api_name: ozone
+  backend_api_name: O3_USI
+  standard_name: mass_concentration_of_ozone_in_air
+  hidden: false
+  form_label: Ozone
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 0
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: o3density
+    name: Ozone
+    paramId: 999012
+    units: 'kg m**-3'
+  netcdf:
+    varname: o3_conc
+    species: Ozone
+    shortname: O3
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: particulate_matter_2.5um
+  backend_api_name: PM25_USI
+  standard_name: mass_concentration_of_pm2p5_ambient_aerosol_in_air
+  hidden: false
+  form_label: "Particulate matter < 2.5 µm (PM2.5)"
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 40009
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: pm2p5
+    name: Particulate matter d <= 2.5 um
+    paramId: 999013
+    units: 'kg m**-3'
+  netcdf:
+    varname: pm2p5_conc
+    species: PM2.5 Aerosol
+    shortname: PM25
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: particulate_matter_10um
+  backend_api_name: PM10_USI
+  standard_name: mass_concentration_of_pm10_ambient_aerosol_in_air
+  hidden: false
+  form_label: "Particulate matter < 10 µm (PM10)"
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 40008
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: pm10
+    name: Particulate matter d <= 10 um
+    paramId: 999014
+    units: 'kg m**-3'
+  netcdf:
+    varname: pm10_conc
+    species: PM10 Aerosol
+    shortname: PM10
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: peroxyacyl_nitrates
+  backend_api_name: PANS_USI
+  standard_name:
+  hidden: false
+  form_label: Peroxyacyl nitrates
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 60018
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: pansdensity
+    name: Peroxyacyl nitrates
+    paramId: 999016
+    units: 'kg m**-3'
+  netcdf:
+    varname: pans_conc
+    species: Acyl Peroxy Nitrates
+    shortname: PANS
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: pm2.5_anthropogenic_fossil_fuel_carbon
+  backend_api_name: EC_FF_USI
+  standard_name:
+  hidden: true
+  form_label: PM2.5, anthropogenic fossil fuel carbon only
+  var_table_units:
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 62097
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: PM25FossilFuelCarbon
+    name: Particulate matter d <= 2.5 um from fossil fuel carbon
+    paramId: 999017
+    units: 'kg m**-3'
+  netcdf:
+    varname: ecff_conc
+    species: PM2.5 Elemental Carbon from Anthropogenic Fossil Fuels
+    shortname: ECFF
+    units: "µg/m3"
+    scale: 1
+
+- frontend_api_name: pm2.5_anthropogenic_wood_burning_carbon
+  backend_api_name: EC_WB_USI
+  standard_name:
+  hidden: true
+  form_label: PM2.5, anthropogenic wood burning carbon only
+  var_table_units:
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 62098
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: PM25WoodBurningCarbon
+    name: Particulate matter d <= 2.5 um from wood-burning carbon
+    paramId: 999018
+    units: 'kg m**-3'
+  netcdf:
+    varname: ecwb_conc
+    species: PM2.5 Elemental Carbon from Anthropogenic Wood Burning
+    shortname: ECWB
+    units: "µg/m3"
+    scale: 1
+
+- frontend_api_name: pm2.5_total_organic_matter
+  backend_api_name: PM25_OM_USI
+  standard_name:
+  hidden: false
+  form_label: PM2.5, total organic matter only
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 62010
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: pm2p5totalorganicmatter
+    name: Particulate matter d <= 2.5 um from total organic matter
+    paramId: 999025
+    units: 'kg m**-3'
+  netcdf:
+    varname: pm2p5_total_om_conc
+    species: PM2.5 Aerosol from Total Organic Matter
+    shortname: PM25_TOTAL_OM
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: pm10_sea_salt_dry
+  backend_api_name: DYNSAL_USI
+  standard_name:
+  hidden: false
+  form_label: PM10, sea salt (dry) only
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 62008
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: pm10seasaltdry
+    name: Particulate matter d <= 10 um from sea salt (dry)
+    paramId: 999024
+    units: 'kg m**-3'
+  netcdf:
+    varname: pm10_ss_conc
+    species: PM10 Aerosol from Sea salt (dry)
+    shortname: PM10_SEASALT_DRY
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: pm10_wildfires
+  backend_api_name: PM_WF_USI
+  standard_name:
+  hidden: false
+  form_label: PM10, wildfires only
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 62096
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: pm10wildfire
+    name: Particulate matter d <= 10 um from wildfires
+    paramId: 999015
+    units: 'kg m**-3'
+  netcdf:
+    varname: pmwf_conc
+    species: PM10 Aerosol from Wildfires
+    shortname: PM_Wildfire
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: ragweed_pollen
+  backend_api_name: C_POL_RAGW
+  standard_name:
+  hidden: false
+  form_label: Ragweed pollen
+  var_table_units: grains m<sup>-3</sup>
+  grib_representations:
+  - parameterNumber: 59
+    constituentType: 64003
+    productDefinitionTemplateNumber: 40
+  - parameterNumber: 59
+    constituentType: 62200
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: RagweedPollen
+    name: Ragweed pollen
+    paramId: 999019
+    units: 'grains m**-3'
+  netcdf:
+    varname: rwpg_conc
+    species: Ragweed Pollen Grain
+    shortname: RAGWEEDPOLLEN
+    units: grains/m3
+    scale: 1
+
+- frontend_api_name: residential_elementary_carbon
+  backend_api_name: EC_RES_USI
+  standard_name:
+  hidden: false
+  form_label: Residential elementary carbon
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 62094
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: ResidentialElementaryCarbon
+    name: Residential elementary carbon
+    paramId: 999020
+    units: 'kg m**-3'
+  netcdf:
+    varname: ecres_conc
+    species: Residential Elementary Carbon
+    shortname: ECRES
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: secondary_inorganic_aerosol
+  backend_api_name: SIA_USI
+  standard_name: mass_concentration_of_secondary_inorganic_aerosol_in_air
+  hidden: false
+  form_label: Secondary inorganic aerosol
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 62099
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: SecondaryInorganicAerosol
+    name: Secondary inorganic aerosol
+    paramId: 999021
+    units: 'kg m**-3'
+  netcdf:
+    varname: sia_conc
+    species: Secondary Inorganic Aerosol
+    shortname: SIA
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: sulphur_dioxide
+  backend_api_name: SO2_USI
+  standard_name: mass_concentration_of_sulfur_dioxide_in_air
+  hidden: false
+  form_label: Sulphur dioxide
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 8
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: so2density
+    name: Sulphur dioxide
+    paramId: 999022
+    units: 'kg m**-3'
+  netcdf:
+    varname: so2_conc
+    species: Sulphur Dioxide
+    shortname: SO2
+    units: "µg/m3"
+    scale: 1000000000.0
+
+- frontend_api_name: total_elementary_carbon
+  backend_api_name: EC_TOT_USI
+  standard_name:
+  hidden: false
+  form_label: Total elementary carbon
+  var_table_units: "GRIB: kg m<sup>-3</sup>; netCDF: µg m<sup>-3</sup>"
+  grib_representations:
+  - parameterNumber: 0
+    constituentType: 62095
+    productDefinitionTemplateNumber: 40
+  eccodes_definition:
+    shortName: TotalElementaryCarbon
+    name: Total elementary carbon
+    paramId: 999023
+    units: 'kg m**-3'
+  netcdf:
+    varname: ectot_conc
+    species: Total Elementary Carbon
+    shortname: ECTOT
+    units: "µg/m3"
+    scale: 1000000000.0
+
+
+model:
+- backend_api_name: ENS
+  frontend_api_name: ensemble
+  form_label: Ensemble median
+  grib_representations:
+  - centre: 85
+    subCentre: 2
+  netcdf:
+    institution: Meteo France
+    name: ENSEMBLE
+    name2: ENSEMBLE
+
+  # INERIS
+- backend_api_name: CHIMERE
+  frontend_api_name: chimere
+  form_label: CHIMERE
+  grib_representations:
+  - centre: 85
+    subCentre: 200
+  netcdf:
+    institution: CNRS
+    name: CHIMERE
+    name2: CHIMERE
+
+  # Met Norway
+- backend_api_name: EMEP
+  frontend_api_name: emep
+  form_label: EMEP
+  grib_representations:
+  - centre: 88
+    subCentre: 0
+  netcdf:
+    institution: Met No
+    name: EMEP
+    name2: EMEP
+
+  # KNMI/TNO
+- backend_api_name: LOTOS
+  frontend_api_name: lotos
+  form_label: LOTOS-EUROS
+  grib_representations:
+  - centre: 99
+    subCentre: 0
+  netcdf:
+    institution: Royal Netherlands Meteorological Institute
+    name: LOTOS-EUROS
+    name2: LOTOS_EUROS
+
+  # SMHI
+- backend_api_name: MATCH
+  frontend_api_name: match
+  form_label: MATCH
+  grib_representations:
+  - centre: 82
+    subCentre: 98
+  netcdf:
+    institution: Swedish Meteorological and Hydrological Institute
+    name: MATCH
+    name2: MATCH
+
+  # Meteo France
+- backend_api_name: MOCAGE
+  frontend_api_name: mocage
+  form_label: MOCAGE
+  grib_representations:
+  - centre: 85
+    subCentre: 1
+  netcdf:
+    institution: Meteo France
+    name: MOCAGE
+    name2: MOCAGE
+
+  # FMI
+- backend_api_name: SILAM
+  frontend_api_name: silam
+  form_label: SILAM
+  grib_representations:
+  - centre: 86
+    subCentre: 0
+  netcdf:
+    institution: Finnish Meteorological Institute
+    name: SILAM
+    name2: SILAM
+
+  # Forschungszentrum Julich / IEK8
+- backend_api_name: EURADIM
+  frontend_api_name: euradim
+  form_label: EURAD-IM
+  grib_representations:
+  - centre: 85
+    subCentre: 201
+  netcdf:
+    institution: RIUUK
+    name: EURAD-IM
+    name2: EURAD
+
+  # Aarhus University (Denmark)
+- backend_api_name: DEHM
+  frontend_api_name: dehm
+  form_label: DEHM
+  grib_representations:
+  - centre: 85
+    subCentre: 203
+  netcdf:
+    institution: Aarhus University (Denmark)
+    name: DEHM
+    name2: DEHM
+
+  # Polish Institute for National Protection (IEP-NRI)
+- backend_api_name: GEMAQ
+  frontend_api_name: gemaq
+  form_label: GEM-AQ
+  grib_representations:
+  - centre: 85
+    subCentre: 204
+  netcdf:
+    institution: "Institute of Environmental Protection – National Research Institute (Poland)"
+    name: GEM-AQ
+    name2: GEM-AQ
+
+  # ENEA - Italian National Agency for New Technologies, Energy and Sustainable
+  # Economic Development
+- backend_api_name: MINNI
+  frontend_api_name: minni
+  form_label: MINNI
+  grib_representations:
+  - centre: 85
+    subCentre: 205
+  netcdf:
+    institution: "ENEA (Italy)"
+    name: MINNI
+    name2: MINNI
+
+  # Barcelona Supercomputing Center (BSC)
+- backend_api_name: MONARCH
+  frontend_api_name: monarch
+  form_label: MONARCH
+  grib_representations:
+  - centre: 85
+    subCentre: 206
+  netcdf:
+    institution: "Barcelona Supercomputing Center"
+    name: MONARCH
+    name2: MONARCH
