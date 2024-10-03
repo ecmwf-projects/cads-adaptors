@@ -1,3 +1,4 @@
+import os
 import time
 import random
 import shutil
@@ -26,11 +27,12 @@ def which_fields_in_file(reqs, grib_file, context):
     except Exception:
         # Sometimes we have problems here. Copy the file somewhere so
         # we can investigate later.
-        tmp = '/cache/downloads/cams-europe-air-quality-forecasts/' + \
+        tmp = '/tmp/cams-europe-air-quality-forecasts/debug/' + \
               'problem_file.' + datetime.now().strftime('%Y%m%d.%H%M%S') + \
-              '.' + str(random.randint(0, 9999999)) + '.grib'
+              '.' + str(random.randint(0, 2**128)) + '.grib'
         context.info('Encountered error when reading grib file. Copying ' +
                      'to ' + tmp + ' for offline investigation')
+        os.makedirs(os.path.dirname(tmp), exist_ok=True)
         shutil.copyfile(grib_file, tmp)
         raise
     hcube_tools.hcubes_merge(reqs_infile)

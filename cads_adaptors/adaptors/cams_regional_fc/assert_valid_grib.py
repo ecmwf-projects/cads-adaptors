@@ -1,4 +1,4 @@
-
+import os
 import random
 from datetime import datetime
 
@@ -43,9 +43,10 @@ def assert_valid_grib(req, response, context):
 
             # Write bad grib to file for investigation?
             if datetime.now() < datetime(2021, 10, 31, 0):
-                rn = random.randint(0,9999999)
-                file = f'/cache/tmp/badgrib_{context.request_id}.{rn}.grib'
+                rn = random.randint(0,2**128)
+                file = f'/tmp/cams-europe-air-quality-forecasts/debug/badgrib_{context.request_id}.{rn}.grib'
                 context.info(f'Writing bad grib to {file}: {req["url"]}')
+                os.makedirs(os.path.dirname(file), exist_ok=True)
                 with open(file, 'wb') as f:
                     f.write(response.content)
 

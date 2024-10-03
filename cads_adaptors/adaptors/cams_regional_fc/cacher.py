@@ -84,8 +84,8 @@ class Cacher:
 
     def __init__(self, context, no_put=False):
         self.context = context
-        self.temp_cache_root = '/cache/downloads/' + \
-                               'cams-europe-air-quality-forecasts'
+        self.temp_cache_root = '/tmp/cams-europe-air-quality-forecasts/debug/'
+        os.makedirs(self.temp_cache_root, exist_ok=True)
         self.remote_user = 'cds'
         self.no_put = no_put
         self.lock = threading.Lock()
@@ -183,7 +183,7 @@ class Cacher:
             from random import randint
             from datetime import datetime
             unique_string = datetime.now().strftime('%Y%m%d%H%M%S.') + \
-                            str(randint(0,99999))
+                            str(randint(0,2**128))
             with open(f'{self.temp_cache_root}/{unique_string}'
                       '.actually_bad.grib', 'wb') as f:
                 f.write(data)

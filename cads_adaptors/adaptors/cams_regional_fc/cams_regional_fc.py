@@ -50,11 +50,14 @@ def cams_regional_fc(context, config, requests, forms_dir=None):
 
     def create_result_file(self, extension):
         request_uid = config["request_uid"]
-        result_path = f'/cache/debug/{request_uid}.{extension}'
+        result_path = f'/tmp/cams-europe-air-quality-forecasts/download/{request_uid}.{extension}'
+        os.makedirs(os.path.dirname(result_path), exist_ok=True)
         return MockResultFile(result_path)
     
     def create_temp_file(self, extension=".tmp"):
-        fd, path = tempfile.mkstemp(extension)
+        temp_path = '/tmp/cams-europe-air-quality-forecasts/temp/'
+        os.makedirs(temp_path, exist_ok=True)
+        fd, path = tempfile.mkstemp(suffix=extension, dir=temp_path)
         os.close(fd)
         return path
     
@@ -349,8 +352,9 @@ def retrieve_archived(*args):
 
 def retrieve_xxx(context, requests, dataset_dir, integration_server):
     def create_result_file(self, extension):
-        random_value = str(random.randint(0, 1e9))
-        result_path = f'/cache/debug/{random_value}.{extension}'
+        random_value = random.randint(0, 2**128)
+        result_path = f'/tmp/cams-europe-air-quality-forecasts/download/{random_value}.{extension}'
+        os.makedirs(os.path.dirname(result_path), exist_ok=True)
         return MockResultFile(result_path)
 
     context.create_result_file = create_result_file.__get__(context)
@@ -388,8 +392,9 @@ def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context, confi
     else:
         dataset = 'cams-europe-air-quality-forecasts-archived'
     
-    random_value = str(random.randint(0, 1e9))
-    target = f'/cache/debug/{random_value}.ap'
+    random_value = random.randint(0, 2**128)
+    target = f'/tmp/cams-europe-air-quality-forecasts/download/{random_value}.sub'
+    os.makedirs(os.path.dirname(target), exist_ok=True)
     sub_request_uid = None
     if config:
         request_uid = config.get('request_uid', None)
