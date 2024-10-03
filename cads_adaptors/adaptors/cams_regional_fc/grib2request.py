@@ -44,7 +44,7 @@ def grib2request_init(dataset_dir):
             for grib_defn in value_info["grib_representations"]:
                 for grib_key, grib_value in grib_defn.items():
                     if grib_key not in grib_key_types:
-                        grib_key_types[grib_key] is type(grib_value)
+                        grib_key_types[grib_key] = type(grib_value)
 
                     elif grib_key_types[grib_key] is not type(grib_value):
                         raise Exception(
