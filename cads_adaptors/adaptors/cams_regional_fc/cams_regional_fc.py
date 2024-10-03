@@ -90,10 +90,10 @@ def cams_regional_fc(context, config, requests, forms_dir=None):
     set_backend(req_groups, regapi, dataset_dir, context)
     
     # Retrieve non-local latest (fast-access) fields
-    get_latest(req_groups, regapi, dataset_dir, context)
+    get_latest(req_groups, regapi, dataset_dir, context, config)
     
     # Retrieve non-local archived (slow-access) fields
-    get_archived(req_groups, regapi, dataset_dir, context)
+    get_archived(req_groups, regapi, dataset_dir, context, config)
     
     # Remove groups that had no matching data
     req_groups = [x for x in req_groups if 'retrieved_files' in x]
@@ -268,7 +268,7 @@ def _get_local(req_group, cacher, context):
                                        [grib_file]
 
 
-def get_latest(req_groups, regapi, dataset_dir, context):
+def get_latest(req_groups, regapi, dataset_dir, context, config=None):
     """Retrieve uncached latest fields"""
 
     for req_group in req_groups:
@@ -282,7 +282,7 @@ def get_latest(req_groups, regapi, dataset_dir, context):
                 req_group['uncached_latest_requests'], 5000):
 
             grib_file = retrieve_subrequest(reqs, req_group, regapi,
-                                            dataset_dir, context)
+                                            dataset_dir, context, config)
 
             # Fields may have expired from the latest backend by the time the
             # request was made. Reassign any missing fields to the archive
@@ -291,7 +291,7 @@ def get_latest(req_groups, regapi, dataset_dir, context):
                                         context)
 
 
-def get_archived(req_groups, regapi, dataset_dir, context):
+def get_archived(req_groups, regapi, dataset_dir, context, config=None):
     """Retrieve uncached slow-access archived fields"""
 
     for req_group in req_groups:
@@ -309,7 +309,7 @@ def get_archived(req_groups, regapi, dataset_dir, context):
         for reqs in hcube_tools.hcubes_chunk(
                 req_group['uncached_archived_requests'], 900):
 
-            retrieve_subrequest(reqs, req_group, regapi, dataset_dir, context)
+            retrieve_subrequest(reqs, req_group, regapi, dataset_dir, context, config)
 
 
 def retrieve_latest(*args):
@@ -368,7 +368,7 @@ def retrieve_xxx(context, requests, dataset_dir, integration_server):
 
 
 MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES = 3
-def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
+def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context, config=None):
     from cdsapi import Client
     """Retrieve chunk of uncached fields in a sub-request"""
 
@@ -382,7 +382,7 @@ def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     t0 = time.time()
     ADS_API_URL = "https://" + os.environ['ADS_SERVER_NAME'] + os.environ['API_ROOT_PATH']
     ADS_API_KEY = os.environ['HIGH_PRIORITY_CADS_API_KEY']
-    client = Client(url = ADS_API_URL, key= ADS_API_KEY, wait_until_complete=False)
+    client = Client(url=ADS_API_URL, key=ADS_API_KEY, wait_until_complete=False)
     if backend == "latest":
         dataset = 'cams-europe-air-quality-forecasts-latest'
     else:
@@ -390,16 +390,21 @@ def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
     
     random_value = str(random.randint(0, 1e9))
     target = f'/cache/debug/{random_value}.ap'
-    request_uid = None
+    sub_request_uid = None
+    if config:
+        request_uid = config.get('request_uid', None)
+        user_uid = config.get('user_uid', None)
     try:
         response = client.retrieve(dataset, 
             {
                 'requests': requests, 
                 'dataset_dir': dataset_dir, 
-                'integration_server': regapi.integration_server
+                'integration_server': regapi.integration_server,
+                'parent_request_uid': request_uid,
+                'parent_request_user_uid': user_uid
             })
-        request_uid = response.request_uid
-        message = f"Sub-request {request_uid} has been launched (via the CDSAPI)."
+        sub_request_uid = response.request_uid
+        message = f"Sub-request {sub_request_uid} has been launched (via the CDSAPI)."
         context.add_stdout(message)
         
         for i_retry in range(MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES):
@@ -407,15 +412,16 @@ def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context):
                 response.download(target)
                 break
             except Exception as e:
-                context.add_stdout(f"Attempt {i_retry+1} to download the result of sub-request {request_uid} failed: {e!r}")
+                context.add_stdout(f"Attempt {i_retry+1} to download the result of sub-request {sub_request_uid} failed: {e!r}")
                 if i_retry+1 == MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES:
                     raise
         
         result = MockResultFile(target)
+        # TODO: when should we delete this file?
     except Exception as e:
-        if not request_uid:
-            request_uid = "with no ID assigned"
-        message = f"Sub-request {request_uid} failed: {e!r}"
+        if not sub_request_uid:
+            sub_request_uid = "with no ID assigned"
+        message = f"Sub-request {sub_request_uid} failed: {e!r}"
         context.add_stderr(message)
         raise RuntimeError(message)
     
