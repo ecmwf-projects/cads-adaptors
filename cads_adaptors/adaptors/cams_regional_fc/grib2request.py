@@ -4,7 +4,7 @@ import yaml
 from eccodes import codes_get
 
 grib_key_types = {}
-field_data: dict[str, dict] = {}
+field_data: dict = {}
 
 
 def grib2request_init(dataset_dir):
