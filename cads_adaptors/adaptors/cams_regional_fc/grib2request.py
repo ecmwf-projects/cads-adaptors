@@ -1,6 +1,4 @@
-"""Code that takes a grib message and, by examining the data in it, reverse
-engineers and returns the associated ADS API request dictionary
-"""
+"""Code that takes a grib message, reverse engineers and returns the associated ADS API request dictionary."""
 
 import yaml
 from eccodes import codes_get
@@ -46,9 +44,9 @@ def grib2request_init(dataset_dir):
             for grib_defn in value_info["grib_representations"]:
                 for grib_key, grib_value in grib_defn.items():
                     if grib_key not in grib_key_types:
-                        grib_key_types[grib_key] = type(grib_value)
+                        grib_key_types[grib_key] is type(grib_value)
 
-                    elif grib_key_types[grib_key] != type(grib_value):
+                    elif grib_key_types[grib_key] is not type(grib_value):
                         raise Exception(
                             "All values for a given grib key "
                             + "should have same type: "
@@ -57,9 +55,7 @@ def grib2request_init(dataset_dir):
 
 
 def grib2request(msg):
-    """Return the ADS API request dict that corresponds to the input grib
-    message
-    """
+    """Return the ADS API request dict that corresponds to the input grib message."""
     if not field_data:
         raise Exception(
             "You must call the initialisation function before this " "function"

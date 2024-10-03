@@ -70,7 +70,7 @@ def preprocess_requests(context, requests, regapi):
 
 
 def apply_schema(requests, context):
-    """Enforce basic type conformance of the requests according to a schema"""
+    """Enforce basic type conformance of the requests according to a schema."""
     mandatory_keys = [
         "variable",
         "model",
@@ -134,9 +134,9 @@ def apply_schema(requests, context):
 
 
 def set_area(request, area_list, grid, context):
-    """If a requested area is provided and is not the full model area then
-    insert it in the request using separate north, south, east, west
-    keywords
+    """Adjust the area format.
+    If a requested area is provided and is not the full model area then
+    insert it in the request using separate north, south, east, west keywords.
     """
     # If no area is supplied, give it default values
     if area_list is None:
@@ -205,9 +205,7 @@ def set_area(request, area_list, grid, context):
 
 
 def model_grids_table(grids, regapi):
-    """Return the text of a table summarising the regional model grids in use
-    for the requested fields
-    """
+    """Return the text of a table summarising the regional model grids in use for the requested fields."""
     # Loop over each grid and the fields that were requested on that grid
     strings = []
     for grid, requested in grids.items():
@@ -249,9 +247,7 @@ def model_grids_table(grids, regapi):
 
 
 def snap_to_grid(coord, minl, incr, rounder):
-    """Snap a lat or lon to the regional grid where the lat/lon min is minl
-    and the grid length is incr
-    """
+    """Snap a lat or lon to the regional grid where the lat/lon min is minl and the grid length is incr."""
     raw = rounder((coord - (minl + incr / 2)) / incr) * incr + (minl + incr / 2)
     # Rounding error can lead to spurious significant figures. This is a
     # poor-man's attempt at getting the number of decimal places the result
@@ -264,7 +260,7 @@ def locally_extracted_area(requests):
     """If extracting a sub-area locally (rather than having the backend do it)
     then remove the area from the requests (so the area downloded from the
     backend will be the full area) and return it. Otherwise leave it in the
-    requests (if present) and return None
+    requests (if present) and return None.
     """
     area = None
     requests = deepcopy(requests)

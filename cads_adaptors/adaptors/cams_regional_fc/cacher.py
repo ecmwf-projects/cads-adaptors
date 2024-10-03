@@ -80,7 +80,7 @@ def upload(
 
 
 class Cacher:
-    """Class to look after cache storage and retrieval"""
+    """Class to look after cache storage and retrieval."""
 
     def __init__(self, context, no_put=False):
         self.context = context
@@ -97,7 +97,9 @@ class Cacher:
         # Get a list of the compute node names
         self.compute_nodes = []
         with open("/etc/hosts") as f:
-            for x in [l.split()[1:] for l in f.readlines() if not l.startswith("#")]:
+            for x in [
+                line.split()[1:] for line in f.readlines() if not line.startswith("#")
+            ]:
                 if x and x[0].startswith("compute-"):
                     self.compute_nodes.append(x[0].strip())
         self.compute_nodes = sorted(self.compute_nodes)
@@ -132,7 +134,7 @@ class Cacher:
         self.done()
 
     def put(self, req):
-        """Write grib fields from a request into the cache"""
+        """Write grib fields from a request into the cache."""
         if self.no_put:
             return
 
@@ -193,7 +195,7 @@ class Cacher:
             raise
 
     def _put_msg(self, msg, req1field):
-        """Write one grib message into the cache"""
+        """Write one grib message into the cache."""
         host, path, _ = self.cache_file_location(req1field)
 
         # It's easier if the cache host is the current host
@@ -237,7 +239,7 @@ class Cacher:
             )
 
     def get(self, req):
-        """Get a file from the cache or raise NotInCache if it doesn't exist"""
+        """Get a file from the cache or raise NotInCache if it doesn't exist."""
         # This is the method called by the URL2 code to see if the data is in
         # the cache before it attempts to download it from the Meteo France
         # backend. When the Meteo France API was changed from giving single
@@ -247,9 +249,7 @@ class Cacher:
         raise NotInCache()
 
     def cache_file_location(self, field):
-        """Return the host, path and url of the cache file for the given
-        field
-        """
+        """Return the host, path and url of the cache file for the given field."""
         # Is this a field which should be stored in a permanent location? If
         # the field contains an area specification then it isn't because only
         # full-area fields are stored permanently. The "no_cache" key is set to
@@ -270,37 +270,25 @@ class Cacher:
         return (host, path, url)
 
     def permanent_location(self, field):
-        """Return the host, path and url of the permanent cache file for the
-        given field
-        """
+        """Return the host, path and url of the permanent cache file for the given field."""
         host = "object-store.os-api.cci2.ecmwf.int"
         bucket = DESTINATION_BUCKET
         path = "permanent" + "/" + self.cache_field_path(field)
         url = "https://" + host + "/" + bucket + "/" + path
 
-        fake_host_for_upload = "localhost"
-        fake_path_for_upload = self.temp_cache_root + "/" + self.cache_field_path(field)
-
         return (host, path, url)
 
     def temporary_location(self, field):
-        """Return the host, path and url of the temporary cache file for the
-        given field
-        """
+        """Return the host, path and url of the temporary cache file for the given field."""
         host = "object-store.os-api.cci2.ecmwf.int"
         bucket = DESTINATION_BUCKET
         path = "temporary" + "/" + self.cache_field_path(field)
         url = "https://" + host + "/" + bucket + "/" + path
 
-        fake_host_for_upload = "localhost"
-        fake_path_for_upload = self.temp_cache_root + "/" + self.cache_field_path(field)
-
         return (host, path, url)
 
     def cache_field_path(self, field):
-        """Return the field-specific end part of the path of the cache file
-        for the given field
-        """
+        """Return the field-specific end part of the path of the cache file for the given field."""
         # Set the order we'd like the keys to appear in the filename. Area
         # keys will be last.
         order1 = ["model", "type", "variable", "level", "time", "step"]

@@ -23,7 +23,10 @@ class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from .cams_regional_fc import retrieve_latest
 
-        message = f"The parent request is {request['parent_request_uid']}, launched by user {request['parent_request_user_uid']}."
+        message = (
+            f"The parent request is {request['parent_request_uid']}, "
+            "launched by user {request['parent_request_user_uid']}."
+        )
         self.context.add_stdout(message)
 
         result_file = retrieve_latest(
@@ -42,7 +45,10 @@ class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from .cams_regional_fc import retrieve_archived
 
-        message = f"The parent request is {request['parent_request_uid']}, launched by user {request['parent_request_user_uid']}."
+        message = (
+            f"The parent request is {request['parent_request_uid']}, "
+            "launched by user {request['parent_request_user_uid']}."
+        )
         self.context.add_stdout(message)
 
         result_file = retrieve_archived(

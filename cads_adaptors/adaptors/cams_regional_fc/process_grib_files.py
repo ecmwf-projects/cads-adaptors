@@ -8,8 +8,8 @@ from .grib2request import grib2request
 
 
 def process_grib_files(req_groups, info, context):
-    """Merge grib files that need to be combined, reordering fields if
-    required. Also extract any required sub-area
+    """Merge grib files that need to be combined, reordering fields if required.
+    Also extract any required sub-area.
     """
     # Records alterations required to the GRIB fields/files, such as area
     # sub-selection
@@ -46,8 +46,8 @@ def process_grib_files(req_groups, info, context):
 
 
 def data_processor(req_group, alterations, context):
-    """Yield chunks of data from the grib files in req_group. Sub-areas will
-    be extracted and fields will be ordered if required
+    """Yield chunks of data from the grib files in req_group.
+    Sub-areas will be extracted and fields will be ordered if required.
     """
     if not any(alterations.values()):
         # The binary data can be directly copied without grib decoding - fast

@@ -129,9 +129,7 @@ def cams_regional_fc(context, config, requests, forms_dir=None):
 
 
 def set_backend(req_groups, regapi, dataset_dir, context):
-    """Divide requests between "latest" and "archived" and set their "_backend"
-    attribute accordingly
-    """
+    """Divide requests between "latest" and "archived" and set their "_backend" attribute accordingly."""
     for req_group in req_groups:
         online, offline = split_latest_from_archived(
             req_group["uncached_requests"], regapi, dataset_dir, context
@@ -145,7 +143,7 @@ def set_backend(req_groups, regapi, dataset_dir, context):
 
 
 def split_latest_from_archived(requests, regapi, dataset_dir, context):
-    """Split requests into "latest" and "archived" groups"""
+    """Split requests into "latest" and "archived" groups."""
     if requests:
         # Get the catalogue that lists all fields that are currently in the
         # fast "synopsis" part of the backend
@@ -192,9 +190,8 @@ def split_latest_from_archived(requests, regapi, dataset_dir, context):
 
 
 def archive_maxdate_split(reqs, regapi):
-    """Return a copy of requests with fields that are too recent to be in the
-    archive backend removed. Requesting these fields would result in a HTTP
-    400 (invalid request) error
+    """Return a copy of requests with fields that are too recent to be in thearchive backend removed.
+    Requesting these fields would result in a HTTP 400 (invalid request) error.
     """
     valid = []
     invalid = []
@@ -285,7 +282,7 @@ def _get_local(req_group, cacher, context):
 
 
 def get_latest(req_groups, regapi, dataset_dir, context, config=None):
-    """Retrieve uncached latest fields"""
+    """Retrieve uncached latest fields."""
     for req_group in req_groups:
         if not req_group["uncached_latest_requests"]:
             continue
@@ -307,7 +304,7 @@ def get_latest(req_groups, regapi, dataset_dir, context, config=None):
 
 
 def get_archived(req_groups, regapi, dataset_dir, context, config=None):
-    """Retrieve uncached slow-access archived fields"""
+    """Retrieve uncached slow-access archived fields."""
     for req_group in req_groups:
         if not req_group["uncached_archived_requests"]:
             continue
@@ -440,7 +437,8 @@ def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context, confi
                 break
             except Exception as e:
                 context.add_stdout(
-                    f"Attempt {i_retry+1} to download the result of sub-request {sub_request_uid} failed: {e!r}"
+                    f"Attempt {i_retry+1} to download the result "
+                    f"of sub-request {sub_request_uid} failed: {e!r}"
                 )
                 if i_retry + 1 == MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES:
                     raise
@@ -469,9 +467,7 @@ def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context, confi
 
 
 def reassign_missing_to_archive(reqs, grib_file, req_group, regapi, context):
-    """Re-assign fields which are in reqs but not in grib_file to the archived
-    backend
-    """
+    """Re-assign fields which are in reqs but not in grib_file to the archived backend."""
     # Which are in the file and which aren't?
     if grib_file:
         grib_file_path = grib_file.path

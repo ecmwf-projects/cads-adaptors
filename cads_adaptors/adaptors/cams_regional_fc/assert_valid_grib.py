@@ -11,7 +11,7 @@ from .grib2request import grib2request
 
 def assert_valid_grib(req, response, context):
     """Raise a ResponseException if the request response indicates success but
-    the content is not a valid grib message
+    the content is not a valid grib message.
     """
     if response.status_code == 200:
         # Decode the grib messages, counting the fields

@@ -8,7 +8,7 @@ from .formats import Formats
 
 
 def convert_grib(req_groups, info, dataset_dir, context):
-    """Convert files to NetCDF if required"""
+    """Convert files to NetCDF if required."""
     # Information on each parameter & model
     with open(dataset_dir + "/regional_fc_definitions.yaml") as f:
         regfc_defns = yaml.safe_load(f)

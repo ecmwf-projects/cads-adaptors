@@ -13,7 +13,7 @@ from .grib2request import grib2request_init
 
 
 def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **kwargs):
-    """Download the fields from the Meteo France API"""
+    """Download the fields from the Meteo France API."""
     # Keyword argument options to Downloader that depend on the backend
     # (archived/latest)
     backend_specific = {
@@ -98,8 +98,8 @@ def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **k
         try:
             # Returns None if no data is found
             file = downloader.execute(urlreqs)
-        except RequestFailed as e:
-            req = {x["url"]: x["req"] for x in urlreqs}[e.url]
+        except RequestFailed:
+            # req = {x["url"]: x["req"] for x in urlreqs}[e.url]
             # raise Exception(
             #     'Failed to retrieve data for ' + str(req) +
             #     f' (code {e.status_code}). Please try again later') \
@@ -139,7 +139,10 @@ def make_api_hypercubes(requests, regapi, context):
     def levgroups(levels):
         return [
             g
-            for g in [[l for l in levels if l == "0"], [l for l in levels if l != "0"]]
+            for g in [
+                [level for level in levels if level == "0"],
+                [level for level in levels if level != "0"],
+            ]
             if g
         ]
 
@@ -178,8 +181,8 @@ def make_api_hypercubes(requests, regapi, context):
 
 
 class CamsRegionalFcApiLimiter:
-    """Abstract base class for controlling the URL request rate and max
-    number of simultaneous requests to the regional forecast API
+    """Abstract base class for controlling the URL requests.
+    It controls rate and max number of simultaneous requests to the regional forecast API.
     """
 
     def __init__(self, regapi):
@@ -212,7 +215,7 @@ class CamsRegionalFcApiLimiter:
 
 
 class CamsRegionalFcApiRateLimiter(CamsRegionalFcApiLimiter):
-    """Class to limit the URL request rate to the regional forecast API"""
+    """Class to limit the URL request rate to the regional forecast API."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -228,9 +231,7 @@ class CamsRegionalFcApiRateLimiter(CamsRegionalFcApiLimiter):
 
 
 class CamsRegionalFcApiNumberLimiter(CamsRegionalFcApiLimiter):
-    """Class to limit the number of simultaneously executing URL requests to the
-    regional forecast API
-    """
+    """Class to limit the number of simultaneously executing URL requests to the regional forecast API."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

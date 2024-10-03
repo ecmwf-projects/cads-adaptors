@@ -10,7 +10,7 @@ def nc_request_groups(context, reqs, info):
     """
 
     def split_and_group(reqs, split_on):
-        """Chop up and group requests by the keywords in split_on"""
+        """Chop up and group requests by the keywords in split_on."""
         groups = {}
         for req in reqs:
             for splitvals in product(*[req[k] for k in split_on]):
@@ -51,9 +51,7 @@ def nc_request_groups(context, reqs, info):
 
 
 def overlapping_vtimes(reqs):
-    """Return True if validity times overlap between successive data times as
-    expressed in the requests
-    """
+    """Return True if validity times overlap between successive data times as expressed in the requests."""
     # Get the validity times associated with each data time
     vtimes = {}
     for req in reqs:

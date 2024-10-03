@@ -1,4 +1,4 @@
-"""Code to extract an area subset from a regional model grib2 file"""
+"""Code to extract an area subset from a regional model grib2 file."""
 
 from collections import deque
 
@@ -15,13 +15,13 @@ from eccodes import (
 
 
 def area_subset(area, infile, outfile):
-    """Area-subset the grib2 fields in infile and write to outfile"""
+    """Area-subset the grib2 fields in infile and write to outfile."""
     with open(infile, "rb") as fin, open(outfile, "wb") as fout:
         area_subset_fileobj(area, fin, fout)
 
 
 def area_subset_fileobj(area, fin, fout):
-    """Area-subset the grib2 fields in fin and write to fout"""
+    """Area-subset the grib2 fields in fin and write to fout."""
     # Loop over grib fields
     while True:
         hndl = codes_grib_new_from_file(fin)
@@ -41,7 +41,7 @@ def area_subset_fileobj(area, fin, fout):
 
 def area_subset_handle(hndl, area):
     """Return a clone of the input grib2 handle containing only grid-points
-    within the specified [N, W, S, E] area in degrees
+    within the specified [N, W, S, E] area in degrees.
     """
     # Input grid details. Note that the first/last lat/lons (in integer
     # microdegrees) were set slightly incorrectly in many cases so we snap them
@@ -133,14 +133,14 @@ def area_subset_handle(hndl, area):
 
 
 def snap(integer):
-    """Round lat/lon in microdegrees to nearest millidegree"""
+    """Round lat/lon in microdegrees to nearest millidegree."""
     # print(str(integer) + ' => ' + str(round(integer / 1000) * 1000))
     return round(integer / 1000) * 1000
 
 
 def shift_lon(lon, min):
-    """Return input longitude in microdegrees after shifting by n*360 degrees
-    so it lies in the range min + 360 degrees > lon >= min
+    """Return input longitude in microdegrees after shifting by n*360 degrees.
+    Do this so it lies in the range min + 360 degrees > lon >= min.
     """
     while lon >= min + 360000000:
         lon -= 360000000

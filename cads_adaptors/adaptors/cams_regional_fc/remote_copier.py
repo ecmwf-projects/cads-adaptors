@@ -78,9 +78,7 @@ class RemoteCopier:
         self.done()
 
     def copy(self, data, user, host, remote_path):
-        """Asynchronously copy the bytes data to the specified file on
-        specified host
-        """
+        """Asynchronously copy the bytes data to the specified file on specified host."""
         with self.lock:
             # Make an object to hold tar member metadata
             ti = tarfile.TarInfo(remote_path)
@@ -100,7 +98,7 @@ class RemoteCopier:
                 self.queue.put(uhost)
 
     def _get_tar_file(self, user, host):
-        """Return a dict representing the tar file to write to"""
+        """Return a dict representing the tar file to write to."""
         uhost = user + "@" + host
 
         # Need to open a new tar file for this destination user and host?
@@ -134,7 +132,7 @@ class RemoteCopier:
         return tf
 
     def _copier(self):
-        """Thread to copy tar files to remote hosts and untar"""
+        """Thread to copy tar files to remote hosts and untar."""
         DO_COPY = False
         # Copy any tar files that exceed the max size
         while True:
@@ -153,7 +151,7 @@ class RemoteCopier:
                 self._copy_tar(uhost)
 
     def _copy_tar(self, uhost):
-        """Copy tar file to remote host and untar"""
+        """Copy tar file to remote host and untar."""
         with self.lock:
             tf = self._tf.pop(uhost, None)
         if tf is None:

@@ -13,7 +13,7 @@ replicate_flaws = False
 def convert_grib_to_netcdf(requests, gribfile, ncfile, regfc_defns):
     """Convert CAMS regional model data from grib to NetCDF which is
     identical (or as near as sensible) to the NetCDF created and
-    distributed by the old Meteo France API
+    distributed by the old Meteo France API.
     """
     # Get the hypercube envelope of all requests
     envelope = {"request": envelope_request(requests)}
@@ -134,7 +134,7 @@ def _convert_grib_to_netcdf(envelope, gribfile, nc, regfc_defns):
 
 
 def write_msg(msg, hdr, envelope, nc, written):
-    """Write the grib message to the file"""
+    """Write the grib message to the file."""
     # Construct the validity time
     vtime = datetime.strptime(
         hdr["dataDate"] + " " + hdr["dataTime"], "%Y%m%d %H%M"
@@ -175,7 +175,7 @@ def write_msg(msg, hdr, envelope, nc, written):
 
 
 def envelope_request(requests):
-    """Return the envelope hypercube of all requests"""
+    """Return the envelope hypercube of all requests."""
     # Ensure that requests is a list and its values are lists
     if not isinstance(requests, list):
         requests = [requests]
@@ -211,7 +211,7 @@ def envelope_request(requests):
 
 
 def ncinit(envelope, nc, hdr, regfc_defns):
-    """Initialise the NetCDF file"""
+    """Initialise the NetCDF file."""
     typename = envelope["request"]["type"][0].upper()
 
     set_globatts(nc, envelope, typename, regfc_defns)
@@ -299,7 +299,7 @@ def ncinit(envelope, nc, hdr, regfc_defns):
 
 
 def set_globatts(nc, envelope, typename, regfc_defns):
-    """Set global attributes"""
+    """Set global attributes."""
     envreq = envelope["request"]
     mdefns = {d["backend_api_name"]: d for d in regfc_defns["model"]}
     model_atts = mdefns[envreq["model"][0]]["netcdf"]
