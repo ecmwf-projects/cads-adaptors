@@ -24,6 +24,11 @@ except ImportError:  # pragma: no cover
 
 from cads_adaptors.adaptors import AbstractAdaptor, Context, DummyAdaptor
 from cads_adaptors.adaptors.cadsobs.adaptor import ObservationsAdaptor
+from cads_adaptors.adaptors.cams_regional_fc import (
+    CAMSEuropeAirQualityForecastsAdaptor,
+    CAMSEuropeAirQualityForecastsAdaptorForArchivedData,
+    CAMSEuropeAirQualityForecastsAdaptorForLatestData,
+)
 from cads_adaptors.adaptors.cams_solar_rad import CamsSolarRadiationTimeseriesAdaptor
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, DummyCdsAdaptor
 from cads_adaptors.adaptors.insitu import (
@@ -35,7 +40,6 @@ from cads_adaptors.adaptors.mars import DirectMarsCdsAdaptor, MarsCdsAdaptor
 from cads_adaptors.adaptors.multi import MultiAdaptor, MultiMarsCdsAdaptor
 from cads_adaptors.adaptors.roocs import RoocsCdsAdaptor
 from cads_adaptors.adaptors.url import UrlCdsAdaptor
-from cads_adaptors.adaptors.cams_regional_fc import CAMSEuropeAirQualityForecastsAdaptor, CAMSEuropeAirQualityForecastsAdaptorForLatestData, CAMSEuropeAirQualityForecastsAdaptorForArchivedData
 
 from .tools.adaptor_tools import get_adaptor_class
 
