@@ -12,7 +12,7 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
 
         # for now this is needed down the road to enforce the schema
         # in ./cds-common/cds_common/request_schemas/enforce_schema.py
-        self.context.request = {"mapping": self.mapping}
+        setattr(self.context, "request", {"mapping": self.mapping})
 
         result_file = cams_regional_fc(self.context, self.config, self.mapped_requests)
 
@@ -38,7 +38,10 @@ class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
         if hasattr(result_file, "path"):
             return open(result_file.path, "rb")
         else:
-            return None
+            request_uid = self.config.get("request_uid", None)
+            message = f"Sub-request {request_uid} failed to produce a result when one was expected."
+            self.context.add_stderr(message)
+            raise RuntimeError(message)
 
 
 class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
@@ -60,4 +63,7 @@ class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
         if hasattr(result_file, "path"):
             return open(result_file.path, "rb")
         else:
-            return None
+            request_uid = self.config.get("request_uid", None)
+            message = f"Sub-request {request_uid} failed to produce a result when one was expected."
+            self.context.add_stderr(message)
+            raise RuntimeError(message)

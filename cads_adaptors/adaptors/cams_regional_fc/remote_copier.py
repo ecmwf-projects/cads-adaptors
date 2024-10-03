@@ -202,11 +202,11 @@ if __name__ == "__main__":
         for i in range(100):
             file = "foo." + str(i)
             print("Writing " + file)
-            with open(file, "w") as f:
-                f.write("This is file " + file + "\n")
-                f.write("0" * 800000)
-            with open(file, "rb") as f:
-                r.copy(f.read(), "cds", "compute-0001", "/cache/downloads/" + file)
+            with open(file, "w") as fw:
+                fw.write("This is file " + file + "\n")
+                fw.write("0" * 800000)
+            with open(file, "rb") as fr:
+                r.copy(fr.read(), "cds", "compute-0001", "/cache/downloads/" + file)
         print("Waiting for copying to finish")
     telapsed = time.time() - t0
     print("Copying took " + str(telapsed) + "s")
