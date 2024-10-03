@@ -9,7 +9,12 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
         
         request.pop('_in_adaptor_no_cache',None)
         self.normalise_request(request)
-        result_file = cams_regional_fc(self.context, self.config, self.mapping, self.mapped_requests)
+        
+        # for now this is needed down the road to enforce the schema 
+        # in ./cds-common/cds_common/request_schemas/enforce_schema.py
+        self.context.request = {"mapping": self.mapping}
+        
+        result_file = cams_regional_fc(self.context, self.config, self.mapped_requests)
         
         return open(result_file.path, "rb")
 

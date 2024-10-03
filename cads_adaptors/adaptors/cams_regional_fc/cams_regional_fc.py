@@ -41,15 +41,13 @@ class MockResultFile():
         return self.path
 
 
-def cams_regional_fc(context, config, mapping, requests, forms_dir=None):
+def cams_regional_fc(context, config, requests, forms_dir=None):
     # Get an object which will give us information/functionality associated
     # with the Meteo France regional forecast API
     regapi = regional_fc_api(
         integration_server=config.get('integration_server', False),
         logger=context)
-    
-    context.request = {"mapping": mapping}
-    
+
     def create_result_file(self, extension):
         request_uid = config["request_uid"]
         result_path = f'/cache/debug/{request_uid}.{extension}'
