@@ -27,6 +27,12 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         # switch off interactive logging to avoid threading issues
         os.environ["ROOK_MODE"] = self.config.get("ROOK_MODE", ROOK_MODE)
 
+        # get dataset specific timeout for URL downloads
+        timeout = self.config.get("timeout", None)
+        download_kwargs = {}
+        if timeout:
+            download_kwargs["timeout"] = timeout
+
         request = mapping.apply_mapping(request, self.mapping)
 
         workflow = self.construct_workflow(request)
@@ -38,7 +44,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             raise RoocsRuntimeError(response.status)
         urls += [response.provenance(), response.provenance_image()]
 
-        paths = url_tools.try_download(urls, context=self.context)
+        self.context.add_stdout(f"DOWNLOAD KWARGS: {download_kwargs}")
+        paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
         return download_tools.DOWNLOAD_FORMATS["zip"](paths)
 

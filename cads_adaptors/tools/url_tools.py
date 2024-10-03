@@ -59,6 +59,21 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
                 progress_bar=functools.partial(tqdm, file=context, mininterval=5),
                 **kwargs,
             )
+        except requests.exceptions.ConnectionError as e:
+            # The way "multiurl" uses "requests" at the moment,
+            # the read timeouts raise requests.exceptions.ConnectionError.
+            if kwargs.get("fail_on_timeout_for_any_part", True):
+                context.add_user_visible_error(
+                    "Your request has not found some of the data expected to be present.\n"
+                    "This may be due to temporary connectivity issues with the source data.\n"
+                    "If this problem persists, please contact user support."
+                )
+                raise UrlNoDataError(
+                    f"Incomplete request result. No data found from the following URL:"
+                    f"\n{yaml.safe_dump(url, indent=2)} "
+                )
+            else:
+                context.add_stdout(f"Failed download for URL: {url}\nException: {e}")
         except Exception as e:
             context.add_stdout(f"Failed download for URL: {url}\nException: {e}")
         else:

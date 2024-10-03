@@ -28,6 +28,7 @@ dependencies:
 - pyyaml
 - requests
 - sqlalchemy
+- tabulate
 - tqdm
 - xarray
 - pip:
