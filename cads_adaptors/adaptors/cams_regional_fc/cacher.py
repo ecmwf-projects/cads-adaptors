@@ -25,7 +25,7 @@ class Credentials:
         self.access = access
         self.key    = key
 
-DESTINATION_BUCKET = "cci2-cams-regional-fc-test"
+DESTINATION_BUCKET = "cci2-cams-regional-fc" #"cci2-cams-regional-fc-test"
 TRUST_THAT_BUCKET_EXISTS = True
 def upload(destination_credentials, destination_bucket, destination_filepath, data_to_transfer):
     client = boto3.client(
