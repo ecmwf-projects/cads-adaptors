@@ -12,7 +12,8 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
 
         # for now this is needed down the road to enforce the schema
         # in ./cds-common/cds_common/request_schemas/enforce_schema.py
-        setattr(self.context, "request", {"mapping": self.mapping})
+        self.context.request = {"mapping": self.mapping}
+        #setattr(self.context, "request", {"mapping": self.mapping})
 
         result_file = cams_regional_fc(self.context, self.config, self.mapped_requests)
 
