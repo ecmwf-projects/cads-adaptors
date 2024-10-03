@@ -6,9 +6,9 @@ import cfgrib
 import xarray as xr
 
 from cads_adaptors.adaptors import Context
+from cads_adaptors.exceptions import CdsFormatConversionError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
-from cads_adaptors.exceptions import CdsFormatConversionError
 
 STANDARD_COMPRESSION_OPTIONS = {
     "default": {
@@ -302,9 +302,7 @@ def unknown_filetype_to_grib_files(
         )
         return [infile]
     else:
-        add_user_log_and_raise_error(
-            f"Unknown file type: {infile}", context=context
-        )
+        add_user_log_and_raise_error(f"Unknown file type: {infile}", context=context)
 
 
 def unknown_filetype_to_netcdf_files(
@@ -320,9 +318,7 @@ def unknown_filetype_to_netcdf_files(
         context.add_stdout(f"Converting {infile} to netCDF files with kwargs: {kwargs}")
         return grib_to_netcdf_files(infile, context=context, **kwargs)
     else:
-        add_user_log_and_raise_error(
-            f"Unknown file type: {infile}", context=context
-        )
+        add_user_log_and_raise_error(f"Unknown file type: {infile}", context=context)
 
 
 def grib_to_netcdf_files(
@@ -357,9 +353,7 @@ def grib_to_netcdf_files(
         context.add_stderr(message=message)
         raise CdsFormatConversionError(message)
 
-    out_nc_files = xarray_dict_to_netcdf(
-        datasets, context=context, **kwargs
-    )
+    out_nc_files = xarray_dict_to_netcdf(datasets, context=context, **kwargs)
 
     return out_nc_files
 

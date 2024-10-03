@@ -49,7 +49,7 @@ def get_mars_server_list(config) -> list[str]:
 
 def execute_mars(
     request: dict[str, Any] | list[dict[str, Any]],
-    context: Context,
+    context: Context = Context(),
     config: dict[str, Any] = dict(),
     target: str = "data.grib",
 ) -> str:
@@ -176,7 +176,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
-        
+
         execute_mars_kwargs = {
             "context": self.context,
             "config": self.config,
@@ -184,9 +184,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         if self.data_format in ["grib"]:
             execute_mars_kwargs.update({"target_dir": self.cache_tmp_path})
 
-        result: Any = execute_mars(
-            self.mapped_requests, **execute_mars_kwargs
-        )
+        result: Any = execute_mars(self.mapped_requests, **execute_mars_kwargs)
 
         with dask.config.set(scheduler="threads"):
             result = self.post_process(result)
@@ -197,9 +195,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 self.data_format,
                 context=self.context,
                 config=self.config,
-                to_netcdf_kwargs={
-                    "out_dir": self.cache_tmp_path
-                },
+                to_netcdf_kwargs={"out_dir": self.cache_tmp_path},
             )
 
         # A check to ensure that if there is more than one path, and download_format
