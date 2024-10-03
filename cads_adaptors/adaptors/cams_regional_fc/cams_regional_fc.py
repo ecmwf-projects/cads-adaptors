@@ -61,8 +61,6 @@ def cams_regional_fc(context, config, requests, forms_dir=None):
     context.create_result_file = create_result_file.__get__(context)
     context.create_temp_file = create_temp_file.__get__(context)
     
-    context.create_result_file(".alabala")
-    
     # Pre-process requests
     requests, info = preprocess_requests(context, requests, regapi)
     
