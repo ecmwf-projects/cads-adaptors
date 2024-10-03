@@ -4,8 +4,8 @@ from math import ceil, floor
 from cds_common import date_tools, hcube_tools
 from cds_common.request_schemas import enforce_schema
 from cdscompute.errors import BadRequestException
-from tabulate import tabulate
 
+# from tabulate import tabulate
 from .formats import Formats
 
 
@@ -204,6 +204,14 @@ def set_area(request, area_list, grid, context):
     return request_out, area
 
 
+def dirty_manual_tabulate(rows, headers, separator=",   "):
+    """We implement this by hand to avoid issues with the tabulate dependency."""
+    table = separator.join(headers) + "\n"
+    for row in rows:
+        table += separator.join(row) + "\n"
+    return table
+
+
 def model_grids_table(grids, regapi):
     """Return the text of a table summarising the regional model grids in use for the requested fields."""
     # Loop over each grid and the fields that were requested on that grid
@@ -241,7 +249,7 @@ def model_grids_table(grids, regapi):
             )
         strings.append((area, resn, "[" + ",\n ".join(requested_strings) + "]"))
 
-    return tabulate(
+    return dirty_manual_tabulate(
         strings, headers=["Area [N,W,S,E]", "Resolution [dlon,dlat]", "Fields"]
     )
 
