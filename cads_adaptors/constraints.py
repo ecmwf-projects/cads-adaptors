@@ -720,7 +720,7 @@ def legacy_intersect_constraints(
             f" in the web-portal, your request:\n {request}\n"
             "If you believe this to be a data store error, please contact user support.\n"
         )
-        raise RuntimeError(
+        raise exceptions.InvalidRequest(
             "Request has not produced a valid combination of values, please check your selection.\n"
             f"{request}"
         )
