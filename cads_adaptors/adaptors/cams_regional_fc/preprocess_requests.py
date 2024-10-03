@@ -17,7 +17,6 @@ def preprocess_requests(context, requests, regapi):
 
     # Get output format and remove from requests
     format = requests[0]['format'][0]
-    context.add_stdout(f"-------------------------------> FORMAT:{format}")
     for r in requests:
         r.pop('format', None)
 
@@ -118,8 +117,7 @@ def apply_schema(requests, context):
     for key in recognised_keys:
         schema['items']['properties'][key] = key_schema.get(key,
                                                             key_schema[None])
-    context.add_stdout(f"----------> {requests}")
-    context.add_stdout(f"----------> {schema}")
+
     return enforce_schema(requests, schema, context)
 
 

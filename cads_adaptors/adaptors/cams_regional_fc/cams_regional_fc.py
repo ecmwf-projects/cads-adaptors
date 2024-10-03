@@ -238,8 +238,6 @@ def _get_local(req_group, cacher, context):
              'req': field}
             for field in hcube_tools.unfactorise(reqs))
     # CAREFUL! "urls" is a generator and will be consumed by the first iteration
-    # for url in urls:
-    #     context.add_stdout(f"LOCAL FIELD: {url}")
     downloader = Downloader(context,
                             max_rate=50,
                             max_simultaneous=15,
@@ -352,7 +350,7 @@ def retrieve_archived(*args):
 def retrieve_xxx(context, requests, dataset_dir, integration_server):
     def create_result_file(self, extension):
         random_value = str(random.randint(0, 1e9))
-        result_path = f'/cache/debug/{random_value}{extension}'
+        result_path = f'/cache/debug/{random_value}.{extension}'
         return MockResultFile(result_path)
 
     context.create_result_file = create_result_file.__get__(context)

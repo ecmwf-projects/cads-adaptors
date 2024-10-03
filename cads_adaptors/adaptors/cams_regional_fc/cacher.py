@@ -222,9 +222,6 @@ class Cacher:
             destination_bucket = DESTINATION_BUCKET
             destination_filepath = path
 
-            self.context.add_stdout(f'{destination_url}, {destination_access}, {destination_key}, {destination_bucket}')
-            self.context.add_stdout(f'{destination_filepath}, {path}, {host}')
-
             upload(destination_credentials, destination_bucket, destination_filepath, codes_get_message(msg))
 
     def get(self, req):
