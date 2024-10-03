@@ -1,11 +1,17 @@
 import abc
 import contextlib
+import datetime
+import itertools
 import pathlib
+import time
+import zipfile
 from typing import Any, BinaryIO
 
+import cads_adaptors.tools.general
 import cads_adaptors.tools.logger
 
 Request = dict[str, Any]
+CHUNK_SIZE = 10240
 
 
 class Context:
@@ -210,38 +216,95 @@ class DummyAdaptor(AbstractAdaptor):
         return []
 
     def normalise_request(self, request: Request) -> dict[str, Any]:
-        return request
+        size = request.get("size", 0)
 
-    def retrieve(self, request: Request) -> BinaryIO:
-        import datetime
-        import time
-
-        size = int(request.get("size", 0))
-        elapsed = request.get("elapsed", "0:00:00.000")
-        if isinstance(elapsed, float):
-            time_sleep = elapsed
-        else:
-            time_elapsed = datetime.time.fromisoformat("0" + elapsed)
-            time_sleep = datetime.timedelta(
-                hours=time_elapsed.hour,
-                minutes=time_elapsed.minute,
-                seconds=time_elapsed.second,
-                microseconds=time_elapsed.microsecond,
+        elapsed = request.get("elapsed", 0)
+        if isinstance(elapsed, str):
+            if len(elapsed.split(":", 1)[0]) == 1:
+                elapsed = "0" + elapsed
+            elapsed = datetime.time.fromisoformat(elapsed)
+            elapsed = datetime.timedelta(
+                hours=elapsed.hour,
+                minutes=elapsed.minute,
+                seconds=elapsed.second,
+                microseconds=elapsed.microsecond,
             ).total_seconds()
 
-        self.context.add_stdout(f"Sleeping {time_sleep} s")
-        time.sleep(time_sleep)
+        format = request.get("format", "grib")
 
-        dummy_file = self.cache_tmp_path / "dummy.grib"
-        self.context.add_stdout(f"Writing {size} B to {dummy_file!s}")
-        tic = time.perf_counter()
-        with dummy_file.open("wb") as fp:
-            with open("/dev/urandom", "rb") as random:
-                while size > 0:
-                    length = min(size, 10240)
-                    fp.write(random.read(length))
-                    size -= length
-        toc = time.perf_counter()
-        self.context.add_stdout(f"Elapsed time to write the file: {toc - tic} s")
+        request = request | {
+            "size": int(size),
+            "elapsed": float(elapsed),
+            "format": str(format),
+        }
+        return dict(sorted(request.items()))
 
+    def cached_retrieve(self, request: Request) -> BinaryIO:
+        import cacholote
+
+        cache_kwargs = {"collection_id": self.config.get("collection_id")}
+        request = self.normalise_request(request)
+        with cacholote.config.set(return_cache_entry=False):
+            return cacholote.cacheable(self.retrieve, **cache_kwargs)(request)
+
+    def retrieve(self, request: Request) -> BinaryIO:
+        request = self.normalise_request(request)
+        size = request["size"]
+        elapsed = request["elapsed"]
+        format = request["format"]
+
+        match format:
+            case "grib":
+                # Write and cache grib file
+                dummy_file = self.cache_tmp_path / "dummy.grib"
+                self.context.add_stdout(f"Sleeping {elapsed} s")
+                time.sleep(elapsed)
+
+                self.context.add_stdout(f"Writing {size} B to {dummy_file!s}")
+                tic = time.perf_counter()
+                with dummy_file.open("wb") as netcdf_fp:
+                    with open("/dev/urandom", "rb") as random:
+                        while size > 0:
+                            length = min(size, CHUNK_SIZE)
+                            netcdf_fp.write(random.read(length))
+                            size -= length
+                toc = time.perf_counter()
+                self.context.add_stdout(
+                    f"Elapsed time to write the file: {toc - tic} s"
+                )
+            case "netcdf":
+                # Retrieve cached grib and convert
+                dummy_file = self.cache_tmp_path / "dummy.nc"
+                grib_fp = self.cached_retrieve(request | {"format": "grib"})
+                with dummy_file.open("wb") as netcdf_fp:
+                    while True:
+                        if not (data := grib_fp.read(CHUNK_SIZE)):
+                            break
+                        netcdf_fp.write(data)
+            case "zip":
+                # Retrieve cached gribs and zip
+                dummy_file = self.cache_tmp_path / "dummy.zip"
+                request = {
+                    k: cads_adaptors.tools.general.ensure_list(v)
+                    for k, v in request.items()
+                }
+                requests = [
+                    dict(zip(request.keys(), values))
+                    for values in itertools.product(*request.values())
+                ]
+                grib_size = size // len(requests)
+                grib_elapsed = elapsed / len(requests)
+                with zipfile.ZipFile(dummy_file, "w") as zip_fp:
+                    for i, request in enumerate(requests):
+                        request["format"] = "grib"
+                        request["size"] = grib_size + (size % len(requests)) * (not i)
+                        request["elapsed"] = grib_elapsed
+                        grib_fp = self.cached_retrieve(request)
+                        with zip_fp.open(f"dummy_{i}.grib", "w") as zip_grib_fp:
+                            while True:
+                                if not (data := grib_fp.read(CHUNK_SIZE)):
+                                    break
+                                zip_grib_fp.write(data)
+            case _:
+                raise NotImplementedError(f"{format=}")
         return dummy_file.open("rb")
