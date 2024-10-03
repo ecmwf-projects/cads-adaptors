@@ -179,6 +179,7 @@ def result_to_netcdf_legacy_files(
     result: Any,
     context: Context = Context(),
     to_netcdf_legacy_kwargs: dict[str, Any] = {},
+    out_dir: str = "",
     **kwargs,
 ) -> list[str]:
     """
@@ -264,7 +265,7 @@ def result_to_netcdf_legacy_files(
 
     nc_files = []
     for out_fname_base, grib_file in result.items():
-        out_fname = f"{out_fname_base}.nc"
+        out_fname = os.path.join(out_dir, f"{out_fname_base}.nc")
         nc_files.append(out_fname)
         command = ensure_list(command)
         os.system(" ".join(command + ["-o", out_fname, grib_file]))
@@ -328,16 +329,14 @@ def grib_to_netcdf_files(
     grib_file: str,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
     post_open_datasets_kwargs: dict[str, Any] = {},
-    to_netcdf_kwargs: dict[str, Any] = {},
     context: Context = Context(),
     **kwargs,
 ):
-    to_netcdf_kwargs.update(kwargs.pop("to_netcdf_kwargs", {}))
     grib_file = os.path.realpath(grib_file)
 
     context.add_stdout(
         f"Converting {grib_file} to netCDF files with:\n"
-        f"to_netcdf_kwargs: {to_netcdf_kwargs}\n"
+        f"to_netcdf_kwargs: {kwargs}\n"
         f"open_datasets_kwargs: {open_datasets_kwargs}\n"
         f"post_open_datasets_kwargs: {post_open_datasets_kwargs}\n"
     )
@@ -359,7 +358,7 @@ def grib_to_netcdf_files(
         raise CdsFormatConversionError(message)
 
     out_nc_files = xarray_dict_to_netcdf(
-        datasets, context=context, to_netcdf_kwargs=to_netcdf_kwargs
+        datasets, context=context, **kwargs
     )
 
     return out_nc_files
@@ -378,6 +377,9 @@ def xarray_dict_to_netcdf(
     Convert a dictionary of xarray datasets to netCDF files, where the key of the dictionary
     is used in the filename.
     """
+    # Untangle any nested kwargs (I don't think this is necessary anymore)
+    to_netcdf_kwargs.update(kwargs.pop("to_netcdf_kwargs", {}))
+
     # Check if compression_options or out_fname_prefix have been provided in to_netcdf_kwargs
     compression_options = to_netcdf_kwargs.pop(
         "compression_options", compression_options
