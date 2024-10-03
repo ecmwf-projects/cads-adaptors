@@ -64,7 +64,7 @@ def execute_mars(
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
 
-    target = str((pathlib.Path(target_dir) / target_fname).absolute())
+    target = str(pathlib.Path(target_dir) / target_fname)
 
     split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
     requests = split_requests_on_keys(requests, split_on_keys)
