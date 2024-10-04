@@ -1,4 +1,5 @@
 import os
+import pathlib
 from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
@@ -49,9 +50,10 @@ def get_mars_server_list(config) -> list[str]:
 
 def execute_mars(
     request: dict[str, Any] | list[dict[str, Any]],
-    context: Context,
+    context: Context = Context(),
     config: dict[str, Any] = dict(),
-    target: str = "data.grib",
+    target_fname: str = "data.grib",
+    target_dir: str | pathlib.Path = "",
 ) -> str:
     from cads_mars_server import client as mars_client
 
@@ -61,6 +63,8 @@ def execute_mars(
     #  and the some adaptors may not use normalise_request yet
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
+
+    target = str(pathlib.Path(target_dir) / target_fname)
 
     split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
     requests = split_requests_on_keys(requests, split_on_keys)
@@ -173,23 +177,34 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         import dask
-
+        
+        ceph_test = request.pop("ceph_test", False)
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
-        result: Any = execute_mars(
-            self.mapped_requests, context=self.context, config=self.config
-        )
+        execute_mars_kwargs: dict[str, Any] = {
+            "context": self.context,
+            "config": self.config,
+        }
+        if self.data_format in ["grib"] and ceph_test:
+            execute_mars_kwargs.update({"target_dir": self.cache_tmp_path})
+
+        result = execute_mars(self.mapped_requests, **execute_mars_kwargs)
 
         with dask.config.set(scheduler="threads"):
-            result = self.post_process(result)
+            results_dict = self.post_process(result)
 
+            if ceph_test:
+                target_dir = str(self.cache_tmp_path)
+            else:
+                target_dir = ""
             # TODO?: Generalise format conversion to be a post-processor
             paths = self.convert_format(
-                result,
+                results_dict,
                 self.data_format,
                 context=self.context,
                 config=self.config,
+                to_netcdf_kwargs={"out_dir": target_dir},
             )
 
         # A check to ensure that if there is more than one path, and download_format
