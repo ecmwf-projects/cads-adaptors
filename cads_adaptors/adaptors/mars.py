@@ -177,7 +177,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         import dask
-
+        
+        ceph_test = request.pop("ceph_test", False)
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
@@ -185,7 +186,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             "context": self.context,
             "config": self.config,
         }
-        if self.data_format in ["grib"]:
+        if self.data_format in ["grib"] and ceph_test:
             execute_mars_kwargs.update({"target_dir": self.cache_tmp_path})
 
         result = execute_mars(self.mapped_requests, **execute_mars_kwargs)
@@ -193,13 +194,17 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         with dask.config.set(scheduler="threads"):
             results_dict = self.post_process(result)
 
+            if ceph_test:
+                target_dir = self.cache_tmp_path
+            else:
+                target_dir = ""
             # TODO?: Generalise format conversion to be a post-processor
             paths = self.convert_format(
                 results_dict,
                 self.data_format,
                 context=self.context,
                 config=self.config,
-                to_netcdf_kwargs={"out_dir": self.cache_tmp_path},
+                to_netcdf_kwargs=target_dir,
             )
 
         # A check to ensure that if there is more than one path, and download_format
