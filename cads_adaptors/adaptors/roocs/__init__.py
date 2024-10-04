@@ -30,7 +30,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         # get dataset specific download_kwargs, including timeout
         download_kwargs = self.config.get("download_kwargs", dict())
         # TODO: remove following when configs have been updated to use download_kwargs
-        if self.config.get("timeout") is not None:
+        if "timeout" in self.config:
             download_kwargs["timeout"] = self.config["timeout"]
 
         request = mapping.apply_mapping(request, self.mapping)
