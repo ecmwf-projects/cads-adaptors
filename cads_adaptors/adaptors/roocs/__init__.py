@@ -27,9 +27,9 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         # switch off interactive logging to avoid threading issues
         os.environ["ROOK_MODE"] = self.config.get("ROOK_MODE", ROOK_MODE)
 
-        # get dataset specific timeout for URL downloads
+        # get dataset specific download_kwargs, including timeout
         download_kwargs = self.config.get("download_kwargs", dict())
-        # TODO: remove when configs have been updated to use download_kwargs
+        # TODO: remove following when configs have been updated to use download_kwargs
         if self.config.get("timeout") is not None:
             download_kwargs["timeout"] = self.config["timeout"]
 
