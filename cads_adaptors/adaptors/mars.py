@@ -195,7 +195,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             results_dict = self.post_process(result)
 
             if ceph_test:
-                target_dir = self.cache_tmp_path
+                target_dir = str(self.cache_tmp_path)
             else:
                 target_dir = ""
             # TODO?: Generalise format conversion to be a post-processor
@@ -204,7 +204,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 self.data_format,
                 context=self.context,
                 config=self.config,
-                to_netcdf_kwargs=target_dir,
+                to_netcdf_kwargs={"out_dir": target_dir},
             )
 
         # A check to ensure that if there is more than one path, and download_format
