@@ -18,6 +18,8 @@ STANDARD_COMPRESSION_OPTIONS = {
     }
 }
 
+DEFAULT_OPEN_ENGINE = "cfgrib"
+
 DEFAULT_CHUNKS = {
     "time": 12,
     "step": 1,
@@ -577,6 +579,10 @@ def prepare_open_datasets_kwargs_grib(
     out_open_datasets_kwargs: list[dict[str, Any]] = []
     for open_ds_kwargs in ensure_list(open_datasets_kwargs):
         open_ds_kwargs.update(kwargs)
+        # Ensure chunks and engine are set
+        open_ds_kwargs.setdefault("chunks", DEFAULT_CHUNKS)
+        open_ds_kwargs.setdefault("engine", DEFAULT_OPEN_ENGINE)
+
         split_on_keys: list[str] | None = open_ds_kwargs.pop("split_on", None)
         split_on_keys_alias: dict[str, str] | None = open_ds_kwargs.pop(
             "split_on_alias", None
@@ -660,10 +666,6 @@ def open_grib_file_as_xarray_dictionary(
     fname, _ = os.path.splitext(os.path.basename(grib_file))
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {}
-
-    # Ensure chunks and engine are set
-    kwargs.setdefault("chunks", DEFAULT_CHUNKS)
-    kwargs.setdefault("engine", "cfgrib")
 
     # Do any automatic splitting of the open_datasets_kwargs,
     #  This will add kwargs to the open_datasets_kwargs
