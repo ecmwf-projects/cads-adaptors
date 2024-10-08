@@ -14,7 +14,7 @@ STANDARD_COMPRESSION_OPTIONS = {
         "zlib": True,
         "complevel": 1,
         "shuffle": True,
-        "engine": "netcdf4",
+        "engine": "h5netcdf",
     }
 }
 
@@ -386,7 +386,7 @@ def xarray_dict_to_netcdf(
     if isinstance(compression_options, str):
         compression_options = STANDARD_COMPRESSION_OPTIONS.get(compression_options, {})
 
-    to_netcdf_kwargs.setdefault("engine", compression_options.pop("engine", "netcdf4"))
+    to_netcdf_kwargs.setdefault("engine", compression_options.pop("engine", "h5netcdf"))
     out_nc_files = []
     for out_fname_base, dataset in datasets.items():
         to_netcdf_kwargs.update(
