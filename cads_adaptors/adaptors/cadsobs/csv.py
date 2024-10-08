@@ -51,10 +51,10 @@ def get_csv_header(
 ########################################################################################
 """
     area = "{}/{}/{}/{}".format(
-        cdm_lite_dataset.latitude.min().compute().item(),
-        cdm_lite_dataset.latitude.max().compute().item(),
-        cdm_lite_dataset.longitude.min().compute().item(),
-        cdm_lite_dataset.longitude.max().compute().item(),
+        cdm_lite_dataset["latitude|station_configuration"].min().compute().item(),
+        cdm_lite_dataset["latitude|station_configuration"].max().compute().item(),
+        cdm_lite_dataset["longitude|station_configuration"].min().compute().item(),
+        cdm_lite_dataset["longitude|station_configuration"].max().compute().item(),
     )
     time_start = "{:%Y%m%d}".format(
         cdm_lite_dataset.report_timestamp[0].compute().dt.date
