@@ -1,6 +1,7 @@
 import functools
 import os
 import tarfile
+import time
 import urllib
 import zipfile
 from typing import Any, Dict, Generator, List, Optional
@@ -53,12 +54,28 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             os.makedirs(dir, exist_ok=True)
         try:
             context.add_stdout(f"Downloading {url} to {path}")
-            multiurl.download(
-                url,
-                path,
-                progress_bar=functools.partial(tqdm, file=context, mininterval=5),
-                **kwargs,
-            )
+            MAX_RETRIES = kwargs.get("max_retries", 10)
+            IS_RESUME_TRANSFERS_ON = kwargs.get("resume_transfers", False)
+            SLEEP_BETWEEN_RETRIES = kwargs.get("sleep_between_retries", 10)
+            for i_retry in range(MAX_RETRIES):
+                try:
+                    multiurl.download(
+                        url,
+                        path,
+                        progress_bar=functools.partial(tqdm, file=context, mininterval=5),
+                        **kwargs,
+                    )
+                    break
+                except Exception as e:
+                    bytes = os.path.getsize(path)
+                    context.add_stdout(
+                        f"Attempt {i_retry+1} to download {url} failed "
+                        f"(only {bytes}B downloaded so far, "
+                        f"with resume_transfers={IS_RESUME_TRANSFERS_ON}): {e!r}"
+                    )
+                    time.sleep(SLEEP_BETWEEN_RETRIES)
+                    if i_retry + 1 == MAX_RETRIES:
+                        raise
         except requests.exceptions.ConnectionError as e:
             # The way "multiurl" uses "requests" at the moment,
             # the read timeouts raise requests.exceptions.ConnectionError.
