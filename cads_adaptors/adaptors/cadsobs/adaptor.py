@@ -3,7 +3,7 @@ from pathlib import Path
 
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
-from cads_adaptors.exceptions import InvalidRequest
+from cads_adaptors.exceptions import CadsObsRuntimeError, InvalidRequest
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
@@ -11,6 +11,9 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         try:
             output = self._retrieve(request)
         except KeyError as e:
+            self.context.add_user_visible_error(repr(e))
+            raise InvalidRequest(repr(e))
+        except CadsObsRuntimeError as e:
             self.context.add_user_visible_error(repr(e))
             raise InvalidRequest(repr(e))
         except Exception as e:

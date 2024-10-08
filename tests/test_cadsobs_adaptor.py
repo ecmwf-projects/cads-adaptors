@@ -102,46 +102,6 @@ class MockerCadsobsApiClient:
             "insitu-observations-near-surface-temperature-us-climate-reference-network_uscrn_daily_200808_30.0_-150.0.nc"
         ]
 
-    def get_aux_var_mapping(
-        self, dataset: str, source: str
-    ) -> dict[str, list[dict[str, str]]]:
-        return {
-            "accumulated_precipitation": [],
-            "air_temperature": [
-                {
-                    "auxvar": "air_temperature_mean_positive_total_uncertainty",
-                    "metadata_name": "positive_total_uncertainty",
-                },
-                {
-                    "auxvar": "air_temperature_mean_negative_total_uncertainty",
-                    "metadata_name": "negative_total_uncertainty",
-                },
-            ],
-            "daily_maximum_air_temperature": [
-                {
-                    "auxvar": "air_temperature_max_positive_total_uncertainty",
-                    "metadata_name": "positive_total_uncertainty",
-                },
-                {
-                    "auxvar": "air_temperature_max_negative_total_uncertainty",
-                    "metadata_name": "negative_total_uncertainty",
-                },
-            ],
-            "daily_maximum_relative_humidity": [],
-            "daily_minimum_air_temperature": [
-                {
-                    "auxvar": "air_temperature_min_positive_total_uncertainty",
-                    "metadata_name": "positive_total_uncertainty",
-                },
-                {
-                    "auxvar": "air_temperature_min_negative_total_uncertainty",
-                    "metadata_name": "negative_total_uncertainty",
-                },
-            ],
-            "daily_minimum_relative_humidity": [],
-            "relative_humidity": [],
-        }
-
 
 class ClientErrorMockerCadsobsApiClient(MockerCadsobsApiClient):
     def get_objects_to_retrieve(
@@ -166,11 +126,7 @@ class BackendErrorCadsobsApiClient(CadsobsApiClient):
 TEST_REQUEST = {
     "time_aggregation": "daily",
     "format": "netCDF",
-    "variable": [
-        "maximum_air_temperature",
-        "maximum_air_temperature_negative_total_uncertainty",
-        "maximum_air_temperature_positive_total_uncertainty",
-    ],
+    "variable": ["maximum_air_temperature"],
     "year": ["2007"],
     "month": ["11"],
     "day": [
@@ -180,11 +136,6 @@ TEST_REQUEST = {
     ],
     "_timestamp": str(time.time()),
 }
-
-TEST_REQUEST_ORPHAN_AUXVAR = TEST_REQUEST.copy()
-TEST_REQUEST_ORPHAN_AUXVAR.update(
-    dict(variable=["maximum_air_temperature_negative_total_uncertainty"])
-)
 
 TEST_ADAPTOR_CONFIG = {
     "entry_point": "cads_adaptors:ObservationsAdaptor",
@@ -200,25 +151,14 @@ TEST_ADAPTOR_CONFIG = {
             },
             "variable": {
                 "maximum_air_temperature": "daily_maximum_air_temperature",
-                "maximum_air_temperature_negative_total_uncertainty": "air_temperature_max_negative_total_uncertainty",  # noqa E501
-                "maximum_air_temperature_positive_total_uncertainty": "air_temperature_max_positive_total_uncertainty",  # noqa E501
                 "maximum_relative_humidity": "daily_maximum_relative_humidity",
                 "maximum_soil_temperature": "hourly_maximum_soil_temperature",
-                "maximum_soil_temperature_flag": "hourly_maximum_soil_temperature_flag",  # noqa E501
                 "maximum_solar_irradiance": "hourly_maximum_downward_shortwave_irradiance_at_earth_surface",  # noqa E501
-                "maximum_solar_irradiance_quality_flag": "hourly_maximum_downward_shortwave_irradiance_at_earth_surface_quality_flag",  # noqa E501
-                "mean_air_temperature_negative_total_uncertainty": "air_temperature_mean_negative_total_uncertainty",  # noqa E501
-                "mean_air_temperature_positive_total_uncertainty": "air_temperature_mean_positive_total_uncertainty",  # noqa E501
                 "minimum_air_temperature": "daily_minimum_air_temperature",
-                "minimum_air_temperature_negative_total_uncertainty": "air_temperature_min_negative_total_uncertainty",  # noqa E501
-                "minimum_air_temperature_positive_total_uncertainty": "air_temperature_min_positive_total_uncertainty",  # noqa E501
                 "minimum_relative_humidity": "daily_minimum_relative_humidity",
                 "minimum_soil_temperature": "hourly_minimum_soil_temperature",
-                "minimum_soil_temperature_quality_flag": "hourly_minimum_soil_temperature_quality_flag",  # noqa E501
                 "minimum_solar_irradiance": "hourly_minimum_downward_shortwave_irradiance_at_earth_surface",  # noqa E501
-                "minimum_solar_irradiance_quality_flag": "hourly_minimum_downward_shortwave_irradiance_at_earth_surface_quality_flag",  # noqa E501
                 "solar_irradiance": "downward_shortwave_irradiance_at_earth_surface",
-                "solar_irradiance_quality_flag": "downward_shortwave_irradiance_at_earth_surface_quality_flag",  # noqa E501
             },
         },
         "format": {"netcdf": "netCDF"},
@@ -228,8 +168,7 @@ TEST_ADAPTOR_CONFIG = {
 }
 
 
-@pytest.mark.parametrize("test_request", [TEST_REQUEST, TEST_REQUEST_ORPHAN_AUXVAR])
-def test_adaptor(tmp_path, monkeypatch, test_request):
+def test_adaptor(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
         MockerCadsobsApiClient,
@@ -237,7 +176,7 @@ def test_adaptor(tmp_path, monkeypatch, test_request):
     test_form = {}
 
     adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
-    result = adaptor.retrieve(test_request)
+    result = adaptor.retrieve(TEST_REQUEST)
     tempfile = Path(tmp_path, "test_adaptor.nc")
     with tempfile.open("wb") as tmpf:
         tmpf.write(result.read())
