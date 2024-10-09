@@ -7,7 +7,6 @@ from . import constraints
 
 EXCLUDED_WIDGETS = [
     "GeographicExtentWidget",
-    "UnknownWidget",
 ]
 
 # TODO: Handle DateRangeWidget
