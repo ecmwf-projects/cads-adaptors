@@ -717,13 +717,13 @@ def legacy_intersect_constraints(
     # An empty request is valid if we allow partial requests.
     if not allow_partial and len(requests) == 0:
         context.add_user_visible_error(
-            "Your request has not produce a valid combination of values, please check your selection.\n"
+            "Your request has not produced a valid combination of values, please check your selection.\n"
             "If using the cdsapi, please ensure that the values in your request match the values provided"
             f" in the web-portal, your request:\n {request}\n"
             "If you believe this to be a data store error, please contact user support.\n"
         )
-        raise RuntimeError(
-            "Request has not produce a valid combination of values, please check your selection.\n"
+        raise exceptions.InvalidRequest(
+            "Request has not produced a valid combination of values, please check your selection.\n"
             f"{request}"
         )
 

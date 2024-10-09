@@ -50,6 +50,7 @@ complete = [
   "requests",
   "rooki",
   "sqlalchemy",
+  "tabulate",
   "tqdm",
   "xarray"
 ]
