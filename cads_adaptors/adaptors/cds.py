@@ -60,9 +60,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
 
-    def intersect_constraints(self, request: Request) -> list[Request]:
+    def intersect_constraints(self, request: Request, **kwargs) -> list[Request]:
         return constraints.legacy_intersect_constraints(
-            request, self.constraints, context=self.context
+            request, self.constraints, context=self.context, **kwargs
         )
 
     def apply_mapping(self, request: Request) -> Request:
@@ -75,22 +75,42 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         cost_threshold = (
             cost_threshold if cost_threshold in costing_config else "max_costs"
         )
-        costs = {}
+        max_costs = costing_config.get(cost_threshold, {})
+        costs: dict[str, int] = {}
         # Safety net, not all stacks have the latest version of the api:
         if "inputs" in request:
             request = request["inputs"]
-        # "precise_size" is a new costing method that is more accurate than "size
-        if "precise_size" in costing_config.get(cost_threshold, {}):
-            costs["precise_size"] = costing.estimate_precise_size(
-                self.form,
-                request,
-                self.constraints,
-                **costing_kwargs,
-            )
         # size is a fast and rough estimate of the number of fields
         costs["size"] = costing.estimate_number_of_fields(self.form, request)
+        # TODO: Can this safety net be removed yet?
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
+
+        # If any simple cost is exceeded, return here as precise_size is a more expensive calculation
+        for key, max_cost in max_costs.items():
+            if costs.get(key, 0) > max_cost:
+                return costs
+
+        if "precise_size" in max_costs:
+            # Hard-coded limit designed to protect the system,
+            # checking 10^6 fields is expensive and generally not needed as costs will be exceeded.
+            # 10^6 is conservative, could consider increasing to 10^7
+            if costs["size"] > 1e6:
+                costs["precise_size"] = costs["size"]
+            else:
+                # Remove duplicates from the list of dicts,
+                #  so we don't have to remove as many duplicates
+                #  at the granular level, which can be expensive
+                intersected_selection = []
+                for i_c in self.intersect_constraints(request, allow_partial=True):
+                    if i_c not in intersected_selection:
+                        intersected_selection.append(i_c)
+                costs["precise_size"] = costing.estimate_precise_size(
+                    self.form,
+                    intersected_selection,
+                    **costing_kwargs,
+                )
+
         return costs
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
