@@ -50,11 +50,15 @@ def get_csv_header(
 {varstr}
 ########################################################################################
 """
+    if "latitude|station_configuration" in cdm_lite_dataset:
+        coord_table = "station_configuration"
+    else:
+        coord_table = "header_table"
     area = "{}/{}/{}/{}".format(
-        cdm_lite_dataset.latitude.min().compute().item(),
-        cdm_lite_dataset.latitude.max().compute().item(),
-        cdm_lite_dataset.longitude.min().compute().item(),
-        cdm_lite_dataset.longitude.max().compute().item(),
+        cdm_lite_dataset[f"latitude|{coord_table}"].min().compute().item(),
+        cdm_lite_dataset[f"latitude|{coord_table}"].max().compute().item(),
+        cdm_lite_dataset[f"longitude|{coord_table}"].min().compute().item(),
+        cdm_lite_dataset[f"longitude|{coord_table}"].max().compute().item(),
     )
     time_start = "{:%Y%m%d}".format(
         cdm_lite_dataset.report_timestamp[0].compute().dt.date
