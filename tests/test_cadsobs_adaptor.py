@@ -98,7 +98,7 @@ class MockerCadsobsApiClient:
     ) -> list[str]:
         return [
             "https://object-store.os-api.cci2.ecmwf.int/"
-            "cds2-obs-alpha-insitu-observations-near-surface-temperature-us/"
+            "cds2-obs-dev-insitu-observations-near-surface-temperature-us-cl/"
             "insitu-observations-near-surface-temperature-us-climate-reference-network_uscrn_daily_200808_30.0_-150.0.nc"
         ]
 
