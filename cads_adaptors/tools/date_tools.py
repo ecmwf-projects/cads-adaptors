@@ -254,7 +254,9 @@ def months_to_days(n_months, now_date):
     if n_months == 0:
         return 0
     elif n_months > 12:
-        raise exceptions.CdsConfigurationError("Cannot handle embargos greater than 12 months")
+        raise exceptions.CdsConfigurationError(
+            "Cannot handle embargos greater than 12 months"
+        )
     now_month = now_date.month
     then_year = now_date.year
     then_day = now_date.day
