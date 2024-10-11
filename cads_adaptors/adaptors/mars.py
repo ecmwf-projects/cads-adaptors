@@ -153,7 +153,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
-            self.data_format = "netcdf"
+            data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
         default_download_format = "as_source"
