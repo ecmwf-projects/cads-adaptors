@@ -25,7 +25,7 @@ def compress_dates_list(date_strings, date_format=None):
             if date_format is not None:
                 break
         else:
-            raise exceptions.InvalidRequest(
+            raise Exception(
                 "Cannot determine format of any of these dates: " + repr(date_strings)
             )
 
@@ -33,7 +33,7 @@ def compress_dates_list(date_strings, date_format=None):
     try:
         dates = expand_dates_list(date_strings, as_datetime=True)
     except ValueError:
-        raise exceptions.InvalidRequest("Malformatted date strings?: " + repr(date_strings))
+        raise Exception("Malformatted date strings?: " + repr(date_strings))
 
     # Get number of seconds between consecutive pairs
     dates = sorted(list(set(dates)))
@@ -88,7 +88,7 @@ def expand_dates_list(dates_in, as_datetime=False):
             else:
                 dates.append(date)
         elif len(items) > 2:
-            raise exceptions.InvalidRequest("Do not know how to expand " + date + " yet")
+            raise Exception("Do not know how to expand " + date + " yet")
         else:
             date1, date2 = items
             date1, fmt1 = string_to_datetime_with_format(date1)
@@ -127,7 +127,7 @@ def string_to_datetime_with_format(string):
             else:
                 return (dt, fmt)
 
-    raise exceptions.InvalidRequest("Could not determine date format of " + repr(string))
+    raise ValueError("Could not determine date format of " + repr(string))
 
 
 def guess_date_format(string):
@@ -147,7 +147,7 @@ def guess_time_format(string):
     for regex, fmt in (("\\d\\d:\\d\\d", "%H:%M"), ("\\d\\d\\d\\d", "%H%M")):
         if re.fullmatch(regex, string):
             return fmt
-    raise exceptions.InvalidRequest("Unrecognised time format: " + string)
+    raise ValueError("Unrecognised time format: " + string)
 
 
 def string_to_datetime(string):
@@ -162,7 +162,7 @@ def current_to_datetime(string):
     """
     match = re.match(re_current, string)
     if not match:
-        raise exceptions.InvalidRequest("Unrecognised date format: " + string)
+        raise Exception("Unrecognised date format: " + string)
 
     dt = datetime.utcnow()
     if match.group("offset"):
@@ -285,12 +285,12 @@ def time2seconds(time):
         else:
             match = re.match(time_regex2, time)
         if not match:
-            raise exceptions.InvalidRequest("Unrecognised time format: " + repr(time), "")
+            raise ValueError("Unrecognised time format: " + repr(time), "")
         hour = int(match.group("H"))
         minute = int(match.group("M")) if match.group("M") else 0
         second = int(match.group("S")) if match.group("S") else 0
         if hour > 23 or minute > 59 or second > 59:
-            raise exceptions.InvalidRequest("Invalid time string: " + time, "")
+            raise ValueError("Invalid time string: " + time, "")
 
         return hour * 3600 + minute * 60 + second
 
