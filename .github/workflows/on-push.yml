@@ -67,7 +67,7 @@ jobs:
     - name: Get current date
       id: date
       run: echo "date=$(date +%Y-%m-%d)" >> "${GITHUB_OUTPUT}"
-    - uses: mamba-org/setup-micromamba@v1
+    - uses: mamba-org/setup-micromamba@v2
       with:
         environment-file: ci/combined-environment-ci.yml
         environment-name: DEVELOP
@@ -96,7 +96,7 @@ jobs:
     - name: Get current date
       id: date
       run: echo "date=$(date +%Y-%m-%d)" >> "${GITHUB_OUTPUT}"
-    - uses: mamba-org/setup-micromamba@v1
+    - uses: mamba-org/setup-micromamba@v2
       with:
         environment-file: ci/combined-environment-ci.yml
         environment-name: DEVELOP
@@ -125,7 +125,7 @@ jobs:
     - name: Get current date
       id: date
       run: echo "date=$(date +%Y-%m-%d)" >> "${GITHUB_OUTPUT}"
-    - uses: mamba-org/setup-micromamba@v1
+    - uses: mamba-org/setup-micromamba@v2
       with:
         environment-file: ci/combined-environment-ci.yml
         environment-name: DEVELOP
@@ -162,7 +162,7 @@ jobs:
     - name: Get current date
       id: date
       run: echo "date=$(date +%Y-%m-%d)" >> "${GITHUB_OUTPUT}"
-    - uses: mamba-org/setup-micromamba@v1
+    - uses: mamba-org/setup-micromamba@v2
       with:
         environment-file: ci/combined-environment${{ matrix.extra }}.yml
         environment-name: DEVELOP${{ matrix.extra }}
@@ -231,6 +231,6 @@ jobs:
       with:
         name: distribution
         path: dist
-    - uses: pypa/gh-action-pypi-publish@v1.9.0
+    - uses: pypa/gh-action-pypi-publish@v1.10.3
       with:
         verbose: true
