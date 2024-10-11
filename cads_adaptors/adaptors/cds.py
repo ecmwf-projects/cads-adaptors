@@ -168,7 +168,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             if not cacheable_embargo:
                 # Add an uncacheable key to the request
                 random_key = str(randint(0, 2**128))
-                request["_part_of_request_under_embargo"] = random_key
+                request["__part_of_request_under_embargo"] = random_key
 
         # At this point, the self.mapped_requests could be used to create a requesthash
 
@@ -183,7 +183,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Avoid the cache by adding a random key-value pair to the request (if cache avoidance is on)
         if self.config.get("avoid_cache", False):
             random_key = str(randint(0, 2**128))
-            request["_in_adaptor_no_cache"] = random_key
+            request["__in_adaptor_no_cache"] = random_key
 
         self.normalised = True
         return request
