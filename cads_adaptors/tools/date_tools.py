@@ -4,6 +4,8 @@ import re
 from datetime import datetime, timedelta
 from typing import Any
 
+from cads_adaptors import exceptions
+
 # Character used to separate start and end dates in compressed form
 separator = "/"
 
@@ -23,7 +25,7 @@ def compress_dates_list(date_strings, date_format=None):
             if date_format is not None:
                 break
         else:
-            raise Exception(
+            raise exceptions.InvalidRequest(
                 "Cannot determine format of any of these dates: " + repr(date_strings)
             )
 
@@ -31,7 +33,7 @@ def compress_dates_list(date_strings, date_format=None):
     try:
         dates = expand_dates_list(date_strings, as_datetime=True)
     except ValueError:
-        raise Exception("Malformatted date strings?: " + repr(date_strings))
+        raise exceptions.InvalidRequest("Malformatted date strings?: " + repr(date_strings))
 
     # Get number of seconds between consecutive pairs
     dates = sorted(list(set(dates)))
@@ -86,7 +88,7 @@ def expand_dates_list(dates_in, as_datetime=False):
             else:
                 dates.append(date)
         elif len(items) > 2:
-            raise Exception("Do not know how to expand " + date + " yet")
+            raise exceptions.InvalidRequest("Do not know how to expand " + date + " yet")
         else:
             date1, date2 = items
             date1, fmt1 = string_to_datetime_with_format(date1)
@@ -125,7 +127,7 @@ def string_to_datetime_with_format(string):
             else:
                 return (dt, fmt)
 
-    raise ValueError("Could not determine date format of " + repr(string))
+    raise exceptions.InvalidRequest("Could not determine date format of " + repr(string))
 
 
 def guess_date_format(string):
@@ -145,7 +147,7 @@ def guess_time_format(string):
     for regex, fmt in (("\\d\\d:\\d\\d", "%H:%M"), ("\\d\\d\\d\\d", "%H%M")):
         if re.fullmatch(regex, string):
             return fmt
-    raise ValueError("Unrecognised time format: " + string)
+    raise exceptions.InvalidRequest("Unrecognised time format: " + string)
 
 
 def string_to_datetime(string):
@@ -160,7 +162,7 @@ def current_to_datetime(string):
     """
     match = re.match(re_current, string)
     if not match:
-        raise Exception("Unrecognised date format: " + string)
+        raise exceptions.InvalidRequest("Unrecognised date format: " + string)
 
     dt = datetime.utcnow()
     if match.group("offset"):
@@ -252,7 +254,7 @@ def months_to_days(n_months, now_date):
     if n_months == 0:
         return 0
     elif n_months > 12:
-        raise ValueError("Cannot handle embargos greater than 12 months")
+        raise exceptions.CdsConfigurationError("Cannot handle embargos greater than 12 months")
     now_month = now_date.month
     then_year = now_date.year
     then_day = now_date.day
@@ -283,12 +285,12 @@ def time2seconds(time):
         else:
             match = re.match(time_regex2, time)
         if not match:
-            raise ValueError("Unrecognised time format: " + repr(time), "")
+            raise exceptions.InvalidRequest("Unrecognised time format: " + repr(time), "")
         hour = int(match.group("H"))
         minute = int(match.group("M")) if match.group("M") else 0
         second = int(match.group("S")) if match.group("S") else 0
         if hour > 23 or minute > 59 or second > 59:
-            raise ValueError("Invalid time string: " + time, "")
+            raise exceptions.InvalidRequest("Invalid time string: " + time, "")
 
         return hour * 3600 + minute * 60 + second
 
@@ -339,7 +341,7 @@ def implement_embargo(
                 try:
                     times = [t for t in times if time2seconds(t) / 3600 <= embargo_hour]
                 except Exception:
-                    raise ValueError(
+                    raise exceptions.InvalidRequest(
                         "Your request straddles the last date available for this dataset, therefore the time "
                         "period must be provided in a format that is understandable to the CDS/ADS "
                         "pre-processing. Please revise your request and, if necessary, use the cdsapi sample "
@@ -358,7 +360,7 @@ def implement_embargo(
         out_requests += _extra_requests
 
     if len(out_requests) == 0 and len(requests) >= 1:
-        raise ValueError(
+        raise exceptions.InvalidRequest(
             "None of the data you have requested is available yet, please revise the period requested. "
             "The latest date available for this dataset is: "
             f"{embargo_datetime.strftime(embargo_error_time_format)}",
