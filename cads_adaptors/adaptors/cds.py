@@ -79,16 +79,18 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Safety net, not all stacks have the latest version of the api:
         if "inputs" in request:
             request = request["inputs"]
+        mapped_request = self.apply_mapping(request)
+
         # "precise_size" is a new costing method that is more accurate than "size
         if "precise_size" in costing_config.get(cost_threshold, {}):
             costs["precise_size"] = costing.estimate_precise_size(
                 self.form,
-                request,
+                mapped_request,
                 self.constraints,
                 **costing_kwargs,
             )
         # size is a fast and rough estimate of the number of fields
-        costs["size"] = costing.estimate_number_of_fields(self.form, request)
+        costs["size"] = costing.estimate_number_of_fields(self.form, mapped_request)
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
         return costs
