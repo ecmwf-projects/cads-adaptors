@@ -4,6 +4,8 @@ import copy
 import datetime
 from typing import Any
 
+from cads_adaptors import exceptions
+
 DATE_KEYWORD_CONFIGS = [
     {
         "date_keyword": "date",
@@ -27,7 +29,7 @@ def julian_to_ymd(jdate):
     try:
         jdate = int(jdate)
     except ValueError:
-        raise TypeError("Invalid julian date")
+        raise exceptions.InvalidRequest(f"Invalid julian date: {jdate}")
 
     x = 4 * jdate - 6884477
     y = (x // 146097) * 100
@@ -101,7 +103,7 @@ def parse_date(date):
         else:
             output = int(date)
     except Exception:
-        raise ValueError(
+        raise exceptions.InvalidRequest(
             f'Invalid date string: "{date}". Should be ' "yyymmdd or yyyy-mm-dd"
         )
     return output
@@ -117,7 +119,7 @@ def date_range(start_date, end_date, step=1, date_format=None):
 
     Raises
     ------
-        ValueError: If the input dates cannot be parsed.
+        exceptions.InvalidRequest: If the input dates cannot be parsed.
 
     Returns
     -------
@@ -172,7 +174,7 @@ def integer_list(request, name):
         try:
             integers.append(int(item))
         except Exception:
-            raise ValueError(f"Invalid integer for {name}: {item!r}")
+            raise exceptions.InvalidRequest(f"Invalid integer for {name}: {item!r}")
     return integers
 
 
@@ -193,7 +195,7 @@ def expand_dates(r, request, date, year, month, day, date_format):
             if "/" in d:
                 items = [_.strip() for _ in d.split("/")]
                 if len(items) != 2 or not items[0] or not items[1]:
-                    raise ValueError(
+                    raise exceptions.InvalidRequest(
                         f'Date ranges must be of the form "start_date/end_date": "{d}"'
                     )
                 newdates.update(date_range(*items, date_format=date_format))
@@ -213,7 +215,7 @@ def expand_dates(r, request, date, year, month, day, date_format):
             )
 
             if len(r[date]) == 0:
-                raise ValueError(
+                raise exceptions.InvalidRequest(
                     f"No valid dates from year={years} month={months} day={days}",
                     "",
                 )

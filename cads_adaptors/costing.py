@@ -4,7 +4,6 @@ from typing import Any, Generator
 
 EXCLUDED_WIDGETS = [
     "GeographicExtentWidget",
-    "UnknownWidget",
 ]
 
 # TODO: Handle DateRangeWidget
