@@ -56,7 +56,8 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
             context.add_stdout(f"Downloading {url} to {path}")
             MAX_RETRIES = kwargs.get("max_retries", 10)
             IS_RESUME_TRANSFERS_ON = kwargs.get("resume_transfers", False)
-            SLEEP_BETWEEN_RETRIES = kwargs.get("sleep_between_retries", 10)
+            SLEEP_BETWEEN_RETRIES = kwargs.get("sleep_between_retries", 1)
+            INCREASE_RATE = 1.1
             for i_retry in range(MAX_RETRIES):
                 try:
                     multiurl.download(
@@ -74,6 +75,7 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
                         f"with resume_transfers={IS_RESUME_TRANSFERS_ON}): {e!r}"
                     )
                     time.sleep(SLEEP_BETWEEN_RETRIES)
+                    SLEEP_BETWEEN_RETRIES = min(SLEEP_BETWEEN_RETRIES * INCREASE_RATE, 120)
                     if i_retry + 1 == MAX_RETRIES:
                         raise
         except requests.exceptions.ConnectionError as e:
