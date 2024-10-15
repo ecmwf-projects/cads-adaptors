@@ -23,7 +23,6 @@ class AbstractCacher:
     def __init__(self, context, no_put=False):
         self.context = context
         self.no_put = no_put
-        self._lock = threading.Lock()
 
         # Fields which should be cached permanently (on the datastore). All
         # other fields will be cached in temporary locations.
@@ -175,28 +174,61 @@ class AbstractCacher:
 
 class AbstractAsyncCacher(AbstractCacher):
     """Augment the AbstractCacher class to add asynchronous cache puts. This
-       class is still abstract since it does not do the actual data copy."""
+       class is still abstract since it does not do the actual data copy. It
+       can be sub-classed in order to give asynchronous, and optionally also
+       parallel, functionality to synchronous caching code.
+    """
 
-    def __init__(self, context, *args, tmpdir='/cache/tmp', **kwargs):
+    def __init__(self, context, *args, nthreads=5, max_mem=100000000,
+                 tmpdir='/cache/tmp', **kwargs):
+        """The number of fields that will be written concurrently to the cache
+           is determined by nthreads. Note that even if nthreads=1 it will still
+           be the case that the fields will be cached asynchronously, even if
+           not concurrently, and so a cacher.put() will not hold up the thread
+           in which it is executed.
+           Fields will be buffered in memory while waiting to be written until
+           the memory usage exceeds max_mem bytes, at which point fields will be
+           temporarily written to disk (in tmpdir) to avoid excessive memory
+           usage.
+        """
         super().__init__(context, *args, **kwargs)
+        self.nthreads = nthreads
+        self._lock1 = threading.Lock()
+        self._lock2 = threading.Lock()
+        self._qclosed = False
         self._templates = {}
-        self._future = None
-        self._queue = MemSafeQueue(100000000, tmpdir, logger=context)
+        self._futures = []
+        self._start_time = None
+        self._queue = MemSafeQueue(max_mem, tmpdir, logger=context)
 
-    def _start_copy_thread(self):
-        """Start the thread that will do the remote copies"""
-        exr = concurrent.futures.ThreadPoolExecutor(1)
-        self._future = exr.submit(self._copier)
+    def _start_copy_threads(self):
+        """Start the threads that will do the remote copies"""
+        exr = concurrent.futures.ThreadPoolExecutor(max_workers=self.nthreads)
+        self._start_time = time.time()
+        self._futures = [exr.submit(self._copier) for _ in range(self.nthreads)]
         exr.shutdown(wait=False)
 
     def done(self):
         """Must be called once all files copied."""
-        if self._future is not None:
+        if self._futures:
+
+            # Close the queue
             self._queue.put((b'', None))
-            exc = self._future.exception()
-            if exc is not None:
-                raise exc from exc
-            self.context.debug(f'MemSafeQueue summary: {self._queue.counts!r}')
+            qclose_time = time.time()
+
+            # Wait for each thread to complete and check if any raised an
+            # exception
+            for future in self._futures:
+                exc = future.exception(timeout=60)
+                if exc is not None:
+                    raise exc from exc
+
+            # Log a summary for performance monitoring
+            summary = self._queue.counts.copy()
+            now = time.time()
+            summary['time_secs'] = {'elapsed': now - self._start_time,
+                                    'drain': now - qclose_time}
+            self.context.info(f'MemSafeQueue summary: {summary!r}')
 
     def __enter__(self):
         return self
@@ -209,24 +241,31 @@ class AbstractAsyncCacher(AbstractCacher):
            specified host"""
 
         # Start the copying thread if not done already
-        with self._lock:
-            if self._future is None:
-                self._start_copy_thread()
+        with self._lock1:
+            if not self._futures:
+                self._start_copy_threads()
 
         self._queue.put((data, fieldinfo))
 
     def _copier(self):
         """Thread to actually copy the data"""
         while True:
-            data, fieldinfo = self._queue.get()
-            if fieldinfo is None:
+            # This lock is required so that only 1 thread marks the queue as
+            # closed
+            with self._lock2:
+                if self._qclosed:
+                    break
+                data, fieldinfo = self._queue.get()
+                self._qclosed = (fieldinfo is None)
+            if self._qclosed:
                 break
             self._write_field_sync(data, fieldinfo)
 
 
 class CacherS3(AbstractAsyncCacher):
     """Class to look after cache storage to, and retrieval from, an S3 bucket.
-       Storage is asynchronous."""
+    """
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -238,7 +277,7 @@ class CacherS3(AbstractAsyncCacher):
             aws_access_key_id=os.environ['STORAGE_ADMIN'],
             aws_secret_access_key=os.environ['STORAGE_PASSWORD']
         )
-        self.trust_that_bucket_exists = True
+        self.client = boto3.client('s3', **self._credentials)
 
     def _write_field_sync(self, data, fieldinfo):
         """Write the data described by fieldinfo to the appropriate cache
@@ -252,13 +291,12 @@ class CacherS3(AbstractAsyncCacher):
         self.context.debug(f'CACHER: copying data to '
                            f'{self._host}:{self._bucket}:{remote_path}')
 
-        client = boto3.client('s3', **self._credentials)
-
-        if not self.trust_that_bucket_exists:
-            resource = boto3.resource('s3', **self._credentials)
-            bkt = resource.Bucket(self._bucket)
-            if not bkt.creation_date:
-                bkt = client.create_bucket(Bucket=self._bucket)
+        # Uncomment this code if it can't be trusted that the bucket already
+        # exists
+        #resource = boto3.resource('s3', **self._credentials)
+        #bkt = resource.Bucket(self._bucket)
+        #if not bkt.creation_date:
+        #    bkt = self.client.create_bucket(Bucket=self._bucket)
 
         attempt = 0
         t0 = time.time()
@@ -266,9 +304,9 @@ class CacherS3(AbstractAsyncCacher):
             attempt += 1
             try:
                 if not self.no_put:
-                    client.put_object(Bucket=self._bucket,
-                                      Key=remote_path,
-                                      Body=local_object.getvalue())
+                    self.client.put_object(Bucket=self._bucket,
+                                           Key=remote_path,
+                                           Body=local_object.getvalue())
                 status = 'uploaded'
                 break
             except Exception as exc:
