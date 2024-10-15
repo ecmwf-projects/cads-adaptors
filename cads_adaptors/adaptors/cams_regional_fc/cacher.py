@@ -179,7 +179,7 @@ class AbstractAsyncCacher(AbstractCacher):
        parallel, functionality to synchronous caching code.
     """
 
-    def __init__(self, context, *args, nthreads=5, max_mem=100000000,
+    def __init__(self, context, *args, nthreads=10, max_mem=100000000,
                  tmpdir='/cache/tmp', **kwargs):
         """The number of fields that will be written concurrently to the cache
            is determined by nthreads. Note that even if nthreads=1 it will still
@@ -224,10 +224,12 @@ class AbstractAsyncCacher(AbstractCacher):
                     raise exc from exc
 
             # Log a summary for performance monitoring
-            summary = self._queue.counts.copy()
+            summary = self._queue.stats.copy()
+            iotime = summary.pop('iotime')
             now = time.time()
             summary['time_secs'] = {'elapsed': now - self._start_time,
-                                    'drain': now - qclose_time}
+                                    'drain': now - qclose_time,
+                                    'io': iotime}
             self.context.info(f'MemSafeQueue summary: {summary!r}')
 
     def __enter__(self):
