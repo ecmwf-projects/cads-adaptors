@@ -24,7 +24,7 @@ ADAPTOR_CONFIG = {
             "dont_split_keys": ["dont_split"],
         },
         "max": {
-            "entry_point": "cads_adaptors:DummyAdaptor",
+            "entry_point": "cads_adaptors:DummyCdsAdaptor",
             "values": {
                 "level": ["500", "850"],
                 "time": ["12:00", "00:00"],

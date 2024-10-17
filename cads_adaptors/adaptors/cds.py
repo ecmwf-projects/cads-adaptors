@@ -79,16 +79,18 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Safety net, not all stacks have the latest version of the api:
         if "inputs" in request:
             request = request["inputs"]
+        mapped_request = self.apply_mapping(request)
+
         # "precise_size" is a new costing method that is more accurate than "size
         if "precise_size" in costing_config.get(cost_threshold, {}):
             costs["precise_size"] = costing.estimate_precise_size(
                 self.form,
-                request,
+                mapped_request,
                 self.constraints,
                 **costing_kwargs,
             )
         # size is a fast and rough estimate of the number of fields
-        costs["size"] = costing.estimate_number_of_fields(self.form, request)
+        costs["size"] = costing.estimate_number_of_fields(self.form, mapped_request)
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
         return costs
@@ -168,7 +170,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             if not cacheable_embargo:
                 # Add an uncacheable key to the request
                 random_key = str(randint(0, 2**128))
-                request["_part_of_request_under_embargo"] = random_key
+                request["__part_of_request_under_embargo"] = random_key
 
         # At this point, the self.mapped_requests could be used to create a requesthash
 
@@ -183,7 +185,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Avoid the cache by adding a random key-value pair to the request (if cache avoidance is on)
         if self.config.get("avoid_cache", False):
             random_key = str(randint(0, 2**128))
-            request["_in_adaptor_no_cache"] = random_key
+            request["__in_adaptor_no_cache"] = random_key
 
         self.normalised = True
         return request
