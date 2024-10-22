@@ -7,7 +7,7 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from .cams_regional_fc import cams_regional_fc
 
-        request.pop("_in_adaptor_no_cache", None)
+        request.pop("__in_adaptor_no_cache", None)
         self.normalise_request(request)
 
         # for now this is needed down the road to enforce the schema

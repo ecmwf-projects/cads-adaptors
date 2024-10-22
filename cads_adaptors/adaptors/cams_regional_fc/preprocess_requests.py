@@ -83,7 +83,7 @@ def apply_schema(requests, context):
     ]
     recognised_keys = sorted(
         set(mandatory_keys).union(
-            ["area", "no_cache", "_in_adaptor_no_cache", "_local_subarea"]
+            ["area", "no_cache", "__in_adaptor_no_cache", "_local_subarea"]
         )
     )
 
