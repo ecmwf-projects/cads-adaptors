@@ -400,19 +400,28 @@ def test_legacy_intersect_partial():
     request = {"foo": 1}
     with pytest.raises(exceptions.InvalidRequest):
         constraints.legacy_intersect_constraints(request, raw_constraints)
-    actual = constraints.legacy_intersect_constraints(request, raw_constraints, allow_partial=True)
+    actual = constraints.legacy_intersect_constraints(
+        request, raw_constraints, allow_partial=True
+    )
     assert actual == [{"foo": [1]}]
 
     request = {"foo": 3}
     with pytest.raises(exceptions.InvalidRequest):
         constraints.legacy_intersect_constraints(request, raw_constraints)
-    actual = constraints.legacy_intersect_constraints(request, raw_constraints, allow_partial=True)
+    actual = constraints.legacy_intersect_constraints(
+        request, raw_constraints, allow_partial=True
+    )
     assert actual == []
 
-    request = {"foo": 3, "bar": [3, 4],}
+    request = {
+        "foo": 3,
+        "bar": [3, 4],
+    }
     with pytest.raises(exceptions.InvalidRequest):
         constraints.legacy_intersect_constraints(request, raw_constraints)
-    actual = constraints.legacy_intersect_constraints(request, raw_constraints, allow_partial=True)
+    actual = constraints.legacy_intersect_constraints(
+        request, raw_constraints, allow_partial=True
+    )
     assert actual == [{"bar": [3]}]
 
 
@@ -436,7 +445,13 @@ def test_legacy_intersect_constraints_daterange():
 
     request = {"foo": 1, "bar": [3, 4], "date": ["2020-10-01", "2020-10-02"]}
     actual = constraints.legacy_intersect_constraints(request, raw_constraints)
-    assert actual == [{"foo": [1], "bar": [3], "date": ["2020-10-01/2020-10-01", "2020-10-02/2020-10-02"]}]
+    assert actual == [
+        {
+            "foo": [1],
+            "bar": [3],
+            "date": ["2020-10-01/2020-10-01", "2020-10-02/2020-10-02"],
+        }
+    ]
 
     request = {"foo": 1, "bar": [3, 4], "date": "2022-10-01"}
     with pytest.raises(exceptions.InvalidRequest):
@@ -445,7 +460,9 @@ def test_legacy_intersect_constraints_daterange():
     request = {"foo": 1, "bar": [3, 4], "date": [""]}
     with pytest.raises(exceptions.InvalidRequest):
         constraints.legacy_intersect_constraints(request, raw_constraints)
-    actual = constraints.legacy_intersect_constraints(request, raw_constraints, allow_partial=True)
+    actual = constraints.legacy_intersect_constraints(
+        request, raw_constraints, allow_partial=True
+    )
     assert actual == [{"foo": [1], "bar": [3]}]
 
     request = {"foo": 1, "bar": [3, 4], "date": ""}
