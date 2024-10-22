@@ -94,7 +94,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         if "precise_size" in max_costs:
             # Hard-coded limit designed to protect the system,
-            # checking 10^6 fields is expensive and generally not needed as costs will be exceeded.
+            # checking 10^6 combinations is expensive and generally not needed as costs will be exceeded
+            # significantly below this limit.
             # 10^6 is conservative, could consider increasing to 10^7
             if costs["size"] > 1e6:
                 costs["precise_size"] = costs["size"]
@@ -106,9 +107,16 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 for i_c in self.intersect_constraints(request, allow_partial=True):
                     if i_c not in intersected_selection:
                         intersected_selection.append(i_c)
+                # mapping_for_costs = {k: v for k,v in self.mapping.items() if k not in["force", "defaults"]}
+                mapped_intersected_selection = [
+                    mapping.apply_mapping(
+                        i_sel, {"options": self.mapping.get("options", {})}
+                    )
+                    for i_sel in intersected_selection
+                ]
                 costs["precise_size"] = costing.estimate_precise_size(
                     self.form,
-                    intersected_selection,
+                    mapped_intersected_selection,
                     **costing_kwargs,
                 )
 

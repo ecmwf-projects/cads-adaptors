@@ -690,17 +690,22 @@ def legacy_intersect_constraints(
                 selected_ranges_as_strings = ensure_sequence(
                     output_request.get(field, [])
                 )
-                selected_ranges = [
-                    gen_time_range_from_string(selected_range)
-                    for selected_range in selected_ranges_as_strings
-                ]
-                valid_ranges = [
-                    gen_time_range_from_string(valid_range)
-                    for valid_range in constraint[field]
-                ]
-                constrained_field_value = get_temporal_intersection(
-                    selected_ranges, valid_ranges
-                )
+                if len(selected_ranges_as_strings) and not any(
+                    d_i == "" for d_i in selected_ranges_as_strings
+                ):
+                    selected_ranges = [
+                        gen_time_range_from_string(selected_range)
+                        for selected_range in selected_ranges_as_strings
+                    ]
+                    valid_ranges = [
+                        gen_time_range_from_string(valid_range)
+                        for valid_range in constraint[field]
+                    ]
+                    constrained_field_value = get_temporal_intersection(
+                        selected_ranges, valid_ranges
+                    )
+                else:
+                    constrained_field_value = []
 
             # If the intersection is empty, and we do not allow patial requests,
             # then request as a whole does not meet this constraint and this output_request must be
