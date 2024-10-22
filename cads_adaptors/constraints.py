@@ -691,7 +691,7 @@ def legacy_intersect_constraints(
                     output_request.get(field, [])
                 )
                 if len(selected_ranges_as_strings) and not any(
-                    d_i == "" for d_i in selected_ranges_as_strings
+                    i_date == "" for i_date in selected_ranges_as_strings
                 ):
                     selected_ranges = [
                         gen_time_range_from_string(selected_range)
