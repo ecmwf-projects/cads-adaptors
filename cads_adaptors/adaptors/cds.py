@@ -107,8 +107,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 for i_c in self.intersect_constraints(request, allow_partial=True):
                     if i_c not in intersected_selection:
                         intersected_selection.append(i_c)
-                # mapping_for_costs = {k: v for k,v in self.mapping.items() if k not in["force", "defaults"]}
-                mapped_intersected_selection = [
+                # We use the mapping options to expand dates
+                expanded_intersected_selection = [
                     mapping.apply_mapping(
                         i_sel, {"options": self.mapping.get("options", {})}
                     )
@@ -116,7 +116,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 ]
                 costs["precise_size"] = costing.estimate_precise_size(
                     self.form,
-                    mapped_intersected_selection,
+                    expanded_intersected_selection,
                     **costing_kwargs,
                 )
 
