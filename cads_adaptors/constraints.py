@@ -712,7 +712,9 @@ def legacy_intersect_constraints(
             # discarded. If we allow partial requests, then we just move on to the next key
             if constrained_field_value:
                 output_request[field] = constrained_field_value
-            elif not allow_partial:
+            elif allow_partial:
+                _ = output_request.pop(field, None)
+            else:
                 output_request = {}
                 break
 

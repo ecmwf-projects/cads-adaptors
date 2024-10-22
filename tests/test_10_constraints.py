@@ -393,3 +393,62 @@ def test_legacy_intersect_dtype_differences():
     request = {"foo": 1, "bar": [3, 4]}
     actual = constraints.legacy_intersect_constraints(request, raw_constraints)
     assert actual == [{"foo": [1], "bar": [3]}]
+
+
+def test_legacy_intersect_partial():
+    raw_constraints = [{"foo": ["1", "2"], "bar": "3"}]
+    request = {"foo": 1}
+    with pytest.raises(exceptions.InvalidRequest):
+        constraints.legacy_intersect_constraints(request, raw_constraints)
+    actual = constraints.legacy_intersect_constraints(request, raw_constraints, allow_partial=True)
+    assert actual == [{"foo": [1]}]
+
+    request = {"foo": 3}
+    with pytest.raises(exceptions.InvalidRequest):
+        constraints.legacy_intersect_constraints(request, raw_constraints)
+    actual = constraints.legacy_intersect_constraints(request, raw_constraints, allow_partial=True)
+    assert actual == []
+
+    request = {"foo": 3, "bar": [3, 4],}
+    with pytest.raises(exceptions.InvalidRequest):
+        constraints.legacy_intersect_constraints(request, raw_constraints)
+    actual = constraints.legacy_intersect_constraints(request, raw_constraints, allow_partial=True)
+    assert actual == [{"bar": [3]}]
+
+
+def test_legacy_intersect_constraints_daterange():
+    raw_constraints = [
+        {"foo": ["1", "2"], "bar": "3", "date": ["2020-01-01/2020-12-31"]}
+    ]
+    request = {"foo": 1, "bar": [3, 4], "date": "2020-10-01/2020-10-31"}
+    actual = constraints.legacy_intersect_constraints(request, raw_constraints)
+    assert actual == [{"foo": [1], "bar": [3], "date": ["2020-10-01/2020-10-31"]}]
+
+    request = {"foo": 1, "bar": [3, 4], "date": "2020-10-01/2022-10-31"}
+    actual = constraints.legacy_intersect_constraints(request, raw_constraints)
+    assert actual == [{"foo": [1], "bar": [3], "date": ["2020-10-01/2020-12-31"]}]
+
+    # NOTE: The following test cases my change in the future if intersect_constraints is updated to
+    # return dates in the format they were provided, i.e. singular or ranges
+    request = {"foo": 1, "bar": [3, 4], "date": "2020-10-01"}
+    actual = constraints.legacy_intersect_constraints(request, raw_constraints)
+    assert actual == [{"foo": [1], "bar": [3], "date": ["2020-10-01/2020-10-01"]}]
+
+    request = {"foo": 1, "bar": [3, 4], "date": ["2020-10-01", "2020-10-02"]}
+    actual = constraints.legacy_intersect_constraints(request, raw_constraints)
+    assert actual == [{"foo": [1], "bar": [3], "date": ["2020-10-01/2020-10-01", "2020-10-02/2020-10-02"]}]
+
+    request = {"foo": 1, "bar": [3, 4], "date": "2022-10-01"}
+    with pytest.raises(exceptions.InvalidRequest):
+        constraints.legacy_intersect_constraints(request, raw_constraints)
+
+    request = {"foo": 1, "bar": [3, 4], "date": [""]}
+    with pytest.raises(exceptions.InvalidRequest):
+        constraints.legacy_intersect_constraints(request, raw_constraints)
+    actual = constraints.legacy_intersect_constraints(request, raw_constraints, allow_partial=True)
+    assert actual == [{"foo": [1], "bar": [3]}]
+
+    request = {"foo": 1, "bar": [3, 4], "date": ""}
+    with pytest.raises(exceptions.InvalidRequest):
+        constraints.legacy_intersect_constraints(request, raw_constraints)
+    assert actual == [{"foo": [1], "bar": [3]}]
