@@ -139,6 +139,10 @@ class AbstractCacher:
         """Return a field-specific path or the given field. Can be used by a
         child class to determine server-side cache location.
         """
+
+        dir = ("permanent" if self._cache_permanently(fieldinfo) else
+               "temporary")
+
         # Set the order we'd like the keys to appear in the filename. Area
         # keys will be last.
         order1 = ["model", "type", "variable", "level", "time", "step"]
@@ -157,7 +161,7 @@ class AbstractCacher:
         if keys not in self._templates:
             # Form a Jinja2 template string for the cache files. "_backend" not
             # used; organised by date; area keys put at the end.
-            path_template = "{{ date }}/" + "_".join(
+            path_template = dir + "/{{ date }}/" + "_".join(
                 [
                     "{k}={{{{ {k} }}}}".format(k=k)
                     for k in sorted(keys, key=key_order)
@@ -170,13 +174,12 @@ class AbstractCacher:
         regex = r"^[\w.:-]+$"
         for k, v in fieldinfo.items():
             assert re.match(regex, k), "Bad characters in key: " + repr(k)
+            assert isinstance(v, (str, int)), f"Unexpected type for {k}: {type(v)}"
             assert re.match(regex, str(v)), (
                 "Bad characters in value for " + k + ": " + repr(v)
             )
 
-        path = self._templates[keys].render(fieldinfo)
-
-        return path
+        return self._templates[keys].render(fieldinfo)
 
 
 class AbstractAsyncCacher(AbstractCacher):
@@ -278,9 +281,15 @@ class AbstractAsyncCacher(AbstractCacher):
                 break
             self._write_field_sync(data, fieldinfo)
 
+        n = self._queue.qsize()
+        if n > 0:
+            raise Exception(f'{n} unconsumed items in queue')
+
 
 class CacherS3(AbstractAsyncCacher):
-    """Class to look after cache storage to, and retrieval from, an S3 bucket."""
+    """Class to look after cache storage to, and retrieval from, an S3
+    bucket.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -299,11 +308,7 @@ class CacherS3(AbstractAsyncCacher):
         location.
         """
         local_object = io.BytesIO(data)
-        remote_path = (
-            ("permanent" if self._cache_permanently(fieldinfo) else "temporary")
-            + "/"
-            + self._cache_file_path(fieldinfo)
-        )
+        remote_path = self._cache_file_path(fieldinfo)
 
         self.context.debug(
             f"CACHER: copying data to " f"{self._host}:{self._bucket}:{remote_path}"
@@ -349,6 +354,12 @@ class CacherS3(AbstractAsyncCacher):
         return f"https://{self._host}/{self._bucket}/" + self._cache_file_path(
             fieldinfo
         )
+
+    def delete(self, fieldinfo):
+        """Only used for testing at the time of writing"""
+        remote_path = self._cache_file_path(fieldinfo)
+        self.client.delete_object(Bucket=self._bucket,
+                                  Key=remote_path)
 
 
 Cacher = CacherS3
