@@ -613,13 +613,13 @@ def prepare_open_datasets_kwargs_grib(
             for k1, k2 in split_on_keys_alias.items():
                 try:
                     k1_unique_values: list[str] = ekd_ds.unique_values(k1)[k1]
-                except KeyError:
+                except (KeyError, AssertionError):
                     context.add_stderr(f"key {k1} not found in dataset, skipping")
                 else:
                     if len(k1_unique_values) > 1:
                         try:
                             k2_unique_key_values = ekd_ds.unique_values(k2)
-                        except KeyError:
+                        except (KeyError, AssertionError):
                             context.add_stderr(
                                 f"key {k2} not found in dataset, splitting on {k1} instead"
                             )
@@ -630,6 +630,7 @@ def prepare_open_datasets_kwargs_grib(
 
         # This kwarg set did not produce any unique key values, so we skip it
         if len(unique_key_values) == 0:
+            out_open_datasets_kwargs.append(open_ds_kwargs)
             continue
 
         # Create all combinations of unique key:value dictionaries
