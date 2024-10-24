@@ -628,7 +628,7 @@ def prepare_open_datasets_kwargs_grib(
                             # Always split to ensure consistent naming
                             unique_key_values.update(k2_unique_key_values)
 
-        # This kwarg set did not produce any unique key values, so we skip it
+        # This kwarg set did not produce any unique key values to split on, so we append and move on
         if len(unique_key_values) == 0:
             out_open_datasets_kwargs.append(open_ds_kwargs)
             continue
