@@ -604,9 +604,8 @@ def prepare_open_datasets_kwargs_grib(
                 except KeyError:
                     context.add_stderr(f"key {k} not found in dataset, skipping")
                 else:
-                    # If only one unique value, we don't need to split
-                    if len(_unique_key_values[k]) > 1:
-                        unique_key_values.update(_unique_key_values)
+                    # Always split to ensure consistent naming
+                    unique_key_values.update(_unique_key_values)
 
         if split_on_keys_alias is not None:
             # If differences are detected in key (k1), we split on value key (k2),
@@ -626,14 +625,8 @@ def prepare_open_datasets_kwargs_grib(
                             )
                             unique_key_values.update(ekd_ds.unique_values(k1))
                         else:
-                            # If only one unique value, we don't need to split
-                            if len(k2_unique_key_values[k2]) > 1:
-                                unique_key_values.update(k2_unique_key_values)
-
-        # If there are no unique key values, we don't need to split or modify any tags
-        if len(unique_key_values) == 0:
-            out_open_datasets_kwargs.append(open_ds_kwargs)
-            continue
+                            # Always split to ensure consistent naming
+                            unique_key_values.update(k2_unique_key_values)
 
         # Create all combinations of unique key:value dictionaries
         # i.e. {k1: [v1, v2], k2: [v3, v4]} ->
