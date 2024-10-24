@@ -558,6 +558,7 @@ def legacy_intersect_constraints(
     request: dict[str, Any],
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
     context: adaptors.Context = adaptors.Context(),
+    allow_partial: bool = False,
 ) -> list[dict[str, list[Any]]]:
     """
     'Constrain' a request by intersecting it with the constraints.
@@ -689,23 +690,30 @@ def legacy_intersect_constraints(
                 selected_ranges_as_strings = ensure_sequence(
                     output_request.get(field, [])
                 )
-                selected_ranges = [
-                    gen_time_range_from_string(selected_range)
-                    for selected_range in selected_ranges_as_strings
-                ]
-                valid_ranges = [
-                    gen_time_range_from_string(valid_range)
-                    for valid_range in constraint[field]
-                ]
-                constrained_field_value = get_temporal_intersection(
-                    selected_ranges, valid_ranges
-                )
+                if len(selected_ranges_as_strings) and not any(
+                    i_date == "" for i_date in selected_ranges_as_strings
+                ):
+                    selected_ranges = [
+                        gen_time_range_from_string(selected_range)
+                        for selected_range in selected_ranges_as_strings
+                    ]
+                    valid_ranges = [
+                        gen_time_range_from_string(valid_range)
+                        for valid_range in constraint[field]
+                    ]
+                    constrained_field_value = get_temporal_intersection(
+                        selected_ranges, valid_ranges
+                    )
+                else:
+                    constrained_field_value = []
 
-            # If the intersection is empty, the request as a whole does not
-            # meet this constraint and this output_request must be
-            # discarded.
+            # If the intersection is empty, and we do not allow patial requests,
+            # then request as a whole does not meet this constraint and this output_request must be
+            # discarded. If we allow partial requests, then we just move on to the next key
             if constrained_field_value:
                 output_request[field] = constrained_field_value
+            elif allow_partial:
+                _ = output_request.pop(field, None)
             else:
                 output_request = {}
                 break
@@ -713,7 +721,8 @@ def legacy_intersect_constraints(
         if len(output_request) != 0:
             requests.append(output_request)
 
-    if len(requests) == 0:
+    # An empty request is valid if we allow partial requests.
+    if not allow_partial and len(requests) == 0:
         context.add_user_visible_error(
             "Your request has not produced a valid combination of values, please check your selection.\n"
             "If using the cdsapi, please ensure that the values in your request match the values provided"
