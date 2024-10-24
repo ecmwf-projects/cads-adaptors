@@ -114,3 +114,10 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         else:
             dataset_source_str = dataset_source
         return dataset_source_str
+    
+    def estimate_costs(self, request, **kwargs):
+        costs = super().estimate_costs(request, **kwargs)
+        area_weight = function(request)
+        for k, v in costs.items():
+            costs[k] = v * area_weight
+        return costs
