@@ -627,6 +627,10 @@ def prepare_open_datasets_kwargs_grib(
                         else:
                             # Always split to ensure consistent naming
                             unique_key_values.update(k2_unique_key_values)
+        
+        # This kwarg set did not produce any unique key values, so we skip it
+        if len(unique_key_values) == 0:
+            continue
 
         # Create all combinations of unique key:value dictionaries
         # i.e. {k1: [v1, v2], k2: [v3, v4]} ->
