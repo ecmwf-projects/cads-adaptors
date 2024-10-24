@@ -117,6 +117,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
     
     def estimate_costs(self, request, **kwargs):
         costs = super().estimate_costs(request, **kwargs)
+        # TODO: Replace with real function:
         area_weight = function(request)
         for k, v in costs.items():
             costs[k] = v * area_weight
