@@ -361,3 +361,33 @@ def test_prepare_open_datasets_kwargs_grib_split_on_alias():
             assert tag in [d["tag"] for d in new_open_ds_kwargs]
         assert not any("split_on_alias" in d for d in new_open_ds_kwargs)
         assert all("test_kwarg" in d for d in new_open_ds_kwargs)
+
+        # k1 does not exist
+        open_ds_kwargs = {
+            "test_kwarg": 1,
+            "tag": "tag",
+            "split_on_alias": {"kebab": "stepType"},
+        }
+        new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
+            tmp_grib_file, open_ds_kwargs
+        )
+        assert isinstance(new_open_ds_kwargs, list)
+        assert len(new_open_ds_kwargs) == 1
+        assert "tag" in [d["tag"] for d in new_open_ds_kwargs]
+        assert not any("split_on_alias" in d for d in new_open_ds_kwargs)
+        assert all("test_kwarg" in d for d in new_open_ds_kwargs)
+
+        # k2 does not exist
+        open_ds_kwargs = {
+            "test_kwarg": 1,
+            "tag": "tag",
+            "split_on_alias": {"expver": "kebab"},
+        }
+        new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
+            tmp_grib_file, open_ds_kwargs
+        )
+        assert isinstance(new_open_ds_kwargs, list)
+        assert len(new_open_ds_kwargs) == 1
+        assert "tag_kebab-None" in [d["tag"] for d in new_open_ds_kwargs]
+        assert not any("split_on_alias" in d for d in new_open_ds_kwargs)
+        assert all("test_kwarg" in d for d in new_open_ds_kwargs)
