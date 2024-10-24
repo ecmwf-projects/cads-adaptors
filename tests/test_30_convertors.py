@@ -244,49 +244,150 @@ def test_safely_expand_dims():
     assert "time" in ds_1.temperature.dims
 
 
-def test_prepare_open_datasets_kwargs_grib():
+def test_prepare_open_datasets_kwargs_grib_split_on():
     grib_file = requests.get(TEST_GRIB_FILE)
-    open_ds_kwargs = {
-        "test_kwarg": 1,
-        "tag": "tag",
-        "split_on": ["paramId"],
-    }
     with tempfile.TemporaryDirectory() as tmpdirname:
         os.chdir(tmpdirname)
         tmp_grib_file = "test.grib"
         with open(tmp_grib_file, "wb") as f:
             f.write(grib_file.content)
 
+        open_ds_kwargs = {
+            "test_kwarg": 1,
+            "tag": "tag",
+            "split_on": ["paramId"],
+        }
         new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
             tmp_grib_file, open_ds_kwargs
         )
-    assert isinstance(new_open_ds_kwargs, list)
-    assert len(new_open_ds_kwargs) == 2
-    assert "tag_paramId-130" in [d["tag"] for d in new_open_ds_kwargs]
-    assert "tag_paramId-129" in [d["tag"] for d in new_open_ds_kwargs]
-    assert not any("split_on" in d for d in new_open_ds_kwargs)
-    assert all("test_kwarg" in d for d in new_open_ds_kwargs)
+        assert isinstance(new_open_ds_kwargs, list)
+        assert len(new_open_ds_kwargs) == 2
+        assert "tag_paramId-130" in [d["tag"] for d in new_open_ds_kwargs]
+        assert "tag_paramId-129" in [d["tag"] for d in new_open_ds_kwargs]
+        assert not any("split_on" in d for d in new_open_ds_kwargs)
+        assert all("test_kwarg" in d for d in new_open_ds_kwargs)
 
+        # Single value to split on
+        open_ds_kwargs = {
+            "test_kwarg": 1,
+            "tag": "tag",
+            "split_on": ["stream"],
+        }
+        new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
+            tmp_grib_file, open_ds_kwargs
+        )
+        assert isinstance(new_open_ds_kwargs, list)
+        assert len(new_open_ds_kwargs) == 1
+        assert "tag_stream-enda" in [d["tag"] for d in new_open_ds_kwargs]
+        assert not any("split_on" in d for d in new_open_ds_kwargs)
+        assert all("test_kwarg" in d for d in new_open_ds_kwargs)
+
+        # Key does not exist
+        open_ds_kwargs = {
+            "test_kwarg": 1,
+            "tag": "tag",
+            "split_on": ["kebab"],
+        }
+        new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
+            tmp_grib_file, open_ds_kwargs
+        )
+        assert isinstance(new_open_ds_kwargs, list)
+        assert len(new_open_ds_kwargs) == 1
+        assert "tag_kebab-None" in [d["tag"] for d in new_open_ds_kwargs]
+        assert not any("split_on" in d for d in new_open_ds_kwargs)
+        assert all("test_kwarg" in d for d in new_open_ds_kwargs)
+
+
+def test_prepare_open_datasets_kwargs_grib_split_on_alias():
     # Test split_on_alias, if differences detected in k, then split on v
     grib_file_2 = requests.get(TEST_GRIB_FILE_2)
-    open_ds_kwargs = {
-        "test_kwarg": 1,
-        "tag": "tag",
-        "split_on_alias": {"expver": "stepType"},
-    }
     with tempfile.TemporaryDirectory() as tmpdirname:
         os.chdir(tmpdirname)
         tmp_grib_file = "test2.grib"
         with open(tmp_grib_file, "wb") as f:
             f.write(grib_file_2.content)
 
+        open_ds_kwargs = {
+            "test_kwarg": 1,
+            "tag": "tag",
+            "split_on_alias": {"expver": "stepType"},
+        }
         new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
             tmp_grib_file, open_ds_kwargs
         )
+        assert isinstance(new_open_ds_kwargs, list)
+        assert len(new_open_ds_kwargs) == 2
+        assert "tag_stepType-instant" in [d["tag"] for d in new_open_ds_kwargs]
+        assert "tag_stepType-accum" in [d["tag"] for d in new_open_ds_kwargs]
+        assert not any("split_on_alias" in d for d in new_open_ds_kwargs)
+        assert all("test_kwarg" in d for d in new_open_ds_kwargs)
 
-    assert isinstance(new_open_ds_kwargs, list)
-    assert len(new_open_ds_kwargs) == 2
-    assert "tag_stepType-instant" in [d["tag"] for d in new_open_ds_kwargs]
-    assert "tag_stepType-accum" in [d["tag"] for d in new_open_ds_kwargs]
-    assert not any("split_on_alias" in d for d in new_open_ds_kwargs)
-    assert all("test_kwarg" in d for d in new_open_ds_kwargs)
+        # Single k1 value
+        open_ds_kwargs = {
+            "test_kwarg": 1,
+            "tag": "tag",
+            # "split_on": ["origin"],
+            "split_on_alias": {"origin": "stepType"},
+        }
+        new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
+            tmp_grib_file, open_ds_kwargs
+        )
+        assert isinstance(new_open_ds_kwargs, list)
+        assert len(new_open_ds_kwargs) == 1
+        assert "tag" in [d["tag"] for d in new_open_ds_kwargs]
+        assert not any("split_on_alias" in d for d in new_open_ds_kwargs)
+        assert all("test_kwarg" in d for d in new_open_ds_kwargs)
+
+        # Combined split_on and split_on_alias
+        open_ds_kwargs = {
+            "test_kwarg": 1,
+            "tag": "tag",
+            "split_on": ["stream"],
+            "split_on_alias": {"expver": "paramId"},
+        }
+        new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
+            tmp_grib_file, open_ds_kwargs
+        )
+        assert isinstance(new_open_ds_kwargs, list)
+        assert len(new_open_ds_kwargs) == 6
+        for tag in [
+            "tag_stream-oper_paramId-167",
+            "tag_stream-oper_paramId-140232",
+            "tag_stream-oper_paramId-228",
+            "tag_stream-wave_paramId-167",
+            "tag_stream-wave_paramId-140232",
+            "tag_stream-wave_paramId-228",
+        ]:
+            assert tag in [d["tag"] for d in new_open_ds_kwargs]
+        assert not any("split_on_alias" in d for d in new_open_ds_kwargs)
+        assert all("test_kwarg" in d for d in new_open_ds_kwargs)
+
+        # k1 does not exist
+        open_ds_kwargs = {
+            "test_kwarg": 1,
+            "tag": "tag",
+            "split_on_alias": {"kebab": "stepType"},
+        }
+        new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
+            tmp_grib_file, open_ds_kwargs
+        )
+        assert isinstance(new_open_ds_kwargs, list)
+        assert len(new_open_ds_kwargs) == 1
+        assert "tag" in [d["tag"] for d in new_open_ds_kwargs]
+        assert not any("split_on_alias" in d for d in new_open_ds_kwargs)
+        assert all("test_kwarg" in d for d in new_open_ds_kwargs)
+
+        # k2 does not exist
+        open_ds_kwargs = {
+            "test_kwarg": 1,
+            "tag": "tag",
+            "split_on_alias": {"expver": "kebab"},
+        }
+        new_open_ds_kwargs = convertors.prepare_open_datasets_kwargs_grib(
+            tmp_grib_file, open_ds_kwargs
+        )
+        assert isinstance(new_open_ds_kwargs, list)
+        assert len(new_open_ds_kwargs) == 1
+        assert "tag_kebab-None" in [d["tag"] for d in new_open_ds_kwargs]
+        assert not any("split_on_alias" in d for d in new_open_ds_kwargs)
+        assert all("test_kwarg" in d for d in new_open_ds_kwargs)
