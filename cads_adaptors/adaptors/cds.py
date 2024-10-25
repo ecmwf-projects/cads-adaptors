@@ -122,9 +122,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                         intersected_selection.append(i_c)
 
                 self.context.add_stdout(
-                    f"\n{intersected_selection}"
+                    f"pre remove subsets: {len(intersected_selection)}"
                 )
                 remove_subsets(intersected_selection)
+                self.context.add_stdout(
+                    f"post remove subsets: {len(intersected_selection)}"
+                )
                 # We use the mapping options to expand dates
                 expanded_intersected_selection = [
                     mapping.apply_mapping(
@@ -132,6 +135,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     )
                     for i_sel in intersected_selection
                 ]
+                self.context.add_stdout(
+                    f"mapped: {len(intersected_selection)}"
+                )
                 costs["precise_size"] = costing.estimate_precise_size(
                     self.form,
                     expanded_intersected_selection,
