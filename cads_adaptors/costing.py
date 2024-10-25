@@ -55,7 +55,7 @@ def combination_tuples(
     for d in found:
         keys, values = zip(*d.items())
         these_seen = [
-            v for k, v in seen_key_vals if set(keys) <= set(k)
+            v for k, v in seen_key_vals.items() if set(keys) <= set(k)
         ]
         for v in itertools.product(*values):
             if any([
