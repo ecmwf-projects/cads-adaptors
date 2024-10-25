@@ -28,14 +28,16 @@ def combination_tuples_iterater(
     for d in found:
         keys, values = zip(*d.items())
         for v in itertools.product(*values):
+
             # _hash = hash(v)
             # if _hash in seen_granules:
             #     continue
             # seen_granules.add(_hash)
             # if v in seen_granules:
-            if any([v >= gran for gran in seen_granules]):
+            v_k = tuple(zip(keys, v))
+            if any([v_k <= gran for gran in seen_granules]):
                 continue
-            seen_granules.add(v)
+            seen_granules.add(v_k)
             yield tuple(zip(keys, v))
 
 
