@@ -134,6 +134,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     expanded_intersected_selection,
                     **costing_kwargs,
                 )
+                self.contest.add_stdout(
+                    f"Estimated precise size: {costs['precise_size']}"
+                    f" for {len(expanded_intersected_selection)} requests"
+                )
 
         return costs
 
