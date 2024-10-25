@@ -48,21 +48,24 @@ def combination_tuples(
     
     if not found:
         return tuple()
-    seen_key_vals = set()
+    seen_key_vals = dict()
     granules = set()
     # Order by size, largest first, a smaller set may be a subset of a larger set
     found.sort(key=lambda x: -len(x))
     for d in found:
         keys, values = zip(*d.items())
         these_seen = [
-            this_k_v for this_k_v in seen_key_vals if set(keys) <= set(this_k_v[0])
+            v for k, v in seen_key_vals if set(keys) <= set(k)
         ]
         for v in itertools.product(*values):
             if any([
                 set(v) <= set(this_k_v[1]) for this_k_v in these_seen
             ]):
                 continue
-            seen_key_vals.add((keys,v))
+            if keys in seen_key_vals:
+                seen_key_vals[keys].add(v)
+            else:
+                seen_key_vals[keys] = {v}
             granules.add(tuple(zip(keys, v)))
     print("granules", granules)
     return granules
