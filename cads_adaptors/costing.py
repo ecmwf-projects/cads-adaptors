@@ -52,7 +52,7 @@ def combination_tuples(
     granules = set()
     # Order by size, largest first, a smaller set may be a subset of a larger set
     found.sort(key=lambda x: -len(x))
-    for d in sorted(found):
+    for d in found:
         keys, values = zip(*d.items())
         these_seen = [
             this_k_v for this_k_v in seen_key_vals if set(keys) <= set(this_k_v[0])
