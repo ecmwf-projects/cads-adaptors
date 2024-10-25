@@ -107,10 +107,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         if "precise_size" in max_costs:
             # Hard-coded limit designed to protect the system,
-            # checking 10^6 combinations is expensive and generally not needed as costs will be exceeded
+            # checking 10^5 combinations is expensive and generally not needed as costs will be exceeded
             # significantly below this limit.
-            # 10^6 is conservative, could consider increasing to 10^7
-            if costs["size"] > 1e6:
+            if costs["size"] > 1e5:
                 costs["precise_size"] = costs["size"]
             else:
                 # Remove duplicates from the list of dicts,
