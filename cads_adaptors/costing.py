@@ -58,9 +58,9 @@ def combination_tuples(
             ]):
                 continue
             if keys in seen_key_vals:
-                seen_key_vals[keys].add(set(v))
+                seen_key_vals[keys].append(set(v))
             else:
-                seen_key_vals[keys] = {set(v)}
+                seen_key_vals[keys] = [set(v)]
             granules.add(tuple(zip(keys, v)))
     print("granules", granules)
     return granules
