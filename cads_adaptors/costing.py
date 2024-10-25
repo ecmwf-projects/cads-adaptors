@@ -52,7 +52,7 @@ def combination_tuples(
         these_seen = []
         for s_k, s_v in seen_key_vals.items():
             if set(keys) <= set(s_k):
-                these_seen.append({s_k: s_v})
+                these_seen.append(dict(tuple(zip(keys, vs))))
         print("these_seen", these_seen)
         for vs in itertools.product(*values):
             if any([
