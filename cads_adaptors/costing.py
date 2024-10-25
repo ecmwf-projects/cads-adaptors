@@ -45,7 +45,7 @@ def combination_tuples_iterater(
 def combination_tuples(
     found: list[dict[str, set[str]]],
 ) -> tuple[tuple[Any, Any]]:
-    
+    print("found", found)
     if not found:
         return tuple()
     seen_key_vals = dict()
@@ -59,7 +59,7 @@ def combination_tuples(
         ]
         for v in itertools.product(*values):
             if any([
-                set(v) <= set(this_k_v[1]) for this_k_v in these_seen
+                set(v) <= set(s_v) for s_v in these_seen
             ]):
                 continue
             if keys in seen_key_vals:
