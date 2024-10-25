@@ -1,6 +1,11 @@
+
 from typing import BinaryIO
 
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+
+
+STACK_TEMP_DIR = "/tmp/cams-europe-air-quality-forecasts/temp"
+STACK_DOWNLOAD_DIR = "/tmp/cams-europe-air-quality-forecasts/download"
 
 
 class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
@@ -21,49 +26,11 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
 
 class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        from .cams_regional_fc import retrieve_latest
-
-        message = (
-            f"The parent request is {request['parent_request_uid']}, "
-            "launched by user {request['parent_request_user_uid']}."
-        )
-        self.context.add_stdout(message)
-
-        result_file = retrieve_latest(
-            self.context,
-            request["requests"],
-            request["dataset_dir"],
-            request["integration_server"],
-        )
-        if hasattr(result_file, "path"):
-            return open(result_file.path, "rb")
-        else:
-            request_uid = self.config.get("request_uid", None)
-            message = f"Sub-request {request_uid} failed to produce a result when one was expected."
-            self.context.add_stderr(message)
-            raise RuntimeError(message)
+        from .subrequest_main import subrequest_main
+        subrequest_main("latest", request, self.config, self.context)
 
 
 class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
-        from .cams_regional_fc import retrieve_archived
-
-        message = (
-            f"The parent request is {request['parent_request_uid']}, "
-            "launched by user {request['parent_request_user_uid']}."
-        )
-        self.context.add_stdout(message)
-
-        result_file = retrieve_archived(
-            self.context,
-            request["requests"],
-            request["dataset_dir"],
-            request["integration_server"],
-        )
-        if hasattr(result_file, "path"):
-            return open(result_file.path, "rb")
-        else:
-            request_uid = self.config.get("request_uid", None)
-            message = f"Sub-request {request_uid} failed to produce a result when one was expected."
-            self.context.add_stderr(message)
-            raise RuntimeError(message)
+        from .subrequest_main import subrequest_main
+        subrequest_main("archived", request, self.config, self.context)

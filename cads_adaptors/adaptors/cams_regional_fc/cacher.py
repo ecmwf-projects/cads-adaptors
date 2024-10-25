@@ -1,5 +1,6 @@
 import concurrent.futures
 import io
+import logging
 import os
 import re
 import threading
@@ -21,8 +22,9 @@ class AbstractCacher:
     defines the interface.
     """
 
-    def __init__(self, context, no_put=False):
-        self.context = context
+    def __init__(self, integration_server, logger=None, no_put=False):
+        self.integration_server = integration_server
+        self.logger = logging.getLogger(__name__) if logger is None else logger
         self.no_put = no_put
 
         # Fields which should be cached permanently (on the datastore). All
@@ -139,7 +141,10 @@ class AbstractCacher:
         """Return a field-specific path or the given field. Can be used by a
         child class to determine server-side cache location.
         """
+
         dir = "permanent" if self._cache_permanently(fieldinfo) else "temporary"
+        if self.integration_server:
+            dir += '_esuite'
 
         # Set the order we'd like the keys to appear in the filename. Area
         # keys will be last.
@@ -193,11 +198,11 @@ class AbstractAsyncCacher(AbstractCacher):
 
     def __init__(
         self,
-        context,
         *args,
+        logger=None,
         nthreads=10,
         max_mem=100000000,
-        tmpdir="/cache/tmp",
+        tmpdir=None,
         **kwargs,
     ):
         """The number of fields that will be written concurrently to the cache
@@ -210,7 +215,7 @@ class AbstractAsyncCacher(AbstractCacher):
         temporarily written to disk (in tmpdir) to avoid excessive memory
         usage.
         """
-        super().__init__(context, *args, **kwargs)
+        super().__init__(*args, logger=logger, **kwargs)
         self.nthreads = nthreads
         self._lock1 = threading.Lock()
         self._lock2 = threading.Lock()
@@ -218,7 +223,7 @@ class AbstractAsyncCacher(AbstractCacher):
         self._templates = {}
         self._futures = []
         self._start_time = None
-        self._queue = MemSafeQueue(max_mem, tmpdir, logger=context)
+        self._queue = MemSafeQueue(max_mem, tmpdir=tmpdir, logger=logger)
 
     def _start_copy_threads(self):
         """Start the threads that will do the remote copies."""
@@ -250,7 +255,7 @@ class AbstractAsyncCacher(AbstractCacher):
                 "drain": now - qclose_time,
                 "io": iotime,
             }
-            self.context.info(f"MemSafeQueue summary: {summary!r}")
+            self.logger.info(f"MemSafeQueue summary: {summary!r}")
 
     def __enter__(self):
         return self
@@ -312,7 +317,7 @@ class CacherS3(AbstractAsyncCacher):
         local_object = io.BytesIO(data)
         remote_path = self._cache_file_path(fieldinfo)
 
-        self.context.debug(
+        self.logger.debug(
             f"CACHER: copying data to " f"{self._host}:{self._bucket}:{remote_path}"
         )
 
@@ -337,7 +342,7 @@ class CacherS3(AbstractAsyncCacher):
                 status = "uploaded"
                 break
             except Exception as exc:
-                self.context.error(
+                self.logger.error(
                     "Failed to upload to S3 bucket (attempt " f"#{attempt}): {exc!r}"
                 )
                 status = f"process ended in error: {exc!r}"
@@ -358,7 +363,7 @@ class CacherS3(AbstractAsyncCacher):
         )
 
     def delete(self, fieldinfo):
-        """Only used for testing at the time of writing."""
+        """Only used for testing at the time of writing"""
         remote_path = self._cache_file_path(fieldinfo)
         self.client.delete_object(Bucket=self._bucket, Key=remote_path)
 

@@ -15,26 +15,20 @@ def which_fields_in_file(reqs, grib_file, context):
     two lists of requests, representing those which are in the file and
     those which are not.
     """
-    if grib_file is None:
-        msg_iterator = []
-    else:
-        msg_iterator = grib_file_iterator(grib_file)
 
     # Read the grib file to find out which fields were retrieved
+    msg_iterator = grib_file_iterator(grib_file)
     try:
         reqs_infile = [
             {k: [v] for k, v in grib2request(msg).items()} for msg in msg_iterator
         ]
     except Exception:
-        # Sometimes we have problems here. Copy the file somewhere so
-        # we can investigate later.
+        # Sometimes we have problems here. Copy the file somewhere so we can
+        # investigate later.
         tmp = (
-            "/tmp/cams-europe-air-quality-forecasts/debug/"
-            + "problem_file."
+            "/tmp/cams-europe-air-quality-forecasts/debug/problem_file."
             + datetime.now().strftime("%Y%m%d.%H%M%S")
-            + "."
-            + str(random.randint(0, 2**128))
-            + ".grib"
+            + f".{random.randint(0, 2**32)}.grib"
         )
         context.info(
             "Encountered error when reading grib file. Copying "

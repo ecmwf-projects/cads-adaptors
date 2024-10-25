@@ -1,3 +1,4 @@
+import logging
 import time
 from copy import deepcopy
 from itertools import product
@@ -12,8 +13,14 @@ from .cacher import Cacher
 from .grib2request import grib2request_init
 
 
-def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **kwargs):
-    """Download the fields from the Meteo France API."""
+def meteo_france_retrieve(requests, target, regapi, regfc_defns, integration_server,
+                          logger=None, no_cache_put=False, tmpdir=None, **kwargs):
+    """Download the fields from the Meteo France API. This function is designed to be
+    callable from outside of the CDS infrastructure."""
+
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
     # Keyword argument options to Downloader that depend on the backend
     # (archived/latest)
     backend_specific = {
@@ -46,7 +53,7 @@ def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **k
                 "default": 50,
                 404: 1,
                 400: 10,
-            },  # 400's can get raised at 2am
+            },
             "request_timeout": [60, 300],
         },
     }
@@ -54,10 +61,10 @@ def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **k
     backend = requests[0]["_backend"][0]
 
     # Process requests according to the abilities of the Meteo France API
-    requests = make_api_hypercubes(requests, regapi, context)
+    requests = make_api_hypercubes(requests, regapi)
 
     # Initialisation for function that can understand GRIB file contents
-    grib2request_init(dataset_dir)
+    grib2request_init(regfc_defns)
 
     # By default Downloader would use requests.get to make requests. Provide
     # an alternative function that takes care of the Meteo France API
@@ -72,11 +79,11 @@ def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **k
     urlreqs = list(requests_to_urls(requests, regapi.url_patterns))
 
     # Create an object that will handle the caching
-    with Cacher(context, no_put=no_cache_put) as cacher:
+    with Cacher(integration_server, logger=logger, no_put=no_cache_put,
+                tmpdir=tmpdir) as cacher:
+
         # Create an object that will allow URL downloading in parallel
-        context.create_result_file(".json")
         downloader = Downloader(
-            context,
             getter=getter,
             max_rate=rate_limiter,
             max_simultaneous=number_limiter,
@@ -85,10 +92,10 @@ def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **k
             response_checker=assert_valid_grib,
             response_checker_threadsafe=False,
             combine_in_order=False,
-            write_to_temp=False,
             nonfatal_codes=[404],
             allow_no_data=True,
             cacher=cacher,
+            logger=logger,
             **backend_specific[backend],
             **kwargs,
         )
@@ -97,31 +104,28 @@ def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **k
 
         try:
             # Returns None if no data is found
-            file = downloader.execute(urlreqs)
-        except RequestFailed:
-            # req = {x["url"]: x["req"] for x in urlreqs}[e.url]
-            # raise Exception(
-            #     'Failed to retrieve data for ' + str(req) +
-            #     f' (code {e.status_code}). Please try again later') \
-            #     from None
-            return None
+            file = downloader.execute(urlreqs, target)
+        except RequestFailed as e:
+            req = {x["url"]: x["req"] for x in urlreqs}[e.url]
+            raise Exception(
+                f"Failed to retrieve data for {req} (code {e.status_code}).") from None
 
         # Ensure the next call to this routine does not happen less than
         # 1/max_rate seconds after the last API request
         rate_limiter.block({"req": {"_backend": backend}})
 
         nfields = hcube_tools.count_fields(requests)
-        context.info(
+        logger.info(
             f"Attempted download of {nfields} fields took "
             + f"{time.time() - t0} seconds"
         )
 
-    context.info("download finished")  #!
+    logger.info("Meteo France download finished")
 
     return file
 
 
-def make_api_hypercubes(requests, regapi, context):
+def make_api_hypercubes(requests, regapi):
     """Process request hypercubes into the dicts required for url2 input.
     For requests for latest data, for which each field must be fetched with a
     separate URL request, this is a null op. Archived data URL requests can

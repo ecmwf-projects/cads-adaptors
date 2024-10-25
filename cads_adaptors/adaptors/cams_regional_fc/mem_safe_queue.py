@@ -13,13 +13,13 @@ class MemSafeQueue(queue.Queue):
     """
 
     def __init__(
-        self, nbytes_max, tmpdir, *args, logger=logging.getLogger(__name__), **kwargs
+        self, nbytes_max, *args, tmpdir=None, logger=None, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.nbytes_max = nbytes_max
         self.nbytes = 0
         self.tmpdir = tmpdir
-        self.logger = logger
+        self.logger = logging.getLogger(__name__) if logger is None else logger
         self._lock = threading.Lock()
 
         self.stats = {}
@@ -60,6 +60,7 @@ class MemSafeQueue(queue.Queue):
             self._lock.release()
             self.logger.debug(f"MemSafeQueue: storing on disk: {fieldinfo!r}")
             t = time.time()
+            os.makedirs(self.tmpdir, exist_ok=True)
             with NamedTemporaryFile(dir=self.tmpdir, delete=False) as tmp:
                 tmp.write(data)
             self.stats["iotime"] += time.time() - t
