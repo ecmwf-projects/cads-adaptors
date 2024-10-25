@@ -40,6 +40,7 @@ def combination_tuples_iterater(
 def combination_tuples(
     found: list[dict[str, set[str]]],
 ) -> tuple[tuple[Any, Any]]:
+    print("found", found)
     if not found:
         return tuple()
     seen_key_vals = dict()
