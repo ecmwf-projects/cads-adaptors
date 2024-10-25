@@ -48,15 +48,14 @@ def combination_tuples(
     found.sort(key=lambda x: -len(x))
     for d in found:
         keys, values = zip(*d.items())
-        these_seen = []
-        for s_k, s_v in seen_key_vals.items():
-            if set(keys) <= set(s_k):
-                these_seen.append({
-                    k: {v[i] for v in s_v} for i, k in enumerate(s_k)
-                })
         for vs in itertools.product(*values):
-            for i_seen in these_seen:
-                if all([v in i_seen.get(k, []) for k, v in zip(keys, vs)]):
+            for s_k, s_v in seen_key_vals.items():
+                temp = {k: {v[i] for v in s_v} for i, k in enumerate(s_k)}
+                if (
+                    set(keys) <= set(s_k) 
+                    and
+                    all([vs[i] in temp[k] for i, k in enumerate(keys)])
+                ):
                     break
             else:
                 if keys in seen_key_vals:
