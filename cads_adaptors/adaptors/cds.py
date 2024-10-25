@@ -121,6 +121,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     if i_c not in intersected_selection:
                         intersected_selection.append(i_c)
 
+                self.context.add_stdout(
+                    f"\n{intersected_selection}"
+                )
                 remove_subsets(intersected_selection)
                 # We use the mapping options to expand dates
                 expanded_intersected_selection = [
@@ -134,9 +137,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     expanded_intersected_selection,
                     **costing_kwargs,
                 )
-                self.contest.add_stdout(
+                self.context.add_stdout(
                     f"Estimated precise size: {costs['precise_size']}"
-                    f" for {len(expanded_intersected_selection)} requests"
+                    f"\n{intersected_selection}"
                 )
 
         return costs
