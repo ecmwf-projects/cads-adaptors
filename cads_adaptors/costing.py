@@ -49,19 +49,22 @@ def combination_tuples(
     print("found", found)
     for d in found:
         keys, values = zip(*d.items())
-        these_seen = [
-            v for k, v in seen_key_vals.items() if set(keys) <= set(k)
-        ]
-        for v in itertools.product(*values):
-            if any([
-                set(v) <= s_v for s_v in these_seen
+        these_seen = []
+        for s_k, s_v in seen_key_vals.items():
+            if set(keys) <= set(s_k):
+                these_seen.append(
+                    {k: v for k, v in zip(s_k, s_v) if s_k in keys}
+                )
+        for vs in itertools.product(*values):
+            if all([
+                v in i_seen[k] for k, v in zip(keys, vs) for i_seen in these_seen
             ]):
                 continue
             if keys in seen_key_vals:
-                seen_key_vals[keys].append(set(v))
+                seen_key_vals[keys].append(vs)
             else:
-                seen_key_vals[keys] = [set(v)]
-            granules.add(tuple(zip(keys, v)))
+                seen_key_vals[keys] = [vs]
+            granules.add(tuple(zip(keys, vs)))
     print("granules", granules)
     return granules
 
