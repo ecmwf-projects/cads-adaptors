@@ -52,12 +52,11 @@ def combination_tuples(
         these_seen = []
         for s_k, s_v in seen_key_vals.items():
             if set(keys) <= set(s_k):
-                these_seen.append(
-                    {k: v for k, v in zip(s_k, s_v) if s_k in keys}
-                )
+                these_seen.append({s_k: s_v})
         for vs in itertools.product(*values):
             if any([
-                all([v in i_seen[k] for k, v in zip(keys, vs)]) for i_seen in these_seen
+                all([v in i_seen[k] for k, v in zip(keys, vs)])
+                for i_seen in these_seen
             ]):
                 continue
             if keys in seen_key_vals:
