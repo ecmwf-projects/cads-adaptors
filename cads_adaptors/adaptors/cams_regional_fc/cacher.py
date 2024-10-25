@@ -139,9 +139,7 @@ class AbstractCacher:
         """Return a field-specific path or the given field. Can be used by a
         child class to determine server-side cache location.
         """
-
-        dir = ("permanent" if self._cache_permanently(fieldinfo) else
-               "temporary")
+        dir = "permanent" if self._cache_permanently(fieldinfo) else "temporary"
 
         # Set the order we'd like the keys to appear in the filename. Area
         # keys will be last.
@@ -161,12 +159,16 @@ class AbstractCacher:
         if keys not in self._templates:
             # Form a Jinja2 template string for the cache files. "_backend" not
             # used; organised by date; area keys put at the end.
-            path_template = dir + "/{{ date }}/" + "_".join(
-                [
-                    "{k}={{{{ {k} }}}}".format(k=k)
-                    for k in sorted(keys, key=key_order)
-                    if k not in ["date", "_backend"]
-                ]
+            path_template = (
+                dir
+                + "/{{ date }}/"
+                + "_".join(
+                    [
+                        "{k}={{{{ {k} }}}}".format(k=k)
+                        for k in sorted(keys, key=key_order)
+                        if k not in ["date", "_backend"]
+                    ]
+                )
             )
             self._templates[keys] = jinja2.Template(path_template)
 
@@ -283,7 +285,7 @@ class AbstractAsyncCacher(AbstractCacher):
 
         n = self._queue.qsize()
         if n > 0:
-            raise Exception(f'{n} unconsumed items in queue')
+            raise Exception(f"{n} unconsumed items in queue")
 
 
 class CacherS3(AbstractAsyncCacher):
@@ -356,10 +358,9 @@ class CacherS3(AbstractAsyncCacher):
         )
 
     def delete(self, fieldinfo):
-        """Only used for testing at the time of writing"""
+        """Only used for testing at the time of writing."""
         remote_path = self._cache_file_path(fieldinfo)
-        self.client.delete_object(Bucket=self._bucket,
-                                  Key=remote_path)
+        self.client.delete_object(Bucket=self._bucket, Key=remote_path)
 
 
 Cacher = CacherS3
