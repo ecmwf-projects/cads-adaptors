@@ -64,7 +64,7 @@ def combination_tuples(
                 continue
             seen_key_vals.add((keys,v))
             granules.add(tuple(zip(keys, v)))
-
+    print("granules", granules)
     return granules
 
 
