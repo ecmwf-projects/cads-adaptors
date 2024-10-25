@@ -29,16 +29,37 @@ def combination_tuples_iterater(
         keys, values = zip(*d.items())
         for v in itertools.product(*values):
 
-            # _hash = hash(v)
-            # if _hash in seen_granules:
-            #     continue
-            # seen_granules.add(_hash)
+            _hash = hash(v)
+            if _hash in seen_granules:
+                continue
+            seen_granules.add(_hash)
+
             # if v in seen_granules:
+            # v_k = tuple(zip(keys, v))
+            # if any([v_k <= gran for gran in seen_granules]):
+            #     continue
+            # seen_granules.add(v_k)
+            yield tuple(zip(keys, v))
+
+
+def combination_tuples(
+    found: list[dict[str, set[str]]],
+) -> tuple[tuple[Any, Any]]:
+    
+    if not found:
+        return tuple()
+    seen_granules = set()
+    # Order by size, largest first, a smaller set may be a subset of a larger set
+    found.sort(key=lambda x: -len(x))
+    for d in found:
+        keys, values = zip(*d.items())
+        for v in itertools.product(*values):
             v_k = tuple(zip(keys, v))
             if any([v_k <= gran for gran in seen_granules]):
                 continue
             seen_granules.add(v_k)
-            yield tuple(zip(keys, v))
+
+            return v_k
 
 
 def count_weighted_size(
