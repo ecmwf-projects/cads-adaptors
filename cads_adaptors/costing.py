@@ -48,18 +48,24 @@ def combination_tuples(
     
     if not found:
         return tuple()
-    seen_granules = set()
+    seen_key_vals = set()
+    granules = set()
     # Order by size, largest first, a smaller set may be a subset of a larger set
     found.sort(key=lambda x: -len(x))
-    for d in found:
+    for d in sorted(found):
         keys, values = zip(*d.items())
+        these_seen = [
+            this_k_v for this_k_v in seen_key_vals if set(keys) <= set(this_k_v[0])
+        ]
         for v in itertools.product(*values):
-            v_k = tuple(zip(keys, v))
-            if any([v_k <= gran for gran in seen_granules]):
+            if all([
+                set(v) <= set(this_k_v[1]) for this_k_v in these_seen
+            ]):
                 continue
-            seen_granules.add(v_k)
+            seen_key_vals.add((keys,v))
+            granules.add(tuple(zip(keys, v)))
 
-            return v_k
+    return granules
 
 
 def count_weighted_size(
