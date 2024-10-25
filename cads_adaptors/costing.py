@@ -56,8 +56,8 @@ def combination_tuples(
                     {k: v for k, v in zip(s_k, s_v) if s_k in keys}
                 )
         for vs in itertools.product(*values):
-            if all([
-                v in i_seen[k] for k, v in zip(keys, vs) for i_seen in these_seen
+            if any([
+                all([v in i_seen[k] for k, v in zip(keys, vs)]) for i_seen in these_seen
             ]):
                 continue
             if keys in seen_key_vals:
