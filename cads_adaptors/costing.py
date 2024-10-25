@@ -34,24 +34,19 @@ def combination_tuples_iterater(
                 continue
             seen_granules.add(_hash)
 
-            # if v in seen_granules:
-            # v_k = tuple(zip(keys, v))
-            # if any([v_k <= gran for gran in seen_granules]):
-            #     continue
-            # seen_granules.add(v_k)
             yield tuple(zip(keys, v))
 
 
 def combination_tuples(
     found: list[dict[str, set[str]]],
 ) -> tuple[tuple[Any, Any]]:
-    print("found", found)
     if not found:
         return tuple()
     seen_key_vals = dict()
     granules = set()
     # Order by size, largest first, a smaller set may be a subset of a larger set
     found.sort(key=lambda x: -len(x))
+    print("found", found)
     for d in found:
         keys, values = zip(*d.items())
         these_seen = [
@@ -59,7 +54,7 @@ def combination_tuples(
         ]
         for v in itertools.product(*values):
             if any([
-                set(v) <= set(s_v) for s_v in these_seen
+                v <= s_v for s_v in these_seen
             ]):
                 continue
             if keys in seen_key_vals:
