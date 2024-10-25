@@ -58,6 +58,7 @@ def combination_tuples(
             this_k_v for this_k_v in seen_key_vals if set(keys) <= set(this_k_v[0])
         ]
         for v in itertools.product(*values):
+            print("v", v)
             if all([
                 set(v) <= set(this_k_v[1]) for this_k_v in these_seen
             ]):
