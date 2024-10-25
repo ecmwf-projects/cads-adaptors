@@ -74,7 +74,7 @@ def count_weighted_size(
     weighted_values: dict[str, dict[str, int]] = dict(),
 ) -> int:
     n_granules: int = 0
-    for _granule in combination_tuples_iterater(found):
+    for _granule in combination_tuples(found):
         granule: dict[str, str] = dict(_granule)
         w_granule = 1
         for key, w_values in weighted_values.items():
