@@ -32,7 +32,8 @@ def combination_tuples_iterater(
             # if _hash in seen_granules:
             #     continue
             # seen_granules.add(_hash)
-            if v in seen_granules:
+            # if v in seen_granules:
+            if any([v >= gran for gran in seen_granules]):
                 continue
             seen_granules.add(v)
             yield tuple(zip(keys, v))
