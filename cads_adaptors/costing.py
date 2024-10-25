@@ -55,16 +55,15 @@ def combination_tuples(
                     k: {v[i] for v in s_v} for i, k in enumerate(s_k)
                 })
         for vs in itertools.product(*values):
-            if any([
-                all([v in i_seen.get(k, []) for k, v in zip(keys, vs)])
-                for i_seen in these_seen
-            ]):
-                continue
-            if keys in seen_key_vals:
-                seen_key_vals[keys].append(vs)
+            for i_seen in these_seen:
+                if all([v in i_seen.get(k, []) for k, v in zip(keys, vs)]):
+                    break
             else:
-                seen_key_vals[keys] = [vs]
-            granules.add(tuple(zip(keys, vs)))
+                if keys in seen_key_vals:
+                    seen_key_vals[keys].append(vs)
+                else:
+                    seen_key_vals[keys] = [vs]
+                granules.add(tuple(zip(keys, vs)))
     return granules
 
 
