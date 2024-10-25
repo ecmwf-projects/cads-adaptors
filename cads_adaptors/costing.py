@@ -54,13 +54,13 @@ def combination_tuples(
         ]
         for v in itertools.product(*values):
             if any([
-                v <= s_v for s_v in these_seen
+                set(v) <= s_v for s_v in these_seen
             ]):
                 continue
             if keys in seen_key_vals:
-                seen_key_vals[keys].add(v)
+                seen_key_vals[keys].add(set(v))
             else:
-                seen_key_vals[keys] = {v}
+                seen_key_vals[keys] = {set(v)}
             granules.add(tuple(zip(keys, v)))
     print("granules", granules)
     return granules
