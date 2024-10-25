@@ -559,6 +559,7 @@ def legacy_intersect_constraints(
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
     context: adaptors.Context = adaptors.Context(),
     allow_partial: bool = False,
+    return_first_intersection: bool = False,
 ) -> list[dict[str, list[Any]]]:
     """
     'Constrain' a request by intersecting it with the constraints.
@@ -720,6 +721,8 @@ def legacy_intersect_constraints(
 
         if len(output_request) != 0:
             requests.append(output_request)
+            if return_first_intersection:
+                return requests
 
     # An empty request is valid if we allow partial requests.
     if not allow_partial and len(requests) == 0:

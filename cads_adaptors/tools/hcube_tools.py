@@ -262,6 +262,83 @@ def remove_duplicates(reqs, date_field="date"):
         ii += ii_incr
 
 
+def parent_child_keys(req1, req2):
+    """Deduce if req1.keys or req2.keys is a subset of the other."""
+    if set(req1.keys()) > set(req2.keys()):
+        parent = req1
+        child = req2
+    elif set(req1.keys()) < set(req2.keys()):
+        child = req1
+        parent = req2
+    else:
+        return False, req1, req2
+    return True, parent, child
+
+
+def remove_subsets(requests: list[dict[str, list]]):
+    """Remove any requests which are subsets of other requests in the list.
+    A subset is a request where all key: [values] are found in another dictionary in the list.
+    e.g.:
+       {"a": [1, 2], "b": [3]} is a subset of {"a": [1, 2], "b": [3], "c": [4]}
+       {"a": [1], "b": [3]} is a subset of {"a": [1, 2], "b": [3]}.
+    """
+    removal_complete = False
+    cnt = 0
+    while not removal_complete and len(requests) > 1 and cnt < 100:
+        cnt += 1
+        reduced_requests_index = set()
+        subset_requests = set()
+        for i, req1 in enumerate(requests):
+            for _j, req2 in enumerate(requests[i + 1 :]):
+                j = i + _j + 1
+                if set(req1.keys()) == set(req2.keys()):
+                    # siblings, so the values of req1 and req2 could be subsets of each other
+                    #  we only consider them as subsets if all values in one is a complete
+                    #  subset of the other
+                    req2_is_subset = all(
+                        [
+                            set(_ensure_list(req1[k])) >= set(_ensure_list(req2[k]))
+                            for k in req1.keys()
+                        ]
+                    )
+                    if req2_is_subset:
+                        subset_requests.add(j)
+                    req1_is_subset = all(
+                        [
+                            set(_ensure_list(req2[k])) >= set(_ensure_list(req1[k]))
+                            for k in req1.keys()
+                        ]
+                    )
+                    if req1_is_subset:
+                        subset_requests.add(i)
+
+                subset_keys, parent, child = parent_child_keys(req1, req2)
+                # If the keys of the requests are different, they are not subsets
+                if not subset_keys:
+                    continue
+
+                # Get the index of the child
+                ci = i if child == req1 else j
+
+                subset = all(
+                    [
+                        set(_ensure_list(parent[k])) >= set(_ensure_list(child[k]))
+                        for k in child.keys()
+                    ]
+                )
+                # If the child we add to list:
+                if subset:
+                    subset_requests.add(ci)
+            # After all comparisons, if i is not in subset_requests, then it is not a subset
+            if i not in subset_requests:
+                reduced_requests_index.add(i)
+
+        # We always do one extra iteration to check that we have removed all subsets
+        if len(reduced_requests_index) == len(requests):
+            removal_complete = True
+        requests[:] = [requests[i] for i in sorted(list(reduced_requests_index))]
+
+
 def hcubes_subtract(reqs1, reqs2, date_field="date"):
     """Return a copy of reqs1 with all fields in reqs2 removed."""
     output = []

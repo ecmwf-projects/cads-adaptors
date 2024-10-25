@@ -8,6 +8,7 @@ from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools.hcube_tools import remove_subsets
 from cads_adaptors.validation import enforce
 
 
@@ -75,17 +76,29 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         cost_threshold = (
             cost_threshold if cost_threshold in costing_config else "max_costs"
         )
-        max_costs = costing_config.get(cost_threshold, {})
-        costs: dict[str, int] = {}
+        # Allow portal to specify max_costs explicitly, e.g. "max_costs": {"valid_request": 1}
+        max_costs = kwargs.get("max_costs", costing_config.get(cost_threshold, {}))
+        # Initialise all costs to 0
+        costs: dict[str, int] = {cost: 0 for cost in max_costs}
         # Safety net, not all stacks have the latest version of the api:
         if "inputs" in request:
             request = request["inputs"]
+        # If empty request, return 0 for all costs
+        if len(request) == 0:
+            return costs
+
         mapped_request = self.apply_mapping(request)
 
         # size is a fast and rough estimate of the number of fields
         costs["size"] = costing.estimate_number_of_fields(self.form, mapped_request)
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
+
+        if "valid_request" in max_costs:
+            # Check that there is a valid intersection with the constraints
+            costs["valid_request"] = len(
+                self.intersect_constraints(request, return_first_intersection=True)
+            )
 
         # If any simple cost is exceeded, return here as precise_size is a more expensive calculation
         for key, max_cost in max_costs.items():
@@ -107,6 +120,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 for i_c in self.intersect_constraints(request, allow_partial=True):
                     if i_c not in intersected_selection:
                         intersected_selection.append(i_c)
+                # intersected_selection.sort(key=lambda x: -len(x))
+                remove_subsets(intersected_selection)
                 # We use the mapping options to expand dates
                 expanded_intersected_selection = [
                     mapping.apply_mapping(
