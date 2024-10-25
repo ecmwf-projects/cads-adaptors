@@ -120,7 +120,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 for i_c in self.intersect_constraints(request, allow_partial=True):
                     if i_c not in intersected_selection:
                         intersected_selection.append(i_c)
-                # intersected_selection.sort(key=lambda x: -len(x))
+
                 remove_subsets(intersected_selection)
                 # We use the mapping options to expand dates
                 expanded_intersected_selection = [
