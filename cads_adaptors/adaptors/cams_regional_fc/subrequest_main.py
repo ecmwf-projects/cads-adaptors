@@ -4,7 +4,6 @@ from tempfile import mkstemp
 
 from cds_common.cams.regional_fc_api import regional_fc_api
 
-from cads_adaptors.exceptions import InvalidRequest
 from . import STACK_TEMP_DIR, STACK_DOWNLOAD_DIR
 from .meteo_france_retrieve import meteo_france_retrieve
 
@@ -42,7 +41,8 @@ def subrequest_main(backend, request, child_config, context):
     try:
         meteo_france_retrieve(
             request["requests"], target, regapi, cfg["definitions"], integration_server,
-            logger=context, tmpdir=STACK_TEMP_DIR
+            logger=context, tmpdir=STACK_TEMP_DIR,
+            cacher_kwargs=cfg.get('cacher_kwargs', {})
         )
     except Exception as e:
         message = f"Failed to obtain data from remote server: {e!r}"

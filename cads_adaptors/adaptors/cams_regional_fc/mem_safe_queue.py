@@ -60,7 +60,8 @@ class MemSafeQueue(queue.Queue):
             self._lock.release()
             self.logger.debug(f"MemSafeQueue: storing on disk: {fieldinfo!r}")
             t = time.time()
-            os.makedirs(self.tmpdir, exist_ok=True)
+            if self.tmpdir:
+                os.makedirs(self.tmpdir, exist_ok=True)
             with NamedTemporaryFile(dir=self.tmpdir, delete=False) as tmp:
                 tmp.write(data)
             self.stats["iotime"] += time.time() - t

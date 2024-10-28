@@ -202,8 +202,8 @@ class AbstractAsyncCacher(AbstractCacher):
         self,
         *args,
         logger=None,
-        nthreads=10,
-        max_mem=100000000,
+        nthreads=None,
+        max_mem=None,
         tmpdir=None,
         **kwargs,
     ):
@@ -218,14 +218,15 @@ class AbstractAsyncCacher(AbstractCacher):
         usage.
         """
         super().__init__(*args, logger=logger, **kwargs)
-        self.nthreads = nthreads
+        self.nthreads = 10 if nthreads is None else nthreads
         self._lock1 = threading.Lock()
         self._lock2 = threading.Lock()
         self._qclosed = False
         self._templates = {}
         self._futures = []
         self._start_time = None
-        self._queue = MemSafeQueue(max_mem, tmpdir=tmpdir, logger=logger)
+        self._queue = MemSafeQueue(100000000 if max_mem is None else max_mem,
+                                   tmpdir=tmpdir, logger=logger)
 
     def _start_copy_threads(self):
         """Start the threads that will do the remote copies."""

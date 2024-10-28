@@ -14,7 +14,7 @@ from .grib2request import grib2request_init
 
 
 def meteo_france_retrieve(requests, target, regapi, regfc_defns, integration_server,
-                          logger=None, no_cache_put=False, tmpdir=None, **kwargs):
+                          logger=None, tmpdir=None, cacher_kwargs=None, **kwargs):
     """Download the fields from the Meteo France API. This function is designed to be
     callable from outside of the CDS infrastructure."""
 
@@ -79,15 +79,15 @@ def meteo_france_retrieve(requests, target, regapi, regfc_defns, integration_ser
     urlreqs = list(requests_to_urls(requests, regapi.url_patterns))
 
     # Create an object that will handle the caching
-    with Cacher(integration_server, logger=logger, no_put=no_cache_put,
-                tmpdir=tmpdir) as cacher:
+    with Cacher(integration_server, logger=logger, tmpdir=tmpdir,
+                **(cacher_kwargs or {})) as cacher:
 
         # Create an object that will allow URL downloading in parallel
         downloader = Downloader(
             getter=getter,
             max_rate=rate_limiter,
             max_simultaneous=number_limiter,
-            combine_method="cat",
+            combine_method="cat" if target else "null",
             target_suffix=".grib",
             response_checker=assert_valid_grib,
             response_checker_threadsafe=False,
@@ -104,7 +104,7 @@ def meteo_france_retrieve(requests, target, regapi, regfc_defns, integration_ser
 
         try:
             # Returns None if no data is found
-            file = downloader.execute(urlreqs, target)
+            file = downloader.execute(urlreqs, target=target)
         except RequestFailed as e:
             req = {x["url"]: x["req"] for x in urlreqs}[e.url]
             raise Exception(
