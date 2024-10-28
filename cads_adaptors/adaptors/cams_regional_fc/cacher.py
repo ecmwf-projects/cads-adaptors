@@ -143,6 +143,8 @@ class AbstractCacher:
         """
 
         dir = "permanent" if self._cache_permanently(fieldinfo) else "temporary"
+
+        # Data from the integration server should not mix with the production data
         if self.integration_server:
             dir += '_esuite'
 
@@ -363,7 +365,7 @@ class CacherS3(AbstractAsyncCacher):
         )
 
     def delete(self, fieldinfo):
-        """Only used for testing at the time of writing"""
+        """Only used for testing at the time of writing."""
         remote_path = self._cache_file_path(fieldinfo)
         self.client.delete_object(Bucket=self._bucket, Key=remote_path)
 

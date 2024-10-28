@@ -2,9 +2,6 @@ import logging
 import os
 import time
 import zipfile
-from copy import deepcopy
-from datetime import datetime, timedelta
-from tempfile import mkstemp
 
 from cds_common import date_tools, hcube_tools, tree_tools
 from cds_common.cams.regional_fc_api import regional_fc_api
@@ -14,7 +11,7 @@ from cads_adaptors.exceptions import InvalidRequest
 from .assert_valid_grib import assert_valid_grib
 from .cacher import Cacher
 from .convert_grib import convert_grib
-from .create_file import create_file
+from .create_file import create_file, temp_file
 from .formats import Formats
 from .grib2request import grib2request_init
 from .nc_request_groups import nc_request_groups
@@ -22,7 +19,6 @@ from .preprocess_requests import preprocess_requests
 from .process_grib_files import process_grib_files
 from .which_fields_in_file import which_fields_in_file
 from .subrequest_main import subrequest_main
-from . import STACK_TEMP_DIR
 
 
 # Used to temporarily disable access to archived data in an emergency, e.g.
@@ -76,10 +72,10 @@ def cams_regional_fc(context, config, requests):
     set_backend(req_groups, regapi, context)
 
     # Retrieve non-local latest (fast-access) fields
-    get_latest(req_groups, context, config)
+    get_latest(req_groups, config, context)
 
     # Retrieve non-local archived (slow-access) fields
-    get_archived(req_groups, context, config)
+    get_archived(req_groups, config, context)
 
     # Remove groups that had no matching data
     req_groups = [x for x in req_groups if "retrieved_files" in x]
@@ -143,20 +139,6 @@ def split_latest_from_archived(requests, regapi, context):
         lcat = tree_tools.to_list(online_cat)
         latest, archived, _ = hcube_tools.hcubes_intdiff2(requests, lcat)
 
-        # Holes in the latest catalogue will have been assigned to the archived
-        # list. This is not a problem if they result in 404s but the archive
-        # backend will reject any requests for dates less than N days old with a
-        # 400 HTTP error, so remove any if they exist
-        #archived, invalid = archive_maxdate_split(archived, regapi)
-        #if invalid:
-        #    context.info(
-        #        "Not attempting to retrieve "
-        #        + str(hcube_tools.count_fields(invalid))
-        #        + " fields "
-        #        "which are not in latest catatalogue but also too new "
-        #        "to be in archived"
-        #    )
-
         context.debug("Latest fields: " + repr(latest))
         context.debug("Archived fields: " + repr(archived))
 
@@ -165,40 +147,6 @@ def split_latest_from_archived(requests, regapi, context):
         archived = []
 
     return (latest, archived)
-
-
-def archive_maxdate_split(reqs, regapi):
-    """Return a copy of requests with fields that are too recent to be in the archive
-    backend removed. Requesting these fields would result in a HTTP 400 (invalid request)
-    error.
-    """
-    valid = []
-    invalid = []
-
-    if reqs:
-        # The maximum date that the archived backend will allow in a request
-        # without raising a HTTP 400 (bad request) error
-        date_max = (datetime.utcnow() - timedelta(days=regapi.archive_min_delay)).date()
-        fmt = date_tools.guess_date_format(reqs[0]["date"][0])
-        for r in reqs:
-            rdates = [
-                d.date()
-                for d in date_tools.expand_dates_list(r["date"], as_datetime=True)
-            ]
-            rv = deepcopy(r)
-            ri = deepcopy(r)
-            rv["date"] = [d.strftime(fmt) for d in rdates if d <= date_max]
-            ri["date"] = [d.strftime(fmt) for d in rdates if d > date_max]
-            if rv["date"]:
-                valid.append(rv)
-            if ri["date"]:
-                invalid.append(ri)
-
-    assert hcube_tools.count_fields(reqs) == hcube_tools.count_fields(
-        valid
-    ) + hcube_tools.count_fields(invalid)
-
-    return (valid, invalid)
 
 
 def get_local(req_groups, integration_server, config, context):
@@ -242,11 +190,11 @@ def _get_local(req_group, cacher, config, context):
         logger=context,
         min_log_level=logging.INFO,
     )
-    grib_file = temp_file(config)
+    grib_file = temp_file(config, suffix='.grib')
     downloader.execute(urls, target=grib_file)
 
     # Identify uncached fields - the ones not present in the file
-    cached, uncached = which_fields_in_file(reqs, grib_file, context)
+    cached, uncached = which_fields_in_file(reqs, grib_file, config, context)
     req_group["uncached_requests"] = uncached
     context.info("Retrieved " + str(hcube_tools.count_fields(cached)) + " local fields")
     context.info(
@@ -261,7 +209,7 @@ def _get_local(req_group, cacher, config, context):
         ]
 
 
-def get_latest(req_groups, context, config=None):
+def get_latest(req_groups, config, context):
     """Retrieve uncached latest fields."""
     for req_group in req_groups:
         if not req_group["uncached_latest_requests"]:
@@ -273,15 +221,15 @@ def get_latest(req_groups, context, config=None):
         for reqs in hcube_tools.hcubes_chunk(
             req_group["uncached_latest_requests"], 5000
         ):
-            grib_file = get_uncached(reqs, req_group, context, config)
+            grib_file = get_uncached(reqs, req_group, config, context)
 
             # Fields may have expired from the latest backend by the time the
             # request was made. Reassign any missing fields to the archive
             # backend.
-            reassign_missing_to_archive(reqs, grib_file, req_group, context)
+            reassign_missing_to_archive(reqs, grib_file, req_group, config, context)
 
 
-def get_archived(req_groups, context, config=None):
+def get_archived(req_groups, config, context):
     """Retrieve uncached slow-access archived fields."""
 
     for req_group in req_groups:
@@ -301,13 +249,13 @@ def get_archived(req_groups, context, config=None):
         for reqs in hcube_tools.hcubes_chunk(
             req_group["uncached_archived_requests"], 900
         ):
-            get_uncached(reqs, req_group, context, config)
+            get_uncached(reqs, req_group, config, context)
 
 
 MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES = 3
 
 
-def get_uncached(requests, req_group, context, config):
+def get_uncached(requests, req_group, config, context):
     """Retrieve chunk of uncached fields"""
 
     backend = requests[0]["_backend"][0]
@@ -317,7 +265,7 @@ def get_uncached(requests, req_group, context, config):
     # testing. Generally you want a sub-request.
     cfg = config.get("regional_fc", {})
     if str(cfg.get('no_subrequests')) != '1':
-        path = retrieve_subrequest(backend, requests, req_group, context, config)
+        path = retrieve_subrequest(backend, requests, req_group, config, context)
 
     else:
         # No sub-request - call code directly. For testing.
@@ -338,7 +286,7 @@ def get_uncached(requests, req_group, context, config):
     return path
 
 
-def retrieve_subrequest(backend, requests, req_group, context, config):
+def retrieve_subrequest(backend, requests, req_group, config, context):
     from cdsapi import Client
 
     """Retrieve chunk of uncached fields in a sub-request"""
@@ -348,7 +296,7 @@ def retrieve_subrequest(backend, requests, req_group, context, config):
     maintenance_msg = cfg.get('backend_maintenance', {}).get(backend)
 
     # Construct a target file name
-    target = temp_file(config)
+    target = temp_file(config, suffix='.grib')
 
     # Get a client
     context.info("Executing sub-request to retrieve uncached fields: " + repr(requests))
@@ -385,17 +333,19 @@ def retrieve_subrequest(backend, requests, req_group, context, config):
         context.add_stdout(message)
 
     # Download the result
+    exc = None
     for i_retry in range(MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES):
         try:
             response.download(target)
             break
         except Exception as e:
+            exc = e
             context.add_stdout(
                 f"Attempt {i_retry+1} to download the result of sub-request "
                 f"{sub_request_uid} failed: {e!r}"
             )
     else:
-        context.add_stderr("Failed to download sub-request result: {e!r}")
+        context.add_stderr(f"Failed to download sub-request result: {exc!r}")
         raise RuntimeError(message) from None
 
     size = os.path.getsize(target)
@@ -405,30 +355,18 @@ def retrieve_subrequest(backend, requests, req_group, context, config):
     return target
 
 
-def reassign_missing_to_archive(reqs, grib_file, req_group, context):
+def reassign_missing_to_archive(reqs, grib_file, req_group, config, context):
     """Re-assign fields which are in reqs but not in grib_file to the archived backend.
     """
     # Which are in the file and which aren't?
-    present, missing = which_fields_in_file(reqs, grib_file, context)
-
-    # The archive backend will reject any requests for dates less than N
-    # days old with a 400 HTTP error, so remove any if they exist. There
-    # shouldn't be any though.
-    #missing_valid, missing_invalid = archive_maxdate_split(missing, regapi)
-    #if missing_invalid:
-    #    context.error(
-    #        "Fields missing from latest backend but cannot "
-    #        "be on archived backend: " + repr(missing_invalid)
-    #    )
-    missing_valid = missing
-    if missing_valid:
+    present, missing = which_fields_in_file(reqs, grib_file, config, context)
+    if missing:
         context.info(
-            "Resorting to archived backend for missing fields: " + repr(missing_valid)
+            "Resorting to archived backend for missing fields: " + repr(missing)
         )
-
-    for r in missing_valid:
+    for r in missing:
         r["_backend"] = ["archived"]
-    req_group["uncached_archived_requests"].extend(missing_valid)
+    req_group["uncached_archived_requests"].extend(missing)
 
 
 def zip_files(req_groups, info, context):
@@ -440,11 +378,3 @@ def zip_files(req_groups, info, context):
             zf.write(
                 req_group["nc_file"], arcname="_".join(req_group["group_id"]) + ".nc"
             )
-
-
-def temp_file(config):
-    os.makedirs(STACK_TEMP_DIR, exist_ok=True)
-    fd, target = mkstemp(prefix=config["request_uid"] + "_", suffix=".grib",
-                         dir=STACK_TEMP_DIR)
-    os.close(fd)
-    return target

@@ -15,9 +15,7 @@ def create_file(stage, suffix, info):
     temp = (stage != info["stages"][-1])
 
     if temp:
-        os.makedirs(STACK_TEMP_DIR, exist_ok=True)
-        fd, path = mkstemp(suffix=suffix, dir=STACK_TEMP_DIR)
-        os.close(fd)
+        path = temp_file(info['config'], suffix=suffix)
 
     else:
         # Check a final result file isn't requested more than once
@@ -30,3 +28,13 @@ def create_file(stage, suffix, info):
         path = info["result_file"]
 
     return path
+
+
+def temp_file(config, suffix=''):
+    """Make and return the path of a temporary file"""
+
+    os.makedirs(STACK_TEMP_DIR, exist_ok=True)
+    fd, target = mkstemp(prefix=config["request_uid"] + "_", suffix=suffix,
+                         dir=STACK_TEMP_DIR)
+    os.close(fd)
+    return target

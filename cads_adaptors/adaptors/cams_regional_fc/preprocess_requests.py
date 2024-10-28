@@ -154,11 +154,11 @@ def set_area(request, area_list, grid, context):
         area[key] = float(value)
     if area["north"] <= area["south"]:
         raise InvalidRequest(
-            "area north limit must be greater than " + "south limit"
+            "area north limit must be greater than south limit"
         )
     if area["east"] <= area["west"]:
         raise InvalidRequest(
-            "area east limit must be greater than " + "west limit"
+            "area east limit must be greater than west limit"
         )
 
     # Snap to the grid
@@ -168,7 +168,7 @@ def set_area(request, area_list, grid, context):
     area["east"] = snap_to_grid(area["east"], grid["west"], grid["dlon"], floor)
     if area["north"] < area["south"] or area["east"] < area["west"]:
         raise InvalidRequest(
-            "requested area does not contain a " + "grid point"
+            "requested area does not contain a grid point"
         )
 
     # Only insert area in request if it's not the full area (for caching
@@ -188,12 +188,8 @@ def set_area(request, area_list, grid, context):
         direction = 1 if incr < 0 else -1
         if area[k] * direction > (grid[k] + incr) * direction:
             raise InvalidRequest(
-                "Area "
-                + k
-                + " value lies outside model grid limit of "
-                + str(grid[k])
-                + " for date(s)="
-                + repr(request["date"])
+                f"Area {k} value lies outside model grid limit of {grid[k]} "
+                + f"for date(s)={request['date']!r}"
             )
 
     # Return the requested grid, whether inserted into the request or not
@@ -211,7 +207,8 @@ def dirty_manual_tabulate(rows, headers, separator=",   "):
 
 
 def model_grids_table(grids, regapi):
-    """Return the text of a table summarising the regional model grids in use for the requested fields."""
+    """Return the text of a table summarising the regional model grids in use for the
+    requested fields."""
     # Loop over each grid and the fields that were requested on that grid
     strings = []
     for grid, requested in grids.items():
@@ -253,7 +250,8 @@ def model_grids_table(grids, regapi):
 
 
 def snap_to_grid(coord, minl, incr, rounder):
-    """Snap a lat or lon to the regional grid where the lat/lon min is minl and the grid length is incr."""
+    """Snap a lat or lon to the regional grid where the lat/lon min is minl and the
+    grid length is incr."""
     raw = rounder((coord - (minl + incr / 2)) / incr) * incr + (minl + incr / 2)
     # Rounding error can lead to spurious significant figures. This is a
     # poor-man's attempt at getting the number of decimal places the result
