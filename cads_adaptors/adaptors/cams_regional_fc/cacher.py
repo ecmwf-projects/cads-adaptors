@@ -22,14 +22,17 @@ class AbstractCacher:
     defines the interface.
     """
 
-    def __init__(self, integration_server, logger=None, no_put=False):
+    def __init__(self, integration_server, logger=None, no_put=False,
+                 permanent_fields=None):
         self.integration_server = integration_server
         self.logger = logging.getLogger(__name__) if logger is None else logger
         self.no_put = no_put
 
         # Fields which should be cached permanently (on the datastore). All
         # other fields will be cached in temporary locations.
-        self.permanent_fields = [{"model": ["ENS"], "level": ["0"]}]
+        if permanent_fields is None:
+            permanent_fields = [{"model": ["ENS"], "level": ["0"]}]
+        self.permanent_fields = permanent_fields
 
     def done(self):
         pass
