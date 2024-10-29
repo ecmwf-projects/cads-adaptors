@@ -22,8 +22,9 @@ class AbstractCacher:
     defines the interface.
     """
 
-    def __init__(self, integration_server, logger=None, no_put=False,
-                 permanent_fields=None):
+    def __init__(
+        self, integration_server, logger=None, no_put=False, permanent_fields=None
+    ):
         self.integration_server = integration_server
         self.logger = logging.getLogger(__name__) if logger is None else logger
         self.no_put = no_put
@@ -144,12 +145,11 @@ class AbstractCacher:
         """Return a field-specific path or the given field. Can be used by a
         child class to determine server-side cache location.
         """
-
         dir = "permanent" if self._cache_permanently(fieldinfo) else "temporary"
 
         # Data from the integration server should not mix with the production data
         if self.integration_server:
-            dir += '_esuite'
+            dir += "_esuite"
 
         # Set the order we'd like the keys to appear in the filename. Area
         # keys will be last.
@@ -228,8 +228,9 @@ class AbstractAsyncCacher(AbstractCacher):
         self._templates = {}
         self._futures = []
         self._start_time = None
-        self._queue = MemSafeQueue(100000000 if max_mem is None else max_mem,
-                                   tmpdir=tmpdir, logger=logger)
+        self._queue = MemSafeQueue(
+            100000000 if max_mem is None else max_mem, tmpdir=tmpdir, logger=logger
+        )
 
     def _start_copy_threads(self):
         """Start the threads that will do the remote copies."""

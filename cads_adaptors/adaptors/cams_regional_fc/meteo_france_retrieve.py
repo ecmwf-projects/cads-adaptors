@@ -13,12 +13,22 @@ from .cacher import Cacher
 from .grib2request import grib2request_init
 
 
-def meteo_france_retrieve(requests, target, regapi, regfc_defns, integration_server,
-                          tmpdir=None, max_rate=None, max_simultaneous=None,
-                          cacher_kwargs=None, logger=None, **kwargs):
+def meteo_france_retrieve(
+    requests,
+    target,
+    regapi,
+    regfc_defns,
+    integration_server,
+    tmpdir=None,
+    max_rate=None,
+    max_simultaneous=None,
+    cacher_kwargs=None,
+    logger=None,
+    **kwargs,
+):
     """Download the fields from the Meteo France API. This function is designed to be
-    callable from outside of the CDS infrastructure."""
-
+    callable from outside of the CDS infrastructure.
+    """
     if logger is None:
         logger = logging.getLogger(__name__)
 
@@ -74,16 +84,17 @@ def meteo_france_retrieve(requests, target, regapi, regfc_defns, integration_ser
 
     # Objects to limit the rate and maximum number of simultaneous requests
     rate_limiter = CamsRegionalFcApiRateLimiter(max_rate or regapi.max_rate)
-    number_limiter = CamsRegionalFcApiNumberLimiter(max_simultaneous or
-                                                    regapi.max_simultaneous)
+    number_limiter = CamsRegionalFcApiNumberLimiter(
+        max_simultaneous or regapi.max_simultaneous
+    )
 
     # Translate requests into URLs as dicts with a 'url' and a 'req' key
     urlreqs = list(requests_to_urls(requests, regapi.url_patterns))
 
     # Create an object that will handle the caching
-    with Cacher(integration_server, logger=logger, tmpdir=tmpdir,
-                **(cacher_kwargs or {})) as cacher:
-
+    with Cacher(
+        integration_server, logger=logger, tmpdir=tmpdir, **(cacher_kwargs or {})
+    ) as cacher:
         # Create an object that will allow URL downloading in parallel
         downloader = Downloader(
             getter=getter,
@@ -110,7 +121,8 @@ def meteo_france_retrieve(requests, target, regapi, regfc_defns, integration_ser
         except RequestFailed as e:
             req = {x["url"]: x["req"] for x in urlreqs}[e.url]
             raise Exception(
-                f"Failed to retrieve data for {req} (code {e.status_code}).") from None
+                f"Failed to retrieve data for {req} (code {e.status_code})."
+            ) from None
 
         # Ensure the next call to this routine does not happen less than
         # 1/max_rate seconds after the last API request
@@ -200,13 +212,15 @@ class CamsRegionalFcApiRateLimiter:
         """
         backend = req["req"]["_backend"]
         self._rate_semaphores[backend].acquire()
-        Timer(1 / self._max_rate[backend],
-              self._rate_semaphores[backend].release).start()
+        Timer(
+            1 / self._max_rate[backend], self._rate_semaphores[backend].release
+        ).start()
 
 
 class CamsRegionalFcApiNumberLimiter:
     """Class to limit the number of simultaneously executing URL requests to the
-    regional forecast API."""
+    regional forecast API.
+    """
 
     def __init__(self, max_simultaneous):
         self._max_simultaneous = max_simultaneous

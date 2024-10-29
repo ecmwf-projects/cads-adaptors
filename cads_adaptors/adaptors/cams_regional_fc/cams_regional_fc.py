@@ -8,6 +8,7 @@ from cds_common.cams.regional_fc_api import regional_fc_api
 from cds_common.url2.downloader import Downloader
 
 from cads_adaptors.exceptions import InvalidRequest
+
 from .assert_valid_grib import assert_valid_grib
 from .cacher import Cacher
 from .convert_grib import convert_grib
@@ -17,9 +18,8 @@ from .grib2request import grib2request_init
 from .nc_request_groups import nc_request_groups
 from .preprocess_requests import preprocess_requests
 from .process_grib_files import process_grib_files
-from .which_fields_in_file import which_fields_in_file
 from .subrequest_main import subrequest_main
-
+from .which_fields_in_file import which_fields_in_file
 
 # Used to temporarily disable access to archived data in an emergency, e.g.
 # when too many archived requests are blocking access to latest data
@@ -31,16 +31,12 @@ class NoDataException(Exception):
 
 
 def cams_regional_fc(context, config, requests):
-
     # Using the Meteo France test (aka "integration") server?
     integration_server = config.get("regional_fc", {}).get("integration_server", False)
 
     # Get an object which will give us information/functionality associated
     # with the Meteo France regional forecast API
-    regapi = regional_fc_api(
-        integration_server=integration_server,
-        logger=context
-    )
+    regapi = regional_fc_api(integration_server=integration_server, logger=context)
 
     # Pre-process requests
     requests, info = preprocess_requests(context, requests, regapi)
@@ -94,8 +90,7 @@ def cams_regional_fc(context, config, requests):
 
     # Convert to netCDF?
     if "convert" in info["stages"]:
-        convert_grib(req_groups, info, config["regional_fc"]["definitions"],
-                     context)
+        convert_grib(req_groups, info, config["regional_fc"]["definitions"], context)
 
     # Zip output files?
     if "zip" in info["stages"]:
@@ -109,7 +104,8 @@ def cams_regional_fc(context, config, requests):
 
 def set_backend(req_groups, regapi, context):
     """Divide requests between "latest" and "archived" and set their "_backend"
-    attribute accordingly."""
+    attribute accordingly.
+    """
     for req_group in req_groups:
         online, offline = split_latest_from_archived(
             req_group["uncached_requests"], regapi, context
@@ -189,8 +185,8 @@ def _get_local(req_group, cacher, config, context):
         logger=context,
         min_log_level=logging.INFO,
     )
-    grib_file = temp_file(config, suffix='.grib')
-    if not config.get('regional_fc', {}).get('no_cache_downloads'):
+    grib_file = temp_file(config, suffix=".grib")
+    if not config.get("regional_fc", {}).get("no_cache_downloads"):
         downloader.execute(urls, target=grib_file)
 
     # Identify uncached fields - the ones not present in the file
@@ -231,7 +227,6 @@ def get_latest(req_groups, config, context):
 
 def get_archived(req_groups, config, context):
     """Retrieve uncached slow-access archived fields."""
-
     for req_group in req_groups:
         if not req_group["uncached_archived_requests"]:
             continue
@@ -257,22 +252,20 @@ MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES = 3
 
 def get_uncached(requests, req_group, config, context):
     """Retrieve chunk of uncached fields"""
-
     backend = requests[0]["_backend"][0]
     assert backend in ["latest", "archived"]
 
     # Retrieve the fields in a sub-request or directly? The latter is only used for
     # testing. Generally you want a sub-request.
     cfg = config.get("regional_fc", {})
-    if str(cfg.get('no_subrequests')) != '1':
+    if str(cfg.get("no_subrequests")) != "1":
         path = retrieve_subrequest(backend, requests, req_group, config, context)
 
     else:
         # No sub-request - call code directly. For testing.
-        f = subrequest_main(backend,
-                            {"requests": requests, "parent_config": config},
-                            config,
-                            context)
+        f = subrequest_main(
+            backend, {"requests": requests, "parent_config": config}, config, context
+        )
         f.close()
         path = f.name
 
@@ -293,10 +286,10 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
 
     # Is this backend expecting issues due to maintenance?
     cfg = config.get("regional_fc", {})
-    maintenance_msg = cfg.get('backend_maintenance', {}).get(backend)
+    maintenance_msg = cfg.get("backend_maintenance", {}).get(backend)
 
     # Construct a target file name
-    target = temp_file(config, suffix='.grib')
+    target = temp_file(config, suffix=".grib")
 
     # Get a client
     context.info("Executing sub-request to retrieve uncached fields: " + repr(requests))
@@ -304,7 +297,8 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
     client = Client(
         url="https://" + os.environ["ADS_SERVER_NAME"] + os.environ["API_ROOT_PATH"],
         key=os.environ["HIGH_PRIORITY_CADS_API_KEY"],
-        wait_until_complete=False)
+        wait_until_complete=False,
+    )
 
     # Launch the sub-request
     response = None
@@ -316,17 +310,19 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
             {"requests": requests, "parent_config": config},
         )
     except Exception as e:
-        sub_request_uid = 'none' if response is None else response.request_uid
+        sub_request_uid = "none" if response is None else response.request_uid
         context.add_stderr(
-            "Sub-request " +
-            ("" if response is None else f"({response.request_uid}) ") +
-            f"failed: {e!r}"
+            "Sub-request "
+            + ("" if response is None else f"({response.request_uid}) ")
+            + f"failed: {e!r}"
         )
         if maintenance_msg:
             raise InvalidRequest(maintenance_msg) from None
         else:
-            raise RuntimeError(f"Failed to retrieve data from {backend} remote server. "
-                               "Please try again later.") from None
+            raise RuntimeError(
+                f"Failed to retrieve data from {backend} remote server. "
+                "Please try again later."
+            ) from None
     else:
         sub_request_uid = response.request_uid
         message = f"Sub-request {sub_request_uid} has been launched (via the CDSAPI)."
@@ -349,15 +345,15 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
         raise RuntimeError(message) from None
 
     size = os.path.getsize(target)
-    context.info(f"... sub-request downloaded {size} bytes in " + str(time.time() - t0)
-                 + "s")
+    context.info(
+        f"... sub-request downloaded {size} bytes in " + str(time.time() - t0) + "s"
+    )
 
     return target
 
 
 def reassign_missing_to_archive(reqs, grib_file, req_group, config, context):
-    """Re-assign fields which are in reqs but not in grib_file to the archived backend.
-    """
+    """Re-assign fields which are in reqs but not in grib_file to the archived backend."""
     # Which are in the file and which aren't?
     present, missing = which_fields_in_file(reqs, grib_file, config, context)
     if missing:

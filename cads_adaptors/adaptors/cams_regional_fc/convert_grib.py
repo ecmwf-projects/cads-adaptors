@@ -7,7 +7,6 @@ from .formats import Formats
 
 def convert_grib(req_groups, info, regfc_defns, context):
     """Convert files to NetCDF if required."""
-
     # Convert to NetCDF?
     if info["format"] in [Formats.netcdf, Formats.netcdf_zip, Formats.netcdf_cdm]:
         for req_group in req_groups:
@@ -19,7 +18,7 @@ def convert_grib(req_groups, info, regfc_defns, context):
                     req_group["nc_file"],
                     regfc_defns,
                 )
-            #elif info["format"] == Formats.netcdf_cdm:
+            # elif info["format"] == Formats.netcdf_cdm:
             #    convert_grib_to_netcdf_cdm(
             #        req_group["grib_file"], req_group["nc_file"], dataset_dir, context
             #    )

@@ -31,9 +31,11 @@ def process_grib_files(req_groups, info, context):
         # If there is only one retrieved file for this group and it does not
         # require any alteration then use as-is. Otherwise, copy data to the
         # new file.
-        if len(req_group["retrieved_files"]) == 1 and \
-           not any(alterations.values()) and \
-           info["stages"][-1] != "merge_grib":
+        if (
+            len(req_group["retrieved_files"]) == 1
+            and not any(alterations.values())
+            and info["stages"][-1] != "merge_grib"
+        ):
             req_group["grib_file"] = req_group["retrieved_files"][0]
         else:
             # Copy data to the grib file

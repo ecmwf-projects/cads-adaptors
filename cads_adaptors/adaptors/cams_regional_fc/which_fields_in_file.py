@@ -4,8 +4,8 @@ import time
 from cds_common import hcube_tools
 from cds_common.message_iterators import grib_file_iterator
 
-from .grib2request import grib2request
 from .create_file import temp_file
+from .grib2request import grib2request
 
 
 def which_fields_in_file(reqs, grib_file, config, context):
@@ -13,7 +13,6 @@ def which_fields_in_file(reqs, grib_file, config, context):
     two lists of requests, representing those which are in the file and
     those which are not.
     """
-
     # Read the grib file to find out which fields were retrieved
     msg_iterator = grib_file_iterator(grib_file)
     try:
@@ -23,7 +22,7 @@ def which_fields_in_file(reqs, grib_file, config, context):
     except Exception:
         # Sometimes we have problems here. Copy the file somewhere so we can
         # investigate later.
-        tmp = temp_file(config, suffix='.grib')
+        tmp = temp_file(config, suffix=".grib")
         context.info(
             f"Encountered error when reading grib file. Copying to {tmp} for offline "
             "investigation"

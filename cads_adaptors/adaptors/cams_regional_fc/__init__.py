@@ -1,8 +1,6 @@
-
 from typing import BinaryIO
 
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
-
 
 STACK_TEMP_DIR = "/tmp/cams-europe-air-quality-forecasts/temp"
 STACK_DOWNLOAD_DIR = "/tmp/cams-europe-air-quality-forecasts/download"
@@ -27,10 +25,12 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
 class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from .subrequest_main import subrequest_main
+
         subrequest_main("latest", request, self.config, self.context)
 
 
 class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from .subrequest_main import subrequest_main
+
         subrequest_main("archived", request, self.config, self.context)

@@ -12,9 +12,7 @@ class MemSafeQueue(queue.Queue):
     means the queue memory usage will not grow out of control.
     """
 
-    def __init__(
-        self, nbytes_max, *args, tmpdir=None, logger=None, **kwargs
-    ):
+    def __init__(self, nbytes_max, *args, tmpdir=None, logger=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.nbytes_max = nbytes_max
         self.nbytes = 0
