@@ -42,6 +42,8 @@ def subrequest_main(backend, request, child_config, context):
         meteo_france_retrieve(
             request["requests"], target, regapi, cfg["definitions"], integration_server,
             logger=context, tmpdir=STACK_TEMP_DIR,
+            max_rate=cfg.get('meteofrance_max_rate'),
+            max_simultaneous=cfg.get('meteofrance_max_simultaneous'),
             cacher_kwargs=cfg.get('cacher_kwargs', {})
         )
     except Exception as e:

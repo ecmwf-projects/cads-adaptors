@@ -173,7 +173,6 @@ def _get_local(req_group, cacher, config, context):
         {"url": cacher.cache_file_url(field), "req": field}
         for field in hcube_tools.unfactorise(reqs)
     )
-    # CAREFUL! "urls" is a generator and will be consumed by the first iteration
     downloader = Downloader(
         max_rate=50,
         max_simultaneous=15,
@@ -191,7 +190,8 @@ def _get_local(req_group, cacher, config, context):
         min_log_level=logging.INFO,
     )
     grib_file = temp_file(config, suffix='.grib')
-    downloader.execute(urls, target=grib_file)
+    if not config.get('regional_fc', {}).get('no_cache_downloads'):
+        downloader.execute(urls, target=grib_file)
 
     # Identify uncached fields - the ones not present in the file
     cached, uncached = which_fields_in_file(reqs, grib_file, config, context)

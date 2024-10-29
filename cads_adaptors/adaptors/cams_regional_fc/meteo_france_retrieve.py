@@ -14,7 +14,8 @@ from .grib2request import grib2request_init
 
 
 def meteo_france_retrieve(requests, target, regapi, regfc_defns, integration_server,
-                          logger=None, tmpdir=None, cacher_kwargs=None, **kwargs):
+                          tmpdir=None, max_rate=None, max_simultaneous=None,
+                          cacher_kwargs=None, logger=None, **kwargs):
     """Download the fields from the Meteo France API. This function is designed to be
     callable from outside of the CDS infrastructure."""
 
@@ -72,8 +73,9 @@ def meteo_france_retrieve(requests, target, regapi, regfc_defns, integration_ser
     getter = regapi.get_fields_url
 
     # Objects to limit the rate and maximum number of simultaneous requests
-    rate_limiter = CamsRegionalFcApiRateLimiter(regapi)
-    number_limiter = CamsRegionalFcApiNumberLimiter(regapi)
+    rate_limiter = CamsRegionalFcApiRateLimiter(max_rate or regapi.max_rate)
+    number_limiter = CamsRegionalFcApiNumberLimiter(max_simultaneous or
+                                                    regapi.max_simultaneous)
 
     # Translate requests into URLs as dicts with a 'url' and a 'req' key
     urlreqs = list(requests_to_urls(requests, regapi.url_patterns))
@@ -184,74 +186,46 @@ def make_api_hypercubes(requests, regapi):
     return output
 
 
-class CamsRegionalFcApiLimiter:
-    """Abstract base class for controlling the URL requests.
-    It controls rate and max number of simultaneous requests to the regional forecast API.
-    """
+class CamsRegionalFcApiRateLimiter:
+    """Class to limit the URL request rate to the regional forecast API."""
 
-    def __init__(self, regapi):
-        # Maximum URL request rates for online and offline data
-        self._max_rate = regapi.max_rate
-
-        # Maximum number of simultaneous requests for online and offline data
-        self._max_simultaneous = regapi.max_simultaneous
-
-        # The time duration that data stays online. Nominally this is 5 days
-        # but we subtract a small amount of time for safety
-        #### self._online_duration = timedelta(days=5) - timedelta(minutes=10)
-
+    def __init__(self, max_rate):
+        self._max_rate = max_rate
         self._rate_semaphores = {k: Semaphore() for k in self._max_rate.keys()}
+
+    def block(self, req):
+        """Block as required to ensure there is at least 1/max_rate seconds
+        between calls for the same backend, where max_rate depends on the
+        backend in question.
+        """
+        backend = req["req"]["_backend"]
+        self._rate_semaphores[backend].acquire()
+        Timer(1 / self._max_rate[backend],
+              self._rate_semaphores[backend].release).start()
+
+
+class CamsRegionalFcApiNumberLimiter:
+    """Class to limit the number of simultaneously executing URL requests to the
+    regional forecast API."""
+
+    def __init__(self, max_simultaneous):
+        self._max_simultaneous = max_simultaneous
         self._number_semaphores = {
             k: Semaphore(v) for k, v in self._max_simultaneous.items()
         }
 
-    # def _type(self, req):
-    #     """Return whether a request field is expected to be online or offline
-    #        depending on the validity time."""
-    #     r = req['req']
-    #     vtime = datetime.strptime(r['date'] + ' ' + r['time'],
-    #                               '%Y-%m-%d %H%M') + \
-    #         timedelta(hours=int(r['step']))
-    #     if (datetime.now() - vtime) < self._online_duration:
-    #         return 'latest'
-    #     else:
-    #         return 'archived'
-
-
-class CamsRegionalFcApiRateLimiter(CamsRegionalFcApiLimiter):
-    """Class to limit the URL request rate to the regional forecast API."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def block(self, req):
-        """Block as required to ensure there is at least 1/max_rate seconds
-        between calls for the same type of data, where max_rate depends on
-        the type in question.
-        """
-        type = req["req"]["_backend"]
-        self._rate_semaphores[type].acquire()
-        Timer(1 / self._max_rate[type], self._rate_semaphores[type].release).start()
-
-
-class CamsRegionalFcApiNumberLimiter(CamsRegionalFcApiLimiter):
-    """Class to limit the number of simultaneously executing URL requests to the regional forecast API."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def block(self, req):
         """Block as required to ensure there are no more than N ongoing
-        requests for the same type of data, where N depends on the type in
+        requests for the same backend, where N depends on the backend in
         question. Return a function that will unblock when called.
         """
-        type = req["req"]["_backend"]
-        self._number_semaphores[type].acquire()
-        return lambda X: self._number_semaphores[type].release()
+        backend = req["req"]["_backend"]
+        self._number_semaphores[backend].acquire()
+        return lambda X: self._number_semaphores[backend].release()
 
     @property
     def max_simultaneous(self):
         """Return the total number of simultaneous URL requests allowed, of
         any type.
         """
-        return sum(self._max_rate.values())
+        return sum(self._max_simultaneous.values())
