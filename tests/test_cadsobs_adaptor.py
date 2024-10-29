@@ -94,7 +94,7 @@ class MockerCadsobsApiClient:
         return CDM_LITE_VARIABLES
 
     def get_objects_to_retrieve(
-        self, dataset_name: str, mapped_request: dict, size_limit: int
+        self, dataset_name: str, mapped_request: dict
     ) -> list[str]:
         return [
             "https://object-store.os-api.cci2.ecmwf.int/"
@@ -104,9 +104,7 @@ class MockerCadsobsApiClient:
 
 
 class ClientErrorMockerCadsobsApiClient(MockerCadsobsApiClient):
-    def get_objects_to_retrieve(
-        self, dataset_name: str, mapped_request: dict, size_limit: int
-    ):
+    def get_objects_to_retrieve(self, dataset_name: str, mapped_request: dict):
         raise RuntimeError("This is a test error")
 
 
@@ -183,6 +181,21 @@ def test_adaptor(tmp_path, monkeypatch):
     assert tempfile.stat().st_size > 0
     actual = h5netcdf.File(tempfile)
     assert actual.dimensions["index"].size > 0
+
+
+def test_adaptor_estimate_costs(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        MockerCadsobsApiClient,
+    )
+    test_form = {}
+    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    costs_noarea = adaptor.estimate_costs(TEST_REQUEST)
+    request = TEST_REQUEST.copy()
+    request["area"] = ["50", "-10", "20", "10"]
+    costs = adaptor.estimate_costs(request)
+    assert costs_noarea["number_of_fields"] > costs["number_of_fields"]
+    assert costs_noarea["size"] > costs["size"]
 
 
 def test_adaptor_error(tmp_path, monkeypatch):
