@@ -65,7 +65,10 @@ def meteo_france_retrieve(
                 404: 1,
                 400: 10,
             },
-            "request_timeout": [60, 300],
+            # Read timeout reduced from 300s because not too uncommon to hit
+            # that and it was found to be quicker to fail sooner and retry than
+            # wait for a long timeout
+            "request_timeout": [60, 60],
         },
     }
 
