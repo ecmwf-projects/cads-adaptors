@@ -8,7 +8,7 @@ from .meteo_france_retrieve import meteo_france_retrieve
 
 
 def subrequest_main(backend, request, child_config, context):
-    """Get data from the specified Meteo France backend"""
+    """Get data from the specified Meteo France backend."""
     parent_config = request["parent_config"]
     message = (
         f"The parent request is {parent_config['request_uid']}, "

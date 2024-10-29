@@ -31,7 +31,7 @@ def create_file(stage, suffix, info):
 
 
 def temp_file(config, suffix=""):
-    """Make and return the path of a temporary file"""
+    """Make and return the path of a temporary file."""
     os.makedirs(STACK_TEMP_DIR, exist_ok=True)
     fd, target = mkstemp(
         prefix=config["request_uid"] + "_", suffix=suffix, dir=STACK_TEMP_DIR

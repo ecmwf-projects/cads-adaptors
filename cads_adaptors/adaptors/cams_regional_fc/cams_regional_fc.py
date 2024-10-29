@@ -31,6 +31,7 @@ class NoDataException(Exception):
 
 
 def cams_regional_fc(context, config, requests):
+    """Top-level function for the regional forecast adaptor."""
     # Using the Meteo France test (aka "integration") server?
     integration_server = config.get("regional_fc", {}).get("integration_server", False)
 
@@ -251,7 +252,7 @@ MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES = 3
 
 
 def get_uncached(requests, req_group, config, context):
-    """Retrieve chunk of uncached fields"""
+    """Retrieve chunk of uncached fields."""
     backend = requests[0]["_backend"][0]
     assert backend in ["latest", "archived"]
 
