@@ -19,7 +19,7 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
 
         result_file = cams_regional_fc(self.context, self.config, self.mapped_requests)
 
-        return open(result_file.path, "rb")
+        return open(result_file, "rb")
 
 
 class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
