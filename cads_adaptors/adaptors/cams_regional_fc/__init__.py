@@ -26,11 +26,11 @@ class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from .subrequest_main import subrequest_main
 
-        subrequest_main("latest", request, self.config, self.context)
+        return subrequest_main("latest", request, self.config, self.context)
 
 
 class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         from .subrequest_main import subrequest_main
 
-        subrequest_main("archived", request, self.config, self.context)
+        return subrequest_main("archived", request, self.config, self.context)
