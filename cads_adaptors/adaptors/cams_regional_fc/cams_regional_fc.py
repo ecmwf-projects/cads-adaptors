@@ -342,7 +342,8 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
                 f"{sub_request_uid} failed: {e!r}"
             )
     else:
-        context.add_stderr(f"Failed to download sub-request result: {exc!r}")
+        message = f"Failed to download sub-request result: {exc!r}"
+        context.add_stderr(message)
         raise RuntimeError(message) from None
 
     size = os.path.getsize(target)
