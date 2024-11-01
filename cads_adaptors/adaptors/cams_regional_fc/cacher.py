@@ -324,8 +324,8 @@ class CacherS3(AbstractAsyncCacher):
         local_object = io.BytesIO(data)
         remote_path = self._cache_file_path(fieldinfo)
 
-        self.logger.debug(
-            f"CACHER: copying data to " f"{self._host}:{self._bucket}:{remote_path}"
+        self.logger.info(
+            f"Caching {fieldinfo} to {self._host}:{self._bucket}:{remote_path}"
         )
 
         # Uncomment this code if it can't be trusted that the bucket already
