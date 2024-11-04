@@ -241,16 +241,6 @@ def _get_local(req_group, cacher, context):
     for r in reqs:
         r["date"] = date_tools.expand_dates_list(r["date"])
 
-    context.info('XXXXXX Request is ' + repr(reqs))
-    for field in hcube_tools.unfactorise(reqs):
-        context.info('YYYYY field is ' + repr(field) + ' ' + cacher.cache_file_url(field))
-    urls = (
-        {"url": cacher.cache_file_url(field), "req": field}
-        for field in hcube_tools.unfactorise(reqs)
-    )
-    for url in urls:
-        context.info('ZZZZZ ' + repr(url))
-
     # Download local fields
     urls = (
         {"url": cacher.cache_file_url(field), "req": field}
