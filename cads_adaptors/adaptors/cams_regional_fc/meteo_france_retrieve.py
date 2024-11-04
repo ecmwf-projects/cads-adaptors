@@ -110,7 +110,6 @@ def meteo_france_retrieve(
             combine_in_order=False,
             nonfatal_codes=[404],
             allow_no_data=True,
-            cacher=cacher,
             logger=logger,
             **backend_specific[backend],
             **kwargs,
