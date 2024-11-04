@@ -145,12 +145,6 @@ class AbstractCacher:
         """Return a field-specific path or the given field. Can be used by a
         child class to determine server-side cache location.
         """
-        dir = "permanent" if self._cache_permanently(fieldinfo) else "temporary"
-
-        # Data from the integration server should not mix with the production data
-        if self.integration_server:
-            dir += "_esuite"
-
         # Set the order we'd like the keys to appear in the filename. Area
         # keys will be last.
         order1 = ["model", "type", "variable", "level", "time", "step"]
@@ -170,8 +164,7 @@ class AbstractCacher:
             # Form a Jinja2 template string for the cache files. "_backend" not
             # used; organised by date; area keys put at the end.
             path_template = (
-                dir
-                + "/{{ date }}/"
+                "{{ date }}/"
                 + "_".join(
                     [
                         "{k}={{{{ {k} }}}}".format(k=k)
@@ -191,7 +184,12 @@ class AbstractCacher:
                 "Bad characters in value for " + k + ": " + repr(v)
             )
 
-        return self._templates[keys].render(fieldinfo)
+        dir = "permanent" if self._cache_permanently(fieldinfo) else "temporary"
+        # Data from the integration server should not mix with the production data
+        if self.integration_server:
+            dir += "_esuite"
+
+        return f"{dir}/" + self._templates[keys].render(fieldinfo)
 
 
 class AbstractAsyncCacher(AbstractCacher):
