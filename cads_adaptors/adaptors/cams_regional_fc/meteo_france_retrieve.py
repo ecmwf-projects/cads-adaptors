@@ -103,7 +103,7 @@ def meteo_france_retrieve(
             getter=getter,
             max_rate=rate_limiter,
             max_simultaneous=number_limiter,
-            combine_method="cat" if target else "null",
+            combine_method="cat",
             target_suffix=".grib",
             response_checker=assert_valid_grib,
             response_checker_threadsafe=False,
