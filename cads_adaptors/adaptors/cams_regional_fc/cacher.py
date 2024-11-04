@@ -75,9 +75,7 @@ class AbstractCacher:
                 nmatches = count_fields(intn)
                 if nmatches == 0:
                     raise Exception(
-                        "Got unexpected field "
-                        + repr(req1field)
-                        + " from request "
+                        f"Got unexpected field {req1field!r} from request "
                         + repr(req["req"])
                     )
                 assert nmatches == 1
