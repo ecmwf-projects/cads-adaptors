@@ -160,7 +160,7 @@ class AbstractCacher:
             # Form a Jinja2 template string for the cache files. "_backend" not
             # used; organised by date; area keys put at the end.
             path_template = (
-                + "{{ date }}/"
+                "{{ date }}/"
                 + "_".join(
                     [
                         "{k}={{{{ {k} }}}}".format(k=k)
