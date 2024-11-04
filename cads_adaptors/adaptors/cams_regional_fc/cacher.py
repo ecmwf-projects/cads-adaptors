@@ -133,6 +133,8 @@ class AbstractCacher:
         else:
             permanent = []
 
+        self.context.info(f'AAAAAA {field} AAA {self.permanent_fields} AAA {permanent} AAA {bool(permanent)}')
+
         return bool(permanent)
 
     def _cache_file_path(self, fieldinfo):
