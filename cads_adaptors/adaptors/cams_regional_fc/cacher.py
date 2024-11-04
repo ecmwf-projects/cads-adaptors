@@ -133,8 +133,6 @@ class AbstractCacher:
         else:
             permanent = []
 
-        self.context.info(f'AAAAAA {field} AAA {self.permanent_fields} AAA {permanent} AAA {bool(permanent)}')
-
         return bool(permanent)
 
     def _cache_file_path(self, fieldinfo):
@@ -162,8 +160,7 @@ class AbstractCacher:
             # Form a Jinja2 template string for the cache files. "_backend" not
             # used; organised by date; area keys put at the end.
             path_template = (
-                dir
-                + "/{{ date }}/"
+                + "{{ date }}/"
                 + "_".join(
                     [
                         "{k}={{{{ {k} }}}}".format(k=k)
@@ -183,7 +180,7 @@ class AbstractCacher:
                 "Bad characters in value for " + k + ": " + repr(v)
             )
 
-        return self._templates[keys].render(fieldinfo)
+        return f"{dir}/" + self._templates[keys].render(fieldinfo)
 
 
 class AbstractAsyncCacher(AbstractCacher):
