@@ -113,8 +113,9 @@ def combination_tuples(
                     if all(
                         v is None or v2 == v for v, v2 in zip(_v_seen, v_for_seen)
                     ):
+                        # Remove granule from seen sets
+                        # (Do not remove from seen_granules_hashes so we preserve duplicate avoidance)
                         seen_granules.remove(_v_seen)
-                        seen_granules_hashes.remove(hash(_v_seen))
 
             seen_granules_hashes.add(_hash)
             seen_granules.add(tuple(v_for_seen))
