@@ -161,15 +161,12 @@ class AbstractCacher:
         if keys not in self._templates:
             # Form a Jinja2 template string for the cache files. "_backend" not
             # used; organised by date; area keys put at the end.
-            path_template = (
-                "{{ date }}/"
-                + "_".join(
-                    [
-                        "{k}={{{{ {k} }}}}".format(k=k)
-                        for k in sorted(keys, key=key_order)
-                        if k not in ["date", "_backend"]
-                    ]
-                )
+            path_template = "{{ date }}/" + "_".join(
+                [
+                    "{k}={{{{ {k} }}}}".format(k=k)
+                    for k in sorted(keys, key=key_order)
+                    if k not in ["date", "_backend"]
+                ]
             )
             self._templates[keys] = jinja2.Template(path_template)
 
