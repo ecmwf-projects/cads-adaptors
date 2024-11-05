@@ -24,15 +24,48 @@ def combination_tuples_iterater(
 ) -> Generator[tuple[tuple[Any, Any], ...], None, None]:
     if not found:
         yield tuple()
+    all_keys = set()
+    for d in found:
+        all_keys.update(d.keys())
+    all_keys = list(all_keys)
+
     seen_granules = set()
+    seen_granules_hashes = set()
     for d in found:
         keys, values = zip(*d.items())
         for v in itertools.product(*values):
-
-            _hash = hash(v)
+            # Create a tuple for hashing, we populate with None for all keys not in the current granule
+            v_for_seen = (
+                v[keys.index(k)] if k in keys else None for k in all_keys
+            )
+            _hash = hash(v_for_seen)
+            # Check if the hash is a duplicate of a previously seen granule
             if _hash in seen_granules:
                 continue
-            seen_granules.add(_hash)
+            # Check if the granule is a subset of a previously seen granule
+            for _v_seen in seen_granules:
+                v_seen = [v for v in _v_seen if v is not None]
+                v_len_diff = len(v) - len(v_seen)
+                if v_len_diff == 0:
+                    # Identical length, so cannot be a subset
+                    continue
+                elif v_len_diff < 0:
+                    # potential subset of existing granule
+                    if all(
+                        v2 is None or v2 == v for v, v2 in zip(v_seen, v)
+                    ):
+                        continue
+                else:
+                    # potential superset of existing granule
+                    # if it is, we must remove the existing granule from seen sets
+                    if all(
+                        v is None or v2 == v for v, v2 in zip(v, v_seen)
+                    ):
+                        seen_granules.remove(_v_seen)
+                        seen_granules_hashes.remove(_hash)
+
+            seen_granules_hashes.add(_hash)
+            seen_granules.add(tuple(v_for_seen))
 
             yield tuple(zip(keys, v))
 
@@ -42,29 +75,53 @@ def combination_tuples(
 ) -> tuple[tuple[Any, Any]]:
     if not found:
         return tuple()
-    seen_key_vals = dict()
-    granules = set()
-    # Order by size, largest first, a smaller set may be a subset of a larger set
-    found.sort(key=lambda x: -len(x))
+    
+    all_keys = set()
+    for d in found:
+        all_keys.update(d.keys())
+    all_keys = list(all_keys)
+
+    seen_granules = set()
+    seen_granules_hashes = set()
     for d in found:
         keys, values = zip(*d.items())
-        these_seen = []
-        for s_k, s_v in seen_key_vals.items():
-            if set(keys) <= set(s_k):
-                these_seen.append({
-                    k: {v[i] for v in s_v} for i, k in enumerate(s_k)
-                })
-        for vs in itertools.product(*values):
-            for i_seen in these_seen:
-                if all([v in i_seen.get(k, []) for k, v in zip(keys, vs)]):
-                    break
-            else:
-                if keys in seen_key_vals:
-                    seen_key_vals[keys].append(vs)
+        for v in itertools.product(*values):
+            # Create a tuple for hashing, we populate with None for all keys not in the current granule
+            v_for_seen = (
+                v[keys.index(k)] if k in keys else None for k in all_keys
+            )
+            _hash = hash(v_for_seen)
+            # Check if the hash is a duplicate of a previously seen granule
+            if _hash in seen_granules:
+                continue
+            # Check if the granule is a subset of a previously seen granule
+            for _v_seen in seen_granules:
+                v_seen = [v for v in _v_seen if v is not None]
+                v_len_diff = len(v) - len(v_seen)
+                if v_len_diff == 0:
+                    # Identical length, so cannot be a subset
+                    continue
+                elif v_len_diff < 0:
+                    # potential subset of existing granule
+                    if all(
+                        v2 is None or v2 == v for v, v2 in zip(v_seen, v)
+                    ):
+                        continue
                 else:
-                    seen_key_vals[keys] = [vs]
-                granules.add(tuple(zip(keys, vs)))
-    return granules
+                    # potential superset of existing granule
+                    # if it is, we must remove the existing granule from seen sets
+                    if all(
+                        v is None or v2 == v for v, v2 in zip(v, v_seen)
+                    ):
+                        seen_granules.remove(_v_seen)
+                        seen_granules_hashes.remove(_hash)
+
+            seen_granules_hashes.add(_hash)
+            seen_granules.add(tuple(v_for_seen))
+    
+    return (
+        ((all_keys[i], v) for i, v in enumerate(values) if v is not None) for values in seen_granules
+    )
 
 
 def count_weighted_size(
