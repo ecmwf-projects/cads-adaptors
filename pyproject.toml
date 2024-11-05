@@ -29,6 +29,7 @@ readme = "README.md"
 complete = [
   # Additional dependencies required by the worker image
   "aiohttp",
+  "boto3",
   "cacholote",
   "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
   "cdsapi",

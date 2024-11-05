@@ -25,6 +25,14 @@ CONFIG_MAPPING = {
         "method": "daily_reduce",
         "how": "std",
     },
+    "daily_sum": {
+        "method": "daily_reduce",
+        "how": "sum",
+    },
+    "monthly_mean": {
+        "method": "monthly_reduce",
+        "how": "mean",
+    },
     "monthly_median": {
         "method": "monthly_reduce",
         "how": "median",
@@ -36,6 +44,10 @@ CONFIG_MAPPING = {
     "monthly_max": {
         "method": "monthly_reduce",
         "how": "max",
+    },
+    "monthly_std": {
+        "method": "monthly_reduce",
+        "how": "std",
     },
 }
 
