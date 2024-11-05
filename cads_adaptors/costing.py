@@ -114,7 +114,7 @@ def combination_tuples(
                         v is None or v2 == v for v, v2 in zip(_v_seen, v_for_seen)
                     ):
                         seen_granules.remove(_v_seen)
-                        seen_granules_hashes.remove(_hash)
+                        seen_granules_hashes.remove(hash(_v_seen))
 
             seen_granules_hashes.add(_hash)
             seen_granules.add(tuple(v_for_seen))
