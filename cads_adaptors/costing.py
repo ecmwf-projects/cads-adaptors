@@ -95,7 +95,7 @@ def combination_tuples(
             if _hash in seen_granules:
                 continue
             # Check if the granule is a subset of a previously seen granule
-            for _v_seen in seen_granules:
+            for _v_seen in seen_granules.copy():
                 v_seen = [v for v in _v_seen if v is not None]
                 v_len_diff = len(v) - len(v_seen)
                 if v_len_diff == 0:
