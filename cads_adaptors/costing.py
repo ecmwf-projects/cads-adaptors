@@ -104,14 +104,14 @@ def combination_tuples(
                 elif v_len_diff < 0:
                     # potential subset of existing granule
                     if all(
-                        v2 is None or v2 == v for v, v2 in zip(v_seen, v)
+                        v2 is None or v2 == v for v, v2 in zip(_v_seen, v_for_seen)
                     ):
                         continue
                 else:
                     # potential superset of existing granule
                     # if it is, we must remove the existing granule from seen sets
                     if all(
-                        v is None or v2 == v for v, v2 in zip(v, v_seen)
+                        v is None or v2 == v for v, v2 in zip(_v_seen, v_for_seen)
                     ):
                         seen_granules.remove(_v_seen)
                         seen_granules_hashes.remove(_hash)
