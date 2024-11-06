@@ -140,7 +140,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         for condition in conditions:
             if "date" in condition:
                 condition["date"] = self.instantiate_dynamic_daterange(condition["date"], today)
-            self.context.add_stdout("---------->",condition)
+            self.context.add_stdout(f"----------> {condition}")
 
     def daterange_in(self, contained, container):
         container_interval = re.split("[;/]", container)
@@ -151,8 +151,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return True
 
     def satisfy_condition(self, request: dict[str, Any], condition: dict[str, Any]):
-        self.context.add_stdout("---------->",request)
-        self.context.add_stdout("---------->",condition)
+        self.context.add_stdout(f"----------> {request}")
+        self.context.add_stdout(f"----------> {condition}")
         for key in condition:
             if key == "date":
                 if not self.daterange_in(request[key], condition[key]):
@@ -195,7 +195,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         working_request = self.pre_mapping_modifications(deepcopy(request))
 
         # Implement a request-level tagging system
-        self.context.add_stdout("---------->",self.conditional_tagging)
+        self.context.add_stdout(f"----------> {self.conditional_tagging}")
         if self.conditional_tagging is not None:
             for tag,conditions in self.conditional_tagging:
                 self.preprocess_conditions(conditions)
