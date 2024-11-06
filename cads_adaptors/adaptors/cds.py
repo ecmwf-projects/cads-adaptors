@@ -145,7 +145,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         container_interval = re.split("[;/]", container)
         contained_intervals = self.ensure_dateranges(contained)
         for contained_interval in contained_intervals:
-            if not (container_interval[0] <= contained_interval[0] and container_interval[1] <= contained_interval[1]):
+            if not (container_interval[0] <= contained_interval[0] and contained_interval[1] <= container_interval[1]):
                 return False
         return True
 
