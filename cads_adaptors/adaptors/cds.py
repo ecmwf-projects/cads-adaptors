@@ -1,5 +1,7 @@
 import os
 import pathlib
+import datetime
+import re
 from copy import deepcopy
 from random import randint
 from typing import Any, BinaryIO
@@ -38,6 +40,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "intersect_constraints", False
         )
         self.embargo: dict[str, int] | None = config.get("embargo", None)
+        self.conditional_tagging: dict[str, int] | None = config.get("conditional_tagging", None)
         # Flag to ensure we only normalise the request once
         self.normalised: bool = False
         # List of steps to perform after retrieving the data
@@ -111,6 +114,55 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         return request
 
+    def ensure_dateranges(self, strings):
+        dateranges = []
+        for string in strings:
+            dates = re.split("[;/]", string)
+            if len(dates) == 1:
+                dates *= 2
+            dateranges.append(dates)
+        return dateranges
+
+    def instantiate_dynamic_daterange(self, string: str, today: datetime):
+        dates = re.split("[;/]", string)
+        if len(dates) == 1:
+            dates *= 2
+        for i,date in enumerate(dates):
+            if date.startswith("current"):
+                diff = date.replace("current","")
+                diff = int(diff) if diff else 0
+                date = today + datetime.timedelta(diff)
+                dates[i] = date.strftime("%Y-%m-%d")
+        return f"{dates[0]}/{dates[1]}"
+
+    def preprocess_conditions(self, conditions):
+        today = datetime.datetime.now(datetime.timezone.utc)
+        for condition in conditions:
+            if "date" in condition:
+                condition["date"] = self.instantiate_dynamic_daterange(condition["date"], today)
+
+    def daterange_in(self, contained, container):
+        container_interval = re.split("[;/]", container)
+        contained_intervals = self.ensure_dateranges(contained)
+        for contained_interval in contained_intervals:
+            if not (container_interval[0] <= contained_interval[0] and container_interval[1] <= contained_interval[1]):
+                return False
+        return True
+
+    def satisfy_condition(self, request: dict[str, Any], condition: dict[str, Any]):
+        for key in condition:
+            if key == "date":
+                if not self.daterange_in(request[key], condition[key]):
+                    return False
+            elif not set(request[key]) <= set(condition[key]):
+                return False
+        return True
+
+    def satisfy_conditions(self, request: dict[str, Any], conditions: list[dict[str, Any]]):
+        for condition in conditions:
+            if self.satisfy_condition(request, condition):
+                return True
+
     def normalise_request(self, request: Request) -> Request:
         """
         Normalise the request prior to submission to the broker, and at the start of the retrieval.
@@ -138,6 +190,14 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # Pre-mapping modifications
         working_request = self.pre_mapping_modifications(deepcopy(request))
+
+        # Implement a request-level tagging system
+        if self.conditional_tagging is not None:
+            for tag,conditions in self.conditional_tagging:
+                self.preprocess_conditions(conditions)
+                if self.satisfy_conditions(request, conditions):
+                    hidden_tag = f"__{tag}"
+                    request[hidden_tag] = True
 
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
