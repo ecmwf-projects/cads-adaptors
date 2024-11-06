@@ -1,5 +1,6 @@
 import concurrent.futures
 import io
+import logging
 import os
 import re
 import threading
@@ -21,13 +22,18 @@ class AbstractCacher:
     defines the interface.
     """
 
-    def __init__(self, context, no_put=False):
-        self.context = context
+    def __init__(
+        self, integration_server, logger=None, no_put=False, permanent_fields=None
+    ):
+        self.integration_server = integration_server
+        self.logger = logging.getLogger(__name__) if logger is None else logger
         self.no_put = no_put
 
         # Fields which should be cached permanently (on the datastore). All
         # other fields will be cached in temporary locations.
-        self.permanent_fields = [{"model": ["ENS"], "level": ["0"]}]
+        if permanent_fields is None:
+            permanent_fields = [{"model": ["ENS"], "level": ["0"]}]
+        self.permanent_fields = permanent_fields
 
     def done(self):
         pass
@@ -69,9 +75,7 @@ class AbstractCacher:
                 nmatches = count_fields(intn)
                 if nmatches == 0:
                     raise Exception(
-                        "Got unexpected field "
-                        + repr(req1field)
-                        + " from request "
+                        f"Got unexpected field {req1field!r} from request "
                         + repr(req["req"])
                     )
                 assert nmatches == 1
@@ -139,8 +143,6 @@ class AbstractCacher:
         """Return a field-specific path or the given field. Can be used by a
         child class to determine server-side cache location.
         """
-        dir = "permanent" if self._cache_permanently(fieldinfo) else "temporary"
-
         # Set the order we'd like the keys to appear in the filename. Area
         # keys will be last.
         order1 = ["model", "type", "variable", "level", "time", "step"]
@@ -159,16 +161,12 @@ class AbstractCacher:
         if keys not in self._templates:
             # Form a Jinja2 template string for the cache files. "_backend" not
             # used; organised by date; area keys put at the end.
-            path_template = (
-                dir
-                + "/{{ date }}/"
-                + "_".join(
-                    [
-                        "{k}={{{{ {k} }}}}".format(k=k)
-                        for k in sorted(keys, key=key_order)
-                        if k not in ["date", "_backend"]
-                    ]
-                )
+            path_template = "{{ date }}/" + "_".join(
+                [
+                    "{k}={{{{ {k} }}}}".format(k=k)
+                    for k in sorted(keys, key=key_order)
+                    if k not in ["date", "_backend"]
+                ]
             )
             self._templates[keys] = jinja2.Template(path_template)
 
@@ -181,7 +179,12 @@ class AbstractCacher:
                 "Bad characters in value for " + k + ": " + repr(v)
             )
 
-        return self._templates[keys].render(fieldinfo)
+        dir = "permanent" if self._cache_permanently(fieldinfo) else "temporary"
+        # Data from the integration server should not mix with the production data
+        if self.integration_server:
+            dir += "_esuite"
+
+        return f"{dir}/" + self._templates[keys].render(fieldinfo)
 
 
 class AbstractAsyncCacher(AbstractCacher):
@@ -193,11 +196,11 @@ class AbstractAsyncCacher(AbstractCacher):
 
     def __init__(
         self,
-        context,
         *args,
-        nthreads=10,
-        max_mem=100000000,
-        tmpdir="/cache/tmp",
+        logger=None,
+        nthreads=None,
+        max_mem=None,
+        tmpdir=None,
         **kwargs,
     ):
         """The number of fields that will be written concurrently to the cache
@@ -210,15 +213,17 @@ class AbstractAsyncCacher(AbstractCacher):
         temporarily written to disk (in tmpdir) to avoid excessive memory
         usage.
         """
-        super().__init__(context, *args, **kwargs)
-        self.nthreads = nthreads
+        super().__init__(*args, logger=logger, **kwargs)
+        self.nthreads = 10 if nthreads is None else nthreads
         self._lock1 = threading.Lock()
         self._lock2 = threading.Lock()
         self._qclosed = False
         self._templates = {}
         self._futures = []
         self._start_time = None
-        self._queue = MemSafeQueue(max_mem, tmpdir, logger=context)
+        self._queue = MemSafeQueue(
+            100000000 if max_mem is None else max_mem, tmpdir=tmpdir, logger=logger
+        )
 
     def _start_copy_threads(self):
         """Start the threads that will do the remote copies."""
@@ -250,7 +255,7 @@ class AbstractAsyncCacher(AbstractCacher):
                 "drain": now - qclose_time,
                 "io": iotime,
             }
-            self.context.info(f"MemSafeQueue summary: {summary!r}")
+            self.logger.info(f"MemSafeQueue summary: {summary!r}")
 
     def __enter__(self):
         return self
@@ -312,8 +317,8 @@ class CacherS3(AbstractAsyncCacher):
         local_object = io.BytesIO(data)
         remote_path = self._cache_file_path(fieldinfo)
 
-        self.context.debug(
-            f"CACHER: copying data to " f"{self._host}:{self._bucket}:{remote_path}"
+        self.logger.info(
+            f"Caching {fieldinfo} to {self._host}:{self._bucket}:{remote_path}"
         )
 
         # Uncomment this code if it can't be trusted that the bucket already
@@ -337,7 +342,7 @@ class CacherS3(AbstractAsyncCacher):
                 status = "uploaded"
                 break
             except Exception as exc:
-                self.context.error(
+                self.logger.error(
                     "Failed to upload to S3 bucket (attempt " f"#{attempt}): {exc!r}"
                 )
                 status = f"process ended in error: {exc!r}"
