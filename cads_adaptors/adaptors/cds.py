@@ -195,6 +195,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         working_request = self.pre_mapping_modifications(deepcopy(request))
 
         # Implement a request-level tagging system
+        self.context.add_stdout("---------->",self.conditional_tagging)
         if self.conditional_tagging is not None:
             for tag,conditions in self.conditional_tagging:
                 self.preprocess_conditions(conditions)
