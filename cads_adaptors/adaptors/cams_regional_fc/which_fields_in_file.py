@@ -1,48 +1,32 @@
-import os
-import random
 import shutil
 import time
-from datetime import datetime
 
 from cds_common import hcube_tools
 from cds_common.message_iterators import grib_file_iterator
 
+from .create_file import temp_file
 from .grib2request import grib2request
 
 
-def which_fields_in_file(reqs, grib_file, context):
+def which_fields_in_file(reqs, grib_file, config, context):
     """Compare the requests with the contents of the grib file and return
     two lists of requests, representing those which are in the file and
     those which are not.
     """
-    if grib_file is None:
-        msg_iterator = []
-    else:
-        msg_iterator = grib_file_iterator(grib_file)
-
     # Read the grib file to find out which fields were retrieved
+    msg_iterator = grib_file_iterator(grib_file)
     try:
         reqs_infile = [
             {k: [v] for k, v in grib2request(msg).items()} for msg in msg_iterator
         ]
     except Exception:
-        # Sometimes we have problems here. Copy the file somewhere so
-        # we can investigate later.
-        tmp = (
-            "/tmp/cams-europe-air-quality-forecasts/debug/"
-            + "problem_file."
-            + datetime.now().strftime("%Y%m%d.%H%M%S")
-            + "."
-            + str(random.randint(0, 2**128))
-            + ".grib"
-        )
+        # Sometimes we have problems here. Copy the file somewhere so we can
+        # investigate later.
+        tmp = temp_file(config, suffix=".grib")
         context.info(
-            "Encountered error when reading grib file. Copying "
-            + "to "
-            + tmp
-            + " for offline investigation"
+            f"Encountered error when reading grib file. Copying to {tmp} for offline "
+            "investigation"
         )
-        os.makedirs(os.path.dirname(tmp), exist_ok=True)
         shutil.copyfile(grib_file, tmp)
         raise
     hcube_tools.hcubes_merge(reqs_infile)

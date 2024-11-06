@@ -1,7 +1,3 @@
-import os
-import random
-from datetime import datetime
-
 from cds_common.message_iterators import grib_bytes_iterator
 from cds_common.url2.downloader import ResponseException
 from eccodes import codes_is_defined
@@ -9,7 +5,7 @@ from eccodes import codes_is_defined
 from .grib2request import grib2request
 
 
-def assert_valid_grib(req, response, context):
+def assert_valid_grib(req, response):
     """Raise a ResponseException if the request response indicates success but
     the content is not a valid grib message.
     """
@@ -43,13 +39,13 @@ def assert_valid_grib(req, response, context):
 
         except Exception as e:
             # Write bad grib to file for investigation?
-            if datetime.now() < datetime(2021, 10, 31, 0):
-                rn = random.randint(0, 2**128)
-                file = f"/tmp/cams-europe-air-quality-forecasts/debug/badgrib_{context.request_id}.{rn}.grib"
-                context.info(f'Writing bad grib to {file}: {req["url"]}')
-                os.makedirs(os.path.dirname(file), exist_ok=True)
-                with open(file, "wb") as f:
-                    f.write(response.content)
+            # if datetime.now() < datetime(2021, 10, 31, 0):
+            #    rn = random.randint(0, 2**128)
+            #    file = f"/tmp/cams-europe-air-quality-forecasts/debug/badgrib_{context.request_id}.{rn}.grib"
+            #    context.info(f'Writing bad grib to {file}: {req["url"]}')
+            #    os.makedirs(os.path.dirname(file), exist_ok=True)
+            #    with open(file, "wb") as f:
+            #        f.write(response.content)
 
             raise ResponseException(
                 "Request did not return valid grib: " + "{}: {}".format(e, req["req"])

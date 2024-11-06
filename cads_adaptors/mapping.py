@@ -216,8 +216,7 @@ def expand_dates(r, request, date, year, month, day, date_format):
 
             if len(r[date]) == 0:
                 raise exceptions.InvalidRequest(
-                    f"No valid dates from year={years} month={months} day={days}",
-                    "",
+                    f"No valid dates from year={years} month={months} day={days}"
                 )
 
             for k in (year, month, day):
