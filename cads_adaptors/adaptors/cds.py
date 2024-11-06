@@ -195,7 +195,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # Implement a request-level tagging system
         self.conditional_tagging = self.config.get("conditional_tagging", None)
-        self.context.add_stdout(f"----------> {self.conditional_tagging}")
+        self.context.add_stdout(f"----------> {self.conditional_tagging} {self.config}")
         if self.conditional_tagging is not None:
             for tag,conditions in self.conditional_tagging:
                 self.preprocess_conditions(conditions)
