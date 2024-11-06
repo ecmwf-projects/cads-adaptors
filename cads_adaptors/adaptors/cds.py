@@ -197,7 +197,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.conditional_tagging = self.config.get("conditional_tagging", None)
         self.context.add_stdout(f"----------> {self.conditional_tagging} {self.config}")
         if self.conditional_tagging is not None:
-            for tag,conditions in self.conditional_tagging:
+            for tag in self.conditional_tagging:
+                conditions = self.conditional_tagging[tag]
                 self.preprocess_conditions(conditions)
                 if self.satisfy_conditions(request, conditions):
                     hidden_tag = f"__{tag}"
