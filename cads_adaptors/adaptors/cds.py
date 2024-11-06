@@ -40,7 +40,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "intersect_constraints", False
         )
         self.embargo: dict[str, int] | None = config.get("embargo", None)
-        self.conditional_tagging: dict[str, int] | None = config.get("conditional_tagging", None)
+        self.conditional_tagging: dict[str, Any] | None = config.get("conditional_tagging", None)
         # Flag to ensure we only normalise the request once
         self.normalised: bool = False
         # List of steps to perform after retrieving the data
