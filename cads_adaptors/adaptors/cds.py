@@ -40,7 +40,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "intersect_constraints", False
         )
         self.embargo: dict[str, int] | None = config.get("embargo", None)
-        self.conditional_tagging: dict[str, Any] | None = config.get("conditional_tagging", None)
         # Flag to ensure we only normalise the request once
         self.normalised: bool = False
         # List of steps to perform after retrieving the data
@@ -195,6 +194,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         working_request = self.pre_mapping_modifications(deepcopy(request))
 
         # Implement a request-level tagging system
+        self.conditional_tagging = self.config.get("conditional_tagging", None)
         self.context.add_stdout(f"----------> {self.conditional_tagging}")
         if self.conditional_tagging is not None:
             for tag,conditions in self.conditional_tagging:
