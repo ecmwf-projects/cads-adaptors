@@ -140,6 +140,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         for condition in conditions:
             if "date" in condition:
                 condition["date"] = self.instantiate_dynamic_daterange(condition["date"], today)
+            self.context.add_stdout("---------->",condition)
 
     def daterange_in(self, contained, container):
         container_interval = re.split("[;/]", container)
@@ -150,11 +151,13 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return True
 
     def satisfy_condition(self, request: dict[str, Any], condition: dict[str, Any]):
+        self.context.add_stdout("---------->",request)
+        self.context.add_stdout("---------->",condition)
         for key in condition:
             if key == "date":
                 if not self.daterange_in(request[key], condition[key]):
                     return False
-            elif not set(request[key]) <= set(condition[key]):
+            elif not set(ensure_list(request[key])) <= set(ensure_list(condition[key])):
                 return False
         return True
 
