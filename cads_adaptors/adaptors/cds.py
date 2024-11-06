@@ -139,9 +139,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         for condition in conditions:
             if "date" in condition:
                 condition["date"] = self.instantiate_dynamic_daterange(condition["date"], today)
-            self.context.add_stdout(f"----------> {condition}")
 
-    def daterange_in(self, contained, container):
+    def dateranges_in(self, contained, container):
         container_interval = re.split("[;/]", container)
         contained_intervals = self.ensure_dateranges(contained)
         for contained_interval in contained_intervals:
@@ -150,11 +149,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return True
 
     def satisfy_condition(self, request: dict[str, Any], condition: dict[str, Any]):
-        self.context.add_stdout(f"----------> {request}")
-        self.context.add_stdout(f"----------> {condition}")
         for key in condition:
             if key == "date":
-                if not self.daterange_in(request[key], condition[key]):
+                if not self.dateranges_in(request[key], condition[key]):
                     return False
             elif not set(ensure_list(request[key])) <= set(ensure_list(condition[key])):
                 return False
@@ -194,15 +191,17 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         working_request = self.pre_mapping_modifications(deepcopy(request))
 
         # Implement a request-level tagging system
-        self.conditional_tagging = self.config.get("conditional_tagging", None)
-        self.context.add_stdout(f"----------> {self.conditional_tagging} {self.config}")
-        if self.conditional_tagging is not None:
-            for tag in self.conditional_tagging:
-                conditions = self.conditional_tagging[tag]
-                self.preprocess_conditions(conditions)
-                if self.satisfy_conditions(request, conditions):
-                    hidden_tag = f"__{tag}"
-                    request[hidden_tag] = True
+        try:
+            self.conditional_tagging = self.config.get("conditional_tagging", None)
+            if self.conditional_tagging is not None:
+                for tag in self.conditional_tagging:
+                    conditions = self.conditional_tagging[tag]
+                    self.preprocess_conditions(conditions)
+                    if self.satisfy_conditions(request, conditions):
+                        hidden_tag = f"__{tag}"
+                        request[hidden_tag] = True
+        except Exception as e:
+            self.context.add_stdout(f"An error occured while attempting conditional tagging: {e!r}")
 
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
