@@ -303,48 +303,41 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
 
     # Launch the sub-request
     response = None
-    sub_request_uid = None
+    sub_request_uid = "n/a"
     dataset = f"cams-europe-air-quality-forecasts-{backend}"
     try:
         response = client.retrieve(
             dataset,
             {"requests": requests, "parent_config": config},
         )
+        sub_request_uid = response.request_uid
+        context.add_stdout(f"Sub-request {sub_request_uid} has been launched (via the "
+                           "CDSAPI).")
+        # Download the result
+        exc = None
+        for i_retry in range(MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES):
+            try:
+                response.download(target)
+                break
+            except Exception as e:
+                context.add_stdout(
+                    f"Attempt {i_retry+1} to download the result of sub-request "
+                    f"{sub_request_uid} failed: {e!r}"
+                )
+                exc = e
+        else:
+            raise exc
     except Exception as e:
-        sub_request_uid = "none" if response is None else response.request_uid
         context.add_stderr(
-            "Sub-request "
-            + ("" if response is None else f"({response.request_uid}) ")
-            + f"failed: {e!r}"
-        )
+            f"Sub-request ({sub_request_uid}) failed: {e!r}")
         if maintenance_msg:
+            context.add_user_visible_error(maintenance_msg)
             raise InvalidRequest(maintenance_msg) from None
         else:
-            raise RuntimeError(
-                f"Failed to retrieve data from {backend} remote server. "
-                "Please try again later."
-            ) from None
-    else:
-        sub_request_uid = response.request_uid
-        message = f"Sub-request {sub_request_uid} has been launched (via the CDSAPI)."
-        context.add_stdout(message)
-
-    # Download the result
-    exc = None
-    for i_retry in range(MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES):
-        try:
-            response.download(target)
-            break
-        except Exception as e:
-            exc = e
-            context.add_stdout(
-                f"Attempt {i_retry+1} to download the result of sub-request "
-                f"{sub_request_uid} failed: {e!r}"
-            )
-    else:
-        message = f"Failed to download sub-request result: {exc!r}"
-        context.add_stderr(message)
-        raise RuntimeError(message) from None
+            msg = (f"Failed to retrieve data from {backend} remote server. "
+                   + "Please try again later.")
+            context.add_user_visible_error(msg)
+            raise RuntimeError(msg) from None
 
     size = os.path.getsize(target)
     context.info(
