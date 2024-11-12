@@ -87,7 +87,8 @@ def enforce(
         for msg in [error_message(e) for e in errors]:
             if msg not in msgs:
                 msgs.append(msg)
-        raise cads_adaptors.exceptions.InvalidRequest(msgs)
+        error_msg = "\n".join(msgs)
+        raise cads_adaptors.exceptions.InvalidRequest(error_msg)
 
     return request
 
