@@ -746,7 +746,7 @@ def test_estimate_costs_2() -> None:
     )
     costs = weighted_adaptor.estimate_costs(request)
     assert costs["precise_size"] == 8
-    assert costs["size"] == 2
+    assert costs["size"] == 8
 
     request = {
         "variable": "maximum_temperature",
@@ -762,4 +762,4 @@ def test_estimate_costs_2() -> None:
     }
     costs = weighted_adaptor.estimate_costs(request)
     assert costs["precise_size"] == 10
-    assert costs["size"] == 2
+    assert costs["size"] == 10

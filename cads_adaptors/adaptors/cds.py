@@ -90,7 +90,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 **costing_kwargs,
             )
         # size is a fast and rough estimate of the number of fields
-        costs["size"] = costing.estimate_number_of_fields(self.form, mapped_request)
+        costs["size"] = costing.estimate_number_of_fields(
+            self.form, mapped_request, **costing_kwargs
+        )
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
         return costs

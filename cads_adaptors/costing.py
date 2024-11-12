@@ -193,10 +193,15 @@ def get_excluded_keys(
 def estimate_number_of_fields(
     form: list[dict[str, Any]] | dict[str, Any] | None,
     request: dict[str, Any],
+    **kwargs,
 ) -> int:
+    weighted_values = kwargs.get("weighted_values", {})
+    weighted_keys = kwargs.get("weighted_keys", {})
     excluded_variables = get_excluded_keys(form)
     number_of_values = []
     for variable_id, variable_value in request.items():
+        weights_v = weighted_values.get(variable_id, {})
+        weight_k = weighted_keys.get(variable_id, 1)
         if isinstance(variable_value, set):
             variable_value = list(variable_value)
         if not isinstance(variable_value, (list, tuple)):
@@ -204,6 +209,11 @@ def estimate_number_of_fields(
                 variable_value,
             ]
         if variable_id not in excluded_variables:
-            number_of_values.append(len(variable_value))
+            # Extend values according to weights
+            for val, weight in weights_v.items():
+                if val in variable_value:
+                    variable_value.extend([val] * (weight - 1))
+            # Append number of values, multiplied by weight
+            number_of_values.append(len(variable_value) * weight_k)
     number_of_fields = math.prod(number_of_values)
     return number_of_fields
