@@ -40,7 +40,7 @@ def cams_regional_fc(context, config, requests):
     regapi = regional_fc_api(integration_server=integration_server, logger=context)
 
     # Pre-process requests
-    requests, info = preprocess_requests(context, requests, regapi)
+    requests, info = preprocess_requests(context, config, requests, regapi)
     info["config"] = config
 
     # If converting to NetCDF then different groups of grib files may need to be
@@ -151,7 +151,10 @@ def get_local(req_groups, integration_server, config, context):
     the datastore) and identify the remaining non-local fields.
     """
     # Cacher has knowledge of cache locations
-    with Cacher(integration_server, logger=context) as cacher:
+    no_cache_key = config.get("regional_fc", {}).get("no_cache_key")
+    with Cacher(
+        integration_server, logger=context, no_cache_key=no_cache_key
+    ) as cacher:
         for req_group in req_groups:
             _get_local(req_group, cacher, config, context)
 
@@ -275,7 +278,7 @@ def get_uncached(requests, req_group, config, context):
     if size > 0:
         req_group["retrieved_files"] = req_group.get("retrieved_files", []) + [path]
     else:
-        context.add_stdout("Sub-request target file is empty")
+        context.info("Sub-request target file is empty")
 
     return path
 
@@ -311,8 +314,9 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
             {"requests": requests, "parent_config": config},
         )
         sub_request_uid = response.request_uid
-        context.add_stdout(f"Sub-request {sub_request_uid} has been launched (via the "
-                           "CDSAPI).")
+        context.info(
+            f"Sub-request {sub_request_uid} has been launched (via the " "CDSAPI)."
+        )
         # Download the result
         exc = None
         for i_retry in range(MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES):
@@ -320,7 +324,7 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
                 response.download(target)
                 break
             except Exception as e:
-                context.add_stdout(
+                context.error(
                     f"Attempt {i_retry+1} to download the result of sub-request "
                     f"{sub_request_uid} failed: {e!r}"
                 )
@@ -328,14 +332,15 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
         else:
             raise exc
     except Exception as e:
-        context.add_stderr(
-            f"Sub-request ({sub_request_uid}) failed: {e!r}")
+        context.error(f"Sub-request ({sub_request_uid}) failed: {e!r}")
         if maintenance_msg:
             context.add_user_visible_error(maintenance_msg)
             raise InvalidRequest(maintenance_msg) from None
         else:
-            msg = (f"Failed to retrieve data from {backend} remote server. "
-                   + "Please try again later.")
+            msg = (
+                f"Failed to retrieve data from {backend} remote server. "
+                + "Please try again later."
+            )
             context.add_user_visible_error(msg)
             raise RuntimeError(msg) from None
 

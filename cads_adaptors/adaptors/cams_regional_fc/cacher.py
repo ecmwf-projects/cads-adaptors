@@ -23,11 +23,24 @@ class AbstractCacher:
     """
 
     def __init__(
-        self, integration_server, logger=None, no_put=False, permanent_fields=None
+        self,
+        integration_server,
+        logger=None,
+        no_put=False,
+        permanent_fields=None,
+        no_cache_key=None,
     ):
         self.integration_server = integration_server
         self.logger = logging.getLogger(__name__) if logger is None else logger
         self.no_put = no_put
+
+        # The name of a key which, if present in the original request, will be
+        # inserted into the field description dictionary when writing to the
+        # cache, which means it will appear in the cached filename. Its presence
+        # will also mean corresponding files are always written to temporary
+        # space. It is used for optionally avoiding the cache provided by this
+        # class.
+        self.no_cache_key = no_cache_key or "_no_cache"
 
         # Fields which should be cached permanently (on the datastore). All
         # other fields will be cached in temporary locations.
@@ -80,14 +93,14 @@ class AbstractCacher:
                     )
                 assert nmatches == 1
 
-                # If no_cache was in the request then insert it into req1field.
-                # This means it will appear in the cache file name, which is
-                # useful for regression testing. It means multiple tests that
-                # request the same field can share a unique no_cache value so
-                # the field is retrieved from the backend the first time but
-                # from cache on subsequent attempts.
-                if "no_cache" in req["req"]:
-                    req1field["no_cache"] = req["req"]["no_cache"]
+                # If self.no_cache_key was in the request then insert it into
+                # req1field. This means it will appear in the cache file name,
+                # which is useful for regression testing. It means multiple
+                # tests that request the same field can share a unique no-cache
+                # value so the field is retrieved from the backend the first
+                # time but from cache on subsequent attempts.
+                if self.no_cache_key in req["req"]:
+                    req1field[self.no_cache_key] = req["req"][self.no_cache_key]
 
                 # Convert the message to pure binary data and write to cache
                 self._write_field(codes_get_message(msg), req1field)
@@ -125,12 +138,12 @@ class AbstractCacher:
         """Return True if this field should be put in the permanent cache, False
         otherwise.
         """
-        # Is this a field which should be stored in a permanent location? If
-        # the field contains an area specification then it isn't because only
-        # full-area fields are stored permanently. The "no_cache" key is set to
-        # a random string to defeat the system cache when testing so make sure
-        # that's not stored permanently.
-        if "north" not in field and "no_cache" not in field:
+        # Is this a field which should be stored in a permanent location? If the
+        # field contains an area specification then it isn't because only
+        # full-area fields are stored permanently. The self.no_cache_key key is
+        # set to a random string to defeat the system cache when testing so make
+        # sure that's not stored permanently.
+        if "north" not in field and self.no_cache_key not in field:
             permanent, _, _ = hcubes_intdiff2(
                 {k: [v] for k, v in field.items()}, self.permanent_fields
             )

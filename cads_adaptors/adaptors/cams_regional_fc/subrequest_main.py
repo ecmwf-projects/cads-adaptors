@@ -33,6 +33,10 @@ def subrequest_main(backend, request, child_config, context):
     )
     os.close(fd)
 
+    cacher_kwargs = cfg.get("cacher_kwargs", {})
+    if cfg.get("no_cache_key"):
+        cacher_kwargs["no_cache_key"] = cfg["no_cache_key"]
+
     # Get the data
     try:
         meteo_france_retrieve(
@@ -45,7 +49,7 @@ def subrequest_main(backend, request, child_config, context):
             tmpdir=STACK_TEMP_DIR,
             max_rate=cfg.get("meteofrance_max_rate"),
             max_simultaneous=cfg.get("meteofrance_max_simultaneous"),
-            cacher_kwargs=cfg.get("cacher_kwargs", {}),
+            cacher_kwargs=cacher_kwargs,
         )
     except Exception as e:
         message = f"Failed to obtain data from remote server: {e!r}"
