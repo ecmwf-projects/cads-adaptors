@@ -2,10 +2,10 @@ from copy import deepcopy
 from math import ceil, floor
 
 from cds_common import date_tools, hcube_tools
-from cds_common.request_schemas import enforce_schema
-from cdscompute.errors import BadRequestException
 
-# from tabulate import tabulate
+from cads_adaptors.exceptions import InvalidRequest
+from cads_adaptors.validation.enforce import enforce as enforce_schema
+
 from .formats import Formats
 
 
@@ -44,7 +44,7 @@ def preprocess_requests(context, requests, regapi):
     # We cannot convert to NetCDF format if the retrieved fields will be on
     # different grids
     if format != Formats.grib and len(requested_grids) > 1:
-        raise BadRequestException(
+        raise InvalidRequest(
             "The model grid changed during the period requested. Fields on "
             + "different grids cannot be combined in one NetCDF file. "
             + "Please either request grib format, make separate requests or "
@@ -154,13 +154,9 @@ def set_area(request, area_list, grid, context):
     for ia, (key, value) in enumerate(zip(default_area.keys(), area_list)):
         area[key] = float(value)
     if area["north"] <= area["south"]:
-        raise BadRequestException(
-            "area north limit must be greater than " + "south limit", ""
-        )
+        raise InvalidRequest("area north limit must be greater than south limit")
     if area["east"] <= area["west"]:
-        raise BadRequestException(
-            "area east limit must be greater than " + "west limit", ""
-        )
+        raise InvalidRequest("area east limit must be greater than west limit")
 
     # Snap to the grid
     area["north"] = snap_to_grid(area["north"], grid["south"], grid["dlat"], floor)
@@ -168,9 +164,7 @@ def set_area(request, area_list, grid, context):
     area["south"] = snap_to_grid(area["south"], grid["south"], grid["dlat"], ceil)
     area["east"] = snap_to_grid(area["east"], grid["west"], grid["dlon"], floor)
     if area["north"] < area["south"] or area["east"] < area["west"]:
-        raise BadRequestException(
-            "requested area does not contain a " + "grid point", ""
-        )
+        raise InvalidRequest("requested area does not contain a grid point")
 
     # Only insert area in request if it's not the full area (for caching
     # reasons)
@@ -188,14 +182,9 @@ def set_area(request, area_list, grid, context):
         # return an error code.
         direction = 1 if incr < 0 else -1
         if area[k] * direction > (grid[k] + incr) * direction:
-            raise BadRequestException(
-                "Area "
-                + k
-                + " value lies outside model grid limit of "
-                + str(grid[k])
-                + " for date(s)="
-                + repr(request["date"]),
-                "",
+            raise InvalidRequest(
+                f"Area {k} value lies outside model grid limit of {grid[k]} "
+                + f"for date(s)={request['date']!r}"
             )
 
     # Return the requested grid, whether inserted into the request or not
@@ -213,7 +202,9 @@ def dirty_manual_tabulate(rows, headers, separator=",   "):
 
 
 def model_grids_table(grids, regapi):
-    """Return the text of a table summarising the regional model grids in use for the requested fields."""
+    """Return the text of a table summarising the regional model grids in use for the
+    requested fields.
+    """
     # Loop over each grid and the fields that were requested on that grid
     strings = []
     for grid, requested in grids.items():
@@ -255,7 +246,9 @@ def model_grids_table(grids, regapi):
 
 
 def snap_to_grid(coord, minl, incr, rounder):
-    """Snap a lat or lon to the regional grid where the lat/lon min is minl and the grid length is incr."""
+    """Snap a lat or lon to the regional grid where the lat/lon min is minl and the
+    grid length is incr.
+    """
     raw = rounder((coord - (minl + incr / 2)) / incr) * incr + (minl + incr / 2)
     # Rounding error can lead to spurious significant figures. This is a
     # poor-man's attempt at getting the number of decimal places the result

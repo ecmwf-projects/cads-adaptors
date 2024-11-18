@@ -1,28 +1,24 @@
-import json
 import logging
 import os
-import random
-import tempfile
 import time
 import zipfile
-from copy import deepcopy
-from datetime import datetime, timedelta
 
 from cds_common import date_tools, hcube_tools, tree_tools
 from cds_common.cams.regional_fc_api import regional_fc_api
 from cds_common.url2.downloader import Downloader
-from cdscompute.errors import NoDataException
 
-from .api_retrieve import api_retrieve
+from cads_adaptors.exceptions import InvalidRequest
+
 from .assert_valid_grib import assert_valid_grib
 from .cacher import Cacher
 from .convert_grib import convert_grib
-from .create_file import create_file
+from .create_file import create_file, temp_file
 from .formats import Formats
 from .grib2request import grib2request_init
 from .nc_request_groups import nc_request_groups
 from .preprocess_requests import preprocess_requests
 from .process_grib_files import process_grib_files
+from .subrequest_main import subrequest_main
 from .which_fields_in_file import which_fields_in_file
 
 # Used to temporarily disable access to archived data in an emergency, e.g.
@@ -30,41 +26,22 @@ from .which_fields_in_file import which_fields_in_file
 ARCHIVED_OFF = False
 
 
-class MockResultFile:
-    def __init__(self, path):
-        self.path = path
-
-    def __str__(self):
-        return self.path
+class NoDataException(Exception):
+    pass
 
 
-def cams_regional_fc(context, config, requests, forms_dir=None):
+def cams_regional_fc(context, config, requests):
+    """Top-level function for the regional forecast adaptor."""
+    # Using the Meteo France test (aka "integration") server?
+    integration_server = config.get("regional_fc", {}).get("integration_server", False)
+
     # Get an object which will give us information/functionality associated
     # with the Meteo France regional forecast API
-    regapi = regional_fc_api(
-        integration_server=config.get("integration_server", False), logger=context
-    )
-
-    def create_result_file(self, extension):
-        request_uid = config["request_uid"]
-        result_path = (
-            f"/tmp/cams-europe-air-quality-forecasts/download/{request_uid}.{extension}"
-        )
-        os.makedirs(os.path.dirname(result_path), exist_ok=True)
-        return MockResultFile(result_path)
-
-    def create_temp_file(self, extension=".tmp"):
-        temp_path = "/tmp/cams-europe-air-quality-forecasts/temp/"
-        os.makedirs(temp_path, exist_ok=True)
-        fd, path = tempfile.mkstemp(suffix=extension, dir=temp_path)
-        os.close(fd)
-        return path
-
-    context.create_result_file = create_result_file.__get__(context)
-    context.create_temp_file = create_temp_file.__get__(context)
+    regapi = regional_fc_api(integration_server=integration_server, logger=context)
 
     # Pre-process requests
     requests, info = preprocess_requests(context, requests, regapi)
+    info["config"] = config
 
     # If converting to NetCDF then different groups of grib files may need to be
     # converted separately. Split and group the requests into groups that can be
@@ -82,22 +59,20 @@ def cams_regional_fc(context, config, requests, forms_dir=None):
     ):
         info["stages"].append("zip")
 
-    dataset_dir = "/src/cads-adaptors/cads_adaptors/adaptors/cams_regional_fc/config"
-
     # Initialisation for function that can understand GRIB file contents
-    grib2request_init(dataset_dir)
+    grib2request_init(config["regional_fc"]["definitions"])
 
     # Get locally stored fields
-    get_local(req_groups, context)
+    get_local(req_groups, integration_server, config, context)
 
     # Divide non-local fields betwen latest and archived
-    set_backend(req_groups, regapi, dataset_dir, context)
+    set_backend(req_groups, regapi, context)
 
     # Retrieve non-local latest (fast-access) fields
-    get_latest(req_groups, regapi, dataset_dir, context, config)
+    get_latest(req_groups, config, context)
 
     # Retrieve non-local archived (slow-access) fields
-    get_archived(req_groups, regapi, dataset_dir, context, config)
+    get_archived(req_groups, config, context)
 
     # Remove groups that had no matching data
     req_groups = [x for x in req_groups if "retrieved_files" in x]
@@ -116,7 +91,7 @@ def cams_regional_fc(context, config, requests, forms_dir=None):
 
     # Convert to netCDF?
     if "convert" in info["stages"]:
-        convert_grib(req_groups, info, dataset_dir, context)
+        convert_grib(req_groups, info, config["regional_fc"]["definitions"], context)
 
     # Zip output files?
     if "zip" in info["stages"]:
@@ -128,11 +103,13 @@ def cams_regional_fc(context, config, requests, forms_dir=None):
         raise Exception("Bug: result_file not set") from None
 
 
-def set_backend(req_groups, regapi, dataset_dir, context):
-    """Divide requests between "latest" and "archived" and set their "_backend" attribute accordingly."""
+def set_backend(req_groups, regapi, context):
+    """Divide requests between "latest" and "archived" and set their "_backend"
+    attribute accordingly.
+    """
     for req_group in req_groups:
         online, offline = split_latest_from_archived(
-            req_group["uncached_requests"], regapi, dataset_dir, context
+            req_group["uncached_requests"], regapi, context
         )
         for r in online:
             r["_backend"] = ["latest"]
@@ -142,42 +119,22 @@ def set_backend(req_groups, regapi, dataset_dir, context):
         req_group["uncached_archived_requests"] = offline
 
 
-def split_latest_from_archived(requests, regapi, dataset_dir, context):
+def split_latest_from_archived(requests, regapi, context):
     """Split requests into "latest" and "archived" groups."""
     if requests:
         # Get the catalogue that lists all fields that are currently in the
         # fast "synopsis" part of the backend
         try:
-            online_cat = regapi.get_catalogue("latest", retry={"timeout": 10})
-        except Exception as e:
-            # If there is a problem at Meteo France and the catalogue can't be
-            # accessed, try using the one stored in the dataset directory
-            # instead. It's probably up-to-date and better than failing the
-            # request.
-            context.error(
-                f"Failed to download latest catalogue: {e!r}. "
-                f"Reading from {dataset_dir} instead"
-            )
-            with open(f"{dataset_dir}/catalogue_latest.json") as f:
-                online_cat = json.load(f)
+            online_cat = regapi.get_catalogue("latest", retry={"timeout": 120})
+        except Exception:
+            # We could make a basic guess at which fields were in the latest
+            # catalogue based on date, such as assuming all fields from the
+            # last N days are, but for now we'll just consider this terminal
+            raise
 
         # Split latest from archived fields
         lcat = tree_tools.to_list(online_cat)
         latest, archived, _ = hcube_tools.hcubes_intdiff2(requests, lcat)
-
-        # Holes in the latest catalogue will have been assigned to the archived
-        # list. This is not a problem if they result in 404s but the archive
-        # backend will reject any requests for dates less than N days old with a
-        # 400 HTTP error, so remove any if they exist
-        archived, invalid = archive_maxdate_split(archived, regapi)
-        if invalid:
-            context.info(
-                "Not attempting to retrieve "
-                + str(hcube_tools.count_fields(invalid))
-                + " fields "
-                "which are not in latest catatalogue but also too new "
-                "to be in archived"
-            )
 
         context.debug("Latest fields: " + repr(latest))
         context.debug("Archived fields: " + repr(archived))
@@ -189,50 +146,17 @@ def split_latest_from_archived(requests, regapi, dataset_dir, context):
     return (latest, archived)
 
 
-def archive_maxdate_split(reqs, regapi):
-    """Return a copy of requests with fields that are too recent to be in thearchive backend removed.
-    Requesting these fields would result in a HTTP 400 (invalid request) error.
-    """
-    valid = []
-    invalid = []
-
-    if reqs:
-        # The maximum date that the archived backend will allow in a request
-        # without raising a HTTP 400 (bad request) error
-        date_max = (datetime.utcnow() - timedelta(days=regapi.archive_min_delay)).date()
-        fmt = date_tools.guess_date_format(reqs[0]["date"][0])
-        for r in reqs:
-            rdates = [
-                d.date()
-                for d in date_tools.expand_dates_list(r["date"], as_datetime=True)
-            ]
-            rv = deepcopy(r)
-            ri = deepcopy(r)
-            rv["date"] = [d.strftime(fmt) for d in rdates if d <= date_max]
-            ri["date"] = [d.strftime(fmt) for d in rdates if d > date_max]
-            if rv["date"]:
-                valid.append(rv)
-            if ri["date"]:
-                invalid.append(ri)
-
-    assert hcube_tools.count_fields(reqs) == hcube_tools.count_fields(
-        valid
-    ) + hcube_tools.count_fields(invalid)
-
-    return (valid, invalid)
-
-
-def get_local(req_groups, context):
+def get_local(req_groups, integration_server, config, context):
     """Retrieve only the fields which are stored locally (in the cache or on
     the datastore) and identify the remaining non-local fields.
     """
     # Cacher has knowledge of cache locations
-    with Cacher(context) as cacher:
+    with Cacher(integration_server, logger=context) as cacher:
         for req_group in req_groups:
-            _get_local(req_group, cacher, context)
+            _get_local(req_group, cacher, config, context)
 
 
-def _get_local(req_group, cacher, context):
+def _get_local(req_group, cacher, config, context):
     """Retrieve only the fields which are already stored locally (in the cache
     or on the datastore) and identify non-local fields.
     """
@@ -246,9 +170,7 @@ def _get_local(req_group, cacher, context):
         {"url": cacher.cache_file_url(field), "req": field}
         for field in hcube_tools.unfactorise(reqs)
     )
-    # CAREFUL! "urls" is a generator and will be consumed by the first iteration
     downloader = Downloader(
-        context,
         max_rate=50,
         max_simultaneous=15,
         combine_method="cat",
@@ -256,18 +178,20 @@ def _get_local(req_group, cacher, context):
         response_checker=assert_valid_grib,
         response_checker_threadsafe=False,
         combine_in_order=False,
-        write_to_temp=True,
         request_timeout=[60, 300],
         max_attempts={404: 1, "default": 3},
         nonfatal_codes=[404, "exception"],
         retry_wait=5,
         allow_no_data=True,
+        logger=context,
         min_log_level=logging.INFO,
     )
-    grib_file = downloader.execute(urls)
+    grib_file = temp_file(config, suffix=".grib")
+    if not config.get("regional_fc", {}).get("no_cache_downloads"):
+        downloader.execute(urls, target=grib_file)
 
     # Identify uncached fields - the ones not present in the file
-    cached, uncached = which_fields_in_file(reqs, grib_file, context)
+    cached, uncached = which_fields_in_file(reqs, grib_file, config, context)
     req_group["uncached_requests"] = uncached
     context.info("Retrieved " + str(hcube_tools.count_fields(cached)) + " local fields")
     context.info(
@@ -275,13 +199,14 @@ def _get_local(req_group, cacher, context):
         + str(hcube_tools.count_fields(uncached))
     )
 
-    if grib_file is not None:
+    # File will be empty if no fields found
+    if os.path.getsize(grib_file) > 0:
         req_group["retrieved_files"] = req_group.get("retrieved_files", []) + [
             grib_file
         ]
 
 
-def get_latest(req_groups, regapi, dataset_dir, context, config=None):
+def get_latest(req_groups, config, context):
     """Retrieve uncached latest fields."""
     for req_group in req_groups:
         if not req_group["uncached_latest_requests"]:
@@ -293,17 +218,15 @@ def get_latest(req_groups, regapi, dataset_dir, context, config=None):
         for reqs in hcube_tools.hcubes_chunk(
             req_group["uncached_latest_requests"], 5000
         ):
-            grib_file = retrieve_subrequest(
-                reqs, req_group, regapi, dataset_dir, context, config
-            )
+            grib_file = get_uncached(reqs, req_group, config, context)
 
             # Fields may have expired from the latest backend by the time the
             # request was made. Reassign any missing fields to the archive
             # backend.
-            reassign_missing_to_archive(reqs, grib_file, req_group, regapi, context)
+            reassign_missing_to_archive(reqs, grib_file, req_group, config, context)
 
 
-def get_archived(req_groups, regapi, dataset_dir, context, config=None):
+def get_archived(req_groups, config, context):
     """Retrieve uncached slow-access archived fields."""
     for req_group in req_groups:
         if not req_group["uncached_archived_requests"]:
@@ -322,182 +245,132 @@ def get_archived(req_groups, regapi, dataset_dir, context, config=None):
         for reqs in hcube_tools.hcubes_chunk(
             req_group["uncached_archived_requests"], 900
         ):
-            retrieve_subrequest(reqs, req_group, regapi, dataset_dir, context, config)
-
-
-def retrieve_latest(*args):
-    """Adaptor only intended to be called as a sub-request from the main
-    adaptor to retrieve uncached latest fields only. The separate entry
-    point from retrieve_archived allows a different QOS to be applied.
-    """
-    return retrieve_xxx(*args)
-
-
-def retrieve_archived(*args):
-    """Adaptor only intended to be called as a sub-request from the main
-    adaptor to retrieve uncached archived fields only. The separate entry
-    point from retrieve_latest allows a different QOS to be applied.
-    """
-    if ARCHIVED_OFF:
-        raise Exception(
-            "Access to archived data is temporarily "
-            + "suspended. Only the latest few days are available"
-        )
-
-    try:
-        return retrieve_xxx(*args)
-
-    except Exception:
-        maintenance_end_time = datetime(2021, 3, 3, 18, 0)
-        if datetime.utcnow() < maintenance_end_time:
-            # raise Exception(
-            #    'Apologies: your request requires data from a remote server '
-            #    'which is currently undergoing maintenance. Normal service is '
-            #    'expected to be resumed by ' +
-            #    maintenance_end_time.strftime('%A %d %B %H:%M UTC')) from None
-            raise Exception(
-                "Apologies: your request requires data from a remote server "
-                "which is undergoing a maintenance session that is taking "
-                "longer than expected. Please try again later."
-            )
-        else:
-            raise
-
-
-def retrieve_xxx(context, requests, dataset_dir, integration_server):
-    def create_result_file(self, extension):
-        random_value = random.randint(0, 2**128)
-        result_path = f"/tmp/cams-europe-air-quality-forecasts/download/{random_value}.{extension}"
-        os.makedirs(os.path.dirname(result_path), exist_ok=True)
-        return MockResultFile(result_path)
-
-    context.create_result_file = create_result_file.__get__(context)
-
-    # Get an object which will give us information/functionality associated
-    # with the Meteo France regional forecast API
-    regapi = regional_fc_api(integration_server=integration_server, logger=context)
-
-    file = api_retrieve(context, requests, regapi, dataset_dir)
-
-    context.info("Sub-request completed")
-
-    return file
+            get_uncached(reqs, req_group, config, context)
 
 
 MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES = 3
 
 
-def retrieve_subrequest(requests, req_group, regapi, dataset_dir, context, config=None):
+def get_uncached(requests, req_group, config, context):
+    """Retrieve chunk of uncached fields."""
+    backend = requests[0]["_backend"][0]
+    assert backend in ["latest", "archived"]
+
+    # Retrieve the fields in a sub-request or directly? The latter is only used for
+    # testing. Generally you want a sub-request.
+    cfg = config.get("regional_fc", {})
+    if str(cfg.get("no_subrequests")) != "1":
+        path = retrieve_subrequest(backend, requests, req_group, config, context)
+
+    else:
+        # No sub-request - call code directly. For testing.
+        f = subrequest_main(
+            backend, {"requests": requests, "parent_config": config}, config, context
+        )
+        f.close()
+        path = f.name
+
+    # The target can legitimately be empty as the code currently accepts 404s
+    size = os.path.getsize(path)
+    if size > 0:
+        req_group["retrieved_files"] = req_group.get("retrieved_files", []) + [path]
+    else:
+        context.add_stdout("Sub-request target file is empty")
+
+    return path
+
+
+def retrieve_subrequest(backend, requests, req_group, config, context):
     from cdsapi import Client
 
     """Retrieve chunk of uncached fields in a sub-request"""
 
-    backend = requests[0]["_backend"][0]
-    assert backend in ["latest", "archived"]
+    # Is this backend expecting issues due to maintenance?
+    cfg = config.get("regional_fc", {})
+    maintenance_msg = cfg.get("backend_maintenance", {}).get(backend)
 
-    # Retrieve uncached fields in sub-requests to allow a different QOS to be
-    # applied to avoid overloading the Meteo France API.
+    # Construct a target file name
+    target = temp_file(config, suffix=".grib")
+
+    # Get a client
     context.info("Executing sub-request to retrieve uncached fields: " + repr(requests))
     t0 = time.time()
-    ADS_API_URL = (
-        "https://" + os.environ["ADS_SERVER_NAME"] + os.environ["API_ROOT_PATH"]
+    client = Client(
+        url="https://" + os.environ["ADS_SERVER_NAME"] + os.environ["API_ROOT_PATH"],
+        key=os.environ["HIGH_PRIORITY_CADS_API_KEY"],
+        wait_until_complete=False,
     )
-    ADS_API_KEY = os.environ["HIGH_PRIORITY_CADS_API_KEY"]
-    client = Client(url=ADS_API_URL, key=ADS_API_KEY, wait_until_complete=False)
-    if backend == "latest":
-        dataset = "cams-europe-air-quality-forecasts-latest"
-    else:
-        dataset = "cams-europe-air-quality-forecasts-archived"
 
-    random_value = random.randint(0, 2**128)
-    target = f"/tmp/cams-europe-air-quality-forecasts/download/{random_value}.sub"
-    os.makedirs(os.path.dirname(target), exist_ok=True)
+    # Launch the sub-request
+    response = None
     sub_request_uid = None
-    if config:
-        request_uid = config.get("request_uid", None)
-        user_uid = config.get("user_uid", None)
+    dataset = f"cams-europe-air-quality-forecasts-{backend}"
     try:
         response = client.retrieve(
             dataset,
-            {
-                "requests": requests,
-                "dataset_dir": dataset_dir,
-                "integration_server": regapi.integration_server,
-                "parent_request_uid": request_uid,
-                "parent_request_user_uid": user_uid,
-            },
+            {"requests": requests, "parent_config": config},
         )
+    except Exception as e:
+        sub_request_uid = "none" if response is None else response.request_uid
+        context.add_stderr(
+            "Sub-request "
+            + ("" if response is None else f"({response.request_uid}) ")
+            + f"failed: {e!r}"
+        )
+        if maintenance_msg:
+            raise InvalidRequest(maintenance_msg) from None
+        else:
+            raise RuntimeError(
+                f"Failed to retrieve data from {backend} remote server. "
+                "Please try again later."
+            ) from None
+    else:
         sub_request_uid = response.request_uid
         message = f"Sub-request {sub_request_uid} has been launched (via the CDSAPI)."
         context.add_stdout(message)
 
-        for i_retry in range(MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES):
-            try:
-                response.download(target)
-                break
-            except Exception as e:
-                context.add_stdout(
-                    f"Attempt {i_retry+1} to download the result "
-                    f"of sub-request {sub_request_uid} failed: {e!r}"
-                )
-                if i_retry + 1 == MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES:
-                    raise
-
-        result = MockResultFile(target)
-        # TODO: when should we delete this file?
-    except Exception as e:
-        if not sub_request_uid:
-            sub_request_uid = "with no ID assigned"
-        message = f"Sub-request {sub_request_uid} failed: {e!r}"
-        context.add_stderr(message)
-        raise RuntimeError(message)
-
-    context.info("... sub-request succeeded after " + str(time.time() - t0) + "s")
-
-    if result is not None:
-        grib_file = result
-        req_group["retrieved_files"] = req_group.get("retrieved_files", []) + [
-            grib_file
-        ]
+    # Download the result
+    exc = None
+    for i_retry in range(MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES):
+        try:
+            response.download(target)
+            break
+        except Exception as e:
+            exc = e
+            context.add_stdout(
+                f"Attempt {i_retry+1} to download the result of sub-request "
+                f"{sub_request_uid} failed: {e!r}"
+            )
     else:
-        context.info("... but found no data")
-        grib_file = None
+        message = f"Failed to download sub-request result: {exc!r}"
+        context.add_stderr(message)
+        raise RuntimeError(message) from None
 
-    return grib_file
+    size = os.path.getsize(target)
+    context.info(
+        f"... sub-request downloaded {size} bytes in " + str(time.time() - t0) + "s"
+    )
+
+    return target
 
 
-def reassign_missing_to_archive(reqs, grib_file, req_group, regapi, context):
+def reassign_missing_to_archive(reqs, grib_file, req_group, config, context):
     """Re-assign fields which are in reqs but not in grib_file to the archived backend."""
     # Which are in the file and which aren't?
-    if grib_file:
-        grib_file_path = grib_file.path
-    else:
-        grib_file_path = None
-    present, missing = which_fields_in_file(reqs, grib_file_path, context)
-
-    # The archive backend will reject any requests for dates less than N
-    # days old with a 400 HTTP error, so remove any if they exist. There
-    # shouldn't be any though.
-    missing_valid, missing_invalid = archive_maxdate_split(missing, regapi)
-    if missing_invalid:
-        context.error(
-            "Fields missing from latest backend but cannot "
-            "be on archived backend: " + repr(missing_invalid)
-        )
-    if missing_valid:
+    present, missing = which_fields_in_file(reqs, grib_file, config, context)
+    if missing:
         context.info(
-            "Resorting to archived backend for missing fields: " + repr(missing_valid)
+            "Resorting to archived backend for missing fields: " + repr(missing)
         )
-
-    for r in missing_valid:
+    for r in missing:
         r["_backend"] = ["archived"]
-    req_group["uncached_archived_requests"].extend(missing_valid)
+    req_group["uncached_archived_requests"].extend(missing)
 
 
 def zip_files(req_groups, info, context):
     assert info["format"] != Formats.grib
 
-    path = create_file("zip", ".zip", info, context)
+    path = create_file("zip", ".zip", info)
     with zipfile.ZipFile(path, "w") as zf:
         for req_group in req_groups:
             zf.write(

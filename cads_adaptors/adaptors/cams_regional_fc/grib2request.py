@@ -1,13 +1,12 @@
 """Code that takes a grib message, reverse engineers and returns the associated ADS API request dictionary."""
 
-import yaml
 from eccodes import codes_get
 
 grib_key_types = {}
 field_data: dict = {}
 
 
-def grib2request_init(dataset_dir):
+def grib2request_init(regfc_defns):
     """Initialise global variables: grib_key_types and field_data. This is so
     that it doesn't need to be done multiple times or in grib2request(),
     which is called from places where the path to the dataset directory is
@@ -16,10 +15,6 @@ def grib2request_init(dataset_dir):
     # Do not execute twice
     if field_data:
         return
-
-    # Read information on the variables and models available
-    with open(f"{dataset_dir}/regional_fc_definitions.yaml") as f:
-        regfc_defns = yaml.safe_load(f)
 
     # Link grib representations to API request values
     field_data.update(
