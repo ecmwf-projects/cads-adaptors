@@ -126,7 +126,7 @@ class BackendErrorCadsobsApiClient(CadsobsApiClient):
 TEST_REQUEST = {
     "time_aggregation": "daily",
     "format": "netCDF",
-    "variable": ["maximum_air_temperature"],
+    "variable": ["maximum_air_temperature", "maximum_relative_humidity"],
     "year": ["2007"],
     "month": ["11"],
     "day": [
@@ -183,6 +183,26 @@ def test_adaptor(tmp_path, monkeypatch):
     assert tempfile.stat().st_size > 0
     actual = h5netcdf.File(tempfile)
     assert actual.dimensions["index"].size > 0
+
+
+def test_adaptor_csv(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        MockerCadsobsApiClient,
+    )
+    test_form = {}
+
+    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    test_request_csv = TEST_REQUEST.copy()
+    test_request_csv["format"] = "csv"
+    result = adaptor.retrieve(test_request_csv)
+    tempfile = Path(tmp_path, "test_adaptor.csv")
+    with tempfile.open("wb") as tmpf:
+        tmpf.write(result.read())
+    assert tempfile.stat().st_size > 0
+    file_lines = tempfile.read_text().split("\n")
+    assert "# daily_maximum_air_temperature [K]" in file_lines
+    assert "# daily_maximum_relative_humidity [%]" in file_lines
 
 
 def test_adaptor_error(tmp_path, monkeypatch):
