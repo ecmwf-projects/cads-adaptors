@@ -209,11 +209,12 @@ def estimate_number_of_fields(
                 variable_value,
             ]
         if variable_id not in excluded_variables:
-            # Extend values according to weights
+            n_values = len(variable_value)
+            # If any values in weighted_values, add weight - 1 to n_values (the first is already counted)
             for val, weight in weights_v.items():
                 if val in variable_value:
-                    variable_value.extend([val] * (weight - 1))
-            # Append number of values, multiplied by weight
-            number_of_values.append(len(variable_value) * weight_k)
+                    n_values += (weight - 1)
+            # Append number of values, multiplied by weight for the key
+            number_of_values.append(n_values * weight_k)
     number_of_fields = math.prod(number_of_values)
     return number_of_fields
