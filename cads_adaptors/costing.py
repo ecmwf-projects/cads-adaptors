@@ -213,7 +213,7 @@ def estimate_number_of_fields(
             # If any values in weighted_values, add weight - 1 to n_values (the first is already counted)
             for val, weight in weights_v.items():
                 if val in variable_value:
-                    n_values += (weight - 1)
+                    n_values += weight - 1
             # Append number of values, multiplied by weight for the key
             number_of_values.append(n_values * weight_k)
     number_of_fields = math.prod(number_of_values)
