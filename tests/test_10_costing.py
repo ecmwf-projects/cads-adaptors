@@ -422,7 +422,7 @@ def test_estimate_number_of_fields() -> None:
             "label": "Key3",
             "details": {"values": {"value1", "value2"}},
             "type": "StringListWidget",
-        }
+        },
     ]
 
     costing_kwargs = {
@@ -444,18 +444,24 @@ def test_estimate_number_of_fields() -> None:
     }
     number_of_fields = costing.estimate_number_of_fields(form, request)
     assert number_of_fields == 2
-    number_of_fields = costing.estimate_number_of_fields(form, request, **costing_kwargs)
+    number_of_fields = costing.estimate_number_of_fields(
+        form, request, **costing_kwargs
+    )
     assert number_of_fields == 3
 
     request = {
         "key2": ["value1"],
     }
-    number_of_fields = costing.estimate_number_of_fields(form, request, **costing_kwargs)
+    number_of_fields = costing.estimate_number_of_fields(
+        form, request, **costing_kwargs
+    )
     assert number_of_fields == 2
     request = {
         "key2": ["value1", "value2"],
     }
-    number_of_fields = costing.estimate_number_of_fields(form, request, **costing_kwargs)
+    number_of_fields = costing.estimate_number_of_fields(
+        form, request, **costing_kwargs
+    )
     assert number_of_fields == 6
 
 
@@ -842,15 +848,11 @@ def test_estimate_costs_with_mapping() -> None:
             "label": "Key3",
             "details": {"values": {"value1", "value2"}},
             "type": "StringListWidget",
-        }
+        },
     ]
 
     costing_kwargs = {
-        "weighted_keys": {
-            "key1": 2,
-            "key2": 2,
-            "key3": 2
-        },
+        "weighted_keys": {"key1": 2, "key2": 2, "key3": 2},
         "weighted_values": {
             "key1": {
                 "value1": 2,
@@ -871,14 +873,12 @@ def test_estimate_costs_with_mapping() -> None:
             "max_costs": {"precise_size": 10, "size": 10},
         },
         mapping={
-            "rename": {
-                "key1": "renamed_key1"
-            },
+            "rename": {"key1": "renamed_key1"},
             "remap": {
                 "key1": {"value1": "renamed_value1"},
                 "key2": {"value1": "renamed_value1"},
             },
-        }
+        },
     )
 
     request1 = {

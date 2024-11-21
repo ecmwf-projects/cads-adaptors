@@ -93,7 +93,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         }
         # rename keys and remap values for weighted_values
         mapped_weighted_values = {
-            rename.get(key, key): {remap.get(key, {}).get(v, v): w for v, w in values.items()}
+            rename.get(key, key): {
+                remap.get(key, {}).get(v, v): w for v, w in values.items()
+            }
             for key, values in weighted_values.items()
         }
 
@@ -107,12 +109,14 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             )
         # size is a fast and rough estimate of the number of fields
         costs["size"] = costing.estimate_number_of_fields(
-            self.form, mapped_request, mapping=self.mapping,
+            self.form,
+            mapped_request,
+            mapping=self.mapping,
             **{
                 **costing_kwargs,
                 "weighted_keys": mapped_weighted_keys,
                 "weighted_values": mapped_weighted_values,
-            }
+            },
         )
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
