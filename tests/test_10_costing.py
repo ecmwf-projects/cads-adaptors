@@ -846,21 +846,20 @@ def test_estimate_costs_with_mapping() -> None:
     ]
 
     costing_kwargs = {
-        "weighted_keys": {"key1": 2},
-        "weighted_keys": {"key2": 2},
-        "weighted_keys": {"key3": 2},
+        "weighted_keys": {
+            "key1": 2,
+            "key2": 2,
+            "key3": 2
+        },
         "weighted_values": {
             "key1": {
                 "value1": 2,
-                "value2": 2,
             },
             "key2": {
                 "value1": 2,
-                "value2": 2,
             },
             "key3": {
                 "value1": 2,
-                "value2": 2,
             },
         },
     }
@@ -872,10 +871,12 @@ def test_estimate_costs_with_mapping() -> None:
             "max_costs": {"precise_size": 10, "size": 10},
         },
         mapping={
-            "rename": {"key1": "renamed_key1"},
+            "rename": {
+                "key1": "renamed_key1"
+            },
             "remap": {
-                "key2": {"value1": "renamed_value1"},
                 "key1": {"value1": "renamed_value1"},
+                "key2": {"value1": "renamed_value1"},
             },
         }
     )
