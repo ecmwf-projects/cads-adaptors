@@ -21,6 +21,7 @@ def retrieve_data(
     output_dir: Path,
     object_urls: list[str],
     cdm_lite_variables: list[str],
+    field_attributes: dict,
     global_attributes: dict,
     context: Context,
 ) -> Path:
@@ -55,7 +56,7 @@ def retrieve_data(
             # context.add_user_visible_error(message)
             raise CadsObsRuntimeError(message)
         # Add atributes
-        _add_attributes(oncobj, global_attributes)
+        _add_attributes(oncobj, field_attributes, global_attributes)
     # If the user asked for a CSV, we transform the file to CSV
     if retrieve_args.params.format == "netCDF":
         output_path = output_path_netcdf
