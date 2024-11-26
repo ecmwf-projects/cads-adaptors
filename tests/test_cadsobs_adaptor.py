@@ -9,7 +9,16 @@ from cads_adaptors import Context, ObservationsAdaptor
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.exceptions import CadsObsConnectionError, InvalidRequest
 
-CDM_LITE_VARIABLES = {
+# get numbered vars programatycally, as they are to many to add by hand to
+# the list
+number_of_uncertainty_types = 17
+uncertainty_numbered_vars = [
+    f"{unc_var}{n}"
+    for n in range(number_of_uncertainty_types + 1)
+    for unc_var in ["uncertainty_value", "uncertainty_type", "uncertainty_units"]
+]
+
+CDM_LITE_VARIABLES: dict[str, list[str] | dict] = {
     "mandatory": [
         "observation_id",
         "observed_variable",
@@ -58,7 +67,8 @@ CDM_LITE_VARIABLES = {
         "exposure_of_sensor",
         "fg_depar@body",
         "an_depar@body",
-    ],
+    ]
+    + uncertainty_numbered_vars,
     "auxiliary": [
         "total_uncertainty",
         "positive_total_uncertainty",
@@ -98,15 +108,6 @@ CDM_LITE_VARIABLES = {
         "uncertainty_value9": {"long_name": "positive_random_uncertainty"},
     },
 }
-# Add uncetainty numbered vars programatycally, as they are to many to add by hand to
-# the list
-number_of_uncertainty_types = 17
-uncertainty_numbered_vars = [
-    f"{unc_var}{n}"
-    for n in range(number_of_uncertainty_types + 1)
-    for unc_var in ["uncertainty_value", "uncertainty_type", "uncertainty_units"]
-]
-CDM_LITE_VARIABLES["optional"] += uncertainty_numbered_vars
 
 
 class MockerCadsobsApiClient:
