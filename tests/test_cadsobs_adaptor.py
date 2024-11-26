@@ -9,7 +9,7 @@ from cads_adaptors import Context, ObservationsAdaptor
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.exceptions import CadsObsConnectionError, InvalidRequest
 
-# get numbered vars programatycally, as they are to many to add by hand to
+# get numbered vars programatically, as they are to many to add by hand to
 # the list
 number_of_uncertainty_types = 17
 uncertainty_numbered_vars = [
