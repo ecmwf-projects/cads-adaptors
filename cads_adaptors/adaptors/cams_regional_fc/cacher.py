@@ -1,13 +1,14 @@
+import boto3
 import concurrent.futures
 import io
+import jinja2
 import logging
 import os
 import re
 import threading
 import time
+from urllib.parse import urlparse
 
-import boto3
-import jinja2
 from cds_common.hcube_tools import count_fields, hcube_intdiff, hcubes_intdiff2
 from cds_common.message_iterators import grib_bytes_iterator
 from cds_common.url2.caching import NotInCache
@@ -311,17 +312,26 @@ class CacherS3(AbstractAsyncCacher):
     bucket.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, s3_bucket=None, create_bucket=False, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._host = "object-store.os-api.cci2.ecmwf.int"
-        self._bucket = "cci2-cams-regional-fc"
+        endpoint_url = os.environ["STORAGE_API_URL"]
+        self._host = urlparse(endpoint_url).hostname
+        self._bucket = (s3_bucket or "cci2-cams-regional-fc")
         self._credentials = dict(
-            endpoint_url=os.environ["STORAGE_API_URL"],
+            endpoint_url=endpoint_url,
             aws_access_key_id=os.environ["STORAGE_ADMIN"],
             aws_secret_access_key=os.environ["STORAGE_PASSWORD"],
         )
         self.client = boto3.client("s3", **self._credentials)
+
+        # If it's not guaranteed that the bucket already exists then the caller
+        # should pass create_bucket=True
+        if create_bucket:
+            rsrc = boto3.resource("s3", **self._credentials)
+            bkt = rsrc.Bucket(self._bucket)
+            if not bkt.creation_date:
+                bkt = self.client.create_bucket(Bucket=self._bucket)
 
     def _write_field_sync(self, data, fieldinfo):
         """Write the data described by fieldinfo to the appropriate cache
@@ -333,13 +343,6 @@ class CacherS3(AbstractAsyncCacher):
         self.logger.info(
             f"Caching {fieldinfo} to {self._host}:{self._bucket}:{remote_path}"
         )
-
-        # Uncomment this code if it can't be trusted that the bucket already
-        # exists
-        # resource = boto3.resource('s3', **self._credentials)
-        # bkt = resource.Bucket(self._bucket)
-        # if not bkt.creation_date:
-        #    bkt = self.client.create_bucket(Bucket=self._bucket)
 
         attempt = 0
         t0 = time.time()
