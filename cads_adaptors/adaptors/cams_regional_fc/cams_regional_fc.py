@@ -154,8 +154,10 @@ def get_local(req_groups, integration_server, config, context):
     cfg = config.get("regional_fc", {})
     no_cache_key = cfg.get("no_cache_key")
     with Cacher(
-        integration_server, logger=context, no_cache_key=no_cache_key,
-        **cfg.get("cacher_kwargs", {})
+        integration_server,
+        logger=context,
+        no_cache_key=no_cache_key,
+        **cfg.get("cacher_kwargs", {}),
     ) as cacher:
         for req_group in req_groups:
             _get_local(req_group, cacher, config, context)

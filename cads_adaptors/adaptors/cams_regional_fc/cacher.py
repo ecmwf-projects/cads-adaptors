@@ -1,7 +1,5 @@
-import boto3
 import concurrent.futures
 import io
-import jinja2
 import logging
 import os
 import re
@@ -9,6 +7,8 @@ import threading
 import time
 from urllib.parse import urlparse
 
+import boto3
+import jinja2
 from cds_common.hcube_tools import count_fields, hcube_intdiff, hcubes_intdiff2
 from cds_common.message_iterators import grib_bytes_iterator
 from cds_common.url2.caching import NotInCache
@@ -317,7 +317,7 @@ class CacherS3(AbstractAsyncCacher):
 
         endpoint_url = os.environ["STORAGE_API_URL"]
         self._host = urlparse(endpoint_url).hostname
-        self._bucket = (s3_bucket or "cci2-cams-regional-fc")
+        self._bucket = s3_bucket or "cci2-cams-regional-fc"
         self._credentials = dict(
             endpoint_url=endpoint_url,
             aws_access_key_id=os.environ["STORAGE_ADMIN"],
