@@ -23,6 +23,7 @@ def meteo_france_retrieve(
     max_rate=None,
     max_simultaneous=None,
     cacher_kwargs=None,
+    combine_method=None,
     logger=None,
     **kwargs,
 ):
@@ -103,7 +104,7 @@ def meteo_france_retrieve(
             getter=getter,
             max_rate=rate_limiter,
             max_simultaneous=number_limiter,
-            combine_method="cat" if target else "null",
+            combine_method=combine_method or ("cat" if target else "null"),
             target_suffix=".grib",
             response_checker=assert_valid_grib,
             response_checker_threadsafe=False,
