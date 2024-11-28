@@ -12,6 +12,8 @@ from .assert_valid_grib import assert_valid_grib
 from .cacher import Cacher
 from .grib2request import grib2request_init
 
+SENTINEL = object()
+
 
 def meteo_france_retrieve(
     requests,
@@ -23,7 +25,7 @@ def meteo_france_retrieve(
     max_rate=None,
     max_simultaneous=None,
     cacher_kwargs=None,
-    combine_method=None,
+    combine_method=SENTINEL,
     logger=None,
     **kwargs,
 ):
@@ -104,7 +106,8 @@ def meteo_france_retrieve(
             getter=getter,
             max_rate=rate_limiter,
             max_simultaneous=number_limiter,
-            combine_method=combine_method or ("cat" if target else "null"),
+            combine_method={SENTINEL: "cat" if target else "null"}.get(
+                combine_method, combine_method),
             target_suffix=".grib",
             response_checker=assert_valid_grib,
             response_checker_threadsafe=False,
