@@ -41,10 +41,10 @@ def subrequest_main(backend, request, child_config, context):
     try:
         meteo_france_retrieve(
             request["requests"],
-            target,
             regapi,
             cfg["definitions"],
             integration_server,
+            target=target,
             logger=context,
             tmpdir=STACK_TEMP_DIR,
             max_rate=cfg.get("meteofrance_max_rate"),
