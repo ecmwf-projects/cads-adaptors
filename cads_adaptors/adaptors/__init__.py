@@ -103,6 +103,27 @@ class AbstractAdaptor(abc.ABC):
         )
 
     @abc.abstractmethod
+    def check_validity(self, request: Request) -> Request:
+        """Check the validity of the request.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+
+        Returns
+        -------
+        Request
+            Valid request.
+
+        Raises
+        ------
+        cads_adaptors.exceptions.InvalidRequest
+            If the request is invalid.
+        """
+        pass
+
+    @abc.abstractmethod
     def normalise_request(self, request: Request) -> Request:
         """Apply any normalisation to the request before validation.
 
