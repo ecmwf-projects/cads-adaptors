@@ -37,7 +37,9 @@ def requests_to_urls(
                     yield {"url": url, "req": req}
 
 
-def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
+def try_download(
+    urls: List[str], context: Context, server_suggested_filename=False, **kwargs
+) -> List[str]:
     # Ensure that URLs are unique to prevent downloading the same file multiple times
     urls = sorted(set(urls))
 
@@ -48,6 +50,9 @@ def try_download(urls: List[str], context: Context, **kwargs) -> List[str]:
     kwargs = {"timeout": 3, "maximum_retries": 1, "retry_after": 1, **kwargs}
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
+        if server_suggested_filename:
+            path = os.path.join(os.path.dirname(path), multiurl.Downloader(url).title())
+
         dir = os.path.dirname(path)
         if dir:
             os.makedirs(dir, exist_ok=True)
