@@ -403,6 +403,68 @@ def test_get_excluded_keys() -> None:
     assert excluded_keys == exp_excluded_keys
 
 
+def test_estimate_number_of_fields() -> None:
+    form = [
+        {
+            "name": "key1",
+            "label": "Key1",
+            "details": {"values": {"value1", "value2"}},
+            "type": "StringListWidget",
+        },
+        {
+            "name": "key2",
+            "label": "Key2",
+            "details": {"values": {"value1", "value2"}},
+            "type": "StringListWidget",
+        },
+        {
+            "name": "key3",
+            "label": "Key3",
+            "details": {"values": {"value1", "value2"}},
+            "type": "StringListWidget",
+        },
+    ]
+
+    costing_kwargs = {
+        "weighted_keys": {
+            "key2": 2,
+        },
+        "weighted_values": {
+            "key1": {
+                "value1": 2,
+            },
+            "key2": {
+                "value2": 2,
+            },
+        },
+    }
+
+    request = {
+        "key1": ["value1", "value2"],
+    }
+    number_of_fields = costing.estimate_number_of_fields(form, request)
+    assert number_of_fields == 2
+    number_of_fields = costing.estimate_number_of_fields(
+        form, request, **costing_kwargs
+    )
+    assert number_of_fields == 3
+
+    request = {
+        "key2": ["value1"],
+    }
+    number_of_fields = costing.estimate_number_of_fields(
+        form, request, **costing_kwargs
+    )
+    assert number_of_fields == 2
+    request = {
+        "key2": ["value1", "value2"],
+    }
+    number_of_fields = costing.estimate_number_of_fields(
+        form, request, **costing_kwargs
+    )
+    assert number_of_fields == 6
+
+
 def test_estimate_costs() -> None:
     from cads_adaptors import DummyCdsAdaptor
 
@@ -746,7 +808,7 @@ def test_estimate_costs_2() -> None:
     )
     costs = weighted_adaptor.estimate_costs(request)
     assert costs["precise_size"] == 8
-    assert costs["size"] == 2
+    assert costs["size"] == 8
 
     request = {
         "variable": "maximum_temperature",
@@ -762,4 +824,74 @@ def test_estimate_costs_2() -> None:
     }
     costs = weighted_adaptor.estimate_costs(request)
     assert costs["precise_size"] == 10
-    assert costs["size"] == 2
+    assert costs["size"] == 10
+
+
+def test_estimate_costs_with_mapping() -> None:
+    from cads_adaptors import DummyCdsAdaptor
+
+    form = [
+        {
+            "name": "key1",
+            "label": "Key1",
+            "details": {"values": {"value1", "value2"}},
+            "type": "StringListWidget",
+        },
+        {
+            "name": "key2",
+            "label": "Key2",
+            "details": {"values": {"value1", "value2"}},
+            "type": "StringListWidget",
+        },
+        {
+            "name": "key3",
+            "label": "Key3",
+            "details": {"values": {"value1", "value2"}},
+            "type": "StringListWidget",
+        },
+    ]
+
+    costing_kwargs = {
+        "weighted_keys": {"key1": 2, "key2": 2, "key3": 2},
+        "weighted_values": {
+            "key1": {
+                "value1": 2,
+            },
+            "key2": {
+                "value1": 2,
+            },
+            "key3": {
+                "value1": 2,
+            },
+        },
+    }
+    weighted_adaptor = DummyCdsAdaptor(
+        form,
+        constraints=[],
+        costing={
+            "costing_kwargs": costing_kwargs,
+            "max_costs": {"precise_size": 10, "size": 10},
+        },
+        mapping={
+            "rename": {"key1": "renamed_key1"},
+            "remap": {
+                "key1": {"value1": "renamed_value1"},
+                "key2": {"value1": "renamed_value1"},
+            },
+        },
+    )
+
+    request1 = {
+        "key1": ["value1", "value2"],
+    }
+    request2 = {
+        "key2": ["value1", "value2"],
+    }
+    request3 = {
+        "key3": ["value1", "value2"],
+    }
+    costs1 = weighted_adaptor.estimate_costs(request1)
+    costs2 = weighted_adaptor.estimate_costs(request2)
+    costs3 = weighted_adaptor.estimate_costs(request3)
+    assert costs1["size"] == costs2["size"]
+    assert costs2["size"] == costs3["size"]

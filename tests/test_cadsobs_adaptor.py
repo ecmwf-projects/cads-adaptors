@@ -9,7 +9,16 @@ from cads_adaptors import Context, ObservationsAdaptor
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.exceptions import CadsObsConnectionError, InvalidRequest
 
-CDM_LITE_VARIABLES = {
+# get numbered vars programatically, as they are to many to add by hand to
+# the list
+number_of_uncertainty_types = 17
+uncertainty_numbered_vars = [
+    f"{unc_var}{n}"
+    for n in range(number_of_uncertainty_types + 1)
+    for unc_var in ["uncertainty_value", "uncertainty_type", "uncertainty_units"]
+]
+
+CDM_LITE_VARIABLES: dict[str, list[str] | dict] = {
     "mandatory": [
         "observation_id",
         "observed_variable",
@@ -58,7 +67,8 @@ CDM_LITE_VARIABLES = {
         "exposure_of_sensor",
         "fg_depar@body",
         "an_depar@body",
-    ],
+    ]
+    + uncertainty_numbered_vars,
     "auxiliary": [
         "total_uncertainty",
         "positive_total_uncertainty",
@@ -74,6 +84,29 @@ CDM_LITE_VARIABLES = {
         "negative_quasisystematic_uncertainty",
         "flag",
     ],
+    "attributes": {
+        "uncertainty_value1": {"long_name": "random_uncertainty"},
+        "uncertainty_value10": {"long_name": "negative_systematic_uncertainty"},
+        "uncertainty_value11": {"long_name": "positive_systematic_uncertainty"},
+        "uncertainty_value12": {"long_name": "negative_quasisystematic_uncertainty"},
+        "uncertainty_value13": {"long_name": "positive_quasisystematic_uncertainty"},
+        "uncertainty_value14": {"long_name": "negative_structured_random_uncertainty"},
+        "uncertainty_value15": {"long_name": "positive_structured_random_uncertainty"},
+        "uncertainty_value16": {"long_name": "negative_total_uncertainty"},
+        "uncertainty_value17": {"long_name": "positive_total_uncertainty"},
+        "uncertainty_value2": {"long_name": "systematic_uncertainty"},
+        "uncertainty_value3": {"long_name": "quasisystematic_uncertainty"},
+        "uncertainty_value4": {"long_name": "structured_random_uncertainty"},
+        "uncertainty_value5": {"long_name": "total_uncertainty"},
+        "uncertainty_value6": {
+            "long_name": "ozone_partial_pressure_total_uncertainty_uncertainty"
+        },
+        "uncertainty_value7": {
+            "long_name": "ozone_partial_pressure_percentage_uncertainty_uncertainty"
+        },
+        "uncertainty_value8": {"long_name": "negative_random_uncertainty"},
+        "uncertainty_value9": {"long_name": "positive_random_uncertainty"},
+    },
 }
 
 
@@ -126,7 +159,7 @@ class BackendErrorCadsobsApiClient(CadsobsApiClient):
 TEST_REQUEST = {
     "time_aggregation": "daily",
     "format": "netCDF",
-    "variable": ["maximum_air_temperature"],
+    "variable": ["maximum_air_temperature", "maximum_relative_humidity"],
     "year": ["2007"],
     "month": ["11"],
     "day": [
@@ -183,6 +216,26 @@ def test_adaptor(tmp_path, monkeypatch):
     assert tempfile.stat().st_size > 0
     actual = h5netcdf.File(tempfile)
     assert actual.dimensions["index"].size > 0
+
+
+def test_adaptor_csv(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        MockerCadsobsApiClient,
+    )
+    test_form = {}
+
+    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    test_request_csv = TEST_REQUEST.copy()
+    test_request_csv["format"] = "csv"
+    result = adaptor.retrieve(test_request_csv)
+    tempfile = Path(tmp_path, "test_adaptor.csv")
+    with tempfile.open("wb") as tmpf:
+        tmpf.write(result.read())
+    assert tempfile.stat().st_size > 0
+    file_lines = tempfile.read_text().split("\n")
+    assert "# daily_maximum_air_temperature [K]" in file_lines
+    assert "# daily_maximum_relative_humidity [%]" in file_lines
 
 
 def test_adaptor_error(tmp_path, monkeypatch):

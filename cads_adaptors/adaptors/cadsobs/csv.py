@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 
-import dask
 import xarray
 
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs
@@ -66,11 +65,14 @@ def get_csv_header(
     time_end = "{:%Y%m%d}".format(
         cdm_lite_dataset.report_timestamp[-1].compute().dt.date
     )
-    vars_and_units = zip(
-        dask.array.unique(cdm_lite_dataset.observed_variable.data)
-        .compute()
-        .astype("U"),
-        dask.array.unique(cdm_lite_dataset.units.data).compute().astype("U"),
+    # Subset the dataset to get variables and units, drop duplicates, encode and convert
+    # to tuples.
+    vars_and_units = list(
+        cdm_lite_dataset[["observed_variable", "units"]]
+        .to_dataframe()
+        .drop_duplicates()
+        .astype("U")
+        .itertuples(index=False, name=None)
     )
     varstr = "\n".join([f"# {v} [{u}]" for v, u in vars_and_units])
     header_params = dict(

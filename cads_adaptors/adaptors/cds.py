@@ -83,6 +83,26 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             request = request["inputs"]
         mapped_request = self.apply_mapping(request)
 
+        # Must also map the weights
+        # N.B. This is just a partial mapping, as not all apply_mapping steps are covered for the weights.
+        # Use with caution!
+        rename = self.mapping.get("rename", {})
+        remap = self.mapping.get("remap", {})
+        weighted_keys = costing_kwargs.get("weighted_keys", {})
+        weighted_values = costing_kwargs.get("weighted_values", {})
+
+        # rename keys for weighted_keys
+        mapped_weighted_keys = {
+            rename.get(key, key): value for key, value in weighted_keys.items()
+        }
+        # rename keys and remap values for weighted_values
+        mapped_weighted_values = {
+            rename.get(key, key): {
+                remap.get(key, {}).get(v, v): w for v, w in values.items()
+            }
+            for key, values in weighted_values.items()
+        }
+
         # "precise_size" is a new costing method that is more accurate than "size
         if "precise_size" in costing_config.get(cost_threshold, {}):
             costs["precise_size"] = costing.estimate_precise_size(
@@ -92,7 +112,16 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 **costing_kwargs,
             )
         # size is a fast and rough estimate of the number of fields
-        costs["size"] = costing.estimate_number_of_fields(self.form, mapped_request)
+        costs["size"] = costing.estimate_number_of_fields(
+            self.form,
+            mapped_request,
+            mapping=self.mapping,
+            **{
+                **costing_kwargs,
+                "weighted_keys": mapped_weighted_keys,
+                "weighted_values": mapped_weighted_values,
+            },
+        )
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
         return costs
