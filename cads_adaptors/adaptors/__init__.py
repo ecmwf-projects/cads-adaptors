@@ -103,7 +103,7 @@ class AbstractAdaptor(abc.ABC):
         )
 
     @abc.abstractmethod
-    def check_validity(self, request: Request) -> Request:
+    def check_validity(self, request: Request) -> None:
         """Check the validity of the request.
 
         Parameters
@@ -113,8 +113,8 @@ class AbstractAdaptor(abc.ABC):
 
         Returns
         -------
-        Request
-            Valid request.
+        None
+            If the request is valid.
 
         Raises
         ------
@@ -228,8 +228,8 @@ class DummyAdaptor(AbstractAdaptor):
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return {}
 
-    def check_validity(self, request: Request) -> Request:
-        return request
+    def check_validity(self, request: Request) -> None:
+        return
 
     def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         size = int(request.get("size", 0))
