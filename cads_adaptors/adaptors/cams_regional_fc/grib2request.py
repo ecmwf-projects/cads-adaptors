@@ -9,13 +9,8 @@ field_data: dict = {}
 def grib2request_init(regfc_defns):
     """Initialise global variables: grib_key_types and field_data. This is so
     that it doesn't need to be done multiple times or in grib2request(),
-    which is called from places where the path to the dataset directory is
-    not easily available.
+    which is called from places where the dataset config is not easily available.
     """
-    # Do not execute twice
-    if field_data:
-        return
-
     # Link grib representations to API request values
     field_data.update(
         {
