@@ -86,9 +86,6 @@ def grib2request(msg):
 
         if api_key not in request:
             # Not finding a match is an error
-
-            context
-
             raise Exception(
                 "Field does not match any known ADS " + api_key + ": " + repr(fld) + ' XXX ' + repr(key_info))
             )
