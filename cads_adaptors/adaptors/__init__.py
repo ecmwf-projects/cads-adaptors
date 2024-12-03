@@ -228,6 +228,9 @@ class DummyAdaptor(AbstractAdaptor):
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return {}
 
+    def check_validity(self, request: Request) -> Request:
+        return request
+
     def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         size = int(request.get("size", 0))
         time = int(request.get("time", 0.0))
