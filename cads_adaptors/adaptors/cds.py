@@ -82,6 +82,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         mapped_request = self.apply_mapping(request)
 
         # Must also map the weights
+        # N.B. This is just a partial mapping, as not all apply_mapping steps are covered for the weights.
+        # Use with caution!
         rename = self.mapping.get("rename", {})
         remap = self.mapping.get("remap", {})
         weighted_keys = costing_kwargs.get("weighted_keys", {})
