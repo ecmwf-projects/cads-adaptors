@@ -53,7 +53,7 @@ def execute_mars(
     config: dict[str, Any] = dict(),
     target: str = "data.grib",
 ) -> str:
-    from cads_mars_server import client as mars_client
+    from cads_mars_server import client_file as mars_client
 
     requests = ensure_list(request)
     # Implement embargo if it is set in the config
@@ -82,9 +82,10 @@ def execute_mars(
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
 
     context.add_stdout(f"Request sent to proxy MARS client: {requests}")
-    reply = cluster.execute(requests, env, target)
+    reply = cluster.execute(requests, env)
     reply_message = str(reply.message)
     context.add_stdout(message=reply_message)
+    target = reply.data["target"]
 
     if reply.error:
         error_lines = "\n".join(
