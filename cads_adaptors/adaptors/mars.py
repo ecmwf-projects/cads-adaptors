@@ -85,7 +85,7 @@ def execute_mars(
     reply = cluster.execute(requests, env)
     reply_message = str(reply.message)
     context.add_stdout(message=reply_message)
-    target = reply.data["target"]
+    target = reply.data.get("target", '').replace(reply.data.get("CACHE_ROOT", ''), '')
 
     if reply.error:
         error_lines = "\n".join(
