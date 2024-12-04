@@ -87,7 +87,7 @@ def execute_mars(
         reply = cluster.execute(requests, env)
         reply_message = str(reply.message)
         context.add_stdout(message=reply_message)
-        running = isinstance(reply.data, dict)
+        running = reply.data is None
         context.add_stdout(f'Request submitted {config.get("request_uid")}')
         
     target = reply.data.get("target", '').replace(reply.data.get("CACHE_ROOT", ''), '')
