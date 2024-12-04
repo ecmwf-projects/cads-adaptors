@@ -12,7 +12,6 @@ from cads_adaptors.tools.hcube_tools import hcubes_intdiff2
 from cads_adaptors.validation import enforce
 
 
-
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
     adaptor_schema: dict[str, Any] = {}
@@ -147,11 +146,15 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             for key in d:
                 d[key] = ensure_list(d[key])
 
-    def satisfy_conditions(self, requests: list[dict[str, list[Any]]], conditions: list[dict[str, list[Any]]]):
+    def satisfy_conditions(
+        self,
+        requests: list[dict[str, list[Any]]],
+        conditions: list[dict[str, list[Any]]],
+    ):
         try:
             _, d12, _ = hcubes_intdiff2(requests, conditions)
             return not d12
-        except Exception as e:
+        except Exception:
             return False
 
     def normalise_request(self, request: Request) -> Request:
@@ -205,7 +208,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                         hidden_tag = f"__{tag}"
                         request[hidden_tag] = True
         except Exception as e:
-            self.context.add_stdout(f"An error occured while attempting conditional tagging: {e!r}")
+            self.context.add_stdout(
+                f"An error occured while attempting conditional tagging: {e!r}"
+            )
 
         # Map the list of requests
         self.mapped_requests = [
