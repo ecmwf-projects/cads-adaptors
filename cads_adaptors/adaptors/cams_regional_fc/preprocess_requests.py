@@ -9,9 +9,17 @@ from cads_adaptors.validation.enforce import enforce as enforce_schema
 from .formats import Formats
 
 
-def preprocess_requests(context, requests, regapi):
+def preprocess_requests(context, config, requests, regapi):
     # Enforce basic type conformance
-    requests = apply_schema(requests, context)
+    requests = apply_schema(requests, config, context)
+
+    # The no_cache (as opposed to _no_cache) key is still allowed for backward
+    # compatibility because some external users still use it, but they no longer
+    # need to subvert the system-level cache to avoid getting out-of-date
+    # results. It just causes unecessary downloads from Meteo France. So get rid
+    # of it.
+    for r in requests:
+        r.pop("no_cache", None)
 
     # Get output format and remove from requests
     format = requests[0]["format"][0]
@@ -50,8 +58,7 @@ def preprocess_requests(context, requests, regapi):
             + "Please either request grib format, make separate requests or "
             + "explicitly specify an area that will result in output on a "
             + "single grid\n\n"
-            + model_grids_table(model_grids, regapi),
-            "",
+            + model_grids_table(model_grids, regapi)
         )
 
     # Ensure date lists are not in compressed form
@@ -69,7 +76,7 @@ def preprocess_requests(context, requests, regapi):
     return requests, info
 
 
-def apply_schema(requests, context):
+def apply_schema(requests, config, context):
     """Enforce basic type conformance of the requests according to a schema."""
     mandatory_keys = [
         "variable",
@@ -83,7 +90,14 @@ def apply_schema(requests, context):
     ]
     recognised_keys = sorted(
         set(mandatory_keys).union(
-            ["area", "no_cache", "__in_adaptor_no_cache", "_local_subarea"]
+            [
+                "no_cache",  # Old user cache subversion key, still used by some
+                "_no_cache",  # New user cache subversion key
+                "__in_adaptor_no_cache",  # System cache subversion key
+                config.get("regional_fc", {}).get("no_cache_key", "_no_cache"),
+                "area",
+                "_local_subarea",
+            ]
         )
     )
 

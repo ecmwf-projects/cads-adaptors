@@ -8,6 +8,7 @@ from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools.hcube_tools import hcubes_intdiff2
 from cads_adaptors.validation import enforce
 
 
@@ -140,6 +141,22 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         return request
 
+    def ensure_list_values(self, dicts):
+        for d in dicts:
+            for key in d:
+                d[key] = ensure_list(d[key])
+
+    def satisfy_conditions(
+        self,
+        requests: list[dict[str, list[Any]]],
+        conditions: list[dict[str, list[Any]]],
+    ):
+        try:
+            _, d12, _ = hcubes_intdiff2(requests, conditions)
+            return not d12
+        except Exception:
+            return False
+
     def normalise_request(self, request: Request) -> Request:
         """
         Normalise the request prior to submission to the broker, and at the start of the retrieval.
@@ -178,6 +195,22 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 raise InvalidRequest(msg)
         else:
             self.intersected_requests = ensure_list(working_request)
+
+        # Implement a request-level tagging system
+        try:
+            self.conditional_tagging = self.config.get("conditional_tagging", None)
+            if self.conditional_tagging is not None:
+                self.ensure_list_values(self.intersected_requests)
+                for tag in self.conditional_tagging:
+                    conditions = self.conditional_tagging[tag]
+                    self.ensure_list_values(conditions)
+                    if self.satisfy_conditions(self.intersected_requests, conditions):
+                        hidden_tag = f"__{tag}"
+                        request[hidden_tag] = True
+        except Exception as e:
+            self.context.add_stdout(
+                f"An error occured while attempting conditional tagging: {e!r}"
+            )
 
         # Map the list of requests
         self.mapped_requests = [

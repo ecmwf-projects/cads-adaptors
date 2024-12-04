@@ -40,7 +40,7 @@ def cams_regional_fc(context, config, requests):
     regapi = regional_fc_api(integration_server=integration_server, logger=context)
 
     # Pre-process requests
-    requests, info = preprocess_requests(context, requests, regapi)
+    requests, info = preprocess_requests(context, config, requests, regapi)
     info["config"] = config
 
     # If converting to NetCDF then different groups of grib files may need to be
@@ -151,7 +151,14 @@ def get_local(req_groups, integration_server, config, context):
     the datastore) and identify the remaining non-local fields.
     """
     # Cacher has knowledge of cache locations
-    with Cacher(integration_server, logger=context) as cacher:
+    cfg = config.get("regional_fc", {})
+    no_cache_key = cfg.get("no_cache_key")
+    with Cacher(
+        integration_server,
+        logger=context,
+        no_cache_key=no_cache_key,
+        **cfg.get("cacher_kwargs", {}),
+    ) as cacher:
         for req_group in req_groups:
             _get_local(req_group, cacher, config, context)
 
@@ -275,7 +282,7 @@ def get_uncached(requests, req_group, config, context):
     if size > 0:
         req_group["retrieved_files"] = req_group.get("retrieved_files", []) + [path]
     else:
-        context.add_stdout("Sub-request target file is empty")
+        context.info("Sub-request target file is empty")
 
     return path
 
@@ -303,48 +310,43 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
 
     # Launch the sub-request
     response = None
-    sub_request_uid = None
+    sub_request_uid = "n/a"
     dataset = f"cams-europe-air-quality-forecasts-{backend}"
     try:
         response = client.retrieve(
             dataset,
             {"requests": requests, "parent_config": config},
         )
-    except Exception as e:
-        sub_request_uid = "none" if response is None else response.request_uid
-        context.add_stderr(
-            "Sub-request "
-            + ("" if response is None else f"({response.request_uid}) ")
-            + f"failed: {e!r}"
+        sub_request_uid = response.request_uid
+        context.info(
+            f"Sub-request {sub_request_uid} has been launched (via the " "CDSAPI)."
         )
+        # Download the result
+        exc = None
+        for i_retry in range(MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES):
+            try:
+                response.download(target)
+                break
+            except Exception as e:
+                context.error(
+                    f"Attempt {i_retry+1} to download the result of sub-request "
+                    f"{sub_request_uid} failed: {e!r}"
+                )
+                exc = e
+        else:
+            raise exc
+    except Exception as e:
+        context.error(f"Sub-request ({sub_request_uid}) failed: {e!r}")
         if maintenance_msg:
+            context.add_user_visible_error(maintenance_msg)
             raise InvalidRequest(maintenance_msg) from None
         else:
-            raise RuntimeError(
+            msg = (
                 f"Failed to retrieve data from {backend} remote server. "
-                "Please try again later."
-            ) from None
-    else:
-        sub_request_uid = response.request_uid
-        message = f"Sub-request {sub_request_uid} has been launched (via the CDSAPI)."
-        context.add_stdout(message)
-
-    # Download the result
-    exc = None
-    for i_retry in range(MAX_SUBREQUEST_RESULT_DOWNLOAD_RETRIES):
-        try:
-            response.download(target)
-            break
-        except Exception as e:
-            exc = e
-            context.add_stdout(
-                f"Attempt {i_retry+1} to download the result of sub-request "
-                f"{sub_request_uid} failed: {e!r}"
+                + "Please try again later."
             )
-    else:
-        message = f"Failed to download sub-request result: {exc!r}"
-        context.add_stderr(message)
-        raise RuntimeError(message) from None
+            context.add_user_visible_error(msg)
+            raise RuntimeError(msg) from None
 
     size = os.path.getsize(target)
     context.info(

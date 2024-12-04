@@ -78,8 +78,8 @@ def expand_dates_list(dates_in, as_datetime=False):
                 # Since "current" is translated in ranges it would be
                 # inconsistent if it weren't translated when on its own, but
                 # we have to get a format to convert it to first
-                for date in dates_in:
-                    fmt = guess_date_format(date)
+                for dd in dates_in:
+                    fmt = guess_date_format(dd)
                     if fmt is not None:
                         break
                 if fmt is None:
