@@ -58,6 +58,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         result = self.retrieve_list_of_results(request)
         return self.make_download_object(result)
 
+    def check_validity(self, request: Request) -> None:
+        return
+
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
 

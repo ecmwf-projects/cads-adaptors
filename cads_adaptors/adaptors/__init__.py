@@ -103,6 +103,27 @@ class AbstractAdaptor(abc.ABC):
         )
 
     @abc.abstractmethod
+    def check_validity(self, request: Request) -> None:
+        """Check the validity of the request.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+
+        Returns
+        -------
+        None
+            If the request is valid.
+
+        Raises
+        ------
+        cads_adaptors.exceptions.InvalidRequest
+            If the request is invalid.
+        """
+        pass
+
+    @abc.abstractmethod
     def normalise_request(self, request: Request) -> Request:
         """Apply any normalisation to the request before validation.
 
@@ -206,6 +227,9 @@ class AbstractAdaptor(abc.ABC):
 class DummyAdaptor(AbstractAdaptor):
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return {}
+
+    def check_validity(self, request: Request) -> None:
+        return
 
     def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         size = int(request.get("size", 0))
