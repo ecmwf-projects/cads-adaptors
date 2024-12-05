@@ -124,6 +124,10 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def retrieve(self, request: Request) -> BinaryIO:
         result = execute_mars(request, context=self.context)
+        if result.endswith(".grib"):
+            facts = result.split("/")
+            if facts[-2] == "mars":
+                os.environ["CACHOLOTE_IO_DELETE_ORIGINAL"]= "FALSE"
         return open(result, "rb")
 
 
