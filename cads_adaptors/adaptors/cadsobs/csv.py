@@ -82,7 +82,7 @@ def get_csv_header(
     ]
     if len(uncertainty_vars) > 0:
         unc_vars_and_names = [
-            (u, cdm_lite_dataset[u].long_name) for u in uncertainty_vars
+            (u, get_long_name(cdm_lite_dataset, u)) for u in uncertainty_vars
         ]
         uncertainty_str = "\n".join([f"# {u} {n}" for u, n in unc_vars_and_names])
     else:
@@ -116,3 +116,8 @@ def to_zip(input_file_path: Path) -> Path:
         zipf.write(input_file_path, arcname=input_file_path.name)
 
     return output_zip_path
+
+
+def get_long_name(cdm_lite_dataset: xarray.Dataset, uncertainty_type: str) -> str:
+    long_name = cdm_lite_dataset[uncertainty_type].long_name
+    return long_name.capitalize().replace("_", " ")
