@@ -4,7 +4,7 @@ import dask
 import fsspec
 
 from cads_adaptors import Context
-from cads_adaptors.adaptors.cadsobs.csv import to_csv
+from cads_adaptors.adaptors.cadsobs.csv import to_csv, to_zip
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs, RetrieveParams
 from cads_adaptors.adaptors.cadsobs.utils import (
     _add_attributes,
@@ -63,8 +63,10 @@ def retrieve_data(
     else:
         try:
             with dask.config.set(scheduler="single-threaded"):
-                output_path = to_csv(output_dir, output_path_netcdf, retrieve_args)
+                output_path_csv = to_csv(output_dir, output_path_netcdf, retrieve_args)
+                output_path = to_zip(output_path_csv)
         finally:
             # Ensure that the netCDF is not left behind taking disk space.
             output_path_netcdf.unlink()
+            output_path_csv.unlink()
     return output_path

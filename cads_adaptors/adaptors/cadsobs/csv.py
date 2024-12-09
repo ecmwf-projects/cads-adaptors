@@ -1,4 +1,5 @@
 import logging
+import zipfile
 from pathlib import Path
 
 import xarray
@@ -85,3 +86,15 @@ def get_csv_header(
     )
     header = template.format(**header_params)
     return header
+
+
+def to_zip(input_file_path: Path) -> Path:
+    """Zips the given file into a .zip archive."""
+    # Determine output zip path
+    output_zip_path = input_file_path.with_suffix(".zip")
+
+    # Create zip archive
+    with zipfile.ZipFile(output_zip_path, "w") as zipf:
+        zipf.write(input_file_path, arcname=input_file_path.name)
+
+    return output_zip_path

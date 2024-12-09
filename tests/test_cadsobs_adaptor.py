@@ -1,4 +1,5 @@
 import time
+import zipfile
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -229,11 +230,9 @@ def test_adaptor_csv(tmp_path, monkeypatch):
     test_request_csv = TEST_REQUEST.copy()
     test_request_csv["format"] = "csv"
     result = adaptor.retrieve(test_request_csv)
-    tempfile = Path(tmp_path, "test_adaptor.csv")
-    with tempfile.open("wb") as tmpf:
-        tmpf.write(result.read())
-    assert tempfile.stat().st_size > 0
-    file_lines = tempfile.read_text().split("\n")
+    with zipfile.ZipFile(result, "r") as zipf:
+        file_lines = zipf.read(name=zipf.namelist()[0]).decode("UTF-8").split("\n")
+    assert len(file_lines) > 0
     assert "# daily_maximum_air_temperature [K]" in file_lines
     assert "# daily_maximum_relative_humidity [%]" in file_lines
 
