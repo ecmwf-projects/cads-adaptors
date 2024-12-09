@@ -62,6 +62,10 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         service_definition = cadsobs_client.get_service_definition(dataset_name)
         field_attributes = cdm_lite_variables_dict["attributes"]
         global_attributes = service_definition["global_attributes"]
+        # Get licences from the config passed to the adaptor
+        global_attributes.update(
+            dict(licence_list=self.get_licences(self.mapped_request))
+        )
         self.context.debug(
             f"The following objects are going to be filtered: {object_urls}"
         )
