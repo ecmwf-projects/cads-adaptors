@@ -54,7 +54,7 @@ def get_csv_header(
         coord_table = "station_configuration"
     else:
         coord_table = "header_table"
-    area = "{}/{}/{}/{}".format(
+    area = "{:.2f}/{:.2f}/{:.2f}/{:.2f}".format(
         cdm_lite_dataset[f"latitude|{coord_table}"].min().compute().item(),
         cdm_lite_dataset[f"latitude|{coord_table}"].max().compute().item(),
         cdm_lite_dataset[f"longitude|{coord_table}"].min().compute().item(),
