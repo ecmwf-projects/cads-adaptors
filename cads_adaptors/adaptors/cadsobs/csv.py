@@ -39,16 +39,14 @@ def get_csv_header(
 ########################################################################################
 # This file contains data retrieved from the CDS https://cds.climate.copernicus.eu/cdsapp#!/dataset/{dataset}
 # This is a C3S product under the following licences:
-#     - licence-to-use-copernicus-products
-#     - woudc-data-policy
+{licence_list}
 # This is a CSV file following the CDS convention cdm-obs
 # Data source: {dataset_source}
-# Version:
 # Time extent: {time_start} - {time_end}
 # Geographic area (minlat/maxlat/minlon/maxlon): {area}
-# Variables selected and units
+# Variables selected and units:
 {varstr}
-# Uncertainty legend
+# Uncertainty legend:
 {uncertainty_str}
 ########################################################################################
 """
@@ -80,7 +78,7 @@ def get_csv_header(
     varstr = "\n".join([f"# {v} [{u}]" for v, u in vars_and_units])
     # Uncertainty documentation
     uncertainty_vars = [
-        v for v in cdm_lite_dataset.data_vars if "uncertainty_value" in v
+        str(v) for v in cdm_lite_dataset.data_vars if "uncertainty_value" in str(v)
     ]
     if len(uncertainty_vars) > 0:
         unc_vars_and_names = [
@@ -89,6 +87,10 @@ def get_csv_header(
         uncertainty_str = "\n".join([f"# {u} {n}" for u, n in unc_vars_and_names])
     else:
         uncertainty_str = "No uncertainty columns available for this dataset."
+    # List of licences
+    licence_list_str = "\n".join(
+        f"# {licence}" for licence in cdm_lite_dataset.attrs["licence_list"]
+    )
     # Render the header
     header_params = dict(
         dataset=retrieve_args.dataset,
@@ -98,6 +100,7 @@ def get_csv_header(
         time_end=time_end,
         varstr=varstr,
         uncertainty_str=uncertainty_str,
+        licence_list=licence_list_str,
     )
     header = template.format(**header_params)
     return header

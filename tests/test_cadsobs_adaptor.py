@@ -199,6 +199,7 @@ TEST_ADAPTOR_CONFIG = {
         "rename": {"time_aggregation": "dataset_source", "variable": "variables"},
         "force": {},
     },
+    "licences": ["licence-to-use-copernicus-products", "uscrn-data-policy"],
 }
 
 
