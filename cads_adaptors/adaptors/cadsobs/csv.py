@@ -48,6 +48,8 @@ def get_csv_header(
 # Geographic area (minlat/maxlat/minlon/maxlon): {area}
 # Variables selected and units
 {varstr}
+# Uncertainty legend
+{uncertainty_str}
 ########################################################################################
 """
     if "latitude|station_configuration" in cdm_lite_dataset:
@@ -76,6 +78,18 @@ def get_csv_header(
         .itertuples(index=False, name=None)
     )
     varstr = "\n".join([f"# {v} [{u}]" for v, u in vars_and_units])
+    # Uncertainty documentation
+    uncertainty_vars = [
+        v for v in cdm_lite_dataset.data_vars if "uncertainty_value" in v
+    ]
+    if len(uncertainty_vars) > 0:
+        unc_vars_and_names = [
+            (u, cdm_lite_dataset[u].long_name) for u in uncertainty_vars
+        ]
+        uncertainty_str = "\n".join([f"# {u} {n}" for u, n in unc_vars_and_names])
+    else:
+        uncertainty_str = "No uncertainty columns available for this dataset."
+    # Render the header
     header_params = dict(
         dataset=retrieve_args.dataset,
         dataset_source=retrieve_args.params.dataset_source,
@@ -83,6 +97,7 @@ def get_csv_header(
         time_start=time_start,
         time_end=time_end,
         varstr=varstr,
+        uncertainty_str=uncertainty_str,
     )
     header = template.format(**header_params)
     return header
