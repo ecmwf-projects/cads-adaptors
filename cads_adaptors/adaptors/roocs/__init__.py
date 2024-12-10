@@ -36,7 +36,10 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         request = mapping.apply_mapping(request, self.mapping)
 
         workflow = self.construct_workflow(request)
-        response = workflow.orchestrate()
+        try:
+            response = workflow.orchestrate()
+        except Exception as err:
+            raise RoocsRuntimeError(str(err))
 
         try:
             urls = response.download_urls()
