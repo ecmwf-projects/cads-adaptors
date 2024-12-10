@@ -195,7 +195,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         self.context.add_stdout(
             f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}"
         )
-        result = execute_mars(mapped_requests, context=self.context, config=self.config)
+        result = execute_mars(mapped_requests, context=self.context, config=self.config, mapping=self.mapping)
 
         with dask.config.set(scheduler="threads"):
             paths = self.convert_format(
