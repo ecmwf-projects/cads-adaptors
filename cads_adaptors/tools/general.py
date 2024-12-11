@@ -28,7 +28,7 @@ def split_requests_on_keys(
 ) -> list[dict]:
     """Split a request on keys, returning a list of requests."""
     context.add_stdout(f"-----> IN:SPLIT ON: {split_on_keys}")
-    import cads_adaptors.mapping as mapping
+    import cads_adaptors.mapping as mapping_module
     if len(split_on_keys) == 0:
         context.add_stdout(f"-----> NO SPLIT: {requests}")
         return requests
@@ -41,10 +41,10 @@ def split_requests_on_keys(
             split_by_month = False
 
     if split_by_month:
-        date_keyword_configs = mapping_options.get("date_keyword_config", mapping.DATE_KEYWORD_CONFIGS)
+        date_keyword_configs = mapping_options.get("date_keyword_config", mapping_module.DATE_KEYWORD_CONFIGS)
         if isinstance(date_keyword_configs, dict):
             date_keyword_configs = [date_keyword_configs]
-    context.add_stdout(f"date_keyword_configs: {date_keyword_configs}")
+        context.add_stdout(f"date_keyword_configs: {date_keyword_configs}")
     for key in split_on_keys:
         out_requests = []
         for request in requests:
