@@ -55,6 +55,7 @@ def execute_mars(
     target: str = "data.grib",
 ) -> str:
     from cads_mars_server import client as mars_client
+
     requests = ensure_list(request)
     # Implement embargo if it is set in the config
     # This is now done in normalize request, but leaving it here for now, as running twice is not a problem
@@ -63,10 +64,8 @@ def execute_mars(
         requests, _cacheable = implement_embargo(requests, config["embargo"])
 
     split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
-    
-    context.add_stdout("---------------------------------------------------------- BEFORE")
     requests = split_requests_on_keys(requests, split_on_keys, context, mapping)
-    context.add_stdout("---------------------------------------------------------- AFTER")
+
     mars_servers = get_mars_server_list(config)
 
     cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
@@ -180,7 +179,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         request = self.normalise_request(request)
 
         result: Any = execute_mars(
-            self.mapped_requests, context=self.context, config=self.config, mapping=self.mapping
+            self.mapped_requests,
+            context=self.context,
+            config=self.config,
+            mapping=self.mapping,
         )
 
         with dask.config.set(scheduler="threads"):
