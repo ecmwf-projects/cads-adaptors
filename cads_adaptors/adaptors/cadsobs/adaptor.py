@@ -8,8 +8,8 @@ from cads_adaptors.exceptions import CadsObsRuntimeError, InvalidRequest
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
-    def __init__(self, args, **kwargs):
-        super().__init__(args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.download_format = "as_source"
 
     def retrieve(self, request):
