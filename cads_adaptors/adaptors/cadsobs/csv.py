@@ -6,6 +6,7 @@ import xarray
 
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs
 from cads_adaptors.adaptors.cadsobs.utils import _get_output_path
+from cads_adaptors.tools.general import ensure_list
 
 logger = logging.getLogger(__name__)
 
@@ -82,15 +83,14 @@ def get_csv_header(
     ]
     if len(uncertainty_vars) > 0:
         unc_vars_and_names = [
-            (u, cdm_lite_dataset[u].long_name) for u in uncertainty_vars
+            (u, get_long_name(cdm_lite_dataset, u)) for u in uncertainty_vars
         ]
         uncertainty_str = "\n".join([f"# {u} {n}" for u, n in unc_vars_and_names])
     else:
-        uncertainty_str = "No uncertainty columns available for this dataset."
+        uncertainty_str = "# No uncertainty columns available for this dataset."
     # List of licences
-    licence_list_str = "\n".join(
-        f"# {licence}" for licence in cdm_lite_dataset.attrs["licence_list"]
-    )
+    license_list = ensure_list(cdm_lite_dataset.attrs["licence_list"])
+    licence_list_str = "\n".join(f"# {licence}" for licence in license_list)
     # Render the header
     header_params = dict(
         dataset=retrieve_args.dataset,
@@ -116,3 +116,8 @@ def to_zip(input_file_path: Path) -> Path:
         zipf.write(input_file_path, arcname=input_file_path.name)
 
     return output_zip_path
+
+
+def get_long_name(cdm_lite_dataset: xarray.Dataset, uncertainty_type: str) -> str:
+    long_name = cdm_lite_dataset[uncertainty_type].long_name
+    return long_name.capitalize().replace("_", " ")

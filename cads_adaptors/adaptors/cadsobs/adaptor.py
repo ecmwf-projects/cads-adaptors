@@ -1,15 +1,20 @@
 import tempfile
 from pathlib import Path
 
+from cads_adaptors.adaptors import Request
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 from cads_adaptors.exceptions import CadsObsRuntimeError, InvalidRequest
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.download_format = "as_source"
+
     def retrieve(self, request):
         try:
-            output = self._retrieve(request)
+            output = super().retrieve(request)
         except KeyError as e:
             self.context.add_user_visible_error(repr(e))
             raise InvalidRequest(repr(e))
@@ -21,7 +26,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             raise e
         return output
 
-    def _retrieve(self, request):
+    def retrieve_list_of_results(self, request: Request) -> list[str]:
         from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 
         # Maps observation_type to source. This sets self.mapped_requests
@@ -62,10 +67,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         service_definition = cadsobs_client.get_service_definition(dataset_name)
         field_attributes = cdm_lite_variables_dict["attributes"]
         global_attributes = service_definition["global_attributes"]
-        # Get licences from the config passed to the adaptor
-        global_attributes.update(
-            dict(licence_list=self.get_licences(self.mapped_request))
-        )
+        # TODO: Get licences from the config passed to the adaptor
         self.context.debug(
             f"The following objects are going to be filtered: {object_urls}"
         )
@@ -80,7 +82,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             global_attributes,
             self.context,
         )
-        return open(output_path, "rb")
+        return [str(output_path)]
 
     def adapt_parameters(self) -> dict:
         # We need these changes right now to adapt the parameters to what we need
