@@ -27,7 +27,7 @@ def group_by_month(values, date_format):
 def split_requests_on_keys(
     requests: list[dict[str, Any]],
     split_on_keys: list[str],
-    context,
+    context=None,
     mapping: dict[str, Any] = dict(),
 ) -> list[dict]:
     """Split a request on keys, returning a list of requests."""
@@ -40,10 +40,11 @@ def split_requests_on_keys(
     if split_by_month:
         mapping_options = mapping.get("options", {})
         if not mapping_options.get("wants_dates", False):
-            context.add_stderr(
-                "For the time being, split-by-month is only supported for wants_dates=True!"
-            )
             split_by_month = False
+            if context:
+                context.add_stderr(
+                    "For the time being, split-by-month is only supported for wants_dates=True!"
+                )
 
     if split_by_month:
         date_keyword_configs = mapping_options.get(
