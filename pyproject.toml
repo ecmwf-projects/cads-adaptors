@@ -46,6 +46,7 @@ complete = [
   "numpy",
   "pandas",
   "pydantic",
+  "pymemcache",
   "python-dateutil",
   "pyyaml",
   "requests",
