@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
@@ -51,10 +52,14 @@ def execute_mars(
     request: dict[str, Any] | list[dict[str, Any]],
     context: Context,
     config: dict[str, Any] = dict(),
-    target: str = "data.grib",
+    target: str = None,
 ) -> str:
-    from cads_mars_server import client_file as mars_client
-
+    is_pipe = target is not None
+    if is_pipe:
+        from cads_mars_server import clinent_queue as mars_client
+    else:
+        from cads_mars_server import client_file as mars_client
+    
     requests = ensure_list(request)
     # Implement embargo if it is set in the config
     # This is now done in normalize request, but leaving it here for now, as running twice is not a problem
@@ -82,15 +87,20 @@ def execute_mars(
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
 
     context.add_stdout(f"Request sent to proxy MARS client: {requests}")
-    running = True
-    while running:
-        reply = cluster.execute(requests, env)
-        reply_message = str(reply.message)
-        context.add_stdout(message=reply_message)
-        running = reply.data is None
-        context.add_stdout(f'Request submitted {config.get("request_uid")}')
-        
-    target = reply.data.get("target", '').replace(reply.data.get("CACHE_ROOT", ''), '')
+    if is_pipe:
+        context.add_stdout(f"Pipe to {target}")
+        cluster.execute(requests, env, target)
+    else:
+        running = True
+        while running:
+            reply = cluster.execute(requests, env)
+            reply_message = str(reply.message)
+            context.add_stdout(message=reply_message)
+            running = reply.data is None
+            context.add_stdout(f'Request submitted {config.get("request_uid")}')
+            if running:
+                time.sleep(1)
+        target = reply.data.get("target", '').replace(reply.data.get("CACHE_ROOT", ''), '')
 
     if reply.error:
         error_lines = "\n".join(
