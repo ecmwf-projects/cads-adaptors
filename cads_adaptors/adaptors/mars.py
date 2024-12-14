@@ -59,6 +59,7 @@ def execute_mars(
         from cads_mars_server import clinent_queue as mars_client
     else:
         from cads_mars_server import client_file as mars_client
+        from cads_mars_server.config import local_target
     
     requests = ensure_list(request)
     # Implement embargo if it is set in the config
@@ -100,7 +101,7 @@ def execute_mars(
             context.add_stdout(f'Request submitted {config.get("request_uid")}')
             if running:
                 time.sleep(1)
-        target = reply.data.get("target", '').replace(reply.data.get("CACHE_ROOT", ''), '')
+        target = local_target(reply.data)
 
     if reply.error:
         error_lines = "\n".join(
