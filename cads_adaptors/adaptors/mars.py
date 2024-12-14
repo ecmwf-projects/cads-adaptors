@@ -94,6 +94,7 @@ def execute_mars(
     else:
         running = True
         while running:
+            context.add_user_visible_log(f'Requesting data from cads-mars-server on shared MARS cephfs ')
             reply = cluster.execute(requests, env)
             reply_message = str(reply.message)
             context.add_stdout(message=reply_message)
