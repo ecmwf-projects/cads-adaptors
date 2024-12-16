@@ -56,7 +56,7 @@ def execute_mars(
 ) -> str:
     is_pipe = target is not None
     if is_pipe:
-        from cads_mars_server import clinent_queue as mars_client
+        from cads_mars_server import client_pipe as mars_client
     else:
         from cads_mars_server import client_file as mars_client
         from cads_mars_server.config import local_target
