@@ -34,7 +34,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
 
         data_format = request.get("data_format", DEFAULT_DATA_FORMAT)
         for key, value in DATA_FORMATS.items():
-            if data_format in value:
+            if isinstance(data_format, str) and data_format.lower() in value:
                 request["data_format"] = key
                 break
         else:
