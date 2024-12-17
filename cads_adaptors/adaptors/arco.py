@@ -6,7 +6,13 @@ from cads_adaptors.tools.general import ensure_list
 
 DEFAULT_LOCATION = {"latitude": 0, "longitude": 0}
 DEFAULT_DATA_FORMAT = "netcdf"
-DATA_FORMATS = {"netcdf": ["netcdf", "netcdf4", "nc"], "csv": ["csv"]}
+DATA_FORMATS = {
+    "netcdf": ["netcdf", "netcdf4", "nc"],
+    "csv": ["csv"],
+}
+NAME_DICT = {
+    "time": "valid_time",
+}
 
 
 class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -65,6 +71,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
                 raise
 
         ds = ds.sel(request["location"], method="nearest")
+        ds = ds.rename(NAME_DICT)
 
         file_path = self.cache_tmp_path / "data"
         with dask.config.set(scheduler="threads"):
