@@ -67,7 +67,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             try:
                 ds = ds[ensure_list(variable)]
             except KeyError as exc:
-                self.context.add_user_visible_error(f"Invalid variable: {exc}")
+                self.context.add_user_visible_error(f"Invalid variable: {exc}.")
                 raise
 
         ds = ds.sel(request["location"], method="nearest")
