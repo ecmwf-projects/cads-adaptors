@@ -63,9 +63,9 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             )
             raise
 
-        if variable := request["variable"]:
+        if variables := ensure_list(request["variable"]):
             try:
-                ds = ds[ensure_list(variable)]
+                ds = ds[variables]
             except KeyError as exc:
                 self.context.add_user_visible_error(f"Invalid variable: {exc}.")
                 raise
