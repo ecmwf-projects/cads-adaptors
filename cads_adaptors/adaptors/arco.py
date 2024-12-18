@@ -35,15 +35,15 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
     def _normalise_date(self, request: Request) -> None:
         date = ensure_list(request.get("date"))
         if not date:
-            request["date"] = []
+            request["date"] = date
             return
 
         if len(date) != 1:
             raise InvalidRequest(
                 "Please specify a single date range using the format yyyy-mm-dd/yyyy-mm-dd."
             )
-        split = str(date[0]).split("/")
-        request["date"] = ["/".join(sorted([split[0], split[-1]]))]
+        split = sorted(str(date[0]).split("/"))
+        request["date"] = ["/".join([split[0], split[-1]])]
 
     def _normalise_data_format(self, request: Request) -> None:
         data_format = request.get("data_format", DEFAULT_DATA_FORMAT)
