@@ -5,7 +5,7 @@ from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
 from cads_adaptors.tools.general import ensure_list
 
-DEFAULT_LOCATION = {"latitude": 0, "longitude": 0}
+SPATIAL_COORDINATES = {"latitude", "longitude"}
 DEFAULT_DATA_FORMAT = "netcdf"
 DATA_FORMATS = {
     "netcdf": ["netcdf", "netcdf4", "nc"],
@@ -20,12 +20,16 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
     def _normalise_variable(self, request: Request) -> None:
         variable = sorted(ensure_list(request.get("variable")))
         if not variable:
-            raise InvalidRequest("Please select at least one variable.")
+            raise InvalidRequest("Please specify at least one variable.")
         request["variable"] = variable
 
     def _normalise_location(self, request: Request) -> None:
-        location = request.get("location", DEFAULT_LOCATION)
-        if not isinstance(location, dict) or not set(location) == set(DEFAULT_LOCATION):
+        location = request.get("location")
+        if not location:
+            raise InvalidRequest(
+                "Please specify a valid location using the format {'latitude': 0, 'longitude': 0}"
+            )
+        if not isinstance(location, dict) or not set(location) == SPATIAL_COORDINATES:
             raise InvalidRequest(f"Invalid {location=}.")
         try:
             request["location"] = {k: float(v) for k, v in sorted(location.items())}

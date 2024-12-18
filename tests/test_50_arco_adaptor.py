@@ -48,7 +48,7 @@ def arco_adaptor(
     "original,expected",
     [
         (
-            {"variable": "foo"},
+            {"variable": "foo", "location": {"latitude": 0.0, "longitude": 0.0}},
             {
                 "data_format": "netcdf",
                 "location": {"latitude": 0.0, "longitude": 0.0},
@@ -90,7 +90,11 @@ def test_arco_normalise_request(
 @pytest.mark.parametrize(
     "invalid_request, match",
     [
-        ({}, "select at least one variable"),
+        (
+            {"location": {"latitude": 0.0, "longitude": 0.0}},
+            "specify at least one variable",
+        ),
+        ({"variable": "FOO"}, "specify a valid location"),
         ({"variable": "FOO", "location": "foo"}, "Invalid location"),
         ({"variable": "FOO", "location": {"foo": "1"}}, "Invalid location"),
         (
@@ -98,10 +102,21 @@ def test_arco_normalise_request(
             "Invalid location",
         ),
         (
-            {"variable": "FOO", "date": [1, 2, 3]},
+            {
+                "variable": "FOO",
+                "location": {"latitude": 0.0, "longitude": 0.0},
+                "date": [1, 2, 3],
+            },
             "specify a single date range",
         ),
-        ({"variable": "FOO", "data_format": "foo"}, "Invalid data_format"),
+        (
+            {
+                "variable": "FOO",
+                "location": {"latitude": 0.0, "longitude": 0.0},
+                "data_format": "foo",
+            },
+            "Invalid data_format",
+        ),
     ],
 )
 def test_arco_invalid_request(
@@ -126,7 +141,12 @@ def test_arco_select_variable(
     variable: str | list[str],
     expected: set[str],
 ):
-    fp = arco_adaptor.retrieve({"variable": variable})
+    fp = arco_adaptor.retrieve(
+        {
+            "variable": variable,
+            "location": {"latitude": 0.0, "longitude": 0.0},
+        }
+    )
     ds = xr.open_dataset(fp.name)
     assert ds.sizes == {"valid_time": 5}
     assert set(ds.coords) == {"latitude", "longitude", "valid_time"}
@@ -154,7 +174,13 @@ def test_arco_select_date(
     date: str | int,
     expected_size: int,
 ):
-    fp = arco_adaptor.retrieve({"variable": "FOO", "date": date})
+    fp = arco_adaptor.retrieve(
+        {
+            "variable": "FOO",
+            "location": {"latitude": 0.0, "longitude": 0.0},
+            "date": date,
+        }
+    )
     ds = xr.open_dataset(fp.name)
     assert ds.sizes == {"valid_time": expected_size}
     assert set(ds.coords) == {"latitude", "longitude", "valid_time"}
@@ -173,7 +199,11 @@ def test_arco_data_format(
     data_format: str,
     extension: str,
 ):
-    request = {"variable": "FOO", "data_format": data_format}
+    request = {
+        "variable": "FOO",
+        "location": {"latitude": 0.0, "longitude": 0.0},
+        "data_format": data_format,
+    }
     fp = arco_adaptor.retrieve(request)
     assert fp.name.startswith(str(tmp_path))
     assert fp.name.endswith(extension)
@@ -198,17 +228,28 @@ def test_arco_data_format(
     "bad_request,exception,message",
     [
         (
-            {"variable": "wrong"},
+            {
+                "variable": "wrong",
+                "location": {"latitude": 0.0, "longitude": 0.0},
+            },
             KeyError,
             "Invalid variable: 'wrong'.",
         ),
         (
-            {"variable": "FOO", "date": "foo"},
+            {
+                "variable": "FOO",
+                "location": {"latitude": 0.0, "longitude": 0.0},
+                "date": "foo",
+            },
             TypeError,
             "Invalid date=['foo/foo']",
         ),
         (
-            {"variable": "FOO", "date": 1990},
+            {
+                "variable": "FOO",
+                "location": {"latitude": 0.0, "longitude": 0.0},
+                "date": 1990,
+            },
             ArcoDataLakeNoDataError,
             "No data found for date=['1990/1990']",
         ),
@@ -230,7 +271,12 @@ def test_connection_problems(
 ) -> None:
     monkeypatch.setitem(arco_adaptor.config, "url", "foo")
     with pytest.raises(FileNotFoundError):
-        arco_adaptor.retrieve({"variable": "FOO"})
+        arco_adaptor.retrieve(
+            {
+                "variable": "FOO",
+                "location": {"latitude": 0.0, "longitude": 0.0},
+            }
+        )
     assert (
         "Cannot access the ARCO Data Lake"
         in arco_adaptor.context.user_visible_errors[-1]  # type: ignore[attr-defined]
