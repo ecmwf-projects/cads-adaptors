@@ -53,7 +53,8 @@ complete = [
   "sqlalchemy",
   "tabulate",
   "tqdm",
-  "xarray"
+  "xarray",
+  "zarr"
 ]
 tests = [
   "pytest",

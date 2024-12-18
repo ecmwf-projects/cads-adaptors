@@ -23,6 +23,7 @@ except ImportError:  # pragma: no cover
     __version__ = "999"
 
 from cads_adaptors.adaptors import AbstractAdaptor, Context, DummyAdaptor
+from cads_adaptors.adaptors.arco import ArcoDataLakeCdsAdaptor
 from cads_adaptors.adaptors.cadsobs.adaptor import ObservationsAdaptor
 from cads_adaptors.adaptors.cams_regional_fc import (
     CAMSEuropeAirQualityForecastsAdaptor,
@@ -65,4 +66,5 @@ __all__ = [
     "CAMSEuropeAirQualityForecastsAdaptorForArchivedData",
     "ObservationsAdaptor",
     "CamsSolarRadiationTimeseriesAdaptor",
+    "ArcoDataLakeCdsAdaptor",
 ]

@@ -59,3 +59,7 @@ class RoocsValueError(ValueError):
 
 class CdsConfigurationError(ValueError):
     """Raised when a CDS request fails due to a configuration error."""
+
+
+class ArcoDataLakeNoDataError(InvalidRequest):
+    """Raised when a ARCO Data Lake request returns no data."""
