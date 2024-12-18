@@ -1,4 +1,5 @@
 import copy
+import tempfile
 
 from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import InvalidRequest
@@ -16,35 +17,43 @@ NAME_DICT = {
 
 
 class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
+    def _normalise_variable(self, request: Request) -> None:
+        variable = sorted(ensure_list(request.get("variable")))
+        if not variable:
+            raise InvalidRequest("Please select at least one variable.")
+        request["variable"] = variable
+
+    def _normalise_location(self, request: Request) -> None:
+        location = request.get("location", DEFAULT_LOCATION)
+        if not isinstance(location, dict) or not set(location) == set(DEFAULT_LOCATION):
+            raise InvalidRequest(f"Invalid {location=}.")
+        try:
+            request["location"] = {k: float(v) for k, v in sorted(location.items())}
+        except (ValueError, TypeError):
+            raise InvalidRequest(f"Invalid {location=}.")
+
+    def _normalise_data_format(self, request: Request) -> None:
+        data_format = request.get("data_format", DEFAULT_DATA_FORMAT)
+        for key, value in DATA_FORMATS.items():
+            if isinstance(data_format, str) and data_format.lower() in value:
+                request["data_format"] = key
+                return
+        raise InvalidRequest(f"Invalid {data_format=}.")
+
     def normalise_request(self, request: Request) -> Request:
         if self.normalised:
             return request
 
         request = copy.deepcopy(request)
-        request["variable"] = sorted(ensure_list(request.get("variable")))
-
-        location = request.get("location", DEFAULT_LOCATION)
-        if (
-            not isinstance(location, dict)
-            or not set(location) >= set(DEFAULT_LOCATION)
-            or not all(isinstance(v, int | float) for v in location.values())
-        ):
-            raise InvalidRequest(f"Invalid {location=}.")
-        request["location"] = {k: float(location[k]) for k in sorted(DEFAULT_LOCATION)}
-
-        data_format = request.get("data_format", DEFAULT_DATA_FORMAT)
-        for key, value in DATA_FORMATS.items():
-            if isinstance(data_format, str) and data_format.lower() in value:
-                request["data_format"] = key
-                break
-        else:
-            raise InvalidRequest(f"Invalid {data_format=}.")
+        self._normalise_variable(request)
+        self._normalise_location(request)
+        self._normalise_data_format(request)
 
         request = super().normalise_request(request)
         if len(self.mapped_requests) != 1:
             raise InvalidRequest("Empty or multiple requests are not supported.")
 
-        return request
+        return dict(sorted(request.items()))
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         import dask
@@ -63,27 +72,25 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             )
             raise
 
-        if variables := ensure_list(request["variable"]):
-            try:
-                ds = ds[variables]
-            except KeyError as exc:
-                self.context.add_user_visible_error(f"Invalid variable: {exc}.")
-                raise
+        try:
+            ds = ds[ensure_list(request["variable"])]
+        except KeyError as exc:
+            self.context.add_user_visible_error(f"Invalid variable: {exc}.")
+            raise
 
         ds = ds.sel(request["location"], method="nearest")
         ds = ds.rename(NAME_DICT)
 
-        file_path = self.cache_tmp_path / "data"
         with dask.config.set(scheduler="threads"):
             match request["data_format"]:
                 case "netcdf":
-                    file_path = file_path.with_suffix(".nc")
-                    ds.to_netcdf(file_path)
+                    _, path = tempfile.mkstemp(suffix=".nc", dir=self.cache_tmp_path)
+                    ds.to_netcdf(path)
                 case "csv":
-                    file_path = file_path.with_suffix(".csv")
-                    ds.to_pandas().to_csv(file_path)
+                    _, path = tempfile.mkstemp(suffix=".csv", dir=self.cache_tmp_path)
+                    ds.to_pandas().to_csv(path)
                 case data_format:
                     raise NotImplementedError(f"Invalid {data_format=}.")
 
         self.download_format = "as_source"  # Prevent from writing a zip file
-        return [str(file_path)]
+        return [str(path)]
