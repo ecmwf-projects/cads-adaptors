@@ -99,8 +99,9 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
                 self.context.add_user_visible_error(f"Invalid {date=}")
                 raise
             if not ds.sizes["time"]:
-                self.context.add_user_visible_error(f"No data found for {date=}")
-                raise ArcoDataLakeNoDataError()
+                msg = f"No data found for {date=}"
+                self.context.add_user_visible_error(msg)
+                raise ArcoDataLakeNoDataError(msg)
 
         ds = ds.sel(request["location"], method="nearest")
         ds = ds.rename(NAME_DICT)
