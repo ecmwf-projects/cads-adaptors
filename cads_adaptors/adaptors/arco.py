@@ -2,7 +2,7 @@ import copy
 import tempfile
 
 from cads_adaptors.adaptors import Request, cds
-from cads_adaptors.exceptions import InvalidRequest
+from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
 from cads_adaptors.tools.general import ensure_list
 
 DEFAULT_LOCATION = {"latitude": 0, "longitude": 0}
@@ -32,6 +32,19 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         except (ValueError, TypeError):
             raise InvalidRequest(f"Invalid {location=}.")
 
+    def _normalise_date(self, request: Request) -> None:
+        date = ensure_list(request.get("date"))
+        if not date:
+            request["date"] = []
+            return
+
+        if len(date) != 1:
+            raise InvalidRequest(
+                "Please specify a single date range using the format yyyy-mm-dd/yyyy-mm-dd."
+            )
+        split = str(date[0]).split("/")
+        request["date"] = ["/".join(sorted([split[0], split[-1]]))]
+
     def _normalise_data_format(self, request: Request) -> None:
         data_format = request.get("data_format", DEFAULT_DATA_FORMAT)
         for key, value in DATA_FORMATS.items():
@@ -47,6 +60,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         request = copy.deepcopy(request)
         self._normalise_variable(request)
         self._normalise_location(request)
+        self._normalise_date(request)
         self._normalise_data_format(request)
 
         request = super().normalise_request(request)
@@ -77,6 +91,16 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         except KeyError as exc:
             self.context.add_user_visible_error(f"Invalid variable: {exc}.")
             raise
+
+        if date := request["date"]:
+            try:
+                ds = ds.sel(time=slice(*date[0].split("/")))
+            except TypeError:
+                self.context.add_user_visible_error(f"Invalid {date=}")
+                raise
+            if not ds.sizes["time"]:
+                self.context.add_user_visible_error(f"No data found for {date=}")
+                raise ArcoDataLakeNoDataError()
 
         ds = ds.sel(request["location"], method="nearest")
         ds = ds.rename(NAME_DICT)

@@ -8,7 +8,7 @@ import xarray as xr
 
 from cads_adaptors import ArcoDataLakeCdsAdaptor
 from cads_adaptors.adaptors import Context
-from cads_adaptors.exceptions import InvalidRequest
+from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
 
 
 @pytest.fixture
@@ -52,6 +52,7 @@ def arco_adaptor(
             {
                 "data_format": "netcdf",
                 "location": {"latitude": 0.0, "longitude": 0.0},
+                "date": [],
                 "variable": ["foo"],
             },
         ),
@@ -62,6 +63,7 @@ def arco_adaptor(
                     "longitude": 1,
                     "latitude": "2",
                 },
+                "date": 1990,
                 "variable": ("foo", "bar"),
             },
             {
@@ -70,6 +72,7 @@ def arco_adaptor(
                     "latitude": 2.0,
                     "longitude": 1.0,
                 },
+                "date": ["1990/1990"],
                 "variable": ["bar", "foo"],
             },
         ),
@@ -93,6 +96,10 @@ def test_arco_normalise_request(
         (
             {"variable": "FOO", "location": {"latitude": "foo", "longitude": "bar"}},
             "Invalid location",
+        ),
+        (
+            {"variable": "FOO", "date": [1, 2, 3]},
+            "specify a single date range",
         ),
         ({"variable": "FOO", "data_format": "foo"}, "Invalid data_format"),
     ],
@@ -132,6 +139,25 @@ def test_arco_select_location(arco_adaptor: ArcoDataLakeCdsAdaptor):
     ds = xr.open_dataset(fp.name)
     assert ds["latitude"].item() == 30
     assert ds["longitude"].item() == 40
+
+
+@pytest.mark.parametrize(
+    "date,expected_size",
+    [
+        (2000, 5),
+        ("2000-01-01", 1),
+        ("2000-01-01/2000-01-02", 2),
+    ],
+)
+def test_arco_select_date(
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    date: str | int,
+    expected_size: int,
+):
+    fp = arco_adaptor.retrieve({"variable": "FOO", "date": date})
+    ds = xr.open_dataset(fp.name)
+    assert ds.sizes == {"valid_time": expected_size}
+    assert set(ds.coords) == {"latitude", "longitude", "valid_time"}
 
 
 @pytest.mark.parametrize(
@@ -175,7 +201,17 @@ def test_arco_data_format(
             {"variable": "wrong"},
             KeyError,
             "Invalid variable: 'wrong'.",
-        )
+        ),
+        (
+            {"variable": "FOO", "date": "foo"},
+            TypeError,
+            "Invalid date=['foo/foo']",
+        ),
+        (
+            {"variable": "FOO", "date": 1990},
+            ArcoDataLakeNoDataError,
+            "No data found for date=['1990/1990']",
+        ),
     ],
 )
 def test_user_visible_errors(
