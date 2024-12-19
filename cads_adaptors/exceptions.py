@@ -57,6 +57,10 @@ class RoocsValueError(ValueError):
     """Raised when a ROOCS request fails due to a value error."""
 
 
+class CdsFormatConversionError(RuntimeError):
+    """Raised when a CDS post-processing request fails."""
+
+
 class CdsConfigurationError(ValueError):
     """Raised when a CDS request fails due to a configuration error."""
 
