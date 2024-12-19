@@ -181,7 +181,7 @@ def result_to_netcdf_legacy_files(
     result: Any,
     context: Context = Context(),
     to_netcdf_legacy_kwargs: dict[str, Any] = {},
-    out_dir: str = "",
+    target_dir: str = "",
     **kwargs,
 ) -> list[str]:
     """
@@ -267,7 +267,7 @@ def result_to_netcdf_legacy_files(
 
     nc_files = []
     for out_fname_base, grib_file in result.items():
-        out_fname = os.path.join(out_dir, f"{out_fname_base}.nc")
+        out_fname = os.path.join(target_dir, f"{out_fname_base}.nc")
         nc_files.append(out_fname)
         command = ensure_list(command)
         os.system(" ".join(command + ["-o", out_fname, grib_file]))
@@ -366,7 +366,7 @@ def xarray_dict_to_netcdf(
     compression_options: str | dict[str, Any] = "default",
     to_netcdf_kwargs: dict[str, Any] = {},
     out_fname_prefix: str = "",
-    out_dir: str = "",
+    target_dir: str = "",
     **kwargs,
 ) -> list[str]:
     """
@@ -381,7 +381,7 @@ def xarray_dict_to_netcdf(
         "compression_options", compression_options
     )
     out_fname_prefix = to_netcdf_kwargs.pop("out_fname_prefix", out_fname_prefix)
-    out_dir = to_netcdf_kwargs.pop("out_dir", out_dir)
+    target_dir = to_netcdf_kwargs.pop("target_dir", target_dir)
 
     # Fetch any preset compression options
     if isinstance(compression_options, str):
@@ -395,7 +395,7 @@ def xarray_dict_to_netcdf(
                 "encoding": {var: compression_options for var in dataset},
             }
         )
-        out_fname = os.path.join(out_dir, f"{out_fname_prefix}{out_fname_base}.nc")
+        out_fname = os.path.join(target_dir, f"{out_fname_prefix}{out_fname_base}.nc")
         context.add_stdout(f"Writing {out_fname} with kwargs:\n{to_netcdf_kwargs}")
         dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
         out_nc_files.append(out_fname)

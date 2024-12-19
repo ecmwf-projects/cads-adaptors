@@ -206,7 +206,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 context=self.context,
                 config=self.config,
                 to_netcdf_kwargs={
-                    "out_dir": target_dir
+                    "target_dir": target_dir
                 },
             )
 
