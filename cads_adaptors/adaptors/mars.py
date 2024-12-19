@@ -52,7 +52,8 @@ def execute_mars(
     request: dict[str, Any] | list[dict[str, Any]],
     context: Context,
     config: dict[str, Any] = dict(),
-    target: str = None,
+    mapping: dict[str, Any] = dict(),
+    target: str = None
 ) -> str:
     is_pipe = target is not None
     if is_pipe:
@@ -69,7 +70,7 @@ def execute_mars(
         requests, _cacheable = implement_embargo(requests, config["embargo"])
 
     split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
-    requests = split_requests_on_keys(requests, split_on_keys)
+    requests = split_requests_on_keys(requests, split_on_keys, context, mapping)
 
     mars_servers = get_mars_server_list(config)
 
@@ -200,7 +201,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         request = self.normalise_request(request)
 
         result: Any = execute_mars(
-            self.mapped_requests, context=self.context, config=self.config
+            self.mapped_requests,
+            context=self.context,
+            config=self.config,
+            mapping=self.mapping,
         )
 
         with dask.config.set(scheduler="threads"):

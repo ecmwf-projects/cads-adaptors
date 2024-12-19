@@ -1,4 +1,5 @@
 import time
+import zipfile
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -198,6 +199,7 @@ TEST_ADAPTOR_CONFIG = {
         "rename": {"time_aggregation": "dataset_source", "variable": "variables"},
         "force": {},
     },
+    "licences": ["licence-to-use-copernicus-products", "uscrn-data-policy"],
 }
 
 
@@ -208,7 +210,7 @@ def test_adaptor(tmp_path, monkeypatch):
     )
     test_form = {}
 
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     result = adaptor.retrieve(TEST_REQUEST)
     tempfile = Path(tmp_path, "test_adaptor.nc")
     with tempfile.open("wb") as tmpf:
@@ -225,15 +227,13 @@ def test_adaptor_csv(tmp_path, monkeypatch):
     )
     test_form = {}
 
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     test_request_csv = TEST_REQUEST.copy()
     test_request_csv["format"] = "csv"
     result = adaptor.retrieve(test_request_csv)
-    tempfile = Path(tmp_path, "test_adaptor.csv")
-    with tempfile.open("wb") as tmpf:
-        tmpf.write(result.read())
-    assert tempfile.stat().st_size > 0
-    file_lines = tempfile.read_text().split("\n")
+    with zipfile.ZipFile(result, "r") as zipf:
+        file_lines = zipf.read(name=zipf.namelist()[0]).decode("UTF-8").split("\n")
+    assert len(file_lines) > 0
     assert "# daily_maximum_air_temperature [K]" in file_lines
     assert "# daily_maximum_relative_humidity [%]" in file_lines
 
@@ -245,7 +245,7 @@ def test_adaptor_error(tmp_path, monkeypatch):
     )
     test_form = {}
 
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     adaptor.context.add_user_visible_error = Mock()
     with pytest.raises(RuntimeError) as e:
         adaptor.retrieve(TEST_REQUEST)
@@ -262,7 +262,7 @@ def test_adaptor_wrong_key(monkeypatch):
     test_form = {}
     test_request = TEST_REQUEST.copy()
     test_request.pop("time_aggregation")
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
 
@@ -279,20 +279,20 @@ def test_adaptor_wrong_value(monkeypatch):
     test_form = {}
     test_request = TEST_REQUEST.copy()
     test_request["variable"] = "FAKE_VARIABLE"
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
 
     # And dataset_source variables
     test_request["time_aggregation"] = "FAKE_VARIABLE"
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
 
 
 def test_connection_error(tmp_path):
     test_form = {}
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     adaptor.context.add_user_visible_error = Mock()
     with pytest.raises(CadsObsConnectionError) as e:
         adaptor.retrieve(TEST_REQUEST)
@@ -303,7 +303,7 @@ def test_connection_error(tmp_path):
 
 def test_api_error(tmp_path, monkeypatch):
     test_form = {}
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     monkeypatch.setattr(
         "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
         BackendErrorCadsobsApiClient,

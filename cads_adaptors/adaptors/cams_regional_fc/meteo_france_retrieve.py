@@ -15,14 +15,15 @@ from .grib2request import grib2request_init
 
 def meteo_france_retrieve(
     requests,
-    target,
     regapi,
     regfc_defns,
     integration_server,
+    target=None,
     tmpdir=None,
     max_rate=None,
     max_simultaneous=None,
     cacher_kwargs=None,
+    combine_method=None,
     logger=None,
     **kwargs,
 ):
@@ -31,6 +32,11 @@ def meteo_france_retrieve(
     """
     if logger is None:
         logger = logging.getLogger(__name__)
+
+    # By default, if a target has been provided then all grib fields will be
+    # concatenated into it. Otherwise they will not be written to file.
+    if combine_method is None:
+        combine_method = "cat" if target else "null"
 
     # Keyword argument options to Downloader that depend on the backend
     # (archived/latest)
@@ -103,7 +109,7 @@ def meteo_france_retrieve(
             getter=getter,
             max_rate=rate_limiter,
             max_simultaneous=number_limiter,
-            combine_method="cat" if target else "null",
+            combine_method=combine_method,
             target_suffix=".grib",
             response_checker=assert_valid_grib,
             response_checker_threadsafe=False,
@@ -119,8 +125,9 @@ def meteo_france_retrieve(
         t0 = time.time()
 
         try:
-            # Returns None if no data is found
-            file = downloader.execute(urlreqs, target=target)
+            # Returns None if no data is found. Return a list if combine_method
+            # is "none".
+            output = downloader.execute(urlreqs, target=target)
         except RequestFailed as e:
             req = {x["url"]: x["req"] for x in urlreqs}[e.url]
             raise Exception(
@@ -139,7 +146,7 @@ def meteo_france_retrieve(
 
     logger.info("Meteo France download finished")
 
-    return file
+    return output
 
 
 def make_api_hypercubes(requests, regapi):

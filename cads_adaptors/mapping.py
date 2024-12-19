@@ -104,9 +104,17 @@ def parse_date(date):
             output = int(date)
     except Exception:
         raise exceptions.InvalidRequest(
-            f'Invalid date string: "{date}". Should be ' "yyymmdd or yyyy-mm-dd"
+            f'Invalid date string: "{date}". Should be ' "yyyymmdd or yyyy-mm-dd"
         )
     return output
+
+
+def date_to_format(date, date_format=None):
+    jdate = date_to_julian(parse_date(date))
+    if date_format is None:
+        return julian_to_date(jdate)
+    else:
+        return datetime.date(*julian_to_ymd(jdate)).strftime(date_format)
 
 
 def date_range(start_date, end_date, step=1, date_format=None):
@@ -199,6 +207,8 @@ def expand_dates(r, request, date, year, month, day, date_format):
                         f'Date ranges must be of the form "start_date/end_date": "{d}"'
                     )
                 newdates.update(date_range(*items, date_format=date_format))
+            elif d:
+                newdates.add(date_to_format(d, date_format))
             else:
                 newdates.add(d)
 
