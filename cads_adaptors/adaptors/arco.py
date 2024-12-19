@@ -24,17 +24,17 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         request["variable"] = variable
 
     def _normalise_location(self, request: Request) -> None:
-        location = request.get("location")
-        if not location:
-            raise InvalidRequest(
-                "Please specify a valid location using the format {'latitude': 0, 'longitude': 0}"
-            )
+        locations = ensure_list(request.get("location"))
+        msg = "Please specify a single valid location using the format {'latitude': 0, 'longitude': 0}"
+        if len(locations) != 1:
+            raise InvalidRequest(msg)
+        (location,) = locations
         if not isinstance(location, dict) or not set(location) == SPATIAL_COORDINATES:
-            raise InvalidRequest(f"Invalid {location=}.")
+            raise InvalidRequest(f"Invalid {location=}. {msg}")
         try:
             request["location"] = {k: float(v) for k, v in sorted(location.items())}
         except (ValueError, TypeError):
-            raise InvalidRequest(f"Invalid {location=}.")
+            raise InvalidRequest(f"Invalid {location=}. {msg}")
 
     def _normalise_date(self, request: Request) -> None:
         date = ensure_list(request.get("date"))
@@ -50,12 +50,19 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         request["date"] = ["/".join([split[0], split[-1]])]
 
     def _normalise_data_format(self, request: Request) -> None:
-        data_format = request.get("data_format", DEFAULT_DATA_FORMAT)
+        data_formats = ensure_list(request.get("data_format", DEFAULT_DATA_FORMAT))
+        if len(data_formats) != 1:
+            raise InvalidRequest("Please specify a single data_format.")
+        (data_format,) = data_formats
+        available_options = set()
         for key, value in DATA_FORMATS.items():
+            available_options.update(value)
             if isinstance(data_format, str) and data_format.lower() in value:
                 request["data_format"] = key
                 return
-        raise InvalidRequest(f"Invalid {data_format=}.")
+        raise InvalidRequest(
+            f"Invalid {data_format=}. Available options: {available_options}"
+        )
 
     def normalise_request(self, request: Request) -> Request:
         if self.normalised:

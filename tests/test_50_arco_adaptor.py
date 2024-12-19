@@ -48,7 +48,7 @@ def arco_adaptor(
     "original,expected",
     [
         (
-            {"variable": "foo", "location": {"latitude": 0.0, "longitude": 0.0}},
+            {"variable": "foo", "location": {"latitude": 0, "longitude": 0}},
             {
                 "data_format": "netcdf",
                 "location": {"latitude": 0.0, "longitude": 0.0},
@@ -58,7 +58,7 @@ def arco_adaptor(
         ),
         (
             {
-                "data_format": "nc",
+                "data_format": ["nc"],
                 "location": {
                     "longitude": 1,
                     "latitude": "2",
@@ -91,10 +91,20 @@ def test_arco_normalise_request(
     "invalid_request, match",
     [
         (
-            {"location": {"latitude": 0.0, "longitude": 0.0}},
+            {"location": {"latitude": 0, "longitude": 0}},
             "specify at least one variable",
         ),
-        ({"variable": "FOO"}, "specify a valid location"),
+        ({"variable": "FOO"}, "specify a single valid location"),
+        (
+            {
+                "variable": "FOO",
+                "location": [
+                    {"latitude": 0, "longitude": 0},
+                    {"latitude": 1, "longitude": 1},
+                ],
+            },
+            "specify a single valid location",
+        ),
         ({"variable": "FOO", "location": "foo"}, "Invalid location"),
         ({"variable": "FOO", "location": {"foo": "1"}}, "Invalid location"),
         (
@@ -104,7 +114,7 @@ def test_arco_normalise_request(
         (
             {
                 "variable": "FOO",
-                "location": {"latitude": 0.0, "longitude": 0.0},
+                "location": {"latitude": 0, "longitude": 0},
                 "date": [1, 2, 3],
             },
             "specify a single date range",
@@ -112,7 +122,15 @@ def test_arco_normalise_request(
         (
             {
                 "variable": "FOO",
-                "location": {"latitude": 0.0, "longitude": 0.0},
+                "location": {"latitude": 0, "longitude": 0},
+                "data_format": ["foo", "bar"],
+            },
+            "specify a single data_format",
+        ),
+        (
+            {
+                "variable": "FOO",
+                "location": {"latitude": 0, "longitude": 0},
                 "data_format": "foo",
             },
             "Invalid data_format",
@@ -144,7 +162,7 @@ def test_arco_select_variable(
     fp = arco_adaptor.retrieve(
         {
             "variable": variable,
-            "location": {"latitude": 0.0, "longitude": 0.0},
+            "location": {"latitude": 0, "longitude": 0},
         }
     )
     ds = xr.open_dataset(fp.name)
@@ -177,7 +195,7 @@ def test_arco_select_date(
     fp = arco_adaptor.retrieve(
         {
             "variable": "FOO",
-            "location": {"latitude": 0.0, "longitude": 0.0},
+            "location": {"latitude": 0, "longitude": 0},
             "date": date,
         }
     )
@@ -201,7 +219,7 @@ def test_arco_data_format(
 ):
     request = {
         "variable": "FOO",
-        "location": {"latitude": 0.0, "longitude": 0.0},
+        "location": {"latitude": 0, "longitude": 0},
         "data_format": data_format,
     }
     fp = arco_adaptor.retrieve(request)
@@ -230,7 +248,7 @@ def test_arco_data_format(
         (
             {
                 "variable": "wrong",
-                "location": {"latitude": 0.0, "longitude": 0.0},
+                "location": {"latitude": 0, "longitude": 0},
             },
             KeyError,
             "Invalid variable: 'wrong'.",
@@ -238,7 +256,7 @@ def test_arco_data_format(
         (
             {
                 "variable": "FOO",
-                "location": {"latitude": 0.0, "longitude": 0.0},
+                "location": {"latitude": 0, "longitude": 0},
                 "date": "foo",
             },
             TypeError,
@@ -247,7 +265,7 @@ def test_arco_data_format(
         (
             {
                 "variable": "FOO",
-                "location": {"latitude": 0.0, "longitude": 0.0},
+                "location": {"latitude": 0, "longitude": 0},
                 "date": 1990,
             },
             ArcoDataLakeNoDataError,
@@ -274,7 +292,7 @@ def test_connection_problems(
         arco_adaptor.retrieve(
             {
                 "variable": "FOO",
-                "location": {"latitude": 0.0, "longitude": 0.0},
+                "location": {"latitude": 0, "longitude": 0},
             }
         )
     assert (
