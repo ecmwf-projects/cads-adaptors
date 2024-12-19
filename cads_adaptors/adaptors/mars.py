@@ -53,7 +53,7 @@ def execute_mars(
     context: Context,
     config: dict[str, Any] = dict(),
     mapping: dict[str, Any] = dict(),
-    target: str = "data.grib"
+    target: str = "data.grib",
 ) -> str:
     write_to_cephfs = os.getenv("WRITE_DIRECTLY_TO_CEPHFS", "FALSE").upper() == "TRUE"
 
@@ -67,7 +67,9 @@ def execute_mars(
         try:
             from cads_mars_server.config import local_target
         except ImportError:
-            context.debug("cads-mars-server not compatible with file transfer, using previous settings")
+            context.debug(
+                "cads-mars-server not compatible with file transfer, using previous settings"
+            )
             write_to_cephfs = False
             transfer_type = "pipe"
     requests = ensure_list(request)
@@ -107,7 +109,9 @@ def execute_mars(
     else:
         running = True
         while running:
-            context.add_user_visible_log(f'Requesting data from cads-mars-server on shared MARS cephfs ')
+            context.add_user_visible_log(
+                "Requesting data from cads-mars-server on shared MARS cephfs "
+            )
             reply = cluster.execute(requests, env)
             reply_message = str(reply.message)
             context.add_stdout(message=reply_message)
@@ -152,7 +156,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
         if result.endswith(".grib"):
             facts = result.split("/")
             if facts[-2] == "mars":
-                os.environ["CACHOLOTE_IO_DELETE_ORIGINAL"]= "FALSE"
+                os.environ["CACHOLOTE_IO_DELETE_ORIGINAL"] = "FALSE"
         return open(result, "rb")
 
 
