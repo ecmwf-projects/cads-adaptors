@@ -7,7 +7,6 @@ from . import constraints
 
 EXCLUDED_WIDGETS = [
     "GeographicExtentWidget",
-    "UnknownWidget",
 ]
 
 # TODO: Handle DateRangeWidget
@@ -194,10 +193,15 @@ def get_excluded_keys(
 def estimate_number_of_fields(
     form: list[dict[str, Any]] | dict[str, Any] | None,
     request: dict[str, Any],
+    **kwargs,
 ) -> int:
+    weighted_values = kwargs.get("weighted_values", {})
+    weighted_keys = kwargs.get("weighted_keys", {})
     excluded_variables = get_excluded_keys(form)
     number_of_values = []
     for variable_id, variable_value in request.items():
+        weights_v = weighted_values.get(variable_id, {})
+        weight_k = weighted_keys.get(variable_id, 1)
         if isinstance(variable_value, set):
             variable_value = list(variable_value)
         if not isinstance(variable_value, (list, tuple)):
@@ -205,6 +209,12 @@ def estimate_number_of_fields(
                 variable_value,
             ]
         if variable_id not in excluded_variables:
-            number_of_values.append(len(variable_value))
+            n_values = len(variable_value)
+            # If any values in weighted_values, add weight - 1 to n_values (the first is already counted)
+            for val, weight in weights_v.items():
+                if val in variable_value:
+                    n_values += weight - 1
+            # Append number of values, multiplied by weight for the key
+            number_of_values.append(n_values * weight_k)
     number_of_fields = math.prod(number_of_values)
     return number_of_fields

@@ -1,11 +1,12 @@
 import logging
+import zipfile
 from pathlib import Path
 
-import dask
 import xarray
 
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs
 from cads_adaptors.adaptors.cadsobs.utils import _get_output_path
+from cads_adaptors.tools.general import ensure_list
 
 logger = logging.getLogger(__name__)
 
@@ -39,22 +40,26 @@ def get_csv_header(
 ########################################################################################
 # This file contains data retrieved from the CDS https://cds.climate.copernicus.eu/cdsapp#!/dataset/{dataset}
 # This is a C3S product under the following licences:
-#     - licence-to-use-copernicus-products
-#     - woudc-data-policy
+{licence_list}
 # This is a CSV file following the CDS convention cdm-obs
 # Data source: {dataset_source}
-# Version:
 # Time extent: {time_start} - {time_end}
 # Geographic area (minlat/maxlat/minlon/maxlon): {area}
-# Variables selected and units
+# Variables selected and units:
 {varstr}
+# Uncertainty legend:
+{uncertainty_str}
 ########################################################################################
 """
-    area = "{}/{}/{}/{}".format(
-        cdm_lite_dataset.latitude.min().compute().item(),
-        cdm_lite_dataset.latitude.max().compute().item(),
-        cdm_lite_dataset.longitude.min().compute().item(),
-        cdm_lite_dataset.longitude.max().compute().item(),
+    if "latitude|station_configuration" in cdm_lite_dataset:
+        coord_table = "station_configuration"
+    else:
+        coord_table = "header_table"
+    area = "{:.2f}/{:.2f}/{:.2f}/{:.2f}".format(
+        cdm_lite_dataset[f"latitude|{coord_table}"].min().compute().item(),
+        cdm_lite_dataset[f"latitude|{coord_table}"].max().compute().item(),
+        cdm_lite_dataset[f"longitude|{coord_table}"].min().compute().item(),
+        cdm_lite_dataset[f"longitude|{coord_table}"].max().compute().item(),
     )
     time_start = "{:%Y%m%d}".format(
         cdm_lite_dataset.report_timestamp[0].compute().dt.date
@@ -62,13 +67,31 @@ def get_csv_header(
     time_end = "{:%Y%m%d}".format(
         cdm_lite_dataset.report_timestamp[-1].compute().dt.date
     )
-    vars_and_units = zip(
-        dask.array.unique(cdm_lite_dataset.observed_variable.data)
-        .compute()
-        .astype("U"),
-        dask.array.unique(cdm_lite_dataset.units.data).compute().astype("U"),
+    # Subset the dataset to get variables and units, drop duplicates, encode and convert
+    # to tuples.
+    vars_and_units = list(
+        cdm_lite_dataset[["observed_variable", "units"]]
+        .to_dataframe()
+        .drop_duplicates()
+        .astype("U")
+        .itertuples(index=False, name=None)
     )
     varstr = "\n".join([f"# {v} [{u}]" for v, u in vars_and_units])
+    # Uncertainty documentation
+    uncertainty_vars = [
+        str(v) for v in cdm_lite_dataset.data_vars if "uncertainty_value" in str(v)
+    ]
+    if len(uncertainty_vars) > 0:
+        unc_vars_and_names = [
+            (u, get_long_name(cdm_lite_dataset, u)) for u in uncertainty_vars
+        ]
+        uncertainty_str = "\n".join([f"# {u} {n}" for u, n in unc_vars_and_names])
+    else:
+        uncertainty_str = "# No uncertainty columns available for this dataset."
+    # List of licences
+    license_list = ensure_list(cdm_lite_dataset.attrs["licence_list"])
+    licence_list_str = "\n".join(f"# {licence}" for licence in license_list)
+    # Render the header
     header_params = dict(
         dataset=retrieve_args.dataset,
         dataset_source=retrieve_args.params.dataset_source,
@@ -76,6 +99,25 @@ def get_csv_header(
         time_start=time_start,
         time_end=time_end,
         varstr=varstr,
+        uncertainty_str=uncertainty_str,
+        licence_list=licence_list_str,
     )
     header = template.format(**header_params)
     return header
+
+
+def to_zip(input_file_path: Path) -> Path:
+    """Zips the given file into a .zip archive."""
+    # Determine output zip path
+    output_zip_path = input_file_path.with_suffix(".zip")
+
+    # Create zip archive
+    with zipfile.ZipFile(output_zip_path, "w") as zipf:
+        zipf.write(input_file_path, arcname=input_file_path.name)
+
+    return output_zip_path
+
+
+def get_long_name(cdm_lite_dataset: xarray.Dataset, uncertainty_type: str) -> str:
+    long_name = cdm_lite_dataset[uncertainty_type].long_name
+    return long_name.capitalize().replace("_", " ")

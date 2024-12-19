@@ -29,17 +29,17 @@ def process_grib_files(req_groups, info, context):
     # required
     for req_group in req_groups:
         # If there is only one retrieved file for this group and it does not
-        # require any alteration then use as-is
-        if len(req_group["retrieved_files"]) == 1 and not any(alterations.values()):
-            pre_existing = req_group["retrieved_files"][0]
+        # require any alteration then use as-is. Otherwise, copy data to the
+        # new file.
+        if (
+            len(req_group["retrieved_files"]) == 1
+            and not any(alterations.values())
+            and info["stages"][-1] != "merge_grib"
+        ):
+            req_group["grib_file"] = req_group["retrieved_files"][0]
         else:
-            pre_existing = None
-        req_group["grib_file"] = create_file(
-            "merge_grib", ".grib", info, context, temp_path=pre_existing
-        )
-
-        # Copy data to the grib file?
-        if req_group["grib_file"] != pre_existing:
+            # Copy data to the grib file
+            req_group["grib_file"] = create_file("merge_grib", ".grib", info)
             with open(req_group["grib_file"], "wb") as fout:
                 for data in data_processor(req_group, alterations, context):
                     fout.write(data)
@@ -66,7 +66,7 @@ def data_processor(req_group, alterations, context):
                 req_group["retrieved_files"],
                 req_group["requests"],
                 grib2request,
-                context,
+                logger=context,
             )
         else:
             iterator = grib_file_iterator(req_group["retrieved_files"])

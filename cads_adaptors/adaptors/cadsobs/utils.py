@@ -32,16 +32,27 @@ def _get_output_path(output_dir: Path, dataset: str, format: RetrieveFormat) -> 
     return output_path
 
 
-def _add_attributes(oncobj: h5netcdf.File, global_attributes: dict):
+def _add_attributes(
+    oncobj: h5netcdf.File, field_attributes: dict, global_attributes: dict
+):
     """Add relevant attributes to the output netCDF."""
     if "height_of_station_above_sea_level" in oncobj.variables:
         oncobj.variables["height_of_station_above_sea_level"].attrs["units"] = "m"
-    oncobj.variables["longitude"].attrs["standard_name"] = "longitude"
-    oncobj.variables["latitude"].attrs["standard_name"] = "latitude"
+    for coord in ["longitude", "latitude"]:
+        for table in ["station_configuration", "header_table", "observations_table"]:
+            coord_with_table = f"{coord}|{table}"
+            if coord_with_table in oncobj.variables:
+                oncobj.variables[coord_with_table].attrs["standard_name"] = coord
+                if coord == "longitude":
+                    oncobj.variables[coord_with_table].attrs["units"] = "degrees_east"
+                if coord == "latitude":
+                    oncobj.variables[coord_with_table].attrs["units"] = "degrees_north"
     oncobj.variables["report_timestamp"].attrs["standard_name"] = "time"
-    oncobj.variables["longitude"].attrs["units"] = "degrees_east"
-    oncobj.variables["latitude"].attrs["units"] = "degrees_north"
     oncobj.attrs["featureType"] = "point"
+    # Variables defined as part of the CDM lite
+    for oncvar in oncobj.variables:
+        if oncvar in field_attributes:
+            oncobj.variables[oncvar].attrs.update(field_attributes[oncvar])
     # Global attributes
     oncobj.attrs.update(global_attributes)
 
@@ -241,10 +252,6 @@ def _filter_and_save_var(
     )
     dtype = _get_output_dtype(ivar, ivarobj)
     attrs = dict()
-    # Remove table name from the coordinates
-    ivar, cdm_table = _remove_table_name_from_coordinates(incobj, ivar)
-    if cdm_table is not None:
-        attrs["cdm_table"] = cdm_table
     # Set time units
     if ivar == "report_timestamp":
         attrs["units"] = ivarobj.attrs["units"]

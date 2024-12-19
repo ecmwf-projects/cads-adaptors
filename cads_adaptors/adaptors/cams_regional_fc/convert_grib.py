@@ -1,22 +1,16 @@
 from os.path import exists
 
-import yaml
-
 from .convert_grib_to_netcdf import convert_grib_to_netcdf
 from .create_file import create_file
 from .formats import Formats
 
 
-def convert_grib(req_groups, info, dataset_dir, context):
+def convert_grib(req_groups, info, regfc_defns, context):
     """Convert files to NetCDF if required."""
-    # Information on each parameter & model
-    with open(dataset_dir + "/regional_fc_definitions.yaml") as f:
-        regfc_defns = yaml.safe_load(f)
-
     # Convert to NetCDF?
     if info["format"] in [Formats.netcdf, Formats.netcdf_zip, Formats.netcdf_cdm]:
         for req_group in req_groups:
-            req_group["nc_file"] = create_file("convert", ".nc", info, context)
+            req_group["nc_file"] = create_file("convert", ".nc", info)
             if info["format"] in (Formats.netcdf, Formats.netcdf_zip):
                 convert_grib_to_netcdf(
                     req_group["requests"],
@@ -24,10 +18,10 @@ def convert_grib(req_groups, info, dataset_dir, context):
                     req_group["nc_file"],
                     regfc_defns,
                 )
-            elif info["format"] == Formats.netcdf_cdm:
-                convert_grib_to_netcdf_cdm(
-                    req_group["grib_file"], req_group["nc_file"], dataset_dir, context
-                )
+            # elif info["format"] == Formats.netcdf_cdm:
+            #    convert_grib_to_netcdf_cdm(
+            #        req_group["grib_file"], req_group["nc_file"], dataset_dir, context
+            #    )
             else:
                 raise Exception("Unrecognised format: " + info["format"])
 

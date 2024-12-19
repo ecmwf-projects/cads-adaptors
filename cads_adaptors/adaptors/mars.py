@@ -52,6 +52,7 @@ def execute_mars(
     request: dict[str, Any] | list[dict[str, Any]],
     context: Context = Context(),
     config: dict[str, Any] = dict(),
+    mapping: dict[str, Any] = dict(),
     target_fname: str = "data.grib",
     target_dir: str | pathlib.Path = "",
 ) -> str:
@@ -67,7 +68,7 @@ def execute_mars(
     target = str(pathlib.Path(target_dir) / target_fname)
 
     split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
-    requests = split_requests_on_keys(requests, split_on_keys)
+    requests = split_requests_on_keys(requests, split_on_keys, context, mapping)
 
     mars_servers = get_mars_server_list(config)
 
@@ -185,12 +186,15 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         execute_mars_kwargs: dict[str, Any] = {
             "context": self.context,
             "config": self.config,
+            "mapping": self.mapping,
         }
         if self.data_format in ["grib"] and ceph_test:
             execute_mars_kwargs.update({"target_dir": self.cache_tmp_path})
 
-        result = execute_mars(self.mapped_requests, **execute_mars_kwargs)
-
+        result = execute_mars(
+            self.mapped_requests, **execute_mars_kwargs
+        )
+        
         with dask.config.set(scheduler="threads"):
             results_dict = self.post_process(result)
 

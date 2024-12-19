@@ -19,6 +19,8 @@ STANDARD_COMPRESSION_OPTIONS = {
     }
 }
 
+DEFAULT_OPEN_ENGINE = "cfgrib"
+
 DEFAULT_CHUNKS = {
     "time": 12,
     "step": 1,
@@ -574,6 +576,10 @@ def prepare_open_datasets_kwargs_grib(
     out_open_datasets_kwargs: list[dict[str, Any]] = []
     for open_ds_kwargs in ensure_list(open_datasets_kwargs):
         open_ds_kwargs.update(kwargs)
+        # Ensure chunks and engine are set
+        open_ds_kwargs.setdefault("chunks", DEFAULT_CHUNKS)
+        open_ds_kwargs.setdefault("engine", DEFAULT_OPEN_ENGINE)
+
         split_on_keys: list[str] | None = open_ds_kwargs.pop("split_on", None)
         split_on_keys_alias: dict[str, str] | None = open_ds_kwargs.pop(
             "split_on_alias", None
@@ -595,9 +601,8 @@ def prepare_open_datasets_kwargs_grib(
                 except KeyError:
                     context.add_stderr(f"key {k} not found in dataset, skipping")
                 else:
-                    # If only one unique value, we don't need to split
-                    if len(_unique_key_values[k]) > 1:
-                        unique_key_values.update(_unique_key_values)
+                    # Always split to ensure consistent naming
+                    unique_key_values.update(_unique_key_values)
 
         if split_on_keys_alias is not None:
             # If differences are detected in key (k1), we split on value key (k2),
@@ -617,9 +622,13 @@ def prepare_open_datasets_kwargs_grib(
                             )
                             unique_key_values.update(ekd_ds.unique_values(k1))
                         else:
-                            # If only one unique value, we don't need to split
-                            if len(k2_unique_key_values[k2]) > 1:
-                                unique_key_values.update(k2_unique_key_values)
+                            # Always split to ensure consistent naming
+                            unique_key_values.update(k2_unique_key_values)
+
+        # This kwarg set did not produce any unique key values to split on, so we append and move on
+        if len(unique_key_values) == 0:
+            out_open_datasets_kwargs.append(open_ds_kwargs)
+            continue
 
         # Create all combinations of unique key:value dictionaries
         # i.e. {k1: [v1, v2], k2: [v3, v4]} ->
@@ -657,10 +666,6 @@ def open_grib_file_as_xarray_dictionary(
     fname, _ = os.path.splitext(os.path.basename(grib_file))
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {}
-
-    # Ensure chunks and engine are set
-    kwargs.setdefault("chunks", DEFAULT_CHUNKS)
-    kwargs.setdefault("engine", "cfgrib")
 
     # Do any automatic splitting of the open_datasets_kwargs,
     #  This will add kwargs to the open_datasets_kwargs

@@ -1,4 +1,5 @@
 import time
+import zipfile
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -9,7 +10,16 @@ from cads_adaptors import Context, ObservationsAdaptor
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.exceptions import CadsObsConnectionError, InvalidRequest
 
-CDM_LITE_VARIABLES = {
+# get numbered vars programatically, as they are to many to add by hand to
+# the list
+number_of_uncertainty_types = 17
+uncertainty_numbered_vars = [
+    f"{unc_var}{n}"
+    for n in range(number_of_uncertainty_types + 1)
+    for unc_var in ["uncertainty_value", "uncertainty_type", "uncertainty_units"]
+]
+
+CDM_LITE_VARIABLES: dict[str, list[str] | dict] = {
     "mandatory": [
         "observation_id",
         "observed_variable",
@@ -58,7 +68,8 @@ CDM_LITE_VARIABLES = {
         "exposure_of_sensor",
         "fg_depar@body",
         "an_depar@body",
-    ],
+    ]
+    + uncertainty_numbered_vars,
     "auxiliary": [
         "total_uncertainty",
         "positive_total_uncertainty",
@@ -74,6 +85,29 @@ CDM_LITE_VARIABLES = {
         "negative_quasisystematic_uncertainty",
         "flag",
     ],
+    "attributes": {
+        "uncertainty_value1": {"long_name": "random_uncertainty"},
+        "uncertainty_value10": {"long_name": "negative_systematic_uncertainty"},
+        "uncertainty_value11": {"long_name": "positive_systematic_uncertainty"},
+        "uncertainty_value12": {"long_name": "negative_quasisystematic_uncertainty"},
+        "uncertainty_value13": {"long_name": "positive_quasisystematic_uncertainty"},
+        "uncertainty_value14": {"long_name": "negative_structured_random_uncertainty"},
+        "uncertainty_value15": {"long_name": "positive_structured_random_uncertainty"},
+        "uncertainty_value16": {"long_name": "negative_total_uncertainty"},
+        "uncertainty_value17": {"long_name": "positive_total_uncertainty"},
+        "uncertainty_value2": {"long_name": "systematic_uncertainty"},
+        "uncertainty_value3": {"long_name": "quasisystematic_uncertainty"},
+        "uncertainty_value4": {"long_name": "structured_random_uncertainty"},
+        "uncertainty_value5": {"long_name": "total_uncertainty"},
+        "uncertainty_value6": {
+            "long_name": "ozone_partial_pressure_total_uncertainty_uncertainty"
+        },
+        "uncertainty_value7": {
+            "long_name": "ozone_partial_pressure_percentage_uncertainty_uncertainty"
+        },
+        "uncertainty_value8": {"long_name": "negative_random_uncertainty"},
+        "uncertainty_value9": {"long_name": "positive_random_uncertainty"},
+    },
 }
 
 
@@ -98,49 +132,9 @@ class MockerCadsobsApiClient:
     ) -> list[str]:
         return [
             "https://object-store.os-api.cci2.ecmwf.int/"
-            "cds2-obs-alpha-insitu-observations-near-surface-temperature-us/"
+            "cds2-obs-dev-insitu-observations-near-surface-temperature-us-cl/"
             "insitu-observations-near-surface-temperature-us-climate-reference-network_uscrn_daily_200808_30.0_-150.0.nc"
         ]
-
-    def get_aux_var_mapping(
-        self, dataset: str, source: str
-    ) -> dict[str, list[dict[str, str]]]:
-        return {
-            "accumulated_precipitation": [],
-            "air_temperature": [
-                {
-                    "auxvar": "air_temperature_mean_positive_total_uncertainty",
-                    "metadata_name": "positive_total_uncertainty",
-                },
-                {
-                    "auxvar": "air_temperature_mean_negative_total_uncertainty",
-                    "metadata_name": "negative_total_uncertainty",
-                },
-            ],
-            "daily_maximum_air_temperature": [
-                {
-                    "auxvar": "air_temperature_max_positive_total_uncertainty",
-                    "metadata_name": "positive_total_uncertainty",
-                },
-                {
-                    "auxvar": "air_temperature_max_negative_total_uncertainty",
-                    "metadata_name": "negative_total_uncertainty",
-                },
-            ],
-            "daily_maximum_relative_humidity": [],
-            "daily_minimum_air_temperature": [
-                {
-                    "auxvar": "air_temperature_min_positive_total_uncertainty",
-                    "metadata_name": "positive_total_uncertainty",
-                },
-                {
-                    "auxvar": "air_temperature_min_negative_total_uncertainty",
-                    "metadata_name": "negative_total_uncertainty",
-                },
-            ],
-            "daily_minimum_relative_humidity": [],
-            "relative_humidity": [],
-        }
 
 
 class ClientErrorMockerCadsobsApiClient(MockerCadsobsApiClient):
@@ -166,11 +160,7 @@ class BackendErrorCadsobsApiClient(CadsobsApiClient):
 TEST_REQUEST = {
     "time_aggregation": "daily",
     "format": "netCDF",
-    "variable": [
-        "maximum_air_temperature",
-        "maximum_air_temperature_negative_total_uncertainty",
-        "maximum_air_temperature_positive_total_uncertainty",
-    ],
+    "variable": ["maximum_air_temperature", "maximum_relative_humidity"],
     "year": ["2007"],
     "month": ["11"],
     "day": [
@@ -180,11 +170,6 @@ TEST_REQUEST = {
     ],
     "_timestamp": str(time.time()),
 }
-
-TEST_REQUEST_ORPHAN_AUXVAR = TEST_REQUEST.copy()
-TEST_REQUEST_ORPHAN_AUXVAR.update(
-    dict(variable=["maximum_air_temperature_negative_total_uncertainty"])
-)
 
 TEST_ADAPTOR_CONFIG = {
     "entry_point": "cads_adaptors:ObservationsAdaptor",
@@ -200,50 +185,57 @@ TEST_ADAPTOR_CONFIG = {
             },
             "variable": {
                 "maximum_air_temperature": "daily_maximum_air_temperature",
-                "maximum_air_temperature_negative_total_uncertainty": "air_temperature_max_negative_total_uncertainty",  # noqa E501
-                "maximum_air_temperature_positive_total_uncertainty": "air_temperature_max_positive_total_uncertainty",  # noqa E501
                 "maximum_relative_humidity": "daily_maximum_relative_humidity",
                 "maximum_soil_temperature": "hourly_maximum_soil_temperature",
-                "maximum_soil_temperature_flag": "hourly_maximum_soil_temperature_flag",  # noqa E501
                 "maximum_solar_irradiance": "hourly_maximum_downward_shortwave_irradiance_at_earth_surface",  # noqa E501
-                "maximum_solar_irradiance_quality_flag": "hourly_maximum_downward_shortwave_irradiance_at_earth_surface_quality_flag",  # noqa E501
-                "mean_air_temperature_negative_total_uncertainty": "air_temperature_mean_negative_total_uncertainty",  # noqa E501
-                "mean_air_temperature_positive_total_uncertainty": "air_temperature_mean_positive_total_uncertainty",  # noqa E501
                 "minimum_air_temperature": "daily_minimum_air_temperature",
-                "minimum_air_temperature_negative_total_uncertainty": "air_temperature_min_negative_total_uncertainty",  # noqa E501
-                "minimum_air_temperature_positive_total_uncertainty": "air_temperature_min_positive_total_uncertainty",  # noqa E501
                 "minimum_relative_humidity": "daily_minimum_relative_humidity",
                 "minimum_soil_temperature": "hourly_minimum_soil_temperature",
-                "minimum_soil_temperature_quality_flag": "hourly_minimum_soil_temperature_quality_flag",  # noqa E501
                 "minimum_solar_irradiance": "hourly_minimum_downward_shortwave_irradiance_at_earth_surface",  # noqa E501
-                "minimum_solar_irradiance_quality_flag": "hourly_minimum_downward_shortwave_irradiance_at_earth_surface_quality_flag",  # noqa E501
                 "solar_irradiance": "downward_shortwave_irradiance_at_earth_surface",
-                "solar_irradiance_quality_flag": "downward_shortwave_irradiance_at_earth_surface_quality_flag",  # noqa E501
             },
         },
         "format": {"netcdf": "netCDF"},
         "rename": {"time_aggregation": "dataset_source", "variable": "variables"},
         "force": {},
     },
+    "licences": ["licence-to-use-copernicus-products", "uscrn-data-policy"],
 }
 
 
-@pytest.mark.parametrize("test_request", [TEST_REQUEST, TEST_REQUEST_ORPHAN_AUXVAR])
-def test_adaptor(tmp_path, monkeypatch, test_request):
+def test_adaptor(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
         MockerCadsobsApiClient,
     )
     test_form = {}
 
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
-    result = adaptor.retrieve(test_request)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
+    result = adaptor.retrieve(TEST_REQUEST)
     tempfile = Path(tmp_path, "test_adaptor.nc")
     with tempfile.open("wb") as tmpf:
         tmpf.write(result.read())
     assert tempfile.stat().st_size > 0
     actual = h5netcdf.File(tempfile)
     assert actual.dimensions["index"].size > 0
+
+
+def test_adaptor_csv(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        MockerCadsobsApiClient,
+    )
+    test_form = {}
+
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
+    test_request_csv = TEST_REQUEST.copy()
+    test_request_csv["format"] = "csv"
+    result = adaptor.retrieve(test_request_csv)
+    with zipfile.ZipFile(result, "r") as zipf:
+        file_lines = zipf.read(name=zipf.namelist()[0]).decode("UTF-8").split("\n")
+    assert len(file_lines) > 0
+    assert "# daily_maximum_air_temperature [K]" in file_lines
+    assert "# daily_maximum_relative_humidity [%]" in file_lines
 
 
 def test_adaptor_error(tmp_path, monkeypatch):
@@ -253,7 +245,7 @@ def test_adaptor_error(tmp_path, monkeypatch):
     )
     test_form = {}
 
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     adaptor.context.add_user_visible_error = Mock()
     with pytest.raises(RuntimeError) as e:
         adaptor.retrieve(TEST_REQUEST)
@@ -270,7 +262,7 @@ def test_adaptor_wrong_key(monkeypatch):
     test_form = {}
     test_request = TEST_REQUEST.copy()
     test_request.pop("time_aggregation")
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
 
@@ -287,20 +279,20 @@ def test_adaptor_wrong_value(monkeypatch):
     test_form = {}
     test_request = TEST_REQUEST.copy()
     test_request["variable"] = "FAKE_VARIABLE"
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
 
     # And dataset_source variables
     test_request["time_aggregation"] = "FAKE_VARIABLE"
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
 
 
 def test_connection_error(tmp_path):
     test_form = {}
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     adaptor.context.add_user_visible_error = Mock()
     with pytest.raises(CadsObsConnectionError) as e:
         adaptor.retrieve(TEST_REQUEST)
@@ -311,7 +303,7 @@ def test_connection_error(tmp_path):
 
 def test_api_error(tmp_path, monkeypatch):
     test_form = {}
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     monkeypatch.setattr(
         "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
         BackendErrorCadsobsApiClient,

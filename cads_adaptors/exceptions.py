@@ -12,24 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from copy import deepcopy
-
 
 class ParameterError(TypeError):
     """Raised when a request parameter is invalid."""
 
 
-class InvalidRequest(Exception):
+class InvalidRequest(ValueError):
     """Raised when an invalid request is sent to the adaptor."""
-
-    def __init__(self, msgs: None | str | list[str] = None):
-        if isinstance(msgs, str):
-            msgs = [msgs]
-
-        if msgs is not None:
-            super().__init__("\n".join(msgs))
-
-            self.messages = deepcopy(msgs)
 
 
 class MarsRuntimeError(RuntimeError):
@@ -70,3 +59,11 @@ class RoocsValueError(ValueError):
 
 class CdsFormatConversionError(RuntimeError):
     """Raised when a CDS post-processing request fails."""
+
+
+class CdsConfigurationError(ValueError):
+    """Raised when a CDS request fails due to a configuration error."""
+
+
+class ArcoDataLakeNoDataError(InvalidRequest):
+    """Raised when a ARCO Data Lake request returns no data."""

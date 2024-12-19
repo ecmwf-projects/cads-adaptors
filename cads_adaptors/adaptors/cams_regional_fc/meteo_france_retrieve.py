@@ -1,3 +1,4 @@
+import logging
 import time
 from copy import deepcopy
 from itertools import product
@@ -12,8 +13,31 @@ from .cacher import Cacher
 from .grib2request import grib2request_init
 
 
-def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **kwargs):
-    """Download the fields from the Meteo France API."""
+def meteo_france_retrieve(
+    requests,
+    regapi,
+    regfc_defns,
+    integration_server,
+    target=None,
+    tmpdir=None,
+    max_rate=None,
+    max_simultaneous=None,
+    cacher_kwargs=None,
+    combine_method=None,
+    logger=None,
+    **kwargs,
+):
+    """Download the fields from the Meteo France API. This function is designed to be
+    callable from outside of the CDS infrastructure.
+    """
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    # By default, if a target has been provided then all grib fields will be
+    # concatenated into it. Otherwise they will not be written to file.
+    if combine_method is None:
+        combine_method = "cat" if target else "null"
+
     # Keyword argument options to Downloader that depend on the backend
     # (archived/latest)
     backend_specific = {
@@ -46,18 +70,21 @@ def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **k
                 "default": 50,
                 404: 1,
                 400: 10,
-            },  # 400's can get raised at 2am
-            "request_timeout": [60, 300],
+            },
+            # Read timeout reduced from 300s because not too uncommon to hit
+            # that and it was found to be quicker to fail sooner and retry than
+            # wait for a long timeout
+            "request_timeout": [60, 60],
         },
     }
 
     backend = requests[0]["_backend"][0]
 
     # Process requests according to the abilities of the Meteo France API
-    requests = make_api_hypercubes(requests, regapi, context)
+    requests = make_api_hypercubes(requests, regapi)
 
     # Initialisation for function that can understand GRIB file contents
-    grib2request_init(dataset_dir)
+    grib2request_init(regfc_defns)
 
     # By default Downloader would use requests.get to make requests. Provide
     # an alternative function that takes care of the Meteo France API
@@ -65,30 +92,32 @@ def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **k
     getter = regapi.get_fields_url
 
     # Objects to limit the rate and maximum number of simultaneous requests
-    rate_limiter = CamsRegionalFcApiRateLimiter(regapi)
-    number_limiter = CamsRegionalFcApiNumberLimiter(regapi)
+    rate_limiter = CamsRegionalFcApiRateLimiter(max_rate or regapi.max_rate)
+    number_limiter = CamsRegionalFcApiNumberLimiter(
+        max_simultaneous or regapi.max_simultaneous
+    )
 
     # Translate requests into URLs as dicts with a 'url' and a 'req' key
     urlreqs = list(requests_to_urls(requests, regapi.url_patterns))
 
     # Create an object that will handle the caching
-    with Cacher(context, no_put=no_cache_put) as cacher:
+    with Cacher(
+        integration_server, logger=logger, tmpdir=tmpdir, **(cacher_kwargs or {})
+    ) as cacher:
         # Create an object that will allow URL downloading in parallel
-        context.create_result_file(".json")
         downloader = Downloader(
-            context,
             getter=getter,
             max_rate=rate_limiter,
             max_simultaneous=number_limiter,
-            combine_method="cat",
+            combine_method=combine_method,
             target_suffix=".grib",
             response_checker=assert_valid_grib,
             response_checker_threadsafe=False,
             combine_in_order=False,
-            write_to_temp=False,
             nonfatal_codes=[404],
             allow_no_data=True,
             cacher=cacher,
+            logger=logger,
             **backend_specific[backend],
             **kwargs,
         )
@@ -96,32 +125,31 @@ def api_retrieve(context, requests, regapi, dataset_dir, no_cache_put=False, **k
         t0 = time.time()
 
         try:
-            # Returns None if no data is found
-            file = downloader.execute(urlreqs)
-        except RequestFailed:
-            # req = {x["url"]: x["req"] for x in urlreqs}[e.url]
-            # raise Exception(
-            #     'Failed to retrieve data for ' + str(req) +
-            #     f' (code {e.status_code}). Please try again later') \
-            #     from None
-            return None
+            # Returns None if no data is found. Return a list if combine_method
+            # is "none".
+            output = downloader.execute(urlreqs, target=target)
+        except RequestFailed as e:
+            req = {x["url"]: x["req"] for x in urlreqs}[e.url]
+            raise Exception(
+                f"Failed to retrieve data for {req} (code {e.status_code})."
+            ) from None
 
         # Ensure the next call to this routine does not happen less than
         # 1/max_rate seconds after the last API request
         rate_limiter.block({"req": {"_backend": backend}})
 
         nfields = hcube_tools.count_fields(requests)
-        context.info(
+        logger.info(
             f"Attempted download of {nfields} fields took "
             + f"{time.time() - t0} seconds"
         )
 
-    context.info("download finished")  #!
+    logger.info("Meteo France download finished")
 
-    return file
+    return output
 
 
-def make_api_hypercubes(requests, regapi, context):
+def make_api_hypercubes(requests, regapi):
     """Process request hypercubes into the dicts required for url2 input.
     For requests for latest data, for which each field must be fetched with a
     separate URL request, this is a null op. Archived data URL requests can
@@ -180,74 +208,48 @@ def make_api_hypercubes(requests, regapi, context):
     return output
 
 
-class CamsRegionalFcApiLimiter:
-    """Abstract base class for controlling the URL requests.
-    It controls rate and max number of simultaneous requests to the regional forecast API.
+class CamsRegionalFcApiRateLimiter:
+    """Class to limit the URL request rate to the regional forecast API."""
+
+    def __init__(self, max_rate):
+        self._max_rate = max_rate
+        self._rate_semaphores = {k: Semaphore() for k in self._max_rate.keys()}
+
+    def block(self, req):
+        """Block as required to ensure there is at least 1/max_rate seconds
+        between calls for the same backend, where max_rate depends on the
+        backend in question.
+        """
+        backend = req["req"]["_backend"]
+        self._rate_semaphores[backend].acquire()
+        Timer(
+            1 / self._max_rate[backend], self._rate_semaphores[backend].release
+        ).start()
+
+
+class CamsRegionalFcApiNumberLimiter:
+    """Class to limit the number of simultaneously executing URL requests to the
+    regional forecast API.
     """
 
-    def __init__(self, regapi):
-        # Maximum URL request rates for online and offline data
-        self._max_rate = regapi.max_rate
-
-        # Maximum number of simultaneous requests for online and offline data
-        self._max_simultaneous = regapi.max_simultaneous
-
-        # The time duration that data stays online. Nominally this is 5 days
-        # but we subtract a small amount of time for safety
-        #### self._online_duration = timedelta(days=5) - timedelta(minutes=10)
-
-        self._rate_semaphores = {k: Semaphore() for k in self._max_rate.keys()}
+    def __init__(self, max_simultaneous):
+        self._max_simultaneous = max_simultaneous
         self._number_semaphores = {
             k: Semaphore(v) for k, v in self._max_simultaneous.items()
         }
 
-    # def _type(self, req):
-    #     """Return whether a request field is expected to be online or offline
-    #        depending on the validity time."""
-    #     r = req['req']
-    #     vtime = datetime.strptime(r['date'] + ' ' + r['time'],
-    #                               '%Y-%m-%d %H%M') + \
-    #         timedelta(hours=int(r['step']))
-    #     if (datetime.now() - vtime) < self._online_duration:
-    #         return 'latest'
-    #     else:
-    #         return 'archived'
-
-
-class CamsRegionalFcApiRateLimiter(CamsRegionalFcApiLimiter):
-    """Class to limit the URL request rate to the regional forecast API."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def block(self, req):
-        """Block as required to ensure there is at least 1/max_rate seconds
-        between calls for the same type of data, where max_rate depends on
-        the type in question.
-        """
-        type = req["req"]["_backend"]
-        self._rate_semaphores[type].acquire()
-        Timer(1 / self._max_rate[type], self._rate_semaphores[type].release).start()
-
-
-class CamsRegionalFcApiNumberLimiter(CamsRegionalFcApiLimiter):
-    """Class to limit the number of simultaneously executing URL requests to the regional forecast API."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def block(self, req):
         """Block as required to ensure there are no more than N ongoing
-        requests for the same type of data, where N depends on the type in
+        requests for the same backend, where N depends on the backend in
         question. Return a function that will unblock when called.
         """
-        type = req["req"]["_backend"]
-        self._number_semaphores[type].acquire()
-        return lambda X: self._number_semaphores[type].release()
+        backend = req["req"]["_backend"]
+        self._number_semaphores[backend].acquire()
+        return lambda X: self._number_semaphores[backend].release()
 
     @property
     def max_simultaneous(self):
         """Return the total number of simultaneous URL requests allowed, of
         any type.
         """
-        return sum(self._max_rate.values())
+        return sum(self._max_simultaneous.values())

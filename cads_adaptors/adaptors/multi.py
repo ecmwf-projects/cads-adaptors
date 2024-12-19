@@ -199,6 +199,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             mapped_requests,
             context=self.context,
             config=self.config,
+            mapping=self.mapping,
             target_dir=self.cache_tmp_path,
         )
 

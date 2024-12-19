@@ -4,6 +4,8 @@ import re
 from datetime import datetime, timedelta
 from typing import Any
 
+from cads_adaptors import exceptions
+
 # Character used to separate start and end dates in compressed form
 separator = "/"
 
@@ -76,8 +78,8 @@ def expand_dates_list(dates_in, as_datetime=False):
                 # Since "current" is translated in ranges it would be
                 # inconsistent if it weren't translated when on its own, but
                 # we have to get a format to convert it to first
-                for date in dates_in:
-                    fmt = guess_date_format(date)
+                for dd in dates_in:
+                    fmt = guess_date_format(dd)
                     if fmt is not None:
                         break
                 if fmt is None:
@@ -252,7 +254,9 @@ def months_to_days(n_months, now_date):
     if n_months == 0:
         return 0
     elif n_months > 12:
-        raise ValueError("Cannot handle embargos greater than 12 months")
+        raise exceptions.CdsConfigurationError(
+            "Cannot handle embargos greater than 12 months"
+        )
     now_month = now_date.month
     then_year = now_date.year
     then_day = now_date.day
@@ -339,7 +343,7 @@ def implement_embargo(
                 try:
                     times = [t for t in times if time2seconds(t) / 3600 <= embargo_hour]
                 except Exception:
-                    raise ValueError(
+                    raise exceptions.InvalidRequest(
                         "Your request straddles the last date available for this dataset, therefore the time "
                         "period must be provided in a format that is understandable to the CDS/ADS "
                         "pre-processing. Please revise your request and, if necessary, use the cdsapi sample "
@@ -358,7 +362,7 @@ def implement_embargo(
         out_requests += _extra_requests
 
     if len(out_requests) == 0 and len(requests) >= 1:
-        raise ValueError(
+        raise exceptions.InvalidRequest(
             "None of the data you have requested is available yet, please revise the period requested. "
             "The latest date available for this dataset is: "
             f"{embargo_datetime.strftime(embargo_error_time_format)}",
