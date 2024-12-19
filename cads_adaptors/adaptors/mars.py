@@ -140,6 +140,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return convert_format(*args, **kwargs)
 
+    @property
     def direct_mars_adaptor(self):
         return DirectMarsCdsAdaptor(
             self.form,
@@ -207,10 +208,6 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         result = self.cached_execute_mars(
             self.mapped_requests,
-            # context=self.context,
-            # config=self.config,
-            # mapping=self.mapping,
-            # target_dir=self.cache_tmp_path,
         )
 
         with dask.config.set(scheduler="threads"):
