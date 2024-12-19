@@ -9,7 +9,7 @@ from cds_common.url2.downloader import Downloader, RequestFailed
 from cds_common.url2.requests_to_urls import requests_to_urls
 
 from .assert_valid_grib import assert_valid_grib
-from .cacher import Cacher
+from .cacher import CacherS3
 from .grib2request import grib2request_init
 
 
@@ -22,6 +22,7 @@ def meteo_france_retrieve(
     tmpdir=None,
     max_rate=None,
     max_simultaneous=None,
+    cacher=None,
     cacher_kwargs=None,
     combine_method=None,
     logger=None,
@@ -101,9 +102,13 @@ def meteo_france_retrieve(
     urlreqs = list(requests_to_urls(requests, regapi.url_patterns))
 
     # Create an object that will handle the caching
-    with Cacher(
-        integration_server, logger=logger, tmpdir=tmpdir, **(cacher_kwargs or {})
-    ) as cacher:
+    if cacher is None:
+        cacher = CacherS3(
+            integration_server, logger=logger, tmpdir=tmpdir,
+            **(cacher_kwargs or {})
+        )
+    with cacher:
+
         # Create an object that will allow URL downloading in parallel
         downloader = Downloader(
             getter=getter,
