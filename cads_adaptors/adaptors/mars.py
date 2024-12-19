@@ -185,14 +185,12 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
-        execute_mars_kwargs: dict[str, Any] = {
-            "context": self.context,
-            "config": self.config,
-            "mapping": self.mapping,
-            "target_dir": self.cache_tmp_path
-        }
         result = execute_mars(
-            self.mapped_requests, **execute_mars_kwargs
+            self.mapped_requests,
+            context = self.context,
+            config = self.config,
+            mapping = self.mapping,
+            target_dir = self.cache_tmp_path
         )
         
         with dask.config.set(scheduler="threads"):
