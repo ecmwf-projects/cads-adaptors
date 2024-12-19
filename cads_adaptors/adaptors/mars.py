@@ -122,7 +122,10 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
-        result = execute_mars(request, context=self.context)
+        result = execute_mars(
+            request, context=self.context,
+            target_dir=self.cache_tmp_path,
+        )
         return open(result, "rb")
 
 
@@ -187,10 +190,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             "context": self.context,
             "config": self.config,
             "mapping": self.mapping,
+            "target_dir": self.cache_tmp_path
         }
-        if self.data_format in ["grib"] and ceph_test:
-            execute_mars_kwargs.update({"target_dir": self.cache_tmp_path})
-
         result = execute_mars(
             self.mapped_requests, **execute_mars_kwargs
         )
