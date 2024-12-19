@@ -123,7 +123,8 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def retrieve(self, request: Request) -> BinaryIO:
         result = execute_mars(
-            request, context=self.context,
+            request,
+            context=self.context,
             target_dir=self.cache_tmp_path,
         )
         return open(result, "rb")
@@ -181,18 +182,18 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         import dask
-        
+
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
         result = execute_mars(
             self.mapped_requests,
-            context = self.context,
-            config = self.config,
-            mapping = self.mapping,
-            target_dir = self.cache_tmp_path
+            context=self.context,
+            config=self.config,
+            mapping=self.mapping,
+            target_dir=self.cache_tmp_path,
         )
-        
+
         with dask.config.set(scheduler="threads"):
             results_dict = self.post_process(result)
 
@@ -203,9 +204,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 self.data_format,
                 context=self.context,
                 config=self.config,
-                to_netcdf_kwargs={
-                    "target_dir": target_dir
-                },
+                to_netcdf_kwargs={"target_dir": target_dir},
             )
 
         # A check to ensure that if there is more than one path, and download_format
