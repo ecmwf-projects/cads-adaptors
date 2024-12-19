@@ -104,11 +104,9 @@ def meteo_france_retrieve(
     # Create an object that will handle the caching
     if cacher is None:
         cacher = CacherS3(
-            integration_server, logger=logger, tmpdir=tmpdir,
-            **(cacher_kwargs or {})
+            integration_server, logger=logger, tmpdir=tmpdir, **(cacher_kwargs or {})
         )
     with cacher:
-
         # Create an object that will allow URL downloading in parallel
         downloader = Downloader(
             getter=getter,

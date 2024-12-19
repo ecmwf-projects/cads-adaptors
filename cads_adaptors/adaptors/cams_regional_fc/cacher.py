@@ -386,7 +386,7 @@ class CacherS3(AbstractAsyncCacher):
 
 class CacherS3AndFile(CacherS3):
     """Sub-class of CacherS3 to cache not only to an S3 bucket but to a local
-       file as well.
+    file as well.
     """
 
     def __init__(self, *args, field2path=None, **kwargs):
@@ -394,7 +394,6 @@ class CacherS3AndFile(CacherS3):
         self.field2path = field2path
 
     def _write_field_sync(self, data, fieldinfo):
-
         # Write to the S3 bucket
         super()._write_field_sync(data, fieldinfo)
 
@@ -403,5 +402,5 @@ class CacherS3AndFile(CacherS3):
             path = self.field2path(fieldinfo)
             self.logger.info(f"Caching {fieldinfo} to {path}")
             os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, 'wb') as f:
+            with open(path, "wb") as f:
                 f.write(data)
