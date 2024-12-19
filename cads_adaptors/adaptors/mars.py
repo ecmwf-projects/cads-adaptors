@@ -140,6 +140,14 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return convert_format(*args, **kwargs)
 
+    def cached_execute_mars(self, *args, **kwargs) -> BinaryIO:
+        import cacholote
+
+        cache_kwargs = {"collection_id": self.config.get("collection_id")}
+        with cacholote.config.set(return_cache_entry=False):
+            return cacholote.cacheable(execute_mars, **cache_kwargs)(*args, **kwargs)
+
+
     def daily_reduce(self, *args, **kwargs) -> dict[str, Any]:
         from cads_adaptors.tools.post_processors import daily_reduce
 
@@ -186,7 +194,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
-        result = execute_mars(
+        result = self.cached_execute_mars(
             self.mapped_requests,
             context=self.context,
             config=self.config,
