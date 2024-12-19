@@ -53,16 +53,25 @@ def execute_mars(
     context: Context,
     config: dict[str, Any] = dict(),
     mapping: dict[str, Any] = dict(),
-    target: str = None
+    target: str = "data.grib"
 ) -> str:
-    is_pipe = target is not None
-    if is_pipe:
-        from cads_mars_server import client_pipe as mars_client
+    write_to_cephfs = os.getenv("WRITE_DIRECTLY_TO_CEPHFS", "FALSE").upper() == "TRUE"
+
+    if write_to_cephfs:
+        transfer_type = "file"
     else:
-        from cads_mars_server import client_file as mars_client
-        from cads_mars_server.config import local_target
-    
+        transfer_type = "pipe"
+    from cads_mars_server import client as mars_client
+
+    if transfer_type == "file":
+        try:
+            from cads_mars_server.config import local_target
+        except ImportError:
+            context.debug("cads-mars-server not compatible with file transfer, using previous settings")
+            write_to_cephfs = False
+            transfer_type = "pipe"
     requests = ensure_list(request)
+
     # Implement embargo if it is set in the config
     # This is now done in normalize request, but leaving it here for now, as running twice is not a problem
     #  and the some adaptors may not use normalise_request yet
@@ -74,7 +83,9 @@ def execute_mars(
 
     mars_servers = get_mars_server_list(config)
 
-    cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
+    cluster = mars_client.RemoteMarsClientCluster(
+        urls=mars_servers, log=context, transfer_type=transfer_type
+    )
 
     # Add required fields to the env dictionary:
     env = {
@@ -89,7 +100,8 @@ def execute_mars(
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
 
     context.add_stdout(f"Request sent to proxy MARS client: {requests}")
-    if is_pipe:
+
+    if not write_to_cephfs:
         context.add_stdout(f"Pipe to {target}")
         cluster.execute(requests, env, target)
     else:
