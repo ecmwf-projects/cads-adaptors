@@ -208,12 +208,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         result = self.cached_execute_mars(
             self.mapped_requests,
-        )
-        print(result)
-        result.close()
-        print(result)
-        result = result.name
-        print(result)
+        ).close().name
 
         with dask.config.set(scheduler="threads"):
             results_dict = self.post_process(result)
