@@ -147,7 +147,6 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         with cacholote.config.set(return_cache_entry=False):
             return cacholote.cacheable(execute_mars, **cache_kwargs)(*args, **kwargs)
 
-
     def daily_reduce(self, *args, **kwargs) -> dict[str, Any]:
         from cads_adaptors.tools.post_processors import daily_reduce
 
