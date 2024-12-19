@@ -186,7 +186,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
-        result = self.cached_execute_mars(
+        result = execute_mars(
             self.mapped_requests,
             context=self.context,
             config=self.config,
