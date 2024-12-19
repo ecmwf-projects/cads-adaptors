@@ -54,11 +54,15 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         if len(data_formats) != 1:
             raise InvalidRequest("Please specify a single data_format.")
         (data_format,) = data_formats
+        available_options = set()
         for key, value in DATA_FORMATS.items():
+            available_options.update(value)
             if isinstance(data_format, str) and data_format.lower() in value:
                 request["data_format"] = key
                 return
-        raise InvalidRequest(f"Invalid {data_format=}.")
+        raise InvalidRequest(
+            f"Invalid {data_format=}. Available options: {available_options}"
+        )
 
     def normalise_request(self, request: Request) -> Request:
         if self.normalised:
