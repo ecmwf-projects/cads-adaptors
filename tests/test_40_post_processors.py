@@ -1,5 +1,4 @@
 import os
-import tempfile
 
 import pytest
 import requests
@@ -30,7 +29,7 @@ def test_daily_reduce(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     remote_file = requests.get(TEST_FILE_1)
     _, ext = os.path.splitext(TEST_FILE_1)
-    
+
     tmp_file = f"test{ext}"
     with open(tmp_file, "wb") as f:
         f.write(remote_file.content)
@@ -49,7 +48,7 @@ def test_monthly_reduce(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     remote_file = requests.get(TEST_FILE_1)
     _, ext = os.path.splitext(TEST_FILE_1)
-    
+
     tmp_file = f"test{ext}"
     with open(tmp_file, "wb") as f:
         f.write(remote_file.content)

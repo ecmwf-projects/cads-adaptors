@@ -99,7 +99,7 @@ def test_open_file_as_xarray_dictionary(tmp_path, monkeypatch):
 
 
 def test_grib_to_netcdf(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path) 
+    monkeypatch.chdir(tmp_path)
     grib_file = requests.get(TEST_GRIB_FILE)
 
     tmp_grib_file = "test.grib"
@@ -154,9 +154,7 @@ def test_convert_format_to_netcdf(tmp_path, monkeypatch, url, target_format="net
     with open(tmp_file, "wb") as f:
         f.write(remote_file.content)
 
-    converted_files = convertors.convert_format(
-        tmp_file, target_format=target_format
-    )
+    converted_files = convertors.convert_format(tmp_file, target_format=target_format)
     assert isinstance(converted_files, list)
     assert len(converted_files) == 1
     _, out_ext = os.path.splitext(converted_files[0])
@@ -184,9 +182,7 @@ def test_convert_format_to_grib(tmp_path, monkeypatch, url, target_format="grib"
     with open(tmp_file, "wb") as f:
         f.write(remote_file.content)
 
-    converted_files = convertors.convert_format(
-        tmp_file, target_format=target_format
-    )
+    converted_files = convertors.convert_format(tmp_file, target_format=target_format)
     assert isinstance(converted_files, list)
     assert len(converted_files) == 1
     # Can't convert from netcdf to grib yet, so ensure in extension is the same as input
@@ -195,20 +191,17 @@ def test_convert_format_to_grib(tmp_path, monkeypatch, url, target_format="grib"
 
 
 def test_convert_format_to_netcdf_legacy(
-    tmp_path, monkeypatch,
-    url=TEST_GRIB_FILE, target_format="netcdf_legacy"
+    tmp_path, monkeypatch, url=TEST_GRIB_FILE, target_format="netcdf_legacy"
 ):
     monkeypatch.chdir(tmp_path)
     remote_file = requests.get(url)
     _, ext = os.path.splitext(url)
-    
+
     tmp_file = f"test{ext}"
     with open(tmp_file, "wb") as f:
         f.write(remote_file.content)
 
-    converted_files = convertors.convert_format(
-        tmp_file, target_format=target_format
-    )
+    converted_files = convertors.convert_format(tmp_file, target_format=target_format)
     assert isinstance(converted_files, list)
     assert len(converted_files) == 1
     _, out_ext = os.path.splitext(converted_files[0])
@@ -278,7 +271,7 @@ def test_safely_expand_dims():
 def test_prepare_open_datasets_kwargs_grib_split_on(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     grib_file = requests.get(TEST_GRIB_FILE)
-    
+
     tmp_grib_file = "test.grib"
     with open(tmp_grib_file, "wb") as f:
         f.write(grib_file.content)
@@ -333,7 +326,7 @@ def test_prepare_open_datasets_kwargs_grib_split_on_alias(tmp_path, monkeypatch)
     monkeypatch.chdir(tmp_path)
     # Test split_on_alias, if differences detected in k, then split on v
     grib_file_2 = requests.get(TEST_GRIB_FILE_2)
-    
+
     tmp_grib_file = "test2.grib"
     with open(tmp_grib_file, "wb") as f:
         f.write(grib_file_2.content)
