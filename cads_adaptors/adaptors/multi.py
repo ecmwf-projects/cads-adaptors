@@ -200,11 +200,16 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             context=self.context,
             config=self.config,
             mapping=self.mapping,
+            target_dir=self.cache_tmp_path,
         )
 
         with dask.config.set(scheduler="threads"):
             paths = self.convert_format(
-                result, self.data_format, self.context, self.config
+                result,
+                self.data_format,
+                self.context,
+                self.config,
+                target_dir=str(self.cache_tmp_path),
             )
 
         if len(paths) > 1 and self.download_format == "as_source":
