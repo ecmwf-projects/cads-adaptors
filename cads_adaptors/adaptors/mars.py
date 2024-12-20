@@ -164,8 +164,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         cache_kwargs = {"collection_id": self.config.get("collection_id")}
         with cacholote.config.set(return_cache_entry=False):
             return cacholote.cacheable(
-                self.direct_mars_adaptor.cache_retrieve, **cache_kwargs
-            )(**request)
+                self.direct_mars_adaptor.retrieve, **cache_kwargs
+            )(request)
 
 
     def daily_reduce(self, *args, **kwargs) -> dict[str, Any]:
