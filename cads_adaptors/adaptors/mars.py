@@ -153,7 +153,8 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
             mapping=self.mapping,
             cache_tmp_path=self.cache_tmp_path,
         )
-        return cached_execute_mars.retrieve([request])
+        with cacholote.config.set(use_cache=False, return_cache_entry=False):
+            return cached_execute_mars.retrieve([request])
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
