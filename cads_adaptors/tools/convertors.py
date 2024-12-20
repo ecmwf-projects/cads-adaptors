@@ -47,16 +47,17 @@ def convert_format(
     target_format: str,
     context: Context = Context(),
     config: dict[str, Any] = {},
+    target_dir: str = ".",
     **runtime_kwargs: dict[str, dict[str, Any]],
 ) -> list[str]:
     target_format = adaptor_tools.handle_data_format(target_format)
     post_processing_kwargs = config.get("post_processing_kwargs", {})
+    for k, v in runtime_kwargs.items():
+        post_processing_kwargs.setdefault(k, {}).update(v)
+    post_processing_kwargs.setdefault("target_dir", target_dir)
     context.add_stdout(
         f"Converting result ({result}) to {target_format} with kwargs: {post_processing_kwargs}"
     )
-    for k, v in runtime_kwargs.items():
-        post_processing_kwargs.setdefault(k, {}).update(v)
-
     convertor: None | Callable = CONVERTORS.get(target_format, None)
 
     if convertor is not None:
@@ -181,7 +182,7 @@ def result_to_netcdf_legacy_files(
     result: Any,
     context: Context = Context(),
     to_netcdf_legacy_kwargs: dict[str, Any] = {},
-    target_dir: str = "",
+    target_dir: str = ".",
     **kwargs,
 ) -> list[str]:
     """
@@ -381,7 +382,6 @@ def xarray_dict_to_netcdf(
         "compression_options", compression_options
     )
     out_fname_prefix = to_netcdf_kwargs.pop("out_fname_prefix", out_fname_prefix)
-    target_dir = to_netcdf_kwargs.pop("target_dir", target_dir)
 
     # Fetch any preset compression options
     if isinstance(compression_options, str):

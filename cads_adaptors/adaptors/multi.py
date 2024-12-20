@@ -209,7 +209,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                 self.data_format,
                 self.context,
                 self.config,
-                to_netcdf_kwargs={"target_dir": self.cache_tmp_path},
+                target_dir=str(self.cache_tmp_path),
             )
 
         if len(paths) > 1 and self.download_format == "as_source":

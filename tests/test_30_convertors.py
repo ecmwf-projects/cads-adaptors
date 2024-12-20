@@ -110,6 +110,14 @@ def test_grib_to_netcdf():
         assert isinstance(netcdf_files, list)
         assert len(netcdf_files) == 1
 
+        os.makedirs("test_subdir", exist_ok=True)
+        netcdf_files = convertors.grib_to_netcdf_files(
+            tmp_grib_file, target_dir="./test_subdir"
+        )
+        assert isinstance(netcdf_files, list)
+        assert "/test_subdir/" in netcdf_files[0]
+        assert len(netcdf_files) == 1
+
         netcdf_files = convertors.grib_to_netcdf_files(
             tmp_grib_file, compression_options="default"
         )
@@ -142,7 +150,7 @@ def test_convert_format_to_netcdf(url, target_format="netcdf"):
     _, ext = os.path.splitext(url)
     with tempfile.TemporaryDirectory() as tmpdirname:
         os.chdir(tmpdirname)
-        tmp_file = f"test.{ext}"
+        tmp_file = f"test{ext}"
         with open(tmp_file, "wb") as f:
             f.write(remote_file.content)
 
@@ -153,6 +161,17 @@ def test_convert_format_to_netcdf(url, target_format="netcdf"):
         assert len(converted_files) == 1
         _, out_ext = os.path.splitext(converted_files[0])
         assert out_ext == EXTENSION_MAPPING.get(target_format, f".{target_format}")
+
+        os.makedirs("test_subdir", exist_ok=True)
+        converted_files = convertors.convert_format(
+            tmp_file, target_format=target_format, target_dir="./test_subdir"
+        )
+        assert isinstance(converted_files, list)
+        assert len(converted_files) == 1
+        _, out_ext = os.path.splitext(converted_files[0])
+        assert out_ext == EXTENSION_MAPPING.get(target_format, f".{target_format}")
+        if out_ext != ext: # i.e. if a conversion has taken place
+            assert "/test_subdir/" in converted_files[0]
 
 
 @pytest.mark.parametrize("url", [TEST_GRIB_FILE, TEST_NC_FILE])
@@ -182,7 +201,7 @@ def test_convert_format_to_netcdf_legacy(
     _, ext = os.path.splitext(url)
     with tempfile.TemporaryDirectory() as tmpdirname:
         os.chdir(tmpdirname)
-        tmp_file = f"test.{ext}"
+        tmp_file = f"test{ext}"
         with open(tmp_file, "wb") as f:
             f.write(remote_file.content)
 
@@ -194,6 +213,16 @@ def test_convert_format_to_netcdf_legacy(
         _, out_ext = os.path.splitext(converted_files[0])
         assert out_ext == EXTENSION_MAPPING.get(target_format, f".{target_format}")
 
+        os.makedirs("test_subdir", exist_ok=True)
+        converted_files = convertors.convert_format(
+            tmp_file, target_format=target_format, target_dir="./test_subdir"
+        )
+        assert isinstance(converted_files, list)
+        assert len(converted_files) == 1
+        _, out_ext = os.path.splitext(converted_files[0])
+        assert out_ext == EXTENSION_MAPPING.get(target_format, f".{target_format}")
+        if out_ext != ext: # i.e. if a conversion has taken place
+            assert "/test_subdir/" in converted_files[0]
 
 def test_safely_rename_variable():
     import xarray as xr

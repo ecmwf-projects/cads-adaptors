@@ -197,14 +197,13 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         with dask.config.set(scheduler="threads"):
             results_dict = self.post_process(result)
 
-            target_dir = str(self.cache_tmp_path)
             # TODO?: Generalise format conversion to be a post-processor
             paths = self.convert_format(
                 results_dict,
                 self.data_format,
                 context=self.context,
                 config=self.config,
-                to_netcdf_kwargs={"target_dir": target_dir},
+                target_dir=str(self.cache_tmp_path),
             )
 
         # A check to ensure that if there is more than one path, and download_format
