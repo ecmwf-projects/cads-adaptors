@@ -1,5 +1,11 @@
+import dataclasses
+import json
 import os
+import pathlib
+import tempfile
 from typing import Any, BinaryIO
+
+import cacholote
 
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
@@ -114,12 +120,40 @@ def execute_mars(
     return target
 
 
+@dataclasses.dataclass
+class CachedExecuteMars:
+    context: Context
+    config: dict[str, Any]
+    mapping: dict[str, Any]
+    cache_tmp_path: pathlib.Path
+
+    def sort_requests(self, requests: list[Request]) -> list[Request]:
+        return sorted(requests, key=lambda request: json.dumps(request, sort_keys=True))
+
+    @cacholote.cacheable
+    def retrieve(self, requests: list[Request]) -> BinaryIO:
+        _, target = tempfile.mkstemp(suffix=".grib", dir=self.cache_tmp_path)
+        result = execute_mars(
+            self.sort_requests(requests),
+            self.context,
+            self.config,
+            self.mapping,
+            target,
+        )
+        return open(result, "rb")
+
+
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
-        result = execute_mars(request, context=self.context)
-        return open(result, "rb")
+        cached_execute_mars = CachedExecuteMars(
+            context=self.context,
+            config=self.config,
+            mapping=self.mapping,
+            cache_tmp_path=self.cache_tmp_path,
+        )
+        return cached_execute_mars.retrieve([request])
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -178,12 +212,16 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
-        result: Any = execute_mars(
-            self.mapped_requests,
+        cached_execute_mars = CachedExecuteMars(
             context=self.context,
             config=self.config,
             mapping=self.mapping,
+            cache_tmp_path=self.cache_tmp_path,
         )
+        with cacholote.config.set(
+            return_cache_entry=False  # TODO: use_cache=self.local_staging
+        ):
+            result = cached_execute_mars.retrieve(self.mapped_requests).name
 
         with dask.config.set(scheduler="threads"):
             result = self.post_process(result)
