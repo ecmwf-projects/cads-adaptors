@@ -26,42 +26,42 @@ def test_pp_config_mapping(in_mapping, out_mapping):
     assert post_processors.pp_config_mapping(in_mapping) == out_mapping
 
 
-def test_daily_reduce():
+def test_daily_reduce(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     remote_file = requests.get(TEST_FILE_1)
     _, ext = os.path.splitext(TEST_FILE_1)
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        os.chdir(tmpdirname)
-        tmp_file = f"test{ext}"
-        with open(tmp_file, "wb") as f:
-            f.write(remote_file.content)
+    
+    tmp_file = f"test{ext}"
+    with open(tmp_file, "wb") as f:
+        f.write(remote_file.content)
 
-        xarray_dict = convertors.open_grib_file_as_xarray_dictionary(tmp_file)
+    xarray_dict = convertors.open_grib_file_as_xarray_dictionary(tmp_file)
 
-        out_xarray_dict = post_processors.daily_reduce(xarray_dict, how="mean")
-        assert isinstance(out_xarray_dict, dict)
-        assert len(out_xarray_dict) == 1
-        assert list(out_xarray_dict)[0] == "test_0_daily-mean"
-        assert isinstance(out_xarray_dict["test_0_daily-mean"], xr.Dataset)
-        assert isinstance(out_xarray_dict["test_0_daily-mean"].attrs["history"], str)
+    out_xarray_dict = post_processors.daily_reduce(xarray_dict, how="mean")
+    assert isinstance(out_xarray_dict, dict)
+    assert len(out_xarray_dict) == 1
+    assert list(out_xarray_dict)[0] == "test_0_daily-mean"
+    assert isinstance(out_xarray_dict["test_0_daily-mean"], xr.Dataset)
+    assert isinstance(out_xarray_dict["test_0_daily-mean"].attrs["history"], str)
 
 
-def test_monthly_reduce():
+def test_monthly_reduce(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     remote_file = requests.get(TEST_FILE_1)
     _, ext = os.path.splitext(TEST_FILE_1)
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        os.chdir(tmpdirname)
-        tmp_file = f"test{ext}"
-        with open(tmp_file, "wb") as f:
-            f.write(remote_file.content)
+    
+    tmp_file = f"test{ext}"
+    with open(tmp_file, "wb") as f:
+        f.write(remote_file.content)
 
-        xarray_dict = convertors.open_grib_file_as_xarray_dictionary(tmp_file)
+    xarray_dict = convertors.open_grib_file_as_xarray_dictionary(tmp_file)
 
-        out_xarray_dict = post_processors.monthly_reduce(xarray_dict, how="mean")
-        assert isinstance(out_xarray_dict, dict)
-        assert len(out_xarray_dict) == 1
-        assert list(out_xarray_dict)[0] == "test_0_monthly-mean"
-        assert isinstance(out_xarray_dict["test_0_monthly-mean"], xr.Dataset)
-        assert isinstance(out_xarray_dict["test_0_monthly-mean"].attrs["history"], str)
+    out_xarray_dict = post_processors.monthly_reduce(xarray_dict, how="mean")
+    assert isinstance(out_xarray_dict, dict)
+    assert len(out_xarray_dict) == 1
+    assert list(out_xarray_dict)[0] == "test_0_monthly-mean"
+    assert isinstance(out_xarray_dict["test_0_monthly-mean"], xr.Dataset)
+    assert isinstance(out_xarray_dict["test_0_monthly-mean"].attrs["history"], str)
 
 
 def test_update_history():
