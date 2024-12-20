@@ -211,6 +211,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
+        requests = ensure_list(self.mapped_requests)
 
         cached_execute_mars = CachedExecuteMars(
             context=self.context,
@@ -221,7 +222,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         with cacholote.config.set(
             return_cache_entry=False  # TODO: use_cache=self.local_staging
         ):
-            result = cached_execute_mars.retrieve(self.mapped_requests).name
+            result = cached_execute_mars.retrieve(requests).name
 
         with dask.config.set(scheduler="threads"):
             result = self.post_process(result)
