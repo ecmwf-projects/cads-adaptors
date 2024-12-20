@@ -1,12 +1,14 @@
 import os
-import requests
 import tempfile
+
+import requests
 
 from cads_adaptors.adaptors import mars
 
 TEST_GRIB_FILE = (
     "https://get.ecmwf.int/repository/test-data/cfgrib/era5-levels-members.grib"
 )
+
 
 def test_get_mars_servers():
     mars_servers = mars.get_mars_server_list(
@@ -46,7 +48,8 @@ def test_convert_format():
             f.write(remote_file.content)
 
         converted_files = mars_adaptor.convert_format(
-            tmp_file, "netcdf",
+            tmp_file,
+            "netcdf",
         )
         assert isinstance(converted_files, list)
         assert len(converted_files) == 1

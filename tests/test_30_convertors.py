@@ -170,7 +170,7 @@ def test_convert_format_to_netcdf(url, target_format="netcdf"):
         assert len(converted_files) == 1
         _, out_ext = os.path.splitext(converted_files[0])
         assert out_ext == EXTENSION_MAPPING.get(target_format, f".{target_format}")
-        if out_ext != ext: # i.e. if a conversion has taken place
+        if out_ext != ext:  # i.e. if a conversion has taken place
             assert "/test_subdir/" in converted_files[0]
 
 
@@ -221,8 +221,9 @@ def test_convert_format_to_netcdf_legacy(
         assert len(converted_files) == 1
         _, out_ext = os.path.splitext(converted_files[0])
         assert out_ext == EXTENSION_MAPPING.get(target_format, f".{target_format}")
-        if out_ext != ext: # i.e. if a conversion has taken place
+        if out_ext != ext:  # i.e. if a conversion has taken place
             assert "/test_subdir/" in converted_files[0]
+
 
 def test_safely_rename_variable():
     import xarray as xr

@@ -1,5 +1,6 @@
 import os
 import tempfile
+
 import requests
 
 from cads_adaptors import AbstractAdaptor
@@ -187,7 +188,6 @@ def test_multi_adaptor_split_adaptors_dont_split_keys():
     assert "area" in sub_adaptors["max"][1].keys()
 
 
-
 def test_convert_format():
     multi_adaptor = multi.MultiMarsCdsAdaptor({}, {})
 
@@ -203,7 +203,8 @@ def test_convert_format():
             f.write(remote_file.content)
 
         converted_files = multi_adaptor.convert_format(
-            tmp_file, "netcdf",
+            tmp_file,
+            "netcdf",
         )
         assert isinstance(converted_files, list)
         assert len(converted_files) == 1
