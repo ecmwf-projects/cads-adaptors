@@ -33,7 +33,8 @@ def test_get_mars_servers_envvar():
     assert mars_servers[0] == "http://a-test-server.url"
 
 
-def test_convert_format():
+def test_convert_format(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     mars_adaptor = mars.MarsCdsAdaptor({}, {})
 
     assert hasattr(mars_adaptor, "convert_format")
@@ -41,28 +42,27 @@ def test_convert_format():
     url = TEST_GRIB_FILE
     remote_file = requests.get(url)
     _, ext = os.path.splitext(url)
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        os.chdir(tmpdirname)
-        tmp_file = f"test{ext}"
-        with open(tmp_file, "wb") as f:
-            f.write(remote_file.content)
+    
+    tmp_file = f"test{ext}"
+    with open(tmp_file, "wb") as f:
+        f.write(remote_file.content)
 
-        converted_files = mars_adaptor.convert_format(
-            tmp_file,
-            "netcdf",
-        )
-        assert isinstance(converted_files, list)
-        assert len(converted_files) == 1
-        _, out_ext = os.path.splitext(converted_files[0])
-        assert out_ext == ".nc"
+    converted_files = mars_adaptor.convert_format(
+        tmp_file,
+        "netcdf",
+    )
+    assert isinstance(converted_files, list)
+    assert len(converted_files) == 1
+    _, out_ext = os.path.splitext(converted_files[0])
+    assert out_ext == ".nc"
 
-        test_subdir = "./test_subdir"
-        os.makedirs(test_subdir, exist_ok=True)
-        converted_files = mars_adaptor.convert_format(
-            tmp_file, "netcdf", target_dir=test_subdir
-        )
-        assert isinstance(converted_files, list)
-        assert len(converted_files) == 1
-        _, out_ext = os.path.splitext(converted_files[0])
-        assert out_ext == ".nc"
-        assert "/test_subdir/" in converted_files[0]
+    test_subdir = "./test_subdir"
+    os.makedirs(test_subdir, exist_ok=True)
+    converted_files = mars_adaptor.convert_format(
+        tmp_file, "netcdf", target_dir=test_subdir
+    )
+    assert isinstance(converted_files, list)
+    assert len(converted_files) == 1
+    _, out_ext = os.path.splitext(converted_files[0])
+    assert out_ext == ".nc"
+    assert "/test_subdir/" in converted_files[0]
