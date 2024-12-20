@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 import pytest
 
@@ -32,31 +33,33 @@ from cads_adaptors.tools import url_tools
         ),
     ),
 )
-def test_downloaders(tmp_path, monkeypatch, urls, expected_nfiles):
-    monkeypatch.chdir(tmp_path)  # try_download generates files in the working dir
-    paths = url_tools.try_download(urls, context=url_tools.Context())
-    assert len(paths) == expected_nfiles
+def test_downloaders(urls, expected_nfiles):
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        os.chdir(tmpdirname)
+        paths = url_tools.try_download(urls, context=url_tools.Context())
+        assert len(paths) == expected_nfiles
 
 
-def test_download_with_server_suggested_filename(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)  # try_download generates files in the working dir
+def test_download_with_server_suggested_filename():
     urls = ["https://gerb.oma.be/c3s/data/ceres-ebaf/tcdr/v4.2/toa_lw_all_mon/2000/07"]
-    paths_false = url_tools.try_download(
-        urls, context=url_tools.Context(), server_suggested_filename=False
-    )
-    assert len(paths_false) == 1
-    assert os.path.basename(paths_false[0]) == "07"
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        os.chdir(tmpdirname)
+        paths_false = url_tools.try_download(
+            urls, context=url_tools.Context(), server_suggested_filename=False
+        )
+        assert len(paths_false) == 1
+        assert os.path.basename(paths_false[0]) == "07"
 
-    paths_true = url_tools.try_download(
-        urls, context=url_tools.Context(), server_suggested_filename=True
-    )
-    assert len(paths_true) == 1
-    assert (
-        os.path.basename(paths_true[0])
-        == "data_312a_Lot1_ceres-ebaf_tcdr_v4.2_toa_lw_all_mon_2000_07.nc"
-    )
+        paths_true = url_tools.try_download(
+            urls, context=url_tools.Context(), server_suggested_filename=True
+        )
+        assert len(paths_true) == 1
+        assert (
+            os.path.basename(paths_true[0])
+            == "data_312a_Lot1_ceres-ebaf_tcdr_v4.2_toa_lw_all_mon_2000_07.nc"
+        )
 
-    assert os.path.dirname(paths_false[0]) == os.path.dirname(paths_true[0])
+        assert os.path.dirname(paths_false[0]) == os.path.dirname(paths_true[0])
 
 
 @pytest.mark.parametrize(
