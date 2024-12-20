@@ -1,5 +1,4 @@
 import os
-import tempfile
 
 import requests
 
@@ -42,7 +41,7 @@ def test_convert_format(tmp_path, monkeypatch):
     url = TEST_GRIB_FILE
     remote_file = requests.get(url)
     _, ext = os.path.splitext(url)
-    
+
     tmp_file = f"test{ext}"
     with open(tmp_file, "wb") as f:
         f.write(remote_file.content)

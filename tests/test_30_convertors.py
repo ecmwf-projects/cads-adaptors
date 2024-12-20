@@ -74,7 +74,8 @@ def test_open_netcdf():
         assert list(xarray_dict)[0] == "test"
 
 
-def test_open_file_as_xarray_dictionary():
+def test_open_file_as_xarray_dictionary(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path) 
     grib_file = requests.get(TEST_GRIB_FILE)
     with tempfile.TemporaryDirectory() as tmpdirname:
         os.chdir(tmpdirname)
