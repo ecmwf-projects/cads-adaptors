@@ -127,11 +127,16 @@ class CachedExecuteMars:
     mapping: dict[str, Any]
     cache_tmp_path: pathlib.Path
 
+    @property
+    def use_cache(self):
+        fs, _ = cacholote.utils.get_cache_files_fs_dirname()
+        return "file" in fs.protocol
+
     def sort_requests(self, requests: list[Request]) -> list[Request]:
         return sorted(requests, key=lambda request: json.dumps(request, sort_keys=True))
 
     @cacholote.cacheable
-    def retrieve(self, requests: list[Request]) -> BinaryIO:
+    def cached_retrieve(self, requests: list[Request]) -> BinaryIO:
         _, target = tempfile.mkstemp(suffix=".grib", dir=self.cache_tmp_path)
         result = execute_mars(
             self.sort_requests(requests),
@@ -141,6 +146,11 @@ class CachedExecuteMars:
             target,
         )
         return open(result, "rb")
+
+    def retrieve(self, requests: list[Request]) -> BinaryIO:
+        with cacholote.config.set(use_cache=self.use_cache, return_cache_entry=False):
+            fp = self.cached_retrieve(requests)
+        return cacholote.extra_encoders.FrozenFile(fp.name)
 
 
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -153,8 +163,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
             mapping=self.mapping,
             cache_tmp_path=self.cache_tmp_path,
         )
-        with cacholote.config.set(use_cache=False, return_cache_entry=False):
-            return cached_execute_mars.retrieve([request])
+        return cached_execute_mars.retrieve([request])
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -220,10 +229,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             mapping=self.mapping,
             cache_tmp_path=self.cache_tmp_path,
         )
-        with cacholote.config.set(
-            return_cache_entry=False  # TODO: use_cache=self.local_staging
-        ):
-            result = cached_execute_mars.retrieve(requests).name
+        result = cached_execute_mars.retrieve(requests).name
 
         with dask.config.set(scheduler="threads"):
             result = self.post_process(result)
