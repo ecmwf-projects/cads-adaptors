@@ -1,5 +1,11 @@
+import dataclasses
+import json
 import os
+import pathlib
+import tempfile
 from typing import Any, BinaryIO
+
+import cacholote
 
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
@@ -114,12 +120,50 @@ def execute_mars(
     return target
 
 
+@dataclasses.dataclass
+class CachedExecuteMars:
+    context: Context
+    config: dict[str, Any]
+    mapping: dict[str, Any]
+    cache_tmp_path: pathlib.Path
+
+    @property
+    def use_cache(self):
+        fs, _ = cacholote.utils.get_cache_files_fs_dirname()
+        return "file" in fs.protocol
+
+    def sort_requests(self, requests: list[Request]) -> list[Request]:
+        return sorted(requests, key=lambda request: json.dumps(request, sort_keys=True))
+
+    @cacholote.cacheable
+    def cached_retrieve(self, requests: list[Request]) -> BinaryIO:
+        _, target = tempfile.mkstemp(suffix=".grib", dir=self.cache_tmp_path)
+        result = execute_mars(
+            self.sort_requests(requests),
+            self.context,
+            self.config,
+            self.mapping,
+            target,
+        )
+        return open(result, "rb")
+
+    def retrieve(self, requests: list[Request]) -> BinaryIO:
+        with cacholote.config.set(use_cache=self.use_cache, return_cache_entry=False):
+            fp = self.cached_retrieve(requests)
+        return cacholote.extra_encoders.FrozenFile(fp.name)
+
+
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
-        result = execute_mars(request, context=self.context)
-        return open(result, "rb")
+        cached_execute_mars = CachedExecuteMars(
+            context=self.context,
+            config=self.config,
+            mapping=self.mapping,
+            cache_tmp_path=self.cache_tmp_path,
+        )
+        return cached_execute_mars.retrieve([request])
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
