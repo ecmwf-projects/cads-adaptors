@@ -132,7 +132,7 @@ class CachedExecuteMars:
     @property
     def use_cache(self):
         fs, _ = cacholote.utils.get_cache_files_fs_dirname()
-        return "file" in fs.protocol
+        return "local" in ensure_list(fs.protocol)
 
     def sort_requests(self, requests: list[Request]) -> list[Request]:
         return sorted(requests, key=lambda request: json.dumps(request, sort_keys=True))
