@@ -1,5 +1,13 @@
+import os
+
+import requests
+
 from cads_adaptors import AbstractAdaptor
 from cads_adaptors.adaptors import multi
+
+TEST_GRIB_FILE = (
+    "https://get.ecmwf.int/repository/test-data/cfgrib/era5-levels-members.grib"
+)
 
 FORM = {
     "level": ["500", "850"],
@@ -177,3 +185,38 @@ def test_multi_adaptor_split_adaptors_dont_split_keys():
     assert "dont_split" in sub_adaptors["mean"][1].keys()
     assert "dont_split" not in sub_adaptors["max"][1].keys()
     assert "area" in sub_adaptors["max"][1].keys()
+
+
+def test_convert_format(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    multi_adaptor = multi.MultiMarsCdsAdaptor({}, {})
+
+    assert hasattr(multi_adaptor, "convert_format")
+
+    url = TEST_GRIB_FILE
+    remote_file = requests.get(url)
+    _, ext = os.path.splitext(url)
+
+    tmp_file = f"test{ext}"
+    with open(tmp_file, "wb") as f:
+        f.write(remote_file.content)
+
+    converted_files = multi_adaptor.convert_format(
+        tmp_file,
+        "netcdf",
+    )
+    assert isinstance(converted_files, list)
+    assert len(converted_files) == 1
+    _, out_ext = os.path.splitext(converted_files[0])
+    assert out_ext == ".nc"
+
+    test_subdir = "./test_subdir"
+    os.makedirs(test_subdir, exist_ok=True)
+    converted_files = multi_adaptor.convert_format(
+        tmp_file, "netcdf", target_dir=test_subdir
+    )
+    assert isinstance(converted_files, list)
+    assert len(converted_files) == 1
+    _, out_ext = os.path.splitext(converted_files[0])
+    assert out_ext == ".nc"
+    assert "/test_subdir/" in converted_files[0]

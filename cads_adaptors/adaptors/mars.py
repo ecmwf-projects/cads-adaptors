@@ -2,7 +2,6 @@ import dataclasses
 import json
 import os
 import pathlib
-import tempfile
 from typing import Any, BinaryIO
 
 import cacholote
@@ -55,10 +54,11 @@ def get_mars_server_list(config) -> list[str]:
 
 def execute_mars(
     request: dict[str, Any] | list[dict[str, Any]],
-    context: Context,
+    context: Context = Context(),
     config: dict[str, Any] = dict(),
     mapping: dict[str, Any] = dict(),
-    target: str = "data.grib",
+    target_fname: str = "data.grib",
+    target_dir: str | pathlib.Path = "",
 ) -> str:
     from cads_mars_server import client as mars_client
 
@@ -68,6 +68,8 @@ def execute_mars(
     #  and the some adaptors may not use normalise_request yet
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
+
+    target = str(pathlib.Path(target_dir) / target_fname)
 
     split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
     requests = split_requests_on_keys(requests, split_on_keys, context, mapping)
@@ -137,13 +139,12 @@ class CachedExecuteMars:
 
     @cacholote.cacheable
     def cached_retrieve(self, requests: list[Request]) -> BinaryIO:
-        _, target = tempfile.mkstemp(suffix=".grib", dir=self.cache_tmp_path)
         result = execute_mars(
             self.sort_requests(requests),
             self.context,
             self.config,
             self.mapping,
-            target,
+            target_dir=self.cache_tmp_path,
         )
         return open(result, "rb")
 
@@ -222,22 +223,24 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
-        result: Any = execute_mars(
+        result = execute_mars(
             self.mapped_requests,
             context=self.context,
             config=self.config,
             mapping=self.mapping,
+            target_dir=self.cache_tmp_path,
         )
 
         with dask.config.set(scheduler="threads"):
-            result = self.post_process(result)
+            results_dict = self.post_process(result)
 
             # TODO?: Generalise format conversion to be a post-processor
             paths = self.convert_format(
-                result,
+                results_dict,
                 self.data_format,
                 context=self.context,
                 config=self.config,
+                target_dir=str(self.cache_tmp_path),
             )
 
         # A check to ensure that if there is more than one path, and download_format

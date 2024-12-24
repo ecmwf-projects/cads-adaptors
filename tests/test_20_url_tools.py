@@ -66,7 +66,7 @@ def test_download_with_server_suggested_filename(tmp_path, monkeypatch):
         False,
     ),
 )
-def test_ftp_download(tmp_path, ftpserver, anon):
+def test_ftp_download(tmp_path, monkeypatch, ftpserver, anon):
     local_test_file = os.path.join(tmp_path, "testfile.txt")
     with open(local_test_file, "w") as f:
         f.write("This is a test file")
@@ -74,7 +74,7 @@ def test_ftp_download(tmp_path, ftpserver, anon):
     ftp_url = ftpserver.put_files(local_test_file, style="url", anon=anon)
     work_dir = os.path.join(tmp_path, "work_dir")
     os.makedirs(work_dir)
-    os.chdir(work_dir)
+    monkeypatch.chdir(work_dir)
     local_test_download = url_tools.try_download(ftp_url, context=url_tools.Context())[
         0
     ]
