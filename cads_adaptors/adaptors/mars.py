@@ -130,7 +130,7 @@ class CachedExecuteMars:
     cache_tmp_path: pathlib.Path
 
     @property
-    def use_cache(self):
+    def use_cache(self) -> bool:
         fs, _ = cacholote.utils.get_cache_files_fs_dirname()
         return "local" in ensure_list(fs.protocol)
 
