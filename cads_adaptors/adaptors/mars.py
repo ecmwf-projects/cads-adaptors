@@ -223,6 +223,19 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return request
 
+    @property
+    def use_cache(self) -> bool:
+        fs, _ = cacholote.utils.get_cache_files_fs_dirname()
+        return "local" in ensure_list(fs.protocol)
+
+    def retrieve(self, request):
+        results = self.retrieve_list_of_results(request)
+        return (
+            cacholote.extra_encoders.FrozenFile(results[0], "rb")
+            if self.use_cache
+            else open(results[0], "rb")
+        )
+    
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         import dask
 
