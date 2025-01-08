@@ -235,12 +235,13 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         #     target_dir=self.cache_tmp_path,
         # )
 
-        result = CachedExecuteMars(
+        cached_execute_mars = CachedExecuteMars(
             context=self.context,
             config=self.config,
             mapping=self.mapping,
             cache_tmp_path=self.cache_tmp_path,
         )
+        result = cached_execute_mars.retrieve([request])
         try:
             result.close()
             result.name
