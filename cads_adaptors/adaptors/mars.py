@@ -152,6 +152,7 @@ class CachedExecuteMars:
     def retrieve(self, requests: list[Request]) -> BinaryIO:
         with cacholote.config.set(use_cache=self.use_cache, return_cache_entry=False):
             name = self.cached_retrieve(requests).name
+        self.context.info(f"use_cache: {self.use_cache}")
         return (
             cacholote.extra_encoders.FrozenFile(name, "rb")
             if self.use_cache
