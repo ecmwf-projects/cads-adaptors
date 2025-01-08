@@ -86,10 +86,10 @@ def execute_mars(
     }
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
 
-    context.add_stdout(f"Request sent to proxy MARS client: {requests}")
+    context.info(f"Request sent to proxy MARS client: {requests}")
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
-    context.add_stdout(message=reply_message)
+    context.debug(message=reply_message)
 
     if reply.error:
         error_lines = "\n".join(

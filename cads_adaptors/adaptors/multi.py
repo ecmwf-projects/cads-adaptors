@@ -65,7 +65,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.split_request(
                 request, this_values, **this_adaptor.config
             )
-            self.context.add_stdout(
+            self.context.debug(
                 f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
@@ -73,8 +73,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 try:
                     this_request = this_adaptor.normalise_request(this_request)
                 except Exception:
-                    self.context.add_stdout(
-                        f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
+                    self.context.warning(
+                        f"MultiAdaptor failed to normalise request.\n"
+                        f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
                     )
                 sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
 
@@ -101,7 +102,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
         self.mapped_request = self.mapped_requests[0]
 
-        self.context.add_stdout(f"MultiAdaptor, full_request: {self.mapped_request}")
+        self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
 
         sub_adaptors = self.split_adaptors(self.mapped_request)
 
@@ -121,7 +122,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 f"{exception_logs}"
             )
 
-        self.context.add_stdout(f"MultiAdaptor, result paths:\n{paths}")
+        self.context.debug(f"MultiAdaptor, result paths:\n{paths}")
 
         return paths
 
@@ -170,7 +171,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         #   be useful to reduce the repetitive config in each sub-adaptor of adaptor.json
 
         # self.mapped_requests contains the schema-checked, intersected and (top-level mapping) mapped request
-        self.context.add_stdout(
+        self.context.info(
             f"MultiMarsCdsAdaptor, full_request: {self.mapped_requests}"
         )
 
@@ -183,7 +184,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                 this_request = self.split_request(
                     mapped_request_piece, this_values, **this_adaptor.config
                 )
-                self.context.add_stdout(
+                self.context.info(
                     f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
                 )
 
@@ -192,7 +193,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                         mapping.apply_mapping(this_request, this_adaptor.mapping)
                     )
 
-        self.context.add_stdout(
+        self.context.info(
             f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}"
         )
         result = execute_mars(

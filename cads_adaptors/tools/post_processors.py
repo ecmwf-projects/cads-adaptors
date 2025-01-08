@@ -77,8 +77,7 @@ def daily_reduce(
     out_xarray_dict = {}
     for in_tag, in_dataset in in_xarray_dict.items():
         out_tag = f"{in_tag}_daily-{how}"
-        context.add_stdout(f"Daily reduction: {how} {kwargs}\n{in_dataset}")
-        context.add_user_visible_log(f"Daily reduction: {how} {kwargs}")
+        context.debug(f"Daily reduction: {how} {kwargs}\n{in_dataset}")
         reduced_data = temporal.daily_reduce(
             in_dataset,
             how=how,
@@ -103,8 +102,7 @@ def monthly_reduce(
     out_xarray_dict = {}
     for in_tag, in_dataset in in_xarray_dict.items():
         out_tag = f"{in_tag}_monthly-{how}"
-        context.add_stdout(f"Temporal reduction: {how} {kwargs}")
-        context.add_user_visible_log(f"Temporal reduction: {how} {kwargs}")
+        context.debug(f"Temporal reduction: {how} {kwargs}")
         reduced_data = temporal.monthly_reduce(
             in_dataset,
             how=how,
@@ -127,7 +125,7 @@ def update_history(
     elif isinstance(history, str):
         history += f"\n{update_text}"
     else:
-        context.add_stderr(
+        context.error(
             f"Unexpected history attribute type in existing xarray: {type(history)}"
         )
         return dataset
