@@ -242,7 +242,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             mapping=self.mapping,
             cache_tmp_path=self.cache_tmp_path,
         )
-        result = cached_execute_mars.retrieve([request])
+        result = cached_execute_mars.retrieve(self.mapped_requests)
         try:
             result.close()
             result.name
