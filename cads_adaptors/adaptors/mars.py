@@ -227,13 +227,28 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
-        result = execute_mars(
-            self.mapped_requests,
+        # result = execute_mars(
+        #     self.mapped_requests,
+        #     context=self.context,
+        #     config=self.config,
+        #     mapping=self.mapping,
+        #     target_dir=self.cache_tmp_path,
+        # )
+
+        result = CachedExecuteMars(
             context=self.context,
             config=self.config,
             mapping=self.mapping,
-            target_dir=self.cache_tmp_path,
+            cache_tmp_path=self.cache_tmp_path,
         )
+        try:
+            result.close()
+            result.name
+        except Exception:
+            self.context.error(f"Failed to close result: {result}")
+            pass
+        
+
 
         with dask.config.set(scheduler="threads"):
             results_dict = self.post_process(result)
