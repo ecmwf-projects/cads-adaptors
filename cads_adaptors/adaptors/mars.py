@@ -245,7 +245,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         result = cached_execute_mars.retrieve(self.mapped_requests)
         try:
             result.close()
-            result.name
+            result = result.name
         except Exception:
             self.context.error(f"Failed to close result: {result}")
             pass
