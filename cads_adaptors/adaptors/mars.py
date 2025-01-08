@@ -140,7 +140,7 @@ class CachedExecuteMars:
     @cacholote.cacheable
     def cached_retrieve(self, requests: list[Request]) -> BinaryIO:
         result = execute_mars(
-            self.sort_requests(requests),
+            requests,
             self.context,
             self.config,
             self.mapping,
@@ -149,6 +149,7 @@ class CachedExecuteMars:
         return open(result, "rb")
 
     def retrieve(self, requests: list[Request]) -> BinaryIO:
+        requests = self.sort_requests(requests)
         with cacholote.config.set(use_cache=self.use_cache, return_cache_entry=False):
             name = self.cached_retrieve(requests).name
         return (
