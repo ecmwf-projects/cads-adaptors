@@ -66,6 +66,7 @@ def execute_mars(
     # Implement embargo if it is set in the config
     # This is now done in normalize request, but leaving it here for now, as running twice is not a problem
     #  and the some adaptors may not use normalise_request yet
+    context.info(f"execute_mars: requests: {requests}")
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
 
