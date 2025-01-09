@@ -152,8 +152,8 @@ class CachedExecuteMars:
 
     def retrieve(self, requests: list[Request]) -> BinaryIO:
         requests = self.sort_requests(requests)
-        print(self.use_cache)
-        print(requests)
+        self.context.info(f"{self.use_cache = }")
+        self.context.info(f"{requests = }")
         with cacholote.config.set(use_cache=self.use_cache, return_cache_entry=False):
             name = self.cached_retrieve(requests).name
         self.context.info(f"use_cache: {self.use_cache}")
@@ -175,10 +175,6 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
             cache_tmp_path=self.cache_tmp_path,
         )
         request.pop("_test_field_to_pop", None)
-        self.context.info(f"request submitted to cached retrieve: {request}")
-        self.context.info(
-            f"hex: {cacholote.encode._hexdigestify_python_call(cached_execute_mars.retrieve, request)}"
-        )
         return cached_execute_mars.retrieve([request])
 
 
