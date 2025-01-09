@@ -174,9 +174,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
         )
         request.pop("_test_field_to_pop", None)
         self.context.info(f"request submitted to cached retrieve: {request}")
-        self.context.info(f"retrieve method hex: {
-            cacholote.encode._hexdigestify_python_call(cached_execute_mars.retrieve, request)
-        }")
+        self.context.info(f"retrieve method hex: {cacholote.encode._hexdigestify_python_call(cached_execute_mars.retrieve, request)}")
         return cached_execute_mars.retrieve([request])
 
 
