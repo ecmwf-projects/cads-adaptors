@@ -170,6 +170,8 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
             mapping=self.mapping,
             cache_tmp_path=self.cache_tmp_path,
         )
+        request.pop("_test_field_to_pop", None)
+        self.context.info(f"request submitted to cached retrieve: {request}")
         return cached_execute_mars.retrieve([request])
 
 
@@ -264,8 +266,6 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         except Exception:
             self.context.error(f"Failed to close result: {result}")
             pass
-        
-
 
         with dask.config.set(scheduler="threads"):
             results_dict = self.post_process(result)
