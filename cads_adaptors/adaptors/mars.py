@@ -156,7 +156,7 @@ class CachedExecuteMars:
         self.context.info(f"{requests = }")
         with cacholote.config.set(use_cache=self.use_cache, return_cache_entry=False):
             name = self.cached_retrieve(requests).name
-        self.context.info(f"use_cache: {self.use_cache}")
+        self.context.info(f"{name = }")
         return (
             cacholote.extra_encoders.FrozenFile(name, "rb")
             if self.use_cache
