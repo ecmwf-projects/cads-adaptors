@@ -173,6 +173,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
             mapping=self.mapping,
             cache_tmp_path=self.cache_tmp_path,
         )
+        _ = request.pop("_test_cache_field", None)
         return cached_execute_mars.retrieve([request])
 
 
