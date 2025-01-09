@@ -135,7 +135,8 @@ class CachedExecuteMars:
         return "local" in ensure_list(fs.protocol)
 
     def sort_requests(self, requests: list[Request]) -> list[Request]:
-        return sorted(requests, key=lambda request: json.dumps(request, sort_keys=True))
+        requests = [dict(sorted(request.items())) for request in requests]
+        return sorted(requests, key=lambda request: json.dumps(request))
 
     @cacholote.cacheable
     def cached_retrieve(self, requests: list[Request]) -> BinaryIO:
