@@ -6,7 +6,7 @@ from cads_adaptors import mapping
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 from cads_adaptors.exceptions import RoocsRuntimeError, RoocsValueError
 
-ROOK_URL = "http://compute.mips.copernicus-climate.eu/wps"
+ROOK_URL = "http://compute.mips.climate.copernicus.eu/wps"
 ROOK_MODE = "async"
 
 
