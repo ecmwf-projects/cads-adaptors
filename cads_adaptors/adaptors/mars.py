@@ -138,8 +138,7 @@ class CachedExecuteMars:
         requests = [dict(sorted(request.items())) for request in requests]
         return sorted(requests, key=lambda request: json.dumps(request))
 
-    @cacholote.cacheable
-    def cached_retrieve(self, requests: list[Request]) -> BinaryIO:
+    def _execute_mars(self, requests: list[Request]) -> BinaryIO:
         result = execute_mars(
             requests,
             self.context,
@@ -149,14 +148,17 @@ class CachedExecuteMars:
         )
         return open(result, "rb")
 
-    def retrieve(self, requests: list[Request]) -> BinaryIO:
+    def execute_mars(self, requests: list[Request]) -> str:
         requests = self.sort_requests(requests)
         with cacholote.config.set(use_cache=self.use_cache, return_cache_entry=False):
-            name = self.cached_retrieve(requests).name
+            return cacholote.cacheable(self._execute_mars)(requests).name
+
+    def retrieve(self, requests: list[Request]) -> BinaryIO:
+        result = self.execute_mars(requests)
         return (
-            cacholote.extra_encoders.FrozenFile(name, "rb")
+            cacholote.extra_encoders.FrozenFile(result, "rb")
             if self.use_cache
-            else open(name, "rb")
+            else open(result, "rb")
         )
 
 
