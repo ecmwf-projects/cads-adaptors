@@ -140,9 +140,6 @@ class CachedExecuteMars:
         return sorted(requests, key=lambda request: json.dumps(request))
 
     def _execute_mars(self, requests: list[Request]) -> BinaryIO:
-        print("=" * 100)
-        print(f"Executing MARS: {requests}")
-        print("=" * 100)
         result = execute_mars(
             requests,
             self.context,
