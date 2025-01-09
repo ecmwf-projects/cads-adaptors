@@ -1,4 +1,5 @@
 import dataclasses
+import functools
 import json
 import os
 import pathlib
@@ -66,7 +67,6 @@ def execute_mars(
     # Implement embargo if it is set in the config
     # This is now done in normalize request, but leaving it here for now, as running twice is not a problem
     #  and the some adaptors may not use normalise_request yet
-    context.info(f"execute_mars: requests: {requests}")
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
 
@@ -173,7 +173,6 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
             mapping=self.mapping,
             cache_tmp_path=self.cache_tmp_path,
         )
-        request.pop("_test_field_to_pop", None)
         return cached_execute_mars.retrieve([request])
 
 
@@ -227,17 +226,13 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return request
 
-    @property
-    def use_cache(self) -> bool:
-        fs, _ = cacholote.utils.get_cache_files_fs_dirname()
-        return "local" in ensure_list(fs.protocol)
-
-    def retrieve(self, request):
-        results = self.retrieve_list_of_results(request)
-        return (
-            cacholote.extra_encoders.FrozenFile(results[0], "rb")
-            if self.use_cache
-            else open(results[0], "rb")
+    @functools.cached_property
+    def cached_execute_mars(self):
+        return CachedExecuteMars(
+            context=self.context,
+            config=self.config,
+            mapping=self.mapping,
+            cache_tmp_path=self.cache_tmp_path,
         )
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
@@ -246,28 +241,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
-        # result = execute_mars(
-        #     self.mapped_requests,
-        #     context=self.context,
-        #     config=self.config,
-        #     mapping=self.mapping,
-        #     target_dir=self.cache_tmp_path,
-        # )
-
-        cached_execute_mars = CachedExecuteMars(
-            context=self.context,
-            config=self.config,
-            mapping=self.mapping,
-            cache_tmp_path=self.cache_tmp_path,
-        )
-        self.context.info(f"mapped_requests: {self.mapped_requests}")
-        result = cached_execute_mars.retrieve(self.mapped_requests)
-        try:
-            result.close()
-            result = result.name
-        except Exception:
-            self.context.error(f"Failed to close result: {result}")
-            pass
+        result = self.cached_execute_mars.execute_mars(self.mapped_requests)
 
         with dask.config.set(scheduler="threads"):
             results_dict = self.post_process(result)
@@ -287,3 +261,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             self.download_format = "zip"
 
         return paths
+
+    def retrieve(self, request: dict[str, Any]) -> BinaryIO:
+        with super().retrieve(request) as fp:
+            if not self.cached_execute_mars.use_cache or not fp.name.endswith(".grib"):
+                return fp
+            return cacholote.extra_encoders.FrozenFile(fp.name, "rb")
