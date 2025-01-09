@@ -367,7 +367,7 @@ def xarray_dict_to_netcdf(
     compression_options: str | dict[str, Any] = "default",
     to_netcdf_kwargs: dict[str, Any] = {},
     out_fname_prefix: str = "",
-    target_dir: str = "",
+    target_dir: str = ".",
     **kwargs,
 ) -> list[str]:
     """
