@@ -137,6 +137,25 @@ def test_multi_adaptor_split_requests_dont_split_keys():
     assert "area" in split_max_split_area
 
 
+def test_multi_adaptor_split_requests_filter_keys():
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
+
+    request = {
+        "a": ["a1", "a2"],
+        "b": ["b1", "b2"],
+    }
+    values = {
+        "a": ["a1"],
+        "b": ["b2"],
+    }
+    # dont_split_keys as list dtype
+    filter_a = multi_adaptor.split_request(
+        request, values,
+        filter_keys=["a"],
+    )
+    assert filter_a == {"a": ["a1"], "b": ["b1", "b2"]}
+
+
 def test_multi_adaptor_split_adaptors():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
