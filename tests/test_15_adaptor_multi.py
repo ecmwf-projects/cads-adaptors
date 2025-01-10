@@ -148,12 +148,22 @@ def test_multi_adaptor_split_requests_filter_keys():
         "a": ["a1"],
         "b": ["b2"],
     }
-    # dont_split_keys as list dtype
+
+    # Check that we only filter a certain key
     filter_a = multi_adaptor.split_request(
-        request, values,
+        request,
+        values,
         filter_keys=["a"],
     )
     assert filter_a == {"a": ["a1"], "b": ["b1", "b2"]}
+
+    # Check that we default to filter all keys (duplicate of previous test)
+    filter_all = multi_adaptor.split_request(
+        request,
+        values,
+        # filter_keys=["a"],
+    )
+    assert filter_all == {"a": ["a1"], "b": ["b2"]}
 
 
 def test_multi_adaptor_split_adaptors():
