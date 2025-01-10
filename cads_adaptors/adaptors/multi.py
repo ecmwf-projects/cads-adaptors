@@ -13,6 +13,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         full_request: Request,  # User request
         this_values: dict[str, Any],  # key: [values] for the adaptor component
         dont_split_keys: list[str] = ["area", "grid"],
+        filter_keys: None | list[str] = None,
         required_keys: list[str] = [],
         **config: Any,
     ) -> Request:
@@ -24,7 +25,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
         required_keys = ensure_list(required_keys)
         this_request = {}
         # loop over keys in the full_request
-        for key, req_vals in full_request.items():
+        if filter_keys is None:
+            filter_keys = list(full_request.keys())
+        for key in filter_keys:
+            # get the values for this key
+            req_vals = full_request.get(key, [])
             # If dont_split_key, then copy the key and values to the new request
             if key in ensure_list(dont_split_keys):
                 this_request[key] = req_vals
