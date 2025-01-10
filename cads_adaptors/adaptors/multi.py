@@ -189,14 +189,13 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                 this_request = self.split_request(
                     mapped_request_piece, this_values, **this_adaptor.config
                 )
-                self.context.add_stdout(
-                    f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
-                )
-
                 if len(this_request) > 0:
                     mapped_requests.append(
                         mapping.apply_mapping(this_request, this_adaptor.mapping)
                     )
+            self.context.add_stdout(
+                f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
+            )
 
         self.context.add_stdout(
             f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}"
