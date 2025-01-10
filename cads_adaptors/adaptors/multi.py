@@ -24,7 +24,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
         """
         required_keys = ensure_list(required_keys)
         this_request = {}
-        # loop over keys in the full_request
+        # loop over keys to be filtered, we default to all keys until datasets have been updated
+        #  the filter_keys will possibly make dont_split_keys redundant, but keep both for now
         if filter_keys is None:
             filter_keys = list(full_request.keys())
         for key in filter_keys:
