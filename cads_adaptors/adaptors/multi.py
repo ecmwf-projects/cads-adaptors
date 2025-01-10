@@ -30,7 +30,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
         for key, req_vals in full_request.items():
             # If not in filter_keys or is in dont_split_key, then copy the key and values to the new request
             #  filter_keys may make dont_split_keys redundant, but keep both for now
-            if key not in ensure_list(filter_keys) or key in ensure_list(dont_split_keys):
+            if key not in ensure_list(filter_keys) or key in ensure_list(
+                dont_split_keys
+            ):
                 this_request[key] = req_vals
             else:
                 # filter for values relevant to this_adaptor:
