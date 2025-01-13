@@ -8,14 +8,23 @@ from cads_adaptors.tools.general import ensure_list
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
+    @property
+    def extract_subrequest_kws(self) -> list[str]:
+        # extract keyword arguments from a function signature
+        import inspect
+        sig = inspect.signature(self.extract_subrequest)
+        return [
+            name for name, param in sig.parameters.items()
+            if param.default != inspect.Parameter.empty
+        ]
+
     @staticmethod
-    def split_request(
+    def extract_subrequest(
         full_request: Request,  # User request
         this_values: dict[str, Any],  # key: [values] for the adaptor component
         dont_split_keys: list[str] = ["area", "grid"],
         filter_keys: None | list[str] = None,
         required_keys: list[str] = [],
-        **config: Any,
     ) -> Request:
         """
         Basic request splitter, splits based on whether the values are relevant to
@@ -60,6 +69,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
     ) -> dict[str, tuple[AbstractCdsAdaptor, Request]]:
         from cads_adaptors.tools import adaptor_tools
 
+        base_extract_subrequest_kwargs = {
+            k: self.config[k] for k in self.extract_subrequest_kws if k in self.config
+        }
         sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(
@@ -68,8 +80,12 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
             this_values = adaptor_desc.get("values", {})
 
-            this_request = self.split_request(
-                request, this_values, **this_adaptor.config
+            extract_subrequest_kwargs = {
+                **base_extract_subrequest_kwargs,
+                **{k: this_adaptor.config[k] for k in self.extract_subrequest_kws if k in this_adaptor.config}
+            }
+            this_request = self.extract_subrequest(
+                request, this_values, **extract_subrequest_kwargs
             )
             self.context.add_stdout(
                 f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
@@ -182,12 +198,19 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
         # We now split the mapped_request into sub-adaptors
         mapped_requests = []
+        base_extract_subrequest_kwargs = {
+            k: self.config[k] for k in self.extract_subrequest_kws if k in self.config
+        }
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
+            extract_subrequest_kwargs = {
+                **base_extract_subrequest_kwargs,
+                **{k: this_adaptor.config[k] for k in self.extract_subrequest_kws if k in this_adaptor.config}
+            }
             for mapped_request_piece in self.mapped_requests:
-                this_request = self.split_request(
-                    mapped_request_piece, this_values, **this_adaptor.config
+                this_request = self.extract_subrequest(
+                    mapped_request_piece, this_values, **extract_subrequest_kwargs
                 )
                 if len(this_request) > 0:
                     mapped_requests.append(

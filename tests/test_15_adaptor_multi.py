@@ -44,33 +44,33 @@ ADAPTOR_CONFIG = {
 }
 
 
-def test_multi_adaptor_split_requests():
+def test_multi_adaptor_extract_subrequests():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
-    split_mean = multi_adaptor.split_request(
+    split_mean = multi_adaptor.extract_subrequest(
         REQUEST, multi_adaptor.config["adaptors"]["mean"]["values"]
     )
     assert split_mean == ADAPTOR_CONFIG["adaptors"]["mean"]["values"]
 
-    split_max = multi_adaptor.split_request(
+    split_max = multi_adaptor.extract_subrequest(
         REQUEST, multi_adaptor.config["adaptors"]["max"]["values"]
     )
     assert split_max == ADAPTOR_CONFIG["adaptors"]["max"]["values"]
 
 
-def test_multi_adaptor_split_requests_required_keys():
+def test_multi_adaptor_extract_subrequests_required_keys():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
     request = REQUEST.copy()
     del request["level"]
-    split_mean_required_missing = multi_adaptor.split_request(
+    split_mean_required_missing = multi_adaptor.extract_subrequest(
         request,
         multi_adaptor.config["adaptors"]["mean"]["values"],
         required_keys=["level"],
     )
     assert split_mean_required_missing == dict()
 
-    split_max_required_present = multi_adaptor.split_request(
+    split_max_required_present = multi_adaptor.extract_subrequest(
         REQUEST,
         multi_adaptor.config["adaptors"]["max"]["values"],
         required_keys=["level"],
@@ -78,13 +78,13 @@ def test_multi_adaptor_split_requests_required_keys():
     assert split_max_required_present == ADAPTOR_CONFIG["adaptors"]["max"]["values"]
 
 
-def test_multi_adaptor_split_requests_dont_split_keys():
+def test_multi_adaptor_extract_subrequests_dont_split_keys():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
     request = REQUEST.copy()
     # dont_split_keys as list dtype
     request["dont_split"] = [1, 2, 3, 4]
-    split_mean_dont_split_area = multi_adaptor.split_request(
+    split_mean_dont_split_area = multi_adaptor.extract_subrequest(
         request,
         multi_adaptor.config["adaptors"]["mean"]["values"],
         dont_split_keys=["dont_split"],
@@ -93,7 +93,7 @@ def test_multi_adaptor_split_requests_dont_split_keys():
 
     # dont_split_keys as integer dtype
     request["dont_split"] = "1"
-    split_mean_dont_split = multi_adaptor.split_request(
+    split_mean_dont_split = multi_adaptor.extract_subrequest(
         request,
         multi_adaptor.config["adaptors"]["mean"]["values"],
         dont_split_keys=["dont_split"],
@@ -102,7 +102,7 @@ def test_multi_adaptor_split_requests_dont_split_keys():
 
     # dont_split_keys as integer dtype
     request["dont_split"] = 1
-    split_mean_dont_split = multi_adaptor.split_request(
+    split_mean_dont_split = multi_adaptor.extract_subrequest(
         request,
         multi_adaptor.config["adaptors"]["mean"]["values"],
         dont_split_keys=["dont_split"],
@@ -111,7 +111,7 @@ def test_multi_adaptor_split_requests_dont_split_keys():
 
     # dont_split_keys as float dtype
     request["dont_split"] = 1.0
-    split_mean_dont_split = multi_adaptor.split_request(
+    split_mean_dont_split = multi_adaptor.extract_subrequest(
         request,
         multi_adaptor.config["adaptors"]["mean"]["values"],
         dont_split_keys=["dont_split"],
@@ -120,7 +120,7 @@ def test_multi_adaptor_split_requests_dont_split_keys():
 
     # dont_split_keys as dict dtype
     request["dont_split"] = {"a": 1}
-    split_mean_dont_split = multi_adaptor.split_request(
+    split_mean_dont_split = multi_adaptor.extract_subrequest(
         request,
         multi_adaptor.config["adaptors"]["mean"]["values"],
         dont_split_keys=["dont_split"],
@@ -129,7 +129,7 @@ def test_multi_adaptor_split_requests_dont_split_keys():
 
     # Area is dont_split as default
     request["area"] = [1, 2, 3, 4]
-    split_max_split_area = multi_adaptor.split_request(
+    split_max_split_area = multi_adaptor.extract_subrequest(
         request,
         multi_adaptor.config["adaptors"]["max"]["values"],
     )
@@ -137,7 +137,7 @@ def test_multi_adaptor_split_requests_dont_split_keys():
     assert "area" in split_max_split_area
 
 
-def test_multi_adaptor_split_requests_filter_keys():
+def test_multi_adaptor_extract_subrequests_filter_keys():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
     request = {
@@ -150,7 +150,7 @@ def test_multi_adaptor_split_requests_filter_keys():
     }
 
     # Check that we only filter a certain key
-    filter_a = multi_adaptor.split_request(
+    filter_a = multi_adaptor.extract_subrequest(
         request,
         values,
         filter_keys=["a"],
@@ -158,7 +158,7 @@ def test_multi_adaptor_split_requests_filter_keys():
     assert filter_a == {"a": ["a1"], "b": ["b1", "b2"]}
 
     # Check that we default to filter all keys (duplicate of previous test)
-    filter_all = multi_adaptor.split_request(
+    filter_all = multi_adaptor.extract_subrequest(
         request,
         values,
         # filter_keys=["a"],
