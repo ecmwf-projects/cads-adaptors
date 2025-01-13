@@ -178,7 +178,7 @@ def area_selector(
         for lon_slice in lon_slices:
             sub_selections.append(
                 ds.sel(
-                    **area_selector_kwargs,
+                    **area_selector_kwargs,  # Any remaining kwargs are used for selection
                     **{
                         spatial_info["lat_key"]: lat_slice,
                         spatial_info["lon_key"]: lon_slice,
