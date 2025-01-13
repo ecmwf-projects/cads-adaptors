@@ -52,7 +52,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
                 paths,
                 self.area,
                 self.context,
-                **self.config.get("area_selector_kwargs", {}),
+                **self.config.get("post_processing_kwargs", {}),
             )
 
         return paths
