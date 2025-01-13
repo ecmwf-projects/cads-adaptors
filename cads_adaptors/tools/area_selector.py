@@ -136,13 +136,14 @@ def area_selector(
 ):
     north, east, south, west = area
 
+    # Get any area_selector_kwargs from adaptor config, take a copy as they will be updated here
+    area_selector_kwargs = deepcopy(kwargs.get("area_selector_kwargs", {}))
+
     # Open dataset with any open_dataset_kwargs
     open_dataset_kwargs = kwargs.get("open_dataset_kwargs", {})
     # Set decode_times to False to avoid any unnecessary issues with decoding time coordinates
     open_dataset_kwargs.setdefault("decode_times", False)
     ds = xr.open_dataset(infile, **open_dataset_kwargs)
-
-    area_selector_kwargs = kwargs.get("area_selector_kwargs", {})
 
     spatial_info = eka_tools.get_spatial_info(
         ds,
@@ -209,7 +210,11 @@ def area_selector(
 
 
 def area_selector_paths(
-    paths: list, area: list, context: Context, out_format: str = "netcdf", **kwargs
+    paths: list,
+    area: list,
+    context: Context,
+    out_format: str = "netcdf",
+    **kwargs,
 ):
     with dask.config.set(scheduler="threads"):
         # We try to select the area for all paths, if any fail we return the original paths
