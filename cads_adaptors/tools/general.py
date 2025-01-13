@@ -42,7 +42,7 @@ def split_requests_on_keys(
         if not mapping_options.get("wants_dates", False):
             split_by_month = False
             if context:
-                context.add_stderr(
+                context.error(
                     "For the time being, split-by-month is only supported for wants_dates=True!"
                 )
 

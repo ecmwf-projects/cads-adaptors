@@ -57,7 +57,7 @@ def try_download(
         if dir:
             os.makedirs(dir, exist_ok=True)
         try:
-            context.add_stdout(f"Downloading {url} to {path}")
+            context.debug(f"Downloading {url} to {path}")
             multiurl.download(
                 url,
                 path,
@@ -78,9 +78,9 @@ def try_download(
                     f"\n{yaml.safe_dump(url, indent=2)} "
                 )
             else:
-                context.add_stdout(f"Failed download for URL: {url}\nException: {e}")
+                context.debug(f"Failed download for URL: {url}\nException: {e}")
         except Exception as e:
-            context.add_stdout(f"Failed download for URL: {url}\nException: {e}")
+            context.debug(f"Failed download for URL: {url}\nException: {e}")
         else:
             paths.append(path)
 
