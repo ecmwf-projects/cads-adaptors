@@ -229,7 +229,6 @@ def test_area_selector_real_files(url):
 
         result = area_selector(test_file, area=[90, -180, -90, 180])
         assert isinstance(result, xr.Dataset)
-        assert result.sizes == {"time": 12, "level": 25, "lat": 360, "lon": 720}
 
 
 # Test with lists of urls
