@@ -202,7 +202,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         #   be useful to reduce the repetitive config in each sub-adaptor of adaptor.json
 
         # self.mapped_requests contains the schema-checked, intersected and (top-level mapping) mapped request
-        self.context.info(f"MultiMarsCdsAdaptor, full_request: {self.mapped_requests}")
+        self.context.debug(f"MultiMarsCdsAdaptor, mapped full request: {self.mapped_requests}")
 
         # We now split the mapped_request into sub-adaptors
         mapped_requests = []
@@ -231,11 +231,11 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                         mapping.apply_mapping(this_request, this_adaptor.mapping)
                     )
 
-            self.context.info(
+            self.context.debug(
                 f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
-        self.context.info(f"MultiMarsCdsAdaptor, mapped_requests: {mapped_requests}")
+        self.context.debug(f"MultiMarsCdsAdaptor, mapped and split requests: {mapped_requests}")
         result = execute_mars(
             mapped_requests,
             context=self.context,
