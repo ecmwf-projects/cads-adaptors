@@ -3,7 +3,6 @@ from copy import deepcopy
 import dask
 import numpy as np
 import xarray as xr
-from earthkit import data
 from earthkit.transforms import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
@@ -133,56 +132,62 @@ def area_selector(
     infile: str,
     context: Context = Context(),
     area: list = [-90, -180, -90, +180],
-    to_xarray_kwargs: dict = dict(),
     **kwargs,
 ):
     north, east, south, west = area
 
-    # open object as earthkit data object
-    ek_d = data.from_source("file", infile)
+    # Open dataset with any open_dataset_kwargs
+    open_dataset_kwargs = kwargs.get("open_dataset_kwargs", {})
+    # Set decode_times to False to avoid any unnecessary issues with decoding time coordinates
+    open_dataset_kwargs.setdefault("decode_times", False)
+    ds = xr.open_dataset(infile, **open_dataset_kwargs)
 
-    ds = ek_d.to_xarray(**to_xarray_kwargs)
+    area_selector_kwargs = kwargs.get("area_selector_kwargs", {})
 
-    spatial_info = eka_tools.get_spatial_info(ds)
+    spatial_info = eka_tools.get_spatial_info(
+        ds,
+        **{
+            k: area_selector_kwargs.pop(k)
+            for k in ["lat_key", "lon_key"]
+            if k in area_selector_kwargs
+        },
+    )
     lon_key = spatial_info["lon_key"]
     lat_key = spatial_info["lat_key"]
 
     # Handle simple regular case:
     if spatial_info["regular"]:
+        extra_kwargs = {
+            k: area_selector_kwargs.pop(k)
+            for k in ["precision"]
+            if k in area_selector_kwargs
+        }
         # Longitudes could return multiple slice in cases where the area wraps the "other side"
         lon_slices = get_dim_slices(
-            ds,
-            lon_key,
-            east,
-            west,
-            context,
-            longitude=True,
+            ds, lon_key, east, west, context, longitude=True, **extra_kwargs
         )
         # We assume that latitudes won't be wrapped
-        lat_slice = get_dim_slices(
-            ds,
-            lat_key,
-            south,
-            north,
-            context,
-        )[0]
+        lat_slice = get_dim_slices(ds, lat_key, south, north, context, **extra_kwargs)[
+            0
+        ]
 
-        context.logger.debug(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
+        context.debug(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
 
         sub_selections = []
         for lon_slice in lon_slices:
             sub_selections.append(
                 ds.sel(
+                    **area_selector_kwargs,
                     **{
                         spatial_info["lat_key"]: lat_slice,
                         spatial_info["lon_key"]: lon_slice,
-                    }
+                    },
                 )
             )
-        context.logger.debug(f"selections: {sub_selections}")
+        context.debug(f"selections: {sub_selections}")
 
         ds_area = xr.concat(sub_selections, dim=lon_key)
-        context.logger.debug(f"ds_area: {ds_area}")
+        context.debug(f"ds_area: {ds_area}")
 
         # Ensure that there are no length zero dimensions
         for dim in [lat_key, lon_key]:
@@ -204,14 +209,14 @@ def area_selector(
 
 
 def area_selector_paths(
-    paths: list, area: list, context: Context, out_format: str = "netcdf"
+    paths: list, area: list, context: Context, out_format: str = "netcdf", **kwargs
 ):
     with dask.config.set(scheduler="threads"):
         # We try to select the area for all paths, if any fail we return the original paths
         out_paths = []
         for path in paths:
             try:
-                ds_area = area_selector(path, context, area=area)
+                ds_area = area_selector(path, context, area=area, **kwargs)
             except NotImplementedError:
                 context.logger.debug(
                     f"could not convert {path} to xarray; returning the original data"
