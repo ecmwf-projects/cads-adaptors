@@ -10,11 +10,14 @@ from cads_adaptors.tools.general import ensure_list
 class MultiAdaptor(AbstractCdsAdaptor):
     @property
     def extract_subrequest_kws(self) -> list[str]:
-        # extract keyword arguments from a function signature
+        # extract keywords from a function signature
+        # (this is possibly overkill, but it's useful if )we think the function signature may change)
         import inspect
+
         sig = inspect.signature(self.extract_subrequest)
         return [
-            name for name, param in sig.parameters.items()
+            name
+            for name, param in sig.parameters.items()
             if param.default != inspect.Parameter.empty
         ]
 
@@ -70,7 +73,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.tools import adaptor_tools
 
         base_extract_subrequest_kwargs = {
-            k: self.config[k] for k in self.extract_subrequest_kws if k in self.config
+            k: self.config[k]
+            for k in self.extract_subrequest_kws
+            if k in self.config.get("extract_subrequest_kwargs", {})
         }
         sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
@@ -82,7 +87,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
             extract_subrequest_kwargs = {
                 **base_extract_subrequest_kwargs,
-                **{k: this_adaptor.config[k] for k in self.extract_subrequest_kws if k in this_adaptor.config}
+                **{
+                    k: this_adaptor.config[k]
+                    for k in self.extract_subrequest_kws
+                    if k in this_adaptor.config
+                },
             }
             this_request = self.extract_subrequest(
                 request, this_values, **extract_subrequest_kwargs
@@ -198,14 +207,20 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         # We now split the mapped_request into sub-adaptors
         mapped_requests = []
         base_extract_subrequest_kwargs = {
-            k: self.config[k] for k in self.extract_subrequest_kws if k in self.config
+            k: self.config[k]
+            for k in self.extract_subrequest_kws
+            if k in self.config.get("extract_subrequest_kwargs", {})
         }
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
             extract_subrequest_kwargs = {
                 **base_extract_subrequest_kwargs,
-                **{k: this_adaptor.config[k] for k in self.extract_subrequest_kws if k in this_adaptor.config}
+                **{
+                    k: this_adaptor.config[k]
+                    for k in self.extract_subrequest_kws
+                    if k in this_adaptor.config
+                },
             }
             for mapped_request_piece in self.mapped_requests:
                 this_request = self.extract_subrequest(
