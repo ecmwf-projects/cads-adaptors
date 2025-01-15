@@ -205,6 +205,8 @@ def area_selector_path(
     area: list,
     context: Context,
     out_format: str | None = None,
+    area_selector_kwargs: dict[str, Any] = {},
+    open_datasets_kwargs: list[dict[str, Any]] | dict[str, Any] = {},
     **kwargs,
 ):
     # Deduce input format from infile
@@ -213,26 +215,21 @@ def area_selector_path(
     if out_format is None:
         out_format = in_format
 
-    # Open dataset with any open_dataset_kwargs
-    open_dataset_kwargs: list[dict[str, Any]] | dict[str, Any] = kwargs.get(
-        "open_datasets_kwargs", {}
-    )
     # Set decode_times to False to avoid any unnecessary issues with decoding time coordinates
-    if isinstance(open_dataset_kwargs, list):
-        for open_dataset_kwarg in open_dataset_kwargs:
-            open_dataset_kwarg.setdefault("decode_times", False)
+    if isinstance(open_datasets_kwargs, list):
+        for open_dataset_kwargs in open_datasets_kwargs:
+            open_dataset_kwargs.setdefault("decode_times", False)
     else:
-        open_dataset_kwargs.setdefault("decode_times", False)
+        open_datasets_kwargs.setdefault("decode_times", False)
 
     ds_dict = convertors.open_file_as_xarray_dictionary(
         infile,
         **{
             **kwargs,
-            "open_dataset_kwargs": open_dataset_kwargs,
+            "open_datasets_kwargs": open_dataset_kwargs,
         },
     )
 
-    area_selector_kwargs = kwargs.get("area_selector_kwargs", {})
     ds_area_dict = {
         ".".join(fname_tag, +["area-subset"] + [str(a) for a in area]): area_selector(
             ds, area, context, **area_selector_kwargs
