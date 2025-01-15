@@ -165,7 +165,7 @@ def area_selector(
             0
         ]
 
-        context.info(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
+        context.debug(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
 
         sub_selections = []
         for lon_slice in lon_slices:
@@ -178,12 +178,12 @@ def area_selector(
                     },
                 )
             )
-        context.info(f"selections: {sub_selections}")
+        context.debug(f"selections: {sub_selections}")
 
         ds_area = xr.concat(
             sub_selections, dim=lon_key, data_vars="minimal", coords="minimal"
         )
-        context.info(f"ds_area: {ds_area}")
+        context.debug(f"ds_area: {ds_area}")
 
         # Ensure that there are no length zero dimensions
         for dim in [lat_key, lon_key]:
@@ -220,6 +220,7 @@ def area_selector_path(
         out_format = in_format
 
     # Set decode_times to False to avoid any unnecessary issues with decoding time coordinates
+    # Also set some auto-chunking
     if isinstance(open_datasets_kwargs, list):
         for _open_dataset_kwargs in open_datasets_kwargs:
             _open_dataset_kwargs.setdefault("decode_times", False)
@@ -235,7 +236,6 @@ def area_selector_path(
             "open_datasets_kwargs": open_datasets_kwargs,
         },
     )
-    print(ds_dict)
 
     ds_area_dict = {
         ".".join([fname_tag, "area-subset"] + [str(a) for a in area]): area_selector(
@@ -251,6 +251,7 @@ def area_selector_path(
             out_path = f"{fname_tag}.nc"
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
+            # Need to compute before writing to disk as dask loses too many jobs
             ds_area.compute().to_netcdf(out_path)
             out_paths.append(out_path)
     else:
