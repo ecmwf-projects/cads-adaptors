@@ -217,8 +217,8 @@ def area_selector_path(
 
     # Set decode_times to False to avoid any unnecessary issues with decoding time coordinates
     if isinstance(open_datasets_kwargs, list):
-        for open_dataset_kwargs in open_datasets_kwargs:
-            open_dataset_kwargs.setdefault("decode_times", False)
+        for _open_dataset_kwargs in open_datasets_kwargs:
+            _open_dataset_kwargs.setdefault("decode_times", False)
     else:
         open_datasets_kwargs.setdefault("decode_times", False)
 
@@ -226,7 +226,7 @@ def area_selector_path(
         infile,
         **{
             **kwargs,
-            "open_datasets_kwargs": open_dataset_kwargs,
+            "open_datasets_kwargs": open_datasets_kwargs,
         },
     )
 
