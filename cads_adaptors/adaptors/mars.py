@@ -139,6 +139,9 @@ class CachedExecuteMars:
         fs, _ = self.cacholote.utils.get_cache_files_fs_dirname()
         return "local" in ensure_list(fs.protocol)
 
+    def in_place_open(self, filename: str) -> BinaryIO:
+        return self.cacholote.extra_encoders.InPlaceFile(filename, "rb")
+
     def sort_requests(self, requests: list[Request]) -> list[Request]:
         requests = [dict(sorted(request.items())) for request in requests]
         return sorted(requests, key=lambda request: json.dumps(request))
@@ -162,11 +165,7 @@ class CachedExecuteMars:
 
     def retrieve(self, requests: list[Request]) -> BinaryIO:
         result = self.execute_mars(requests)
-        return (
-            self.cacholote.extra_encoders.InPlaceFile(result, "rb")
-            if self.use_cache
-            else open(result, "rb")
-        )
+        return self.in_place_open(result) if self.use_cache else open(result, "rb")
 
 
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
