@@ -219,7 +219,7 @@ def area_selector_path(
     if isinstance(open_datasets_kwargs, list):
         for _open_dataset_kwargs in open_datasets_kwargs:
             _open_dataset_kwargs.setdefault("decode_times", False)
-            _open_dataset_kwargs.setdefault("chunks", -1)
+            _open_dataset_kwargs.setdefault("chunks", "auto")
     else:
         open_datasets_kwargs.setdefault("decode_times", False)
         open_datasets_kwargs.setdefault("chunks", "auto")
