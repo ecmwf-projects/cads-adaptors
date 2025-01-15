@@ -219,8 +219,10 @@ def area_selector_path(
     if isinstance(open_datasets_kwargs, list):
         for _open_dataset_kwargs in open_datasets_kwargs:
             _open_dataset_kwargs.setdefault("decode_times", False)
+            _open_dataset_kwargs.setdefault("chunks", {"lat": 10, "lon": 10, "latitude": 10, "longitude": 10})
     else:
         open_datasets_kwargs.setdefault("decode_times", False)
+        open_datasets_kwargs.setdefault("chunks", {"lat": 10, "lon": 10, "latitude": 10, "longitude": 10})
 
     ds_dict = convertors.open_file_as_xarray_dictionary(
         infile,
