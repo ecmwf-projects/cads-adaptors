@@ -149,8 +149,6 @@ def area_selector(
     lon_key = spatial_info["lon_key"]
     lat_key = spatial_info["lat_key"]
 
-    ds = ds.chunk({lat_key: 100, lon_key: 100})
-
     # Handle simple regular case:
     if spatial_info["regular"]:
         extra_kwargs = {k: kwargs.pop(k) for k in ["precision"] if k in kwargs}
