@@ -149,6 +149,8 @@ def area_selector(
     lon_key = spatial_info["lon_key"]
     lat_key = spatial_info["lat_key"]
 
+    ds = ds.chunk({lat_key: 100, lon_key: 100})
+
     # Handle simple regular case:
     if spatial_info["regular"]:
         extra_kwargs = {k: kwargs.pop(k) for k in ["precision"] if k in kwargs}
@@ -219,10 +221,8 @@ def area_selector_path(
     if isinstance(open_datasets_kwargs, list):
         for _open_dataset_kwargs in open_datasets_kwargs:
             _open_dataset_kwargs.setdefault("decode_times", False)
-            _open_dataset_kwargs.setdefault("chunks", "auto")
     else:
         open_datasets_kwargs.setdefault("decode_times", False)
-        open_datasets_kwargs.setdefault("chunks", "auto")
 
     ds_dict = convertors.open_file_as_xarray_dictionary(
         infile,
