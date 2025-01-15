@@ -134,7 +134,7 @@ def get_dim_slices(
 def area_selector(
     ds: xr.Dataset,
     context: Context = Context(),
-    area: list = [-90, -180, -90, +180],
+    area: list = [+90, -180, -90, +180],
     **_kwargs,
 ) -> xr.Dataset:
     north, east, south, west = area
@@ -224,7 +224,6 @@ def area_selector_path(
     else:
         open_dataset_kwargs.setdefault("decode_times", False)
 
-    # ds = xr.open_dataset(infile, **open_dataset_kwargs)
     ds_dict = convertors.open_file_as_xarray_dictionary(
         infile,
         **{
@@ -236,7 +235,7 @@ def area_selector_path(
     area_selector_kwargs = kwargs.get("area_selector_kwargs", {})
     ds_area_dict = {
         ".".join(fname_tag, +["area-subset"] + [str(a) for a in area]): area_selector(
-            ds, context, area=area, **area_selector_kwargs
+            ds, area, context, **area_selector_kwargs
         )
         for fname_tag, ds in ds_dict.items()
     }
@@ -270,7 +269,7 @@ def area_selector_paths(
         out_paths = []
         for path in paths:
             try:
-                out_paths += area_selector_path(path, context, area=area, **kwargs)
+                out_paths += area_selector_path(path, area, context, **kwargs)
             except NotImplementedError:
                 context.logger.debug(
                     f"could not convert {path} to xarray; returning the original data"
