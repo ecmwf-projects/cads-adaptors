@@ -101,4 +101,4 @@ def test_cached_execute_mars(
 
     result = cached_execute_mars.retrieve(requests)
     assert isinstance(result, cacholote.extra_encoders.InPlaceFile)
-    assert result.name == cached_execute_mars.execute_mars(requests)
+    assert result.name == cached_file
