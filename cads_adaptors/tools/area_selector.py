@@ -12,6 +12,12 @@ from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools import adaptor_tools, convertors
 
 
+def area_to_checked_dictionary(area: list) -> dict[str, float | int] :
+    north, east, south, west = area
+    if north < south:
+        south, north = north, south
+    return {"north": north, "east": east, "south": south, "west": west}
+
 def incompatible_area_error(
     dim_key: str,
     start: float,
@@ -133,15 +139,12 @@ def get_dim_slices(
 
 def area_selector(
     ds: xr.Dataset,
-    area: list = [+90, -180, -90, +180],
+    area: list[float, int] | dict[str, float | int] = [+90, -180, -90, +180],
     context: Context = Context(),
     **_kwargs,
 ) -> xr.Dataset:
-    north, east, south, west = area
-
-    # Fail safe, check that North and South are in the right order
-    if north < south:
-        south, north = north, south
+    if isinstance(area, list):
+        area = area_to_checked_dictionary(area)
 
     # Get any area_selector_kwargs from adaptor config, take a copy as they will be updated here
     kwargs = deepcopy(_kwargs)
@@ -158,10 +161,10 @@ def area_selector(
         extra_kwargs = {k: kwargs.pop(k) for k in ["precision"] if k in kwargs}
         # Longitudes could return multiple slice in cases where the area wraps the "other side"
         lon_slices = get_dim_slices(
-            ds, lon_key, east, west, context, longitude=True, **extra_kwargs
+            ds, lon_key, area["east"], area["west"] context, longitude=True, **extra_kwargs
         )
         # We assume that latitudes won't be wrapped
-        lat_slice = get_dim_slices(ds, lat_key, south, north, context, **extra_kwargs)[
+        lat_slice = get_dim_slices(ds, lat_key, area["south"], area["north"], context, **extra_kwargs)[
             0
         ]
 
@@ -206,13 +209,16 @@ def area_selector(
 
 def area_selector_path(
     infile: str,
-    area: list,
+    area: list[float, int] | dict[str, float | int],
     context: Context,
     out_format: str | None = None,
     area_selector_kwargs: dict[str, Any] = {},
     open_datasets_kwargs: list[dict[str, Any]] | dict[str, Any] = {},
     **kwargs,
 ):
+    if isinstance(area, list):
+        area = area_to_checked_dictionary(area)
+
     # Deduce input format from infile
     in_ext = infile.split(".")[-1]
     in_format = adaptor_tools.handle_data_format(in_ext)
@@ -238,7 +244,9 @@ def area_selector_path(
     )
 
     ds_area_dict = {
-        ".".join([fname_tag, "area-subset"] + [str(a) for a in area]): area_selector(
+        ".".join(
+            [fname_tag, "area-subset"] + [str(area[a]) for a in ["north", "west", "south", "east"]]
+        ): area_selector(
             ds, area=area, context=context, **area_selector_kwargs
         )
         for fname_tag, ds in ds_dict.items()
@@ -270,7 +278,7 @@ def area_selector_path(
 
 def area_selector_paths(
     paths: list,
-    area: list,
+    area: list[float, int] | dict[str, float | int],
     context: Context,
     **kwargs,
 ) -> list[str]:
