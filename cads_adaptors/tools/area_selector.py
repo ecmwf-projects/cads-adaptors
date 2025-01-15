@@ -240,7 +240,7 @@ def area_selector_path(
     # TODO: Consider using the write to file methods in convertors sub-module
     if out_format in ["nc", "netcdf"]:
         out_paths = [
-            ds_area.compute().to_netcdf(os.path.join(fname_tag, "nc"))
+            ds_area.compute().to_netcdf(f"{fname_tag}.nc")
             for fname_tag, ds_area in ds_area_dict.items()
         ]
     else:
