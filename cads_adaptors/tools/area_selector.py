@@ -133,8 +133,8 @@ def get_dim_slices(
 
 def area_selector(
     ds: xr.Dataset,
-    context: Context = Context(),
     area: list = [+90, -180, -90, +180],
+    context: Context = Context(),
     **_kwargs,
 ) -> xr.Dataset:
     north, east, south, west = area
@@ -232,7 +232,7 @@ def area_selector_path(
 
     ds_area_dict = {
         ".".join([fname_tag, "area-subset"] + [str(a) for a in area]): area_selector(
-            ds, area, context, **area_selector_kwargs
+            ds, area=area, context=context, **area_selector_kwargs
         )
         for fname_tag, ds in ds_dict.items()
     }
