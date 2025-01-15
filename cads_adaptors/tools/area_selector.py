@@ -222,7 +222,7 @@ def area_selector_path(
             _open_dataset_kwargs.setdefault("chunks", -1)
     else:
         open_datasets_kwargs.setdefault("decode_times", False)
-        open_datasets_kwargs.setdefault("chunks", -1)
+        open_datasets_kwargs.setdefault("chunks", "auto")
 
     ds_dict = convertors.open_file_as_xarray_dictionary(
         infile,
