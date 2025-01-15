@@ -242,6 +242,8 @@ def area_selector_path(
     if out_format in ["nc", "netcdf"]:
         for fname_tag, ds_area in ds_area_dict.items():
             out_path = f"{fname_tag}.nc"
+            for data_var in ds_area.data_vars:
+                ds_area[data_var].encoding.setdefault("_FillValue", None)
             ds_area.compute().to_netcdf(out_path)
             out_paths.append(out_path)
     else:
@@ -250,6 +252,8 @@ def area_selector_path(
         )
         for fname_tag, ds_area in ds_area_dict.items():
             out_path = f"{fname_tag}.nc"
+            for data_var in ds_area.data_vars:
+                ds_area[data_var].encoding.setdefault("_FillValue", None)
             ds_area.compute().to_netcdf(out_path)
             out_paths.append(out_path)
 
