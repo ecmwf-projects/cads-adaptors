@@ -139,6 +139,10 @@ def area_selector(
 ) -> xr.Dataset:
     north, east, south, west = area
 
+    # Fail safe, check that North and South are in the right order
+    if north < south:
+        south, north = north, south
+
     # Get any area_selector_kwargs from adaptor config, take a copy as they will be updated here
     kwargs = deepcopy(_kwargs)
 
