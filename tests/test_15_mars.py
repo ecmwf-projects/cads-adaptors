@@ -94,9 +94,11 @@ def test_cached_execute_mars(
     cached_file = cached_execute_mars.execute_mars(requests)
     assert cached_file.startswith(str(tmp_path / "cache_files"))
 
+    assert cached_execute_mars.execute_mars([{"foo": "bar"}]) != cached_file
+
     reversed_requests = [{"4": 4}, {"3": 3}, {"2": 2, "1": 1}]
     assert cached_execute_mars.execute_mars(reversed_requests) == cached_file
 
     result = cached_execute_mars.retrieve(requests)
     assert isinstance(result, cacholote.extra_encoders.InPlaceFile)
-    assert result.name == cached_execute_mars.execute_mars(requests)
+    assert result.name == cached_file
