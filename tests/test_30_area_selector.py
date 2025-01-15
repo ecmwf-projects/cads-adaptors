@@ -6,10 +6,10 @@ import pytest
 import requests
 import xarray as xr
 
-from cads_adaptors import Context
 from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.area_selector import (
     area_selector,
+    area_selector_path,
     area_selector_paths,
     get_dim_slices,
     wrap_longitudes,
@@ -85,7 +85,7 @@ def test_get_dim_slices_wrap_longitudes():
 
 
 def test_get_dim_slices_incompatible_area():
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(InvalidRequest):
         get_dim_slices(TEST_DS_1, "latitude", -100, -91)
 
 
@@ -127,29 +127,6 @@ TEST_DS_2 = xr.Dataset(TEST_DATA_2, coords=TEST_COORDS_2)
 TEMP_FILENAME = "example_data.nc"
 
 
-def test_area_selector_regular_full_domain():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        test_file = os.path.join(temp_dir, TEMP_FILENAME)
-        TEST_DS_2.to_netcdf(test_file)
-        result = area_selector(test_file, area=[90, -180, -90, 180])
-        assert isinstance(result, xr.Dataset)
-        assert result.dims == TEST_DS_2.dims
-        assert np.allclose(result.latitude.values, TEST_DS_2.latitude.values)
-        assert np.allclose(result.longitude.values, TEST_DS_2.longitude.values)
-
-
-def test_area_selector_regular_sub_domain():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        test_file = os.path.join(temp_dir, TEMP_FILENAME)
-        TEST_DS_2.to_netcdf(test_file)
-        result = area_selector(test_file, area=[10, -10, -10, 10])
-        test_result = TEST_DS_2.sel(latitude=slice(-10, 10), longitude=slice(-10, 10))
-        assert isinstance(result, xr.Dataset)
-        assert result.dims == test_result.dims
-        assert np.allclose(result.latitude.values, test_result.latitude.values)
-        assert np.allclose(result.longitude.values, test_result.longitude.values)
-
-
 TEST_COORDS_3 = {
     "time": np.arange(5),
     "latitude": np.arange(30.5, 70, 1),
@@ -164,48 +141,110 @@ TEST_DATA_3 = {
 TEST_DS_3 = xr.Dataset(TEST_DATA_3, coords=TEST_COORDS_3)
 
 
+@pytest.mark.parametrize(
+    "ds, area, test_result",
+    [
+        # FULL DOMAIN:
+        (TEST_DS_2, [90, -180, -90, 180], TEST_DS_2),
+        # SUB DOMAIN:
+        (
+            TEST_DS_2,
+            [10, -10, -10, 10],
+            TEST_DS_2.sel(latitude=slice(-10, 10), longitude=slice(-10, 10)),
+        ),
+        # SUB DOMAIN,  mixed up lats:
+        (
+            TEST_DS_2,
+            [-10, -10, 10, 10],
+            TEST_DS_2.sel(latitude=slice(-10, 10), longitude=slice(-10, 10)),
+        ),
+        # partially OOB lons:
+        (
+            TEST_DS_3,
+            [50, -40, 30, 10],
+            TEST_DS_3.sel(latitude=slice(30, 50), longitude=slice(-40, 10)),
+        ),
+        # partially OOB lats:
+        (
+            TEST_DS_3,
+            [50, -10, 20, 10],
+            TEST_DS_3.sel(latitude=slice(20, 50), longitude=slice(-10, 10)),
+        ),
+    ],
+)
+def test_area_selector_regular(ds, area, test_result):
+    result = area_selector(ds, area=area)
+
+    assert isinstance(result, xr.Dataset)
+    assert result.dims == test_result.dims
+    assert np.allclose(result.latitude.values, test_result.latitude.values)
+    assert np.allclose(result.longitude.values, test_result.longitude.values)
+
+
+@pytest.mark.parametrize(
+    "ds, area, test_result",
+    [
+        # FULL DOMAIN:
+        (TEST_DS_2, [90, -180, -90, 180], TEST_DS_2),
+        # SUB DOMAIN:
+        (
+            TEST_DS_2,
+            [10, -10, -10, 10],
+            TEST_DS_2.sel(latitude=slice(-10, 10), longitude=slice(-10, 10)),
+        ),
+        # SUB DOMAIN,  mixed up lats:
+        (
+            TEST_DS_2,
+            [-10, -10, 10, 10],
+            TEST_DS_2.sel(latitude=slice(-10, 10), longitude=slice(-10, 10)),
+        ),
+        # partially OOB lons:
+        (
+            TEST_DS_3,
+            [50, -40, 30, 10],
+            TEST_DS_3.sel(latitude=slice(30, 50), longitude=slice(-40, 10)),
+        ),
+        # partially OOB lats:
+        (
+            TEST_DS_3,
+            [50, -10, 20, 10],
+            TEST_DS_3.sel(latitude=slice(20, 50), longitude=slice(-10, 10)),
+        ),
+    ],
+)
+def test_area_selector_path_regular(ds, area, test_result):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_file = os.path.join(temp_dir, TEMP_FILENAME)
+        ds.to_netcdf(test_file)
+        result = area_selector_path(test_file, area=area)
+        result_xr = xr.open_dataset(result[0])
+        assert isinstance(result_xr, xr.Dataset)
+        assert result_xr.dims == test_result.dims
+        assert np.allclose(result_xr.latitude.values, test_result.latitude.values)
+        assert np.allclose(result_xr.longitude.values, test_result.longitude.values)
+
+
 def test_area_selector_fully_oob():
+    ds = TEST_DS_3
+    area = [20, -40, 10, -30]
+    with pytest.raises(InvalidRequest):
+        area_selector(ds, area=area)
     with tempfile.TemporaryDirectory() as temp_dir:
         test_file = os.path.join(temp_dir, TEMP_FILENAME)
-        TEST_DS_3.to_netcdf(test_file)
-        result = area_selector(test_file, area=[90, -180, -90, 180])
-        assert isinstance(result, xr.Dataset)
-        assert result.dims == TEST_DS_3.dims
-        assert np.allclose(result.latitude.values, TEST_DS_3.latitude.values)
-        assert np.allclose(result.longitude.values, TEST_DS_3.longitude.values)
-
-
-def test_area_selector_regular_partially_oob_lons():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        test_file = os.path.join(temp_dir, TEMP_FILENAME)
-        TEST_DS_3.to_netcdf(test_file)
-        result = area_selector(test_file, area=[50, -40, 30, 10])
-        test_result = TEST_DS_3.sel(latitude=slice(30, 50), longitude=slice(-40, 10))
-        assert isinstance(result, xr.Dataset)
-        assert result.dims == test_result.dims
-        assert np.allclose(result.latitude.values, test_result.latitude.values)
-        assert np.allclose(result.longitude.values, test_result.longitude.values)
-
-
-def test_area_selector_regular_partially_oob_lats():
-    with tempfile.TemporaryDirectory() as temp_dir:
-        test_file = os.path.join(temp_dir, TEMP_FILENAME)
-        TEST_DS_3.to_netcdf(test_file)
-        result = area_selector(test_file, area=[50, -10, 20, 10])
-        test_result = TEST_DS_3.sel(latitude=slice(20, 50), longitude=slice(-10, 10))
-        assert isinstance(result, xr.Dataset)
-        assert result.dims == test_result.dims
-        assert np.allclose(result.latitude.values, test_result.latitude.values)
-        assert np.allclose(result.longitude.values, test_result.longitude.values)
+        ds.to_netcdf(test_file)
+        with pytest.raises(InvalidRequest):
+            area_selector_path(test_file, area=area)
 
 
 # Test that InvalidRequest exception raised when a dimension has zero length
 def test_area_selector_zero_length_dim():
+    with pytest.raises(InvalidRequest):
+        area_selector(TEST_DS_3, area=[50.4, -10.6, 50.3, -10.5])
     with tempfile.TemporaryDirectory() as temp_dir:
         test_file = os.path.join(temp_dir, TEMP_FILENAME)
         TEST_DS_3.to_netcdf(test_file)
         with pytest.raises(InvalidRequest):
-            area_selector(test_file, area=[50.4, -10.6, 50.3, -10.5])
+            area_selector_path(test_file, area=[50.4, -10.6, 50.3, -10.5])
 
 
 TEST_DATA_BASE_URL = (
@@ -227,8 +266,10 @@ def test_area_selector_real_files(url):
         with open(test_file, "wb") as f:
             f.write(remote_file.content)
 
-        result = area_selector(test_file, area=[90, -180, -90, 180])
-        assert isinstance(result, xr.Dataset)
+        result = area_selector_path(test_file, area=[90, -180, -90, 180])
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert isinstance(result[0], str)
 
 
 # Test with lists of urls
@@ -257,12 +298,14 @@ def test_area_selector_paths_real_files(urls):
         for i, file in enumerate(urls):
             remote_file = requests.get(file)
             test_file = os.path.join(temp_dir, f"test-{i}.nc")
+            print(test_file)
             with open(test_file, "wb") as f:
                 f.write(remote_file.content)
             test_files.append(test_file)
 
         result = area_selector_paths(
-            test_files, area=[90, -180, -90, 180], context=Context()
+            test_files,
+            area=[90, -180, -90, 180],
         )
         assert isinstance(result, list)
         assert len(result) == len(urls)

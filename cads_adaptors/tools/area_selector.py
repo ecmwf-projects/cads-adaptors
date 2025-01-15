@@ -12,11 +12,12 @@ from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools import adaptor_tools, convertors
 
 
-def area_to_checked_dictionary(area: list) -> dict[str, float | int] :
+def area_to_checked_dictionary(area: list) -> dict[str, float | int]:
     north, east, south, west = area
     if north < south:
         south, north = north, south
     return {"north": north, "east": east, "south": south, "west": west}
+
 
 def incompatible_area_error(
     dim_key: str,
@@ -24,10 +25,10 @@ def incompatible_area_error(
     end: float,
     coord_range: list,
     context: Context = Context(),
-    thisError=ValueError,
+    thisError=InvalidRequest,
 ):
     error_message = (
-        "Your area selection is not yet compatible with this dataset.\n"
+        "Your area selection is not compatible with this dataset.\n"
         f"Range selection for {dim_key}: [{start}, {end}].\n"
         f"Coord range from dataset: {coord_range}"
     )
@@ -130,9 +131,7 @@ def get_dim_slices(
 
     # A final check that there is at least an overlap
     if not points_inside_range([start, end], coord_range):
-        incompatible_area_error(
-            dim_key, start, end, coord_range, context, thisError=NotImplementedError
-        )
+        incompatible_area_error(dim_key, start, end, coord_range, context)
 
     return [slice(start, end)]
 
@@ -161,12 +160,18 @@ def area_selector(
         extra_kwargs = {k: kwargs.pop(k) for k in ["precision"] if k in kwargs}
         # Longitudes could return multiple slice in cases where the area wraps the "other side"
         lon_slices = get_dim_slices(
-            ds, lon_key, area["east"], area["west"], context, longitude=True, **extra_kwargs
+            ds,
+            lon_key,
+            area["east"],
+            area["west"],
+            context,
+            longitude=True,
+            **extra_kwargs,
         )
         # We assume that latitudes won't be wrapped
-        lat_slice = get_dim_slices(ds, lat_key, area["south"], area["north"], context, **extra_kwargs)[
-            0
-        ]
+        lat_slice = get_dim_slices(
+            ds, lat_key, area["south"], area["north"], context, **extra_kwargs
+        )[0]
 
         context.debug(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
 
@@ -210,8 +215,9 @@ def area_selector(
 def area_selector_path(
     infile: str,
     area: list[float, int] | dict[str, float | int],
-    context: Context,
+    context: Context = Context(),
     out_format: str | None = None,
+    target_dir: str | None = None,
     area_selector_kwargs: dict[str, Any] = {},
     open_datasets_kwargs: list[dict[str, Any]] | dict[str, Any] = {},
     **kwargs,
@@ -224,6 +230,10 @@ def area_selector_path(
     in_format = adaptor_tools.handle_data_format(in_ext)
     if out_format is None:
         out_format = in_format
+
+    # If target_dir not specified, then use the directory of the input file
+    if target_dir is None:
+        target_dir = os.path.dirname(infile)
 
     # Set decode_times to False to avoid any unnecessary issues with decoding time coordinates
     # Also set some auto-chunking
@@ -245,10 +255,9 @@ def area_selector_path(
 
     ds_area_dict = {
         ".".join(
-            [fname_tag, "area-subset"] + [str(area[a]) for a in ["north", "west", "south", "east"]]
-        ): area_selector(
-            ds, area=area, context=context, **area_selector_kwargs
-        )
+            [fname_tag, "area-subset"]
+            + [str(area[a]) for a in ["north", "west", "south", "east"]]
+        ): area_selector(ds, area=area, context=context, **area_selector_kwargs)
         for fname_tag, ds in ds_dict.items()
     }
 
@@ -256,7 +265,7 @@ def area_selector_path(
     out_paths = []
     if out_format in ["nc", "netcdf"]:
         for fname_tag, ds_area in ds_area_dict.items():
-            out_path = f"{fname_tag}.nc"
+            out_path = os.path.join(target_dir, f"{fname_tag}.nc")
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
             # Need to compute before writing to disk as dask loses too many jobs
@@ -267,7 +276,7 @@ def area_selector_path(
             f"Cannot write area selected data to {out_format}, writing to netcdf."
         )
         for fname_tag, ds_area in ds_area_dict.items():
-            out_path = f"{fname_tag}.nc"
+            out_path = os.path.join(target_dir, f"{fname_tag}.nc")
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
             ds_area.compute().to_netcdf(out_path)
@@ -279,7 +288,7 @@ def area_selector_path(
 def area_selector_paths(
     paths: list,
     area: list[float, int] | dict[str, float | int],
-    context: Context,
+    context: Context = Context(),
     **kwargs,
 ) -> list[str]:
     with dask.config.set(scheduler="threads"):
