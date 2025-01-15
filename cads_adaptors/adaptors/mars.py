@@ -2,9 +2,8 @@ import dataclasses
 import json
 import os
 import pathlib
+from types import ModuleType
 from typing import Any, BinaryIO
-
-import cacholote
 
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
@@ -130,8 +129,14 @@ class CachedExecuteMars:
     cache_tmp_path: pathlib.Path
 
     @property
+    def cacholote(self) -> ModuleType:
+        import cacholote
+
+        return cacholote
+
+    @property
     def use_cache(self) -> bool:
-        fs, _ = cacholote.utils.get_cache_files_fs_dirname()
+        fs, _ = self.cacholote.utils.get_cache_files_fs_dirname()
         return "local" in ensure_list(fs.protocol)
 
     def sort_requests(self, requests: list[Request]) -> list[Request]:
@@ -150,13 +155,15 @@ class CachedExecuteMars:
 
     def execute_mars(self, requests: list[Request]) -> str:
         requests = self.sort_requests(requests)
-        with cacholote.config.set(use_cache=self.use_cache, return_cache_entry=False):
-            return cacholote.cacheable(self._execute_mars)(requests).name
+        with self.cacholote.config.set(
+            use_cache=self.use_cache, return_cache_entry=False
+        ):
+            return self.cacholote.cacheable(self._execute_mars)(requests).name
 
     def retrieve(self, requests: list[Request]) -> BinaryIO:
         result = self.execute_mars(requests)
         return (
-            cacholote.extra_encoders.InPlaceFile(result, "rb")
+            self.cacholote.extra_encoders.InPlaceFile(result, "rb")
             if self.use_cache
             else open(result, "rb")
         )
