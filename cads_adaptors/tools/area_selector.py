@@ -1,4 +1,6 @@
+import os
 from copy import deepcopy
+from typing import Any
 
 import dask
 import numpy as np
@@ -7,6 +9,7 @@ from earthkit.transforms import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
 from cads_adaptors.exceptions import InvalidRequest
+from cads_adaptors.tools import adaptor_tools, convertors
 
 
 def incompatible_area_error(
@@ -129,40 +132,26 @@ def get_dim_slices(
 
 
 def area_selector(
-    infile: str,
+    ds: xr.Dataset,
     context: Context = Context(),
     area: list = [-90, -180, -90, +180],
-    **kwargs,
-):
+    **_kwargs,
+) -> xr.Dataset:
     north, east, south, west = area
 
     # Get any area_selector_kwargs from adaptor config, take a copy as they will be updated here
-    area_selector_kwargs = deepcopy(kwargs.get("area_selector_kwargs", {}))
-
-    # Open dataset with any open_dataset_kwargs
-    open_dataset_kwargs = kwargs.get("open_dataset_kwargs", {})
-    # Set decode_times to False to avoid any unnecessary issues with decoding time coordinates
-    open_dataset_kwargs.setdefault("decode_times", False)
-    ds = xr.open_dataset(infile, **open_dataset_kwargs)
+    kwargs = deepcopy(_kwargs)
 
     spatial_info = eka_tools.get_spatial_info(
         ds,
-        **{
-            k: area_selector_kwargs.pop(k)
-            for k in ["lat_key", "lon_key"]
-            if k in area_selector_kwargs
-        },
+        **{k: kwargs.pop(k) for k in ["lat_key", "lon_key"] if k in kwargs},
     )
     lon_key = spatial_info["lon_key"]
     lat_key = spatial_info["lat_key"]
 
     # Handle simple regular case:
     if spatial_info["regular"]:
-        extra_kwargs = {
-            k: area_selector_kwargs.pop(k)
-            for k in ["precision"]
-            if k in area_selector_kwargs
-        }
+        extra_kwargs = {k: kwargs.pop(k) for k in ["precision"] if k in kwargs}
         # Longitudes could return multiple slice in cases where the area wraps the "other side"
         lon_slices = get_dim_slices(
             ds, lon_key, east, west, context, longitude=True, **extra_kwargs
@@ -178,7 +167,7 @@ def area_selector(
         for lon_slice in lon_slices:
             sub_selections.append(
                 ds.sel(
-                    **area_selector_kwargs,  # Any remaining kwargs are used for selection
+                    **kwargs,  # Any remaining kwargs are used for selection
                     **{
                         spatial_info["lat_key"]: lat_slice,
                         spatial_info["lon_key"]: lon_slice,
@@ -187,7 +176,9 @@ def area_selector(
             )
         context.debug(f"selections: {sub_selections}")
 
-        ds_area = xr.concat(sub_selections, dim=lon_key)
+        ds_area = xr.concat(
+            sub_selections, dim=lon_key, data_vars="minimal", coords="minimal"
+        )
         context.debug(f"ds_area: {ds_area}")
 
         # Ensure that there are no length zero dimensions
@@ -209,37 +200,80 @@ def area_selector(
         raise NotImplementedError("Area selection not available for data projection")
 
 
+def area_selector_path(
+    infile: str,
+    area: list,
+    context: Context,
+    out_format: str | None = None,
+    **kwargs,
+):
+    # Deduce input format from infile
+    in_ext = infile.split(".")[-1]
+    in_format = adaptor_tools.handle_data_format(in_ext)
+    if out_format is None:
+        out_format = in_format
+
+    # Open dataset with any open_dataset_kwargs
+    open_dataset_kwargs: list[dict[str, Any]] | dict[str, Any] = kwargs.get(
+        "open_datasets_kwargs", {}
+    )
+    # Set decode_times to False to avoid any unnecessary issues with decoding time coordinates
+    if isinstance(open_dataset_kwargs, list):
+        for open_dataset_kwarg in open_dataset_kwargs:
+            open_dataset_kwarg.setdefault("decode_times", False)
+    else:
+        open_dataset_kwargs.setdefault("decode_times", False)
+
+    # ds = xr.open_dataset(infile, **open_dataset_kwargs)
+    ds_dict = convertors.open_file_as_xarray_dictionary(
+        infile,
+        **{
+            **kwargs,
+            "open_dataset_kwargs": open_dataset_kwargs,
+        },
+    )
+
+    area_selector_kwargs = kwargs.get("area_selector_kwargs", {})
+    ds_area_dict = {
+        ".".join(fname_tag, +["area-subset"] + [str(a) for a in area]): area_selector(
+            ds, context, area=area, **area_selector_kwargs
+        )
+        for fname_tag, ds in ds_dict.items()
+    }
+
+    # TODO: Consider using the write to file methods in convertors sub-module
+    if out_format in ["nc", "netcdf"]:
+        out_paths = [
+            ds_area.compute().to_netcdf(os.path.join(fname_tag, "nc"))
+            for fname_tag, ds_area in ds_area_dict.items()
+        ]
+    else:
+        context.add_user_visible_error(
+            f"Cannot write area selected data to {out_format}, writing to netcdf."
+        )
+        out_paths = [
+            ds_area.compute().to_netcdf(os.path.join(fname_tag, "nc"))
+            for fname_tag, ds_area in ds_area_dict.items()
+        ]
+
+    return out_paths
+
+
 def area_selector_paths(
     paths: list,
     area: list,
     context: Context,
-    out_format: str = "netcdf",
     **kwargs,
-):
+) -> list[str]:
     with dask.config.set(scheduler="threads"):
         # We try to select the area for all paths, if any fail we return the original paths
         out_paths = []
         for path in paths:
             try:
-                ds_area = area_selector(path, context, area=area, **kwargs)
+                out_paths += area_selector_path(path, context, area=area, **kwargs)
             except NotImplementedError:
                 context.logger.debug(
                     f"could not convert {path} to xarray; returning the original data"
                 )
                 out_paths.append(path)
-            else:
-                if out_format in ["nc", "netcdf"]:
-                    out_fname = ".".join(
-                        path.split(".")[:-1]
-                        + ["area-subset"]
-                        + [str(a) for a in area]
-                        + ["nc"]
-                    )
-                    context.logger.debug(f"out_fname: {out_fname}")
-                    ds_area.compute().to_netcdf(out_fname)
-                    out_paths.append(out_fname)
-                else:
-                    raise NotImplementedError(
-                        f"Output format not recognised {out_format}"
-                    )
     return out_paths
