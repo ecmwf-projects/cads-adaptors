@@ -1,5 +1,8 @@
+import dataclasses
+import json
 import os
 import pathlib
+from types import ModuleType
 from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
@@ -118,16 +121,64 @@ def execute_mars(
     return target
 
 
+@dataclasses.dataclass
+class CachedExecuteMars:
+    context: Context
+    config: dict[str, Any]
+    mapping: dict[str, Any]
+    cache_tmp_path: pathlib.Path
+
+    @property
+    def cacholote(self) -> ModuleType:
+        import cacholote
+
+        return cacholote
+
+    @property
+    def use_cache(self) -> bool:
+        fs, _ = self.cacholote.utils.get_cache_files_fs_dirname()
+        return "local" in ensure_list(fs.protocol)
+
+    def in_place_open(self, filename: str) -> BinaryIO:
+        return self.cacholote.extra_encoders.InPlaceFile(filename, "rb")
+
+    def sort_requests(self, requests: list[Request]) -> list[Request]:
+        requests = [dict(sorted(request.items())) for request in requests]
+        return sorted(requests, key=lambda request: json.dumps(request))
+
+    def _execute_mars(self, requests: list[Request]) -> BinaryIO:
+        result = execute_mars(
+            requests,
+            self.context,
+            self.config,
+            self.mapping,
+            target_dir=self.cache_tmp_path,
+        )
+        return open(result, "rb")
+
+    def execute_mars(self, requests: list[Request]) -> str:
+        requests = self.sort_requests(requests)
+        with self.cacholote.config.set(
+            use_cache=self.use_cache, return_cache_entry=False
+        ):
+            return self.cacholote.cacheable(self._execute_mars)(requests).name
+
+    def retrieve(self, requests: list[Request]) -> BinaryIO:
+        result = self.execute_mars(requests)
+        return self.in_place_open(result) if self.use_cache else open(result, "rb")
+
+
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
-        result = execute_mars(
-            request,
+        cached_execute_mars = CachedExecuteMars(
             context=self.context,
-            target_dir=self.cache_tmp_path,
+            config=self.config,
+            mapping=self.mapping,
+            cache_tmp_path=self.cache_tmp_path,
         )
-        return open(result, "rb")
+        return cached_execute_mars.retrieve([request])
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
