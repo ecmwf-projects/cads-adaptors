@@ -272,5 +272,5 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve(self, request: dict[str, Any]) -> BinaryIO:
         with super().retrieve(request) as fp:
             if self.cached_execute_mars.use_cache and fp.name.endswith(".grib"):
-                return cacholote.extra_encoders.InPlaceFile(fp.name, "rb")
+                return self.cached_execute_mars.in_place_open(fp.name)
             return fp
