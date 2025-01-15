@@ -161,7 +161,7 @@ def area_selector(
         extra_kwargs = {k: kwargs.pop(k) for k in ["precision"] if k in kwargs}
         # Longitudes could return multiple slice in cases where the area wraps the "other side"
         lon_slices = get_dim_slices(
-            ds, lon_key, area["east"], area["west"] context, longitude=True, **extra_kwargs
+            ds, lon_key, area["east"], area["west"], context, longitude=True, **extra_kwargs
         )
         # We assume that latitudes won't be wrapped
         lat_slice = get_dim_slices(ds, lat_key, area["south"], area["north"], context, **extra_kwargs)[
