@@ -1,6 +1,6 @@
 import os
 from copy import deepcopy
-from typing import Any
+from typing import Any, Callable, Type
 
 import dask
 import numpy as np
@@ -12,7 +12,7 @@ from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools import adaptor_tools, convertors
 
 
-def area_to_checked_dictionary(area: list) -> dict[str, float | int]:
+def area_to_checked_dictionary(area: list[float | int]) -> dict[str, float | int]:
     north, east, south, west = area
     if north < south:
         south, north = north, south
@@ -21,22 +21,26 @@ def area_to_checked_dictionary(area: list) -> dict[str, float | int]:
 
 def incompatible_area_error(
     dim_key: str,
-    start: float,
-    end: float,
-    coord_range: list,
+    start: float | int,
+    end: float | int,
+    coord_range: list[float | int],
     context: Context = Context(),
-    thisError=InvalidRequest,
-):
+    thisException: Type[Exception] = InvalidRequest,
+) -> None:
     error_message = (
         "Your area selection is not compatible with this dataset.\n"
         f"Range selection for {dim_key}: [{start}, {end}].\n"
         f"Coord range from dataset: {coord_range}"
     )
     context.add_user_visible_error(error_message)
-    raise thisError(error_message)
+    raise thisException(error_message)
 
 
-def points_inside_range(points, point_range, how=any):
+def points_inside_range(
+    points: list[float | int],
+    point_range: list[float | int],
+    how: Callable[[list[bool]], bool] = any,
+) -> bool:
     return how(
         [point >= point_range[0] and point <= point_range[1] for point in points]
     )
@@ -44,11 +48,11 @@ def points_inside_range(points, point_range, how=any):
 
 def wrap_longitudes(
     dim_key: str,
-    start: float,
-    end: float,
-    coord_range: list,
+    start: float | int,
+    end: float | int,
+    coord_range: list[float | int],
     context: Context = Context(),
-) -> list:
+) -> list[slice]:
     start_in = deepcopy(start)
     end_in = deepcopy(end)
 
@@ -97,7 +101,7 @@ def get_dim_slices(
     context: Context = Context(),
     longitude: bool = False,
     precision: int = 2,
-) -> list:
+) -> list[slice]:
     da_coord = ds[dim_key]
 
     ascending = bool(da_coord[0] < da_coord[1])  # True = ascending, False = descending
@@ -138,14 +142,14 @@ def get_dim_slices(
 
 def area_selector(
     ds: xr.Dataset,
-    area: list[float, int] | dict[str, float | int] = [+90, -180, -90, +180],
+    area: list[float | int] | dict[str, float | int] = [+90, -180, -90, +180],
     context: Context = Context(),
-    **_kwargs,
+    **_kwargs: dict[str, Any],
 ) -> xr.Dataset:
     if isinstance(area, list):
         area = area_to_checked_dictionary(area)
 
-    # Get any area_selector_kwargs from adaptor config, take a copy as they will be updated here
+    # Take a copy as they will be updated herein
     kwargs = deepcopy(_kwargs)
 
     spatial_info = eka_tools.get_spatial_info(
@@ -157,7 +161,9 @@ def area_selector(
 
     # Handle simple regular case:
     if spatial_info["regular"]:
-        extra_kwargs = {k: kwargs.pop(k) for k in ["precision"] if k in kwargs}
+        extra_kwargs: dict[str, Any] = {
+            k: kwargs.pop(k) for k in ["precision"] if k in kwargs
+        }
         # Longitudes could return multiple slice in cases where the area wraps the "other side"
         lon_slices = get_dim_slices(
             ds,
@@ -177,13 +183,14 @@ def area_selector(
 
         sub_selections = []
         for lon_slice in lon_slices:
+            sel_kwargs: dict[str, Any] = {
+                **kwargs,  # Any remaining kwargs are for the sel command
+                spatial_info["lat_key"]: lat_slice,
+                spatial_info["lon_key"]: lon_slice,
+            }
             sub_selections.append(
                 ds.sel(
-                    **kwargs,  # Any remaining kwargs are used for selection
-                    **{
-                        spatial_info["lat_key"]: lat_slice,
-                        spatial_info["lon_key"]: lon_slice,
-                    },
+                    **sel_kwargs,
                 )
             )
         context.debug(f"selections: {sub_selections}")
@@ -214,14 +221,14 @@ def area_selector(
 
 def area_selector_path(
     infile: str,
-    area: list[float, int] | dict[str, float | int],
+    area: list[float | int] | dict[str, float | int],
     context: Context = Context(),
     out_format: str | None = None,
     target_dir: str | None = None,
     area_selector_kwargs: dict[str, Any] = {},
     open_datasets_kwargs: list[dict[str, Any]] | dict[str, Any] = {},
-    **kwargs,
-):
+    **kwargs: dict[str, Any],
+) -> list[str]:
     if isinstance(area, list):
         area = area_to_checked_dictionary(area)
 
@@ -245,8 +252,10 @@ def area_selector_path(
         open_datasets_kwargs.setdefault("decode_times", False)
         open_datasets_kwargs.setdefault("chunks", -1)
 
+    # open_kwargs =
     ds_dict = convertors.open_file_as_xarray_dictionary(
         infile,
+        context=context,
         **{
             **kwargs,
             "open_datasets_kwargs": open_datasets_kwargs,
@@ -286,17 +295,19 @@ def area_selector_path(
 
 
 def area_selector_paths(
-    paths: list,
-    area: list[float, int] | dict[str, float | int],
+    paths: list[str],
+    area: list[float | int] | dict[str, float | int],
     context: Context = Context(),
-    **kwargs,
+    **kwargs: Any,
 ) -> list[str]:
     with dask.config.set(scheduler="threads"):
         # We try to select the area for all paths, if any fail we return the original paths
         out_paths = []
         for path in paths:
             try:
-                out_paths += area_selector_path(path, area, context, **kwargs)
+                out_paths += area_selector_path(
+                    path, area=area, context=context, **kwargs
+                )
             except NotImplementedError:
                 context.logger.debug(
                     f"could not convert {path} to xarray; returning the original data"
