@@ -142,19 +142,23 @@ def get_dim_slices(
 
 def area_selector(
     ds: xr.Dataset,
-    area: list[float | int] | dict[str, float | int] = [+90, -180, -90, +180],
+    area: list[float | int] | dict[str, float | int],
     context: Context = Context(),
-    **_kwargs: dict[str, Any],
+    **kwargs: dict[str, Any],
 ) -> xr.Dataset:
     if isinstance(area, list):
         area = area_to_checked_dictionary(area)
 
     # Take a copy as they will be updated herein
-    kwargs = deepcopy(_kwargs)
+    copied_kwargs = deepcopy(kwargs)
 
     spatial_info = eka_tools.get_spatial_info(
         ds,
-        **{k: kwargs.pop(k) for k in ["lat_key", "lon_key"] if k in kwargs},
+        **{
+            k: copied_kwargs.pop(k)
+            for k in ["lat_key", "lon_key"]
+            if k in copied_kwargs
+        },
     )
     lon_key = spatial_info["lon_key"]
     lat_key = spatial_info["lat_key"]
@@ -162,7 +166,7 @@ def area_selector(
     # Handle simple regular case:
     if spatial_info["regular"]:
         extra_kwargs: dict[str, Any] = {
-            k: kwargs.pop(k) for k in ["precision"] if k in kwargs
+            k: copied_kwargs.pop(k) for k in ["precision"] if k in copied_kwargs
         }
         # Longitudes could return multiple slice in cases where the area wraps the "other side"
         lon_slices = get_dim_slices(
@@ -184,7 +188,7 @@ def area_selector(
         sub_selections = []
         for lon_slice in lon_slices:
             sel_kwargs: dict[str, Any] = {
-                **kwargs,  # Any remaining kwargs are for the sel command
+                **copied_kwargs,  # Any remaining copied_kwargs are for the sel command
                 spatial_info["lat_key"]: lat_slice,
                 spatial_info["lon_key"]: lon_slice,
             }
