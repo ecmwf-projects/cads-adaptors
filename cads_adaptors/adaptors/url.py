@@ -48,6 +48,11 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
         if self.area is not None:
-            paths = area_selector.area_selector_paths(paths, self.area, self.context)
+            paths = area_selector.area_selector_paths(
+                paths,
+                self.area,
+                self.context,
+                **self.config.get("post_processing_kwargs", {}),
+            )
 
         return paths
