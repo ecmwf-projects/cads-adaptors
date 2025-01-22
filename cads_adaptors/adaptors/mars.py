@@ -55,6 +55,7 @@ def execute_mars(
     mapping: dict[str, Any] = dict(),
     target_fname: str = "data.grib",
     target_dir: str | pathlib.Path = "",
+    target: None | str = None,  # TODO: Remove when all bespoke adaptors are updated
 ) -> str:
     from cads_mars_server import client as mars_client
 
@@ -65,6 +66,8 @@ def execute_mars(
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
 
+    if target is not None:
+        target_fname = str(target)
     target = str(pathlib.Path(target_dir) / target_fname)
 
     split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
