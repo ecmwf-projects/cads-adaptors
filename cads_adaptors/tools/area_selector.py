@@ -281,7 +281,6 @@ def area_selector_path(
             out_path = os.path.join(target_dir, f"{fname_tag}.nc")
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
-            # Need to compute before writing to disk as dask loses too many jobs
             ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
     else:
