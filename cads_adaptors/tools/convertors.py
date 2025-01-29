@@ -519,7 +519,7 @@ def post_open_datasets_modifications(
 def open_netcdf_as_xarray_dictionary(
     netcdf_file: str,
     context: Context = Context(),
-    open_datasets_kwargs: dict[str, Any] = {},
+    open_datasets_kwargs: list[dict[str, Any]] | dict[str, Any] = {},
     post_open_datasets_kwargs: dict[str, Any] = {},
     **kwargs,
 ) -> dict[str, xr.Dataset]:
@@ -529,9 +529,14 @@ def open_netcdf_as_xarray_dictionary(
     """
     fname, _ = os.path.splitext(os.path.basename(netcdf_file))
 
-    assert isinstance(
-        open_datasets_kwargs, dict
-    ), "open_datasets_kwargs must be a dictionary for netCDF"
+    if isinstance(open_datasets_kwargs, list):
+        assert (
+            len(open_datasets_kwargs) == 1
+        ), "Only one set of open_datasets_kwargs allowed for netCDF"
+        open_datasets_kwargs = open_datasets_kwargs[0]
+        assert isinstance(
+            open_datasets_kwargs, dict
+        ), "open_datasets_kwargs must be a single dictionary for netCDF"
     # This is to maintain some consistency with the grib file opening
     open_datasets_kwargs = {
         "chunks": DEFAULT_CHUNKS,
