@@ -195,11 +195,11 @@ def get_excluded_keys(
 def estimate_number_of_fields(
     form: list[dict[str, Any]] | dict[str, Any] | None,
     request: dict[str, Any],
-    ignore_keys: list[str] = [],
     **kwargs,
 ) -> int:
     weighted_values = kwargs.get("weighted_values", {})
     weighted_keys = kwargs.get("weighted_keys", {})
+    ignore_keys: list[str] = ensure_list(kwargs.get("ignore_keys", []))
     excluded_variables = get_excluded_keys(form) + ensure_list(ignore_keys)
     number_of_values = []
     for variable_id, variable_value in request.items():

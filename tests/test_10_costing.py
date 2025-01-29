@@ -508,7 +508,8 @@ def test_estimate_number_of_fields_ignore_keys() -> None:
         "key3": ["value1", "value2"],
     }
     number_of_fields = costing.estimate_number_of_fields(
-        form, request,
+        form,
+        request,
     )
     assert number_of_fields == 8
     number_of_fields = costing.estimate_number_of_fields(
