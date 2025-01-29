@@ -465,6 +465,58 @@ def test_estimate_number_of_fields() -> None:
     assert number_of_fields == 6
 
 
+def test_estimate_number_of_fields_ignore_keys() -> None:
+    form = [
+        {
+            "name": "key1",
+            "label": "Key1",
+            "details": {"values": {"value1", "value2"}},
+            "type": "StringListWidget",
+        },
+        {
+            "name": "key2",
+            "label": "Key2",
+            "details": {"values": {"value1", "value2"}},
+            "type": "StringListWidget",
+        },
+        {
+            "name": "key3",
+            "label": "Key3",
+            "details": {"values": {"value1", "value2"}},
+            "type": "StringListWidget",
+        },
+    ]
+
+    costing_kwargs = {
+        "ignore_keys": ["key3"],
+    }
+
+    request = {
+        "key1": ["value1", "value2"],
+        "key2": ["value1", "value2"],
+    }
+    number_of_fields = costing.estimate_number_of_fields(form, request)
+    assert number_of_fields == 4
+    number_of_fields = costing.estimate_number_of_fields(
+        form, request, **costing_kwargs
+    )
+    assert number_of_fields == 4
+
+    request = {
+        "key1": ["value1", "value2"],
+        "key2": ["value1", "value2"],
+        "key3": ["value1", "value2"],
+    }
+    number_of_fields = costing.estimate_number_of_fields(
+        form, request,
+    )
+    assert number_of_fields == 8
+    number_of_fields = costing.estimate_number_of_fields(
+        form, request, **costing_kwargs
+    )
+    assert number_of_fields == 4
+
+
 def test_estimate_costs() -> None:
     from cads_adaptors import DummyCdsAdaptor
 
