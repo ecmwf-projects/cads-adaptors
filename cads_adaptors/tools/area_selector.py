@@ -303,7 +303,9 @@ def area_selector_paths(
     context: Context = Context(),
     **kwargs: Any,
 ) -> list[str]:
+    import time
     with dask.config.set(scheduler="single-threaded"):
+        time0 = time.time()
         # We try to select the area for all paths, if any fail we return the original paths
         out_paths = []
         for path in paths:
@@ -316,4 +318,5 @@ def area_selector_paths(
                     f"could not convert {path} to xarray; returning the original data"
                 )
                 out_paths.append(path)
+        context.info("Area selection complete", upload_time=time.time() - time0)
     return out_paths
