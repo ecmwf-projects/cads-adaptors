@@ -256,6 +256,7 @@ def area_selector_path(
         open_datasets_kwargs.setdefault("decode_times", False)
         open_datasets_kwargs.setdefault("chunks", -1)
 
+    print(open_datasets_kwargs)
     # open_kwargs =
     ds_dict = convertors.open_file_as_xarray_dictionary(
         infile,
@@ -265,6 +266,7 @@ def area_selector_path(
             "open_datasets_kwargs": open_datasets_kwargs,
         },
     )
+    print(ds_dict)
 
     ds_area_dict = {
         ".".join(
