@@ -256,7 +256,8 @@ def area_selector_path(
         open_datasets_kwargs.setdefault("decode_times", False)
         open_datasets_kwargs.setdefault("chunks", -1)
 
-    print(f"ECP DEBUG 2: {open_datasets_kwargs}")
+    context.info(f"ECP DEBUG 1: {open_datasets_kwargs}")
+    print(f"ECP DEBUG 1: {open_datasets_kwargs}")
     # open_kwargs =
     ds_dict = convertors.open_file_as_xarray_dictionary(
         infile,
@@ -266,6 +267,7 @@ def area_selector_path(
             "open_datasets_kwargs": open_datasets_kwargs,
         },
     )
+    context.info(f"ECP DEBUG 2: {ds_dict}")
     print(f"ECP DEBUG 2: {ds_dict}")
 
     ds_area_dict = {
@@ -306,6 +308,7 @@ def area_selector_paths(
     **kwargs: Any,
 ) -> list[str]:
     import time
+    context.info(f"ECP DEBUG 0: {kwargs}")
     with dask.config.set(scheduler="single-threaded"):
         time0 = time.time()
         # We try to select the area for all paths, if any fail we return the original paths
