@@ -318,5 +318,6 @@ def area_selector_paths(
                     f"could not convert {path} to xarray; returning the original data"
                 )
                 out_paths.append(path)
-        context.logger.info("Area selection complete", delta_time=time.time() - time0)
+        context.logger.info("1. context.logger.info Area selection complete", delta_time=time.time() - time0)
+        context.info("2. context.info Area selection complete", delta_time=time.time() - time0)
     return out_paths
