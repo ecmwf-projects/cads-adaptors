@@ -318,5 +318,5 @@ def area_selector_paths(
                     f"could not convert {path} to xarray; returning the original data"
                 )
                 out_paths.append(path)
-        context.info("Area selection complete", upload_time=time.time() - time0)
+        context.upload_log("Area selection complete", upload_time=time.time() - time0)
     return out_paths
