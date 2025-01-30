@@ -105,16 +105,16 @@ def get_dim_slices(
     da_coord = ds[dim_key]
 
     ascending = bool(da_coord[0] < da_coord[1])  # True = ascending, False = descending
-    coord_del = (da_coord[1] - da_coord[0]).values
+    coord_del = (da_coord[1] - da_coord[0]).item()
     if ascending:
         coord_range = [
-            np.round(da_coord[0].values - coord_del / 2.0, precision),
-            np.round(da_coord[-1].values + coord_del / 2.0, precision),
+            np.round(da_coord[0].item() - coord_del / 2.0, precision),
+            np.round(da_coord[-1].item() + coord_del / 2.0, precision),
         ]
     else:
         coord_range = [
-            np.round(da_coord[-1].values + coord_del / 2.0, precision),
-            np.round(da_coord[0].values - coord_del / 2.0, precision),
+            np.round(da_coord[-1].item() + coord_del / 2.0, precision),
+            np.round(da_coord[0].item() - coord_del / 2.0, precision),
         ]
 
     if (
