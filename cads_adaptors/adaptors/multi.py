@@ -73,7 +73,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.tools import adaptor_tools
 
         base_extract_subrequest_kwargs = {
-            k: self.config[k]
+            k: self.config["extract_subrequest_kwargs"][k]
             for k in self.extract_subrequest_kws
             if k in self.config.get("extract_subrequest_kwargs", {})
         }
