@@ -2,7 +2,7 @@ from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.exceptions import MultiAdaptorNoDataError
+from cads_adaptors.exceptions import MultiAdaptorNoDataError, CdsConfigurationError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 
@@ -20,6 +20,49 @@ class MultiAdaptor(AbstractCdsAdaptor):
             for name, param in sig.parameters.items()
             if param.default != inspect.Parameter.empty
         ]
+
+    def get_extract_subrequest_kwargs(
+        self, this_adaptor_config: dict[str, Any]
+    ) -> dict[str, Any]:
+        # Get any top level kwargs for extract_subrequest
+        extract_subrequest_kwargs: dict[str, Any] = {
+            k: self.config["extract_subrequest_kwargs"][k]
+            for k in self.extract_subrequest_kws
+            if k in self.config.get("extract_subrequest_kwargs", {})
+        }
+        print(extract_subrequest_kwargs)
+
+        for k in self.extract_subrequest_kws:
+            if k not in this_adaptor_config:
+                continue
+            if k not in extract_subrequest_kwargs:
+                extract_subrequest_kwargs[k] = this_adaptor_config[k]
+                continue
+
+            # k in both this_adaptor_config and extract_subrequest_kwargs, check they are same type
+            try:
+                assert isinstance(this_adaptor_config[k], type(extract_subrequest_kwargs[k]))
+            except AssertionError:
+                raise CdsConfigurationError(
+                    f"Adaptor configuration error: extract_subrequest_kwargs: {k} "
+                    f"has been set in both the top-level adaptor.json and the sub-adaptor.json, "
+                    f"but they are not the same type. "
+                )
+
+            if isinstance(this_adaptor_config[k], dict):
+                extract_subrequest_kwargs[k] = {
+                    **extract_subrequest_kwargs[k],
+                    **this_adaptor_config[k],
+                }
+            elif isinstance(this_adaptor_config[k], list):
+                extract_subrequest_kwargs[k] = extract_subrequest_kwargs[k] + [
+                    val for val in this_adaptor_config[k] if val not in extract_subrequest_kwargs[k]
+                ]
+            else:
+                extract_subrequest_kwargs[k] = this_adaptor_config[k]
+
+        print(extract_subrequest_kwargs)
+        return extract_subrequest_kwargs
 
     @staticmethod
     def extract_subrequest(
@@ -72,11 +115,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
     ) -> dict[str, tuple[AbstractCdsAdaptor, Request]]:
         from cads_adaptors.tools import adaptor_tools
 
-        base_extract_subrequest_kwargs = {
-            k: self.config["extract_subrequest_kwargs"][k]
-            for k in self.extract_subrequest_kws
-            if k in self.config.get("extract_subrequest_kwargs", {})
-        }
         sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(
@@ -85,14 +123,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
             this_values = adaptor_desc.get("values", {})
 
-            extract_subrequest_kwargs = {
-                **base_extract_subrequest_kwargs,
-                **{
-                    k: this_adaptor.config[k]
-                    for k in self.extract_subrequest_kws
-                    if k in this_adaptor.config
-                },
-            }
+            extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(this_adaptor.config)
             this_request = self.extract_subrequest(
                 request, this_values, **extract_subrequest_kwargs
             )
@@ -208,22 +239,10 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
         # We now split the mapped_request into sub-adaptors
         mapped_requests = []
-        base_extract_subrequest_kwargs = {
-            k: self.config["extract_subrequest_kwargs"][k]
-            for k in self.extract_subrequest_kws
-            if k in self.config.get("extract_subrequest_kwargs", {})
-        }
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
-            extract_subrequest_kwargs = {
-                **base_extract_subrequest_kwargs,
-                **{
-                    k: this_adaptor.config[k]
-                    for k in self.extract_subrequest_kws
-                    if k in this_adaptor.config
-                },
-            }
+            extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(this_adaptor.config)
             for mapped_request_piece in self.mapped_requests:
                 this_request = self.extract_subrequest(
                     mapped_request_piece, this_values, **extract_subrequest_kwargs
