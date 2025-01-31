@@ -32,7 +32,9 @@ def _get_output_path(output_dir: Path, dataset: str, format: RetrieveFormat) -> 
     return output_path
 
 
-def _add_attributes(oncobj: h5netcdf.File, global_attributes: dict):
+def _add_attributes(
+    oncobj: h5netcdf.File, field_attributes: dict, global_attributes: dict
+):
     """Add relevant attributes to the output netCDF."""
     if "height_of_station_above_sea_level" in oncobj.variables:
         oncobj.variables["height_of_station_above_sea_level"].attrs["units"] = "m"
@@ -47,6 +49,10 @@ def _add_attributes(oncobj: h5netcdf.File, global_attributes: dict):
                     oncobj.variables[coord_with_table].attrs["units"] = "degrees_north"
     oncobj.variables["report_timestamp"].attrs["standard_name"] = "time"
     oncobj.attrs["featureType"] = "point"
+    # Variables defined as part of the CDM lite
+    for oncvar in oncobj.variables:
+        if oncvar in field_attributes:
+            oncobj.variables[oncvar].attrs.update(field_attributes[oncvar])
     # Global attributes
     oncobj.attrs.update(global_attributes)
 

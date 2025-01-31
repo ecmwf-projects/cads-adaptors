@@ -5,6 +5,7 @@ import os
 import re
 import threading
 import time
+from urllib.parse import urlparse
 
 import boto3
 import jinja2
@@ -23,11 +24,24 @@ class AbstractCacher:
     """
 
     def __init__(
-        self, integration_server, logger=None, no_put=False, permanent_fields=None
+        self,
+        integration_server,
+        logger=None,
+        no_put=False,
+        permanent_fields=None,
+        no_cache_key=None,
     ):
         self.integration_server = integration_server
         self.logger = logging.getLogger(__name__) if logger is None else logger
         self.no_put = no_put
+
+        # The name of a key which, if present in the original request, will be
+        # inserted into the field description dictionary when writing to the
+        # cache, which means it will appear in the cached filename. Its presence
+        # will also mean corresponding files are always written to temporary
+        # space. It is used for optionally avoiding the cache provided by this
+        # class.
+        self.no_cache_key = no_cache_key or "_no_cache"
 
         # Fields which should be cached permanently (on the datastore). All
         # other fields will be cached in temporary locations.
@@ -80,14 +94,14 @@ class AbstractCacher:
                     )
                 assert nmatches == 1
 
-                # If no_cache was in the request then insert it into req1field.
-                # This means it will appear in the cache file name, which is
-                # useful for regression testing. It means multiple tests that
-                # request the same field can share a unique no_cache value so
-                # the field is retrieved from the backend the first time but
-                # from cache on subsequent attempts.
-                if "no_cache" in req["req"]:
-                    req1field["no_cache"] = req["req"]["no_cache"]
+                # If self.no_cache_key was in the request then insert it into
+                # req1field. This means it will appear in the cache file name,
+                # which is useful for regression testing. It means multiple
+                # tests that request the same field can share a unique no-cache
+                # value so the field is retrieved from the backend the first
+                # time but from cache on subsequent attempts.
+                if self.no_cache_key in req["req"]:
+                    req1field[self.no_cache_key] = req["req"][self.no_cache_key]
 
                 # Convert the message to pure binary data and write to cache
                 self._write_field(codes_get_message(msg), req1field)
@@ -125,12 +139,12 @@ class AbstractCacher:
         """Return True if this field should be put in the permanent cache, False
         otherwise.
         """
-        # Is this a field which should be stored in a permanent location? If
-        # the field contains an area specification then it isn't because only
-        # full-area fields are stored permanently. The "no_cache" key is set to
-        # a random string to defeat the system cache when testing so make sure
-        # that's not stored permanently.
-        if "north" not in field and "no_cache" not in field:
+        # Is this a field which should be stored in a permanent location? If the
+        # field contains an area specification then it isn't because only
+        # full-area fields are stored permanently. The self.no_cache_key key is
+        # set to a random string to defeat the system cache when testing so make
+        # sure that's not stored permanently.
+        if "north" not in field and self.no_cache_key not in field:
             permanent, _, _ = hcubes_intdiff2(
                 {k: [v] for k, v in field.items()}, self.permanent_fields
             )
@@ -298,17 +312,26 @@ class CacherS3(AbstractAsyncCacher):
     bucket.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, s3_bucket=None, create_bucket=False, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._host = "object-store.os-api.cci2.ecmwf.int"
-        self._bucket = "cci2-cams-regional-fc"
+        endpoint_url = os.environ["STORAGE_API_URL"]
+        self._host = urlparse(endpoint_url).hostname
+        self._bucket = s3_bucket or "cci2-cams-regional-fc"
         self._credentials = dict(
-            endpoint_url=os.environ["STORAGE_API_URL"],
+            endpoint_url=endpoint_url,
             aws_access_key_id=os.environ["STORAGE_ADMIN"],
             aws_secret_access_key=os.environ["STORAGE_PASSWORD"],
         )
         self.client = boto3.client("s3", **self._credentials)
+
+        # If it's not guaranteed that the bucket already exists then the caller
+        # should pass create_bucket=True
+        if create_bucket:
+            rsrc = boto3.resource("s3", **self._credentials)
+            bkt = rsrc.Bucket(self._bucket)
+            if not bkt.creation_date:
+                bkt = self.client.create_bucket(Bucket=self._bucket)
 
     def _write_field_sync(self, data, fieldinfo):
         """Write the data described by fieldinfo to the appropriate cache
@@ -320,13 +343,6 @@ class CacherS3(AbstractAsyncCacher):
         self.logger.info(
             f"Caching {fieldinfo} to {self._host}:{self._bucket}:{remote_path}"
         )
-
-        # Uncomment this code if it can't be trusted that the bucket already
-        # exists
-        # resource = boto3.resource('s3', **self._credentials)
-        # bkt = resource.Bucket(self._bucket)
-        # if not bkt.creation_date:
-        #    bkt = self.client.create_bucket(Bucket=self._bucket)
 
         attempt = 0
         t0 = time.time()
@@ -368,4 +384,23 @@ class CacherS3(AbstractAsyncCacher):
         self.client.delete_object(Bucket=self._bucket, Key=remote_path)
 
 
-Cacher = CacherS3
+class CacherS3AndFile(CacherS3):
+    """Sub-class of CacherS3 to cache not only to an S3 bucket but to a local
+    file as well.
+    """
+
+    def __init__(self, *args, field2path=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.field2path = field2path
+
+    def _write_field_sync(self, data, fieldinfo):
+        # Write to the S3 bucket
+        super()._write_field_sync(data, fieldinfo)
+
+        # Write to a local path?
+        if self.field2path:
+            path = self.field2path(fieldinfo)
+            self.logger.info(f"Caching {fieldinfo} to {path}")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as f:
+                f.write(data)

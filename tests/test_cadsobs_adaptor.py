@@ -1,4 +1,5 @@
 import time
+import zipfile
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -9,7 +10,16 @@ from cads_adaptors import Context, ObservationsAdaptor
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
 from cads_adaptors.exceptions import CadsObsConnectionError, InvalidRequest
 
-CDM_LITE_VARIABLES = {
+# get numbered vars programatically, as they are to many to add by hand to
+# the list
+number_of_uncertainty_types = 17
+uncertainty_numbered_vars = [
+    f"{unc_var}{n}"
+    for n in range(number_of_uncertainty_types + 1)
+    for unc_var in ["uncertainty_value", "uncertainty_type", "uncertainty_units"]
+]
+
+CDM_LITE_VARIABLES: dict[str, list[str] | dict] = {
     "mandatory": [
         "observation_id",
         "observed_variable",
@@ -58,7 +68,8 @@ CDM_LITE_VARIABLES = {
         "exposure_of_sensor",
         "fg_depar@body",
         "an_depar@body",
-    ],
+    ]
+    + uncertainty_numbered_vars,
     "auxiliary": [
         "total_uncertainty",
         "positive_total_uncertainty",
@@ -74,6 +85,29 @@ CDM_LITE_VARIABLES = {
         "negative_quasisystematic_uncertainty",
         "flag",
     ],
+    "attributes": {
+        "uncertainty_value1": {"long_name": "random_uncertainty"},
+        "uncertainty_value10": {"long_name": "negative_systematic_uncertainty"},
+        "uncertainty_value11": {"long_name": "positive_systematic_uncertainty"},
+        "uncertainty_value12": {"long_name": "negative_quasisystematic_uncertainty"},
+        "uncertainty_value13": {"long_name": "positive_quasisystematic_uncertainty"},
+        "uncertainty_value14": {"long_name": "negative_structured_random_uncertainty"},
+        "uncertainty_value15": {"long_name": "positive_structured_random_uncertainty"},
+        "uncertainty_value16": {"long_name": "negative_total_uncertainty"},
+        "uncertainty_value17": {"long_name": "positive_total_uncertainty"},
+        "uncertainty_value2": {"long_name": "systematic_uncertainty"},
+        "uncertainty_value3": {"long_name": "quasisystematic_uncertainty"},
+        "uncertainty_value4": {"long_name": "structured_random_uncertainty"},
+        "uncertainty_value5": {"long_name": "total_uncertainty"},
+        "uncertainty_value6": {
+            "long_name": "ozone_partial_pressure_total_uncertainty_uncertainty"
+        },
+        "uncertainty_value7": {
+            "long_name": "ozone_partial_pressure_percentage_uncertainty_uncertainty"
+        },
+        "uncertainty_value8": {"long_name": "negative_random_uncertainty"},
+        "uncertainty_value9": {"long_name": "positive_random_uncertainty"},
+    },
 }
 
 
@@ -163,6 +197,7 @@ TEST_ADAPTOR_CONFIG = {
         "rename": {"time_aggregation": "dataset_source", "variable": "variables"},
         "force": {},
     },
+    "licences": ["licence-to-use-copernicus-products", "uscrn-data-policy"],
 }
 
 
@@ -173,7 +208,7 @@ def test_adaptor(tmp_path, monkeypatch):
     )
     test_form = {}
 
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     result = adaptor.retrieve(TEST_REQUEST)
     tempfile = Path(tmp_path, "test_adaptor.nc")
     with tempfile.open("wb") as tmpf:
@@ -205,15 +240,13 @@ def test_adaptor_csv(tmp_path, monkeypatch):
     )
     test_form = {}
 
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     test_request_csv = TEST_REQUEST.copy()
     test_request_csv["format"] = "csv"
     result = adaptor.retrieve(test_request_csv)
-    tempfile = Path(tmp_path, "test_adaptor.csv")
-    with tempfile.open("wb") as tmpf:
-        tmpf.write(result.read())
-    assert tempfile.stat().st_size > 0
-    file_lines = tempfile.read_text().split("\n")
+    with zipfile.ZipFile(result, "r") as zipf:
+        file_lines = zipf.read(name=zipf.namelist()[0]).decode("UTF-8").split("\n")
+    assert len(file_lines) > 0
     assert "# daily_maximum_air_temperature [K]" in file_lines
     assert "# daily_maximum_relative_humidity [%]" in file_lines
 
@@ -225,7 +258,7 @@ def test_adaptor_error(tmp_path, monkeypatch):
     )
     test_form = {}
 
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     adaptor.context.add_user_visible_error = Mock()
     with pytest.raises(RuntimeError) as e:
         adaptor.retrieve(TEST_REQUEST)
@@ -242,7 +275,7 @@ def test_adaptor_wrong_key(monkeypatch):
     test_form = {}
     test_request = TEST_REQUEST.copy()
     test_request.pop("time_aggregation")
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
 
@@ -259,20 +292,20 @@ def test_adaptor_wrong_value(monkeypatch):
     test_form = {}
     test_request = TEST_REQUEST.copy()
     test_request["variable"] = "FAKE_VARIABLE"
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
 
     # And dataset_source variables
     test_request["time_aggregation"] = "FAKE_VARIABLE"
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
 
 
 def test_connection_error(tmp_path):
     test_form = {}
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     adaptor.context.add_user_visible_error = Mock()
     with pytest.raises(CadsObsConnectionError) as e:
         adaptor.retrieve(TEST_REQUEST)
@@ -283,7 +316,7 @@ def test_connection_error(tmp_path):
 
 def test_api_error(tmp_path, monkeypatch):
     test_form = {}
-    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     monkeypatch.setattr(
         "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
         BackendErrorCadsobsApiClient,

@@ -8,6 +8,7 @@ from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
 from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools.hcube_tools import hcubes_intdiff2
 from cads_adaptors.validation import enforce
 
 
@@ -57,6 +58,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         result = self.retrieve_list_of_results(request)
         return self.make_download_object(result)
 
+    def check_validity(self, request: Request) -> None:
+        return
+
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
 
@@ -81,6 +85,26 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             request = request["inputs"]
         mapped_request = self.apply_mapping(request)
 
+        # Must also map the weights
+        # N.B. This is just a partial mapping, as not all apply_mapping steps are covered for the weights.
+        # Use with caution!
+        rename = self.mapping.get("rename", {})
+        remap = self.mapping.get("remap", {})
+        weighted_keys = costing_kwargs.get("weighted_keys", {})
+        weighted_values = costing_kwargs.get("weighted_values", {})
+
+        # rename keys for weighted_keys
+        mapped_weighted_keys = {
+            rename.get(key, key): value for key, value in weighted_keys.items()
+        }
+        # rename keys and remap values for weighted_values
+        mapped_weighted_values = {
+            rename.get(key, key): {
+                remap.get(key, {}).get(v, v): w for v, w in values.items()
+            }
+            for key, values in weighted_values.items()
+        }
+
         # "precise_size" is a new costing method that is more accurate than "size
         if "precise_size" in costing_config.get(cost_threshold, {}):
             costs["precise_size"] = costing.estimate_precise_size(
@@ -90,7 +114,16 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 **costing_kwargs,
             )
         # size is a fast and rough estimate of the number of fields
-        costs["size"] = costing.estimate_number_of_fields(self.form, mapped_request)
+        costs["size"] = costing.estimate_number_of_fields(
+            self.form,
+            mapped_request,
+            mapping=self.mapping,
+            **{
+                **costing_kwargs,
+                "weighted_keys": mapped_weighted_keys,
+                "weighted_values": mapped_weighted_values,
+            },
+        )
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
         return costs
@@ -110,6 +143,22 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         )
 
         return request
+
+    def ensure_list_values(self, dicts):
+        for d in dicts:
+            for key in d:
+                d[key] = ensure_list(d[key])
+
+    def satisfy_conditions(
+        self,
+        requests: list[dict[str, list[Any]]],
+        conditions: list[dict[str, list[Any]]],
+    ):
+        try:
+            _, d12, _ = hcubes_intdiff2(requests, conditions)
+            return not d12
+        except Exception:
+            return False
 
     def normalise_request(self, request: Request) -> Request:
         """
@@ -150,6 +199,22 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         else:
             self.intersected_requests = ensure_list(working_request)
 
+        # Implement a request-level tagging system
+        try:
+            self.conditional_tagging = self.config.get("conditional_tagging", None)
+            if self.conditional_tagging is not None:
+                self.ensure_list_values(self.intersected_requests)
+                for tag in self.conditional_tagging:
+                    conditions = self.conditional_tagging[tag]
+                    self.ensure_list_values(conditions)
+                    if self.satisfy_conditions(self.intersected_requests, conditions):
+                        hidden_tag = f"__{tag}"
+                        request[hidden_tag] = True
+        except Exception as e:
+            self.context.add_stdout(
+                f"An error occured while attempting conditional tagging: {e!r}"
+            )
+
         # Map the list of requests
         self.mapped_requests = [
             self.apply_mapping(i_request) for i_request in self.intersected_requests
@@ -178,7 +243,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         #  it is the only one. Adaptors should be updated to use self.mapped_requests instead.
         self.mapped_request = self.mapped_requests[0]
 
-        self.context.add_stdout(
+        self.context.info(
             f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_requests}"
         )
 
@@ -233,7 +298,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def post_process(self, result: Any) -> dict[str, Any]:
         """Perform post-process steps on the retrieved data."""
         for i, pp_step in enumerate(self.pp_mapping(self.post_process_steps)):
-            self.context.add_stdout(
+            self.context.info(
                 f"Performing post-process step {i+1} of {len(self.post_process_steps)}: {pp_step}"
             )
             # TODO: pp_mapping should have ensured "method" is always present
@@ -268,7 +333,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 post_open_datasets_kwargs = post_processing_kwargs.get(
                     "post_open_datasets_kwargs", {}
                 )
-                self.context.add_stdout(
+                self.context.debug(
                     f"Opening result: {result} as xarray dictionary with kwargs:\n"
                     f"open_dataset_kwargs: {open_datasets_kwargs}\n"
                     f"post_open_datasets_kwargs: {post_open_datasets_kwargs}"
@@ -315,7 +380,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             kwargs.setdefault(
                 "receipt", self.make_receipt(filenames=filenames, **receipt_kwargs)
             )
-        self.context.add_stdout(
+        self.context.debug(
             f"Creating download object as {download_format} with paths:\n{paths}\n and kwargs:\n{kwargs}"
         )
         # self.context.add_user_visible_log(
@@ -333,7 +398,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     "\n -".join(filenames)
                 )
             )
-            self.context.add_stderr(
+            self.context.error(
                 f"Error whilst preparing download object: {err}\n"
                 f"Paths: {paths}\n"
                 f"Download format: {download_format}\n"
