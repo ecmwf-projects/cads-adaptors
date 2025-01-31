@@ -139,9 +139,7 @@ def test_multi_adaptor_extract_subrequests_dont_split_keys():
 
 
 def test_multi_adaptor_extract_subrequests_filter_keys():
-    multi_adaptor = multi.MultiAdaptor(
-        FORM, **ADAPTOR_CONFIG
-    )
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
     request = {
         "a": ["a1", "a2"],
@@ -181,7 +179,10 @@ EXTRACT_SR_KWARGS_ADAPTOR_CONFIG = {
             "entry_point": "cads_adaptors:DummyCdsAdaptor",
             "values": {
                 "a": ["a1", "a2", "a3", "a4"],
-                "b": ["b1", "b2",],
+                "b": [
+                    "b1",
+                    "b2",
+                ],
                 "c": ["c1", "c2", "c3"],
                 "d": ["d1", "d2", "d3", "d4"],
             },
@@ -189,7 +190,11 @@ EXTRACT_SR_KWARGS_ADAPTOR_CONFIG = {
             # no longer required. For backwards compatibility we do not next inside extract_subrequest_kwargs
             "filter_keys": ["a"],
             "dont_split_keys": ["e"],
-            "required_keys": ["a", "b", "c"]  # Includes check that double definition does not break
+            "required_keys": [
+                "a",
+                "b",
+                "c",
+            ],  # Includes check that double definition does not break
         },
         "adaptor2": {
             "entry_point": "cads_adaptors:DummyCdsAdaptor",
@@ -200,21 +205,21 @@ EXTRACT_SR_KWARGS_ADAPTOR_CONFIG = {
             },
         },
     },
-     # These filter keys are used by all sub-adaptors. In practice gecko will
-     # detect requiements and populate this list automatically
+    # These filter keys are used by all sub-adaptors. In practice gecko will
+    # detect requiements and populate this list automatically
     "extract_subrequest_kwargs": {
         "filter_keys": ["b", "c", "d"],
         "dont_split_keys": ["f", "g", "h"],
-        "required_keys": ["a"]
+        "required_keys": ["a"],
     },
 }
 
-@pytest.mark.parametrize(
-    "entry_point", ["MultiAdaptor", "MultiMarsCdsAdaptor"]
-)
+
+@pytest.mark.parametrize("entry_point", ["MultiAdaptor", "MultiMarsCdsAdaptor"])
 def test_multi_adaptor_get_extract_subrequests_kwargs(entry_point):
     multi_adaptor = multi.MultiAdaptor(
-        EXTRACT_SR_KWARGS_FORM, **{**EXTRACT_SR_KWARGS_ADAPTOR_CONFIG, "entry_point": entry_point}
+        EXTRACT_SR_KWARGS_FORM,
+        **{**EXTRACT_SR_KWARGS_ADAPTOR_CONFIG, "entry_point": entry_point},
     )
     # Check that we filter expected keys
     adaptor1_kwargs = multi_adaptor.get_extract_subrequest_kwargs(

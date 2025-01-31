@@ -2,7 +2,7 @@ from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.exceptions import MultiAdaptorNoDataError, CdsConfigurationError
+from cads_adaptors.exceptions import CdsConfigurationError, MultiAdaptorNoDataError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 
@@ -41,7 +41,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
             # k in both this_adaptor_config and extract_subrequest_kwargs, check they are same type
             try:
-                assert isinstance(this_adaptor_config[k], type(extract_subrequest_kwargs[k]))
+                assert isinstance(
+                    this_adaptor_config[k], type(extract_subrequest_kwargs[k])
+                )
             except AssertionError:
                 raise CdsConfigurationError(
                     f"Adaptor configuration error: extract_subrequest_kwargs: {k} "
@@ -56,7 +58,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 }
             elif isinstance(this_adaptor_config[k], list):
                 extract_subrequest_kwargs[k] = extract_subrequest_kwargs[k] + [
-                    val for val in this_adaptor_config[k] if val not in extract_subrequest_kwargs[k]
+                    val
+                    for val in this_adaptor_config[k]
+                    if val not in extract_subrequest_kwargs[k]
                 ]
             else:
                 extract_subrequest_kwargs[k] = this_adaptor_config[k]
@@ -123,7 +127,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
             this_values = adaptor_desc.get("values", {})
 
-            extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(this_adaptor.config)
+            extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
+                this_adaptor.config
+            )
             this_request = self.extract_subrequest(
                 request, this_values, **extract_subrequest_kwargs
             )
@@ -242,7 +248,9 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
-            extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(this_adaptor.config)
+            extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
+                this_adaptor.config
+            )
             for mapped_request_piece in self.mapped_requests:
                 this_request = self.extract_subrequest(
                     mapped_request_piece, this_values, **extract_subrequest_kwargs
