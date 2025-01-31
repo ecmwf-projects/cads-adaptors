@@ -9,7 +9,7 @@ from earthkit.transforms import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
 from cads_adaptors.exceptions import InvalidRequest
-from cads_adaptors.tools import adaptor_tools, convertors
+from cads_adaptors.tools import adaptor_tools, convertors, exceptions
 
 
 def area_to_checked_dictionary(area: list[float | int]) -> dict[str, float | int]:
@@ -312,7 +312,7 @@ def area_selector_paths(
                 out_paths += area_selector_path(
                     path, area=area, context=context, **kwargs
                 )
-            except NotImplementedError:
+            except (NotImplementedError, exceptions.CdsFormatConversionError):
                 context.logger.debug(
                     f"could not convert {path} to xarray; returning the original data"
                 )
