@@ -183,7 +183,7 @@ def area_selector(
             ds, lat_key, area["south"], area["north"], context, **extra_kwargs
         )[0]
 
-        context.debug(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
+        context.debug(f"Area selector: lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
 
         sub_selections = []
         for lon_slice in lon_slices:
@@ -197,12 +197,12 @@ def area_selector(
                     **sel_kwargs,
                 )
             )
-        context.debug(f"selections: {sub_selections}")
+        # context.debug(f"selections: {sub_selections}")
 
         ds_area = xr.concat(
             sub_selections, dim=lon_key, data_vars="minimal", coords="minimal"
         )
-        context.debug(f"ds_area: {ds_area}")
+        context.debug(f"Area selector: ds_area: {ds_area}")
 
         # Ensure that there are no length zero dimensions
         for dim in [lat_key, lon_key]:
@@ -256,8 +256,6 @@ def area_selector_path(
         open_datasets_kwargs.setdefault("decode_times", False)
         open_datasets_kwargs.setdefault("chunks", -1)
 
-    context.info(f"ECP DEBUG 1: {open_datasets_kwargs}")
-    print(f"ECP DEBUG 1: {open_datasets_kwargs}")
     # open_kwargs =
     ds_dict = convertors.open_file_as_xarray_dictionary(
         infile,
@@ -267,8 +265,6 @@ def area_selector_path(
             "open_datasets_kwargs": open_datasets_kwargs,
         },
     )
-    context.info(f"ECP DEBUG 2: {ds_dict}")
-    print(f"ECP DEBUG 2: {ds_dict}")
 
     ds_area_dict = {
         ".".join(
@@ -308,7 +304,7 @@ def area_selector_paths(
     **kwargs: Any,
 ) -> list[str]:
     import time
-    context.info(f"ECP DEBUG 0: {kwargs}")
+
     with dask.config.set(scheduler="single-threaded"):
         time0 = time.time()
         # We try to select the area for all paths, if any fail we return the original paths
@@ -319,7 +315,7 @@ def area_selector_paths(
                     path, area=area, context=context, **kwargs
                 )
             except NotImplementedError:
-                context.logger.debug(
+                context.debug(
                     f"could not convert {path} to xarray; returning the original data"
                 )
                 out_paths.append(path)
