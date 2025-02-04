@@ -1,4 +1,3 @@
-import math
 import tempfile
 from pathlib import Path
 
@@ -130,11 +129,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         return costs
 
     def weight_by_area(self, costs, request):
-        # Read the coordinates as float and transform to radians
-        # We avoid using numpy here
-        maxlat, minlon, minlat, maxlon = (
-            math.radians(float(i)) for i in request["area"]
-        )
+        maxlat, minlon, minlat, maxlon = (float(i) for i in request["area"])
         # This "area" is in degrees^2. Is not a real area but area in the
         # lat-lon (PlateCarree) projection.
         requested_area = (maxlon - minlon) * (maxlat - minlat)
