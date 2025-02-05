@@ -51,6 +51,7 @@ complete = [
   "requests",
   "rooki",
   "sqlalchemy",
+  "structlog",
   "tabulate",
   "tqdm",
   "xarray",
