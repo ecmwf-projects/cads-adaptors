@@ -64,7 +64,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
             else:
                 extract_subrequest_kwargs[k] = this_adaptor_config[k]
 
-        print(extract_subrequest_kwargs)
         return extract_subrequest_kwargs
 
     @staticmethod
