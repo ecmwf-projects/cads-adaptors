@@ -183,7 +183,9 @@ def area_selector(
             ds, lat_key, area["south"], area["north"], context, **extra_kwargs
         )[0]
 
-        context.debug(f"Area selector: lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
+        context.debug(
+            f"Area selector: lat_slice: {lat_slice}\nlon_slices: {lon_slices}"
+        )
 
         sub_selections = []
         for lon_slice in lon_slices:
