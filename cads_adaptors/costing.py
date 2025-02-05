@@ -3,6 +3,8 @@ import math
 import warnings
 from typing import Any
 
+from cads_adaptors.tools.general import ensure_list
+
 from . import constraints
 
 EXCLUDED_WIDGETS = [
@@ -197,7 +199,8 @@ def estimate_number_of_fields(
 ) -> int:
     weighted_values = kwargs.get("weighted_values", {})
     weighted_keys = kwargs.get("weighted_keys", {})
-    excluded_variables = get_excluded_keys(form)
+    ignore_keys: list[str] = ensure_list(kwargs.get("ignore_keys", []))
+    excluded_variables = get_excluded_keys(form) + ensure_list(ignore_keys)
     number_of_values = []
     for variable_id, variable_value in request.items():
         weights_v = weighted_values.get(variable_id, {})

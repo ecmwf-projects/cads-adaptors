@@ -8,7 +8,7 @@ import xarray as xr
 from earthkit.transforms import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
-from cads_adaptors.exceptions import InvalidRequest
+from cads_adaptors.exceptions import CdsFormatConversionError, InvalidRequest
 from cads_adaptors.tools import adaptor_tools, convertors
 
 
@@ -314,7 +314,7 @@ def area_selector_paths(
                 out_paths += area_selector_path(
                     path, area=area, context=context, **kwargs
                 )
-            except NotImplementedError:
+            except (NotImplementedError, CdsFormatConversionError):
                 context.debug(
                     f"could not convert {path} to xarray; returning the original data"
                 )
