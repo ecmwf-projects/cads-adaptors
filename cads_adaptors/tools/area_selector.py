@@ -183,7 +183,9 @@ def area_selector(
             ds, lat_key, area["south"], area["north"], context, **extra_kwargs
         )[0]
 
-        context.debug(f"lat_slice: {lat_slice}\nlon_slices: {lon_slices}")
+        context.debug(
+            f"Area selector: lat_slice: {lat_slice}\nlon_slices: {lon_slices}"
+        )
 
         sub_selections = []
         for lon_slice in lon_slices:
@@ -197,12 +199,12 @@ def area_selector(
                     **sel_kwargs,
                 )
             )
-        context.debug(f"selections: {sub_selections}")
+        # context.debug(f"selections: {sub_selections}")
 
         ds_area = xr.concat(
             sub_selections, dim=lon_key, data_vars="minimal", coords="minimal"
         )
-        context.debug(f"ds_area: {ds_area}")
+        context.debug(f"Area selector: ds_area: {ds_area}")
 
         # Ensure that there are no length zero dimensions
         for dim in [lat_key, lon_key]:
@@ -281,8 +283,7 @@ def area_selector_path(
             out_path = os.path.join(target_dir, f"{fname_tag}.nc")
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
-            # Need to compute before writing to disk as dask loses too many jobs
-            ds_area.compute().to_netcdf(out_path)
+            ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
     else:
         context.add_user_visible_error(
@@ -304,7 +305,10 @@ def area_selector_paths(
     context: Context = Context(),
     **kwargs: Any,
 ) -> list[str]:
-    with dask.config.set(scheduler="threads"):
+    import time
+
+    with dask.config.set(scheduler="single-threaded"):
+        time0 = time.time()
         # We try to select the area for all paths, if any fail we return the original paths
         out_paths = []
         for path in paths:
@@ -313,8 +317,9 @@ def area_selector_paths(
                     path, area=area, context=context, **kwargs
                 )
             except (NotImplementedError, CdsFormatConversionError):
-                context.logger.debug(
+                context.debug(
                     f"could not convert {path} to xarray; returning the original data"
                 )
                 out_paths.append(path)
+        context.logger.info("Area selection complete", delta_time=time.time() - time0)
     return out_paths
