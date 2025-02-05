@@ -17,6 +17,7 @@ dependencies = [
   # Only mandatory dependencies required by the broker and retrieve-api images
   "DateTimeRange",
   "python-dateutil",
+  "structlog",
   "jsonschema"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
@@ -51,7 +52,6 @@ complete = [
   "requests",
   "rooki",
   "sqlalchemy",
-  "structlog",
   "tabulate",
   "tqdm",
   "xarray",
