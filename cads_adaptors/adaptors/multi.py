@@ -30,7 +30,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
             for k in self.extract_subrequest_kws
             if k in self.config.get("extract_subrequest_kwargs", {})
         }
-        print(extract_subrequest_kwargs)
 
         for k in self.extract_subrequest_kws:
             if k not in this_adaptor_config:
