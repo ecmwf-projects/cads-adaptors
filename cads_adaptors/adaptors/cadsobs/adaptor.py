@@ -46,8 +46,6 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         obs_api_url = self.config["obs_api_url"]
         # Dataset name is in this config too
         dataset_name = self.config["collection_id"]
-        # Max size in bytes can be set in the adaptor.json. If not, it is set to 1 GB
-        size_limit = self.config.get("size_limit", 1073741824)
         # dataset_source must be a string, asking for two sources is unsupported
         dataset_source = self.handle_sources_list(self.mapped_request["dataset_source"])
         self.mapped_request["dataset_source"] = dataset_source
@@ -61,7 +59,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         )
         # Get the objects that match the request
         object_urls = cadsobs_client.get_objects_to_retrieve(
-            dataset_name, self.mapped_request, size_limit=size_limit
+            dataset_name, self.mapped_request
         )
         # Get the service definition file
         service_definition = cadsobs_client.get_service_definition(dataset_name)
@@ -122,3 +120,26 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         else:
             dataset_source_str = dataset_source
         return dataset_source_str
+
+    def estimate_costs(self, request, **kwargs):
+        """Estimate costs weighting by area."""
+        costs = super().estimate_costs(request, **kwargs)
+        if "area" in request:
+            self.weight_by_area(costs, request)
+        return costs
+
+    def weight_by_area(self, costs, request):
+        maxlat, minlon, minlat, maxlon = (float(i) for i in request["area"])
+        # This "area" is in degrees^2. Is not a real area but area in the
+        # lat-lon (PlateCarree) projection.
+        requested_area = (maxlon - minlon) * (maxlat - minlat)
+        # It is not realistic to have very little cost for small areas, so we set a
+        # minimum value of 1000 square degrees (aprox a 30 by 30 box).
+        # Ideally we should be making queries to the catalogue, but it would be too
+        # costly to do this for every click.
+        min_area = 1000
+        requested_area = max(requested_area, min_area)
+        total_area = 64800  # 360 * 180
+        area_weight = requested_area / total_area
+        for k, v in costs.items():
+            costs[k] = v * area_weight

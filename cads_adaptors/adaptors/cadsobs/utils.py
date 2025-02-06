@@ -253,7 +253,7 @@ def _filter_and_save_var(
     dtype = _get_output_dtype(ivar, ivarobj)
     attrs = dict()
     # Set time units
-    if ivar == "report_timestamp":
+    if ivar in ["report_timestamp", "record_timestamp"]:
         attrs["units"] = ivarobj.attrs["units"]
     # Handle character dimensions
     is_char = len(ivarobj.shape) > 1 or ivar == "observed_variable"
