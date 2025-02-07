@@ -234,6 +234,7 @@ def area_selector_path(
     target_dir: str | None = None,
     area_selector_kwargs: dict[str, Any] = {},
     open_datasets_kwargs: list[dict[str, Any]] | dict[str, Any] = {},
+    dask_scheduler_mode: str = "threads",
     **kwargs: dict[str, Any],
 ) -> list[str]:
     if isinstance(area, list):
@@ -285,7 +286,7 @@ def area_selector_path(
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
             # If threads, need to compute before writing to disk as dask loses too many jobs
-            if DASK_SCHEDULER_MODE == "threads":
+            if dask_scheduler_mode == "threads":
                 ds_area.compute()
             ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
@@ -298,7 +299,7 @@ def area_selector_path(
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
             # If threads, need to compute before writing to disk as dask loses too many jobs
-            if DASK_SCHEDULER_MODE == "threads":
+            if dask_scheduler_mode == "threads":
                 ds_area.compute()
             ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
@@ -314,14 +315,15 @@ def area_selector_paths(
 ) -> list[str]:
     import time
 
-    with dask.config.set(scheduler=DASK_SCHEDULER_MODE):
+    dask_scheduler_mode: str = kwargs.pop("dask_scheduler_mode", DASK_SCHEDULER_MODE)
+    with dask.config.set(scheduler=dask_scheduler_mode):
         time0 = time.time()
         # We try to select the area for all paths, if any fail we return the original paths
         out_paths = []
         for path in paths:
             try:
                 out_paths += area_selector_path(
-                    path, area=area, context=context, **kwargs
+                    path, area=area, context=context, dask_scheduler_mode=dask_scheduler_mode, **kwargs
                 )
             except (NotImplementedError, CdsFormatConversionError):
                 context.debug(
