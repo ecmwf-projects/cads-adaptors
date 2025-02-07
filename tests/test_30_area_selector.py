@@ -253,26 +253,42 @@ TEST_DATA_BASE_URL = (
 
 
 @pytest.mark.parametrize(
+    "dask_mode",
+    [
+        "single-threaded",
+        "threads",
+    ],
+)
+@pytest.mark.parametrize(
     "url",
     [
         f"{TEST_DATA_BASE_URL}/CAMS-GLOB-AIR_Glb_0.5x0.5_anthro_voc25_v1.1_2012.nc",
         f"{TEST_DATA_BASE_URL}/C3S-312bL1-L3C-MONTHLY-SRB-ATSR2_ORAC_ERS2_199506_fv3.0.nc",
     ],
 )
-def test_area_selector_real_files(url):
+def test_area_selector_real_files(dask_mode, url):
     with tempfile.TemporaryDirectory() as temp_dir:
         test_file = os.path.join(temp_dir, TEMP_FILENAME)
         remote_file = requests.get(url)
         with open(test_file, "wb") as f:
             f.write(remote_file.content)
 
-        result = area_selector_path(test_file, area=[90, -180, -90, 180])
+        result = area_selector_path(
+            test_file, area=[90, -180, -90, 180], dask_scheduler_mode=dask_mode
+        )
         assert isinstance(result, list)
         assert len(result) == 1
         assert isinstance(result[0], str)
 
 
 # Test with lists of urls
+@pytest.mark.parametrize(
+    "dask_mode",
+    [
+        "single-threaded",
+        "threads",
+    ],
+)
 @pytest.mark.parametrize(
     "urls",
     [
@@ -292,7 +308,7 @@ def test_area_selector_real_files(url):
         ],
     ],
 )
-def test_area_selector_paths_real_files(urls):
+def test_area_selector_paths_real_files(dask_mode, urls):
     with tempfile.TemporaryDirectory() as temp_dir:
         test_files = []
         for i, file in enumerate(urls):
@@ -306,6 +322,7 @@ def test_area_selector_paths_real_files(urls):
         result = area_selector_paths(
             test_files,
             area=[90, -180, -90, 180],
+            dask_scheduler_mode=dask_mode,
         )
         assert isinstance(result, list)
         assert len(result) == len(urls)
