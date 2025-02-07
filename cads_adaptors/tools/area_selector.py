@@ -11,7 +11,7 @@ from cads_adaptors.adaptors import Context
 from cads_adaptors.exceptions import CdsFormatConversionError, InvalidRequest
 from cads_adaptors.tools import adaptor_tools, convertors
 
-DASK_SCHEDULER_MODE = os.getenv("CADS_ADAPTOR_DASK_SCHEDULER_MODE", "threads")
+DEFAULT_DASK_SCHEDULER_MODE = os.getenv("CADS_ADAPTOR_DASK_SCHEDULER_MODE", "threads")
 
 
 def area_to_checked_dictionary(area: list[float | int]) -> dict[str, float | int]:
@@ -316,7 +316,9 @@ def area_selector_paths(
 ) -> list[str]:
     import time
 
-    dask_scheduler_mode: str = kwargs.pop("dask_scheduler_mode", DASK_SCHEDULER_MODE)
+    dask_scheduler_mode: str = kwargs.pop(
+        "dask_scheduler_mode", DEFAULT_DASK_SCHEDULER_MODE
+    )
     with dask.config.set(scheduler=dask_scheduler_mode):
         time0 = time.time()
         # We try to select the area for all paths, if any fail we return the original paths
