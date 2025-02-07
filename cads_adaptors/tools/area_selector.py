@@ -13,6 +13,7 @@ from cads_adaptors.tools import adaptor_tools, convertors
 
 DASK_SCHEDULER_MODE = os.getenv("CADS_ADAPTOR_DASK_SCHEDULER_MODE", "threads")
 
+
 def area_to_checked_dictionary(area: list[float | int]) -> dict[str, float | int]:
     north, east, south, west = area
     if north < south:
@@ -323,7 +324,11 @@ def area_selector_paths(
         for path in paths:
             try:
                 out_paths += area_selector_path(
-                    path, area=area, context=context, dask_scheduler_mode=dask_scheduler_mode, **kwargs
+                    path,
+                    area=area,
+                    context=context,
+                    dask_scheduler_mode=dask_scheduler_mode,
+                    **kwargs,
                 )
             except (NotImplementedError, CdsFormatConversionError):
                 context.debug(

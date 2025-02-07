@@ -251,6 +251,7 @@ TEST_DATA_BASE_URL = (
     "https://get.ecmwf.int/repository/test-data/test-data/cads-adaptors/"
 )
 
+
 @pytest.mark.parametrize(
     "dask_mode",
     [
@@ -272,7 +273,9 @@ def test_area_selector_real_files(dask_mode, url):
         with open(test_file, "wb") as f:
             f.write(remote_file.content)
 
-        result = area_selector_path(test_file, area=[90, -180, -90, 180], dask_scheduler_mode=dask_mode)
+        result = area_selector_path(
+            test_file, area=[90, -180, -90, 180], dask_scheduler_mode=dask_mode
+        )
         assert isinstance(result, list)
         assert len(result) == 1
         assert isinstance(result[0], str)
