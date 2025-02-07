@@ -84,7 +84,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         try:
             eumdac_request = cds_to_eumdac_preprocessing(request)
-            eum_collection_id = self.config("eum_collection_id")
+            eum_collection_id = self.config["eum_collection_id"]
             api_token = authenticate(self.context)
             downloaded_products = download(
                 api_token, eum_collection_id, eumdac_request, self.context
