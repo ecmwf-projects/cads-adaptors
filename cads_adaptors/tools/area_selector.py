@@ -11,6 +11,7 @@ from cads_adaptors.adaptors import Context
 from cads_adaptors.exceptions import CdsFormatConversionError, InvalidRequest
 from cads_adaptors.tools import adaptor_tools, convertors
 
+DASK_SCHEDULER_MODE = os.getenv("CADS_ADAPTOR_DASK_SCHEDULER_MODE", "threads")
 
 def area_to_checked_dictionary(area: list[float | int]) -> dict[str, float | int]:
     north, east, south, west = area
@@ -283,6 +284,9 @@ def area_selector_path(
             out_path = os.path.join(target_dir, f"{fname_tag}.nc")
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
+            # If threads, need to compute before writing to disk as dask loses too many jobs
+            if DASK_SCHEDULER_MODE == "threads":
+                ds_area.compute()
             ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
     else:
@@ -293,7 +297,10 @@ def area_selector_path(
             out_path = os.path.join(target_dir, f"{fname_tag}.nc")
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
-            ds_area.compute().to_netcdf(out_path)
+            # If threads, need to compute before writing to disk as dask loses too many jobs
+            if DASK_SCHEDULER_MODE == "threads":
+                ds_area.compute()
+            ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
 
     return out_paths
@@ -307,7 +314,7 @@ def area_selector_paths(
 ) -> list[str]:
     import time
 
-    with dask.config.set(scheduler="single-threaded"):
+    with dask.config.set(scheduler=DASK_SCHEDULER_MODE):
         time0 = time.time()
         # We try to select the area for all paths, if any fail we return the original paths
         out_paths = []
