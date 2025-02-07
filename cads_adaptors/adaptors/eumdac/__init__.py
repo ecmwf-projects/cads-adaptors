@@ -24,10 +24,17 @@ def authenticate(context):
 
 
 DATE_INPUT_KEYS = ["dtstart", "dtend"]
+NON_EUMDAC_KEYS = ["__in_adaptor_no_cache"]
 
 
 def cds_to_eumdac_preprocessing(request):
     eumdac_request = copy.deepcopy(request)
+    
+    # remove keys that are not supported by EUMDAC
+    for non_eumdac_key in NON_EUMDAC_KEYS:
+        eumdac_request.pop(non_eumdac_key, None)
+    
+    # convert date arguments to the expected type
     for date_input_key in DATE_INPUT_KEYS:
         if isinstance(eumdac_request[date_input_key], str):
             eumdac_request[date_input_key] = datetime.datetime.strptime(
