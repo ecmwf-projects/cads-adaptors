@@ -39,6 +39,7 @@ complete = [
   "dask",
   "ecmwflibs",
   "earthkit-transforms>=0.3.3",
+  "eumdac",
   "fsspec",
   "h5netcdf",
   "jinja2",
