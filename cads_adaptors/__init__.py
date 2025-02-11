@@ -37,7 +37,11 @@ from cads_adaptors.adaptors.insitu import (
     InsituGlamodCdsAdaptor,
 )
 from cads_adaptors.adaptors.legacy import LegacyCdsAdaptor
-from cads_adaptors.adaptors.mars import DirectMarsCdsAdaptor, MarsCdsAdaptor
+from cads_adaptors.adaptors.mars import (
+    DirectMarsCdsAdaptor,
+    InvalidRequestAdaptor,
+    MarsCdsAdaptor,
+)
 from cads_adaptors.adaptors.multi import MultiAdaptor, MultiMarsCdsAdaptor
 from cads_adaptors.adaptors.roocs import RoocsCdsAdaptor
 from cads_adaptors.adaptors.url import UrlCdsAdaptor
@@ -55,6 +59,7 @@ __all__ = [
     "DummyCdsAdaptor",
     "InsituDatabaseCdsAdaptor",
     "InsituGlamodCdsAdaptor",
+    "InvalidRequestAdaptor",
     "LegacyCdsAdaptor",
     "MarsCdsAdaptor",
     "UrlCdsAdaptor",

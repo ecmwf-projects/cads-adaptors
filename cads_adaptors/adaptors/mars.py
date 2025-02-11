@@ -3,7 +3,12 @@ import pathlib
 from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
-from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
+from cads_adaptors.exceptions import (
+    InvalidRequest,
+    MarsNoDataError,
+    MarsRuntimeError,
+    MarsSystemError,
+)
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import ensure_list, split_requests_on_keys
@@ -212,3 +217,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             self.download_format = "zip"
 
         return paths
+
+
+class InvalidRequestAdaptor(MarsCdsAdaptor):
+    def check_validity(self, inputs):
+        variable = inputs.get("variable", [])
+        if "2m_temperature" not in variable:
+            raise InvalidRequest("2m_temperature variable is required")
