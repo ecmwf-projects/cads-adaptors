@@ -2,75 +2,98 @@ import copy
 import datetime
 import os
 import shutil
-from typing import Any, BinaryIO
+from typing import Any
 
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 from cads_adaptors.exceptions import InvalidRequest
-
-
-def authenticate(context):
-    import eumdac
-
-    consumer_key = os.environ["EUMDAC_CONSUMER_KEY"]
-    consumer_secret = os.environ["EUMDAC_CONSUMER_SECRET"]
-
-    credentials = (consumer_key, consumer_secret)
-
-    token = eumdac.AccessToken(credentials)
-
-    context.debug(f"This token '{token}' expires {token.expiration}")
-
-    return token
-
-
-DATE_INPUT_KEYS = ["dtstart", "dtend"]
-NON_EUMDAC_KEYS = ["__in_adaptor_no_cache"]
-
-
-def cds_to_eumdac_preprocessing(request):
-    eumdac_request = copy.deepcopy(request)
-    
-    # remove keys that are not supported by EUMDAC
-    for non_eumdac_key in NON_EUMDAC_KEYS:
-        eumdac_request.pop(non_eumdac_key, None)
-    
-    # convert date arguments to the expected type
-    for date_input_key in DATE_INPUT_KEYS:
-        if isinstance(eumdac_request[date_input_key], str):
-            eumdac_request[date_input_key] = datetime.datetime.strptime(
-                eumdac_request[date_input_key], "%Y%m%d"
-            )
-    return eumdac_request
-
-
-def download(token, collection_id, request, context):
-    import eumdac
-
-    datastore = eumdac.DataStore(token)
-
-    selected_collection = datastore.get_collection(collection_id)
-
-    products = selected_collection.search(**request)
-
-    context.debug(
-        f"Found Datasets: {products.total_results} datasets for the given time range"
-    )
-
-    downloaded_products = []
-    for product in products:
-        with product.open() as fsrc, open(fsrc.name, mode="wb") as fdst:
-            shutil.copyfileobj(fsrc, fdst)
-            downloaded_products.append(fsrc.name)
-            context.debug(f"Download of product {product} finished.")
-    context.debug("All downloads are finished.")
-
-    return downloaded_products
 
 
 class EUMDACAdaptor(AbstractCdsAdaptor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.eum_collection_id = self.config["eum_collection_id"]
+
         # schema should go here
+
+        self.token = self.authenticate()
+
+    def authenticate(self):
+        import eumdac
+
+        consumer_key = os.environ["EUMDAC_CONSUMER_KEY"]
+        consumer_secret = os.environ["EUMDAC_CONSUMER_SECRET"]
+
+        credentials = (consumer_key, consumer_secret)
+
+        self.token = eumdac.AccessToken(credentials)
+
+        self.context.debug(f"This token '{self.token}' expires {self.token.expiration}")
+
+        return self.token
+
+    NON_EUMDAC_KEYS = ["__in_adaptor_no_cache"]
+    DATE_INPUT_KEYS = ["dtstart", "dtend"]
+
+    def cds_to_eumdac_preprocessing(self, request):
+        eumdac_request = copy.deepcopy(request)
+
+        # remove keys that are not supported by EUMDAC
+        for non_eumdac_key in EUMDACAdaptor.NON_EUMDAC_KEYS:
+            eumdac_request.pop(non_eumdac_key, None)
+
+        # convert date arguments to the expected type
+        for date_input_key in EUMDACAdaptor.DATE_INPUT_KEYS:
+            if isinstance(eumdac_request[date_input_key], str):
+                eumdac_request[date_input_key] = datetime.datetime.strptime(
+                    eumdac_request[date_input_key], "%Y%m%d"
+                )
+        return eumdac_request
+
+    def has_token_expired(self):
+        return self.token.expiration < datetime.datetime.now()
+
+    def search(self, request):
+        import eumdac
+
+        if self.has_token_expired():
+            self.authenticate()
+        datastore = eumdac.DataStore(self.token)
+
+        selected_collection = datastore.get_collection(self.eum_collection_id)
+
+        products = selected_collection.search(**request)
+
+        self.context.debug(
+            f"Found Datasets: {products.total_results} datasets for the given time range"
+        )
+
+        return products
+
+    def download(self, request):
+        products = self.search(request)
+
+        downloaded_products = []
+        for product in products:
+            with product.open() as fsrc, open(fsrc.name, mode="wb") as fdst:
+                shutil.copyfileobj(fsrc, fdst)
+                downloaded_products.append(fsrc.name)
+                self.context.debug(f"Download of product {product} finished.")
+        self.context.debug("All downloads are finished.")
+
+        return downloaded_products
+
+    def get_result_size(self, request):
+        products = self.search(request)
+
+        total_size_in_kb = 0
+        for product in products:
+            total_size_in_kb += product.size
+        self.context.debug(
+            f"The total size is {total_size_in_kb}KB (before any DS post-processing or packing)."
+        )
+
+        return total_size_in_kb
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
         """Implemented in normalise_request, before the mapping is applied."""
@@ -84,18 +107,30 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         return request
 
+    def compute_result_size(self, request: dict[str, Any]):
+        try:
+            eumdac_request = self.cds_to_eumdac_preprocessing(request)
+            result_size = self.get_result_size(eumdac_request)
+        except Exception as e:
+            msg = e.args[0]
+            self.context.add_user_visible_error(msg)
+            raise InvalidRequest(msg)
+
+        return result_size
+
+    def estimate_costs(self, request, **kwargs):
+        costs = super().estimate_costs(request, **kwargs)
+        costs["precise_size"] = self.compute_result_size(request)
+        return costs
+
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         self.context.debug(f"Request is {request!r}")
 
         # self.normalise_request(request)
 
         try:
-            eumdac_request = cds_to_eumdac_preprocessing(request)
-            eum_collection_id = self.config["eum_collection_id"]
-            api_token = authenticate(self.context)
-            downloaded_products = download(
-                api_token, eum_collection_id, eumdac_request, self.context
-            )
+            eumdac_request = self.cds_to_eumdac_preprocessing(request)
+            downloaded_products = self.download(eumdac_request)
         except Exception as e:
             msg = e.args[0]
             self.context.add_user_visible_error(msg)
