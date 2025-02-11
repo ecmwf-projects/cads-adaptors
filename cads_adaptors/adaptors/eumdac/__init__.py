@@ -28,7 +28,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         self.token = eumdac.AccessToken(credentials)
 
-        self.context.debug(f"This token '{self.token}' expires {self.token.expiration}")
+        self.context.debug(f"The active token is '{self.token}'. It expires {self.token.expiration}.")
 
         return self.token
 
@@ -65,7 +65,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         products = selected_collection.search(**request)
 
         self.context.debug(
-            f"Found Datasets: {products.total_results} datasets for the given time range"
+            f"{products.total_results} products found."
         )
 
         return products
@@ -79,21 +79,23 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
                 shutil.copyfileobj(fsrc, fdst)
                 downloaded_products.append(fsrc.name)
                 self.context.debug(f"Download of product {product} finished.")
-        self.context.debug("All downloads are finished.")
+        self.context.debug("All products have been downloaded.")
 
         return downloaded_products
 
     def get_result_size(self, request):
         products = self.search(request)
 
+        number_of_products = products.total_results
+
         total_size_in_kb = 0
         for product in products:
             total_size_in_kb += product.size
         self.context.debug(
-            f"The total size is {total_size_in_kb}KB (before any DS post-processing or packing)."
+            f"The total size is {total_size_in_kb}KB (before any DS post-processing or packing) for {number_of_products} products."
         )
 
-        return total_size_in_kb
+        return number_of_products, total_size_in_kb
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
         """Implemented in normalise_request, before the mapping is applied."""
@@ -119,8 +121,9 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         return result_size
 
     def estimate_costs(self, request, **kwargs):
-        costs = super().estimate_costs(request, **kwargs)
-        costs["precise_size"] = self.compute_result_size(request)
+        costs= {}
+        costs['number_of_fields'], costs["precise_size"] = self.compute_result_size(request)
+        costs["size"] = costs["precise_size"]
         return costs
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
