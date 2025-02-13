@@ -1,5 +1,6 @@
 import copy
 import tempfile
+from typing import Any
 
 from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
@@ -135,17 +136,17 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             self.context.add_user_visible_error(f"Invalid variable: {exc}.")
             raise
 
-        # Normalised request is guarenteed to have a date key, set to a list of two values
-        date = request[self.config.get("date_key", "date")]
-
+        # Normalised request is guarenteed to have a value for date_key, set to a list of two values
+        date_range = request[self.config.get("date_key", "date")]
         source_date_key = self.config.get("source_date_key", "time")
+        selection: dict[str, Any] = {source_date_key: slice(*date_range)}
         try:
-            ds = ds.sel(**{source_date_key: slice(*date)})
+            ds = ds.sel(**selection)
         except TypeError:
-            self.context.add_user_visible_error(f"Invalid {date=}")
+            self.context.add_user_visible_error(f"Invalid {date_range=}")
             raise
         if not ds.sizes[source_date_key]:
-            msg = f"No data found for {date=}"
+            msg = f"No data found for {date_range=}"
             self.context.add_user_visible_error(msg)
             raise ArcoDataLakeNoDataError(msg)
 
