@@ -375,7 +375,7 @@ def test_arco_data_format(
                 "date": 1990,
             },
             ArcoDataLakeNoDataError,
-            "No data found for date=['1990', '1990']",
+            "No data found for date_range=['1990', '1990']",
         ),
     ],
 )
