@@ -1,4 +1,6 @@
+import logging
 import pathlib
+from datetime import datetime, timedelta
 from typing import Any, Type
 
 import numpy as np
@@ -118,6 +120,70 @@ def test_arco_normalise_request(
     assert request == expected
 
 
+def test_arco_normalise_request_embargo_pass(
+    arco_adaptor: ArcoDataLakeCdsAdaptor, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(arco_adaptor.config, "embargo", {"days": 2})
+
+    request = {
+        "data_format": "netcdf",
+        "location": {
+            "latitude": 2.0,
+            "longitude": 1.0,
+        },
+        "date": (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+        "variable": ["bar", "foo"],
+    }
+    request = arco_adaptor.normalise_request(request)
+    assert request["date"] == [
+        (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+        (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+    ]
+
+
+def test_arco_normalise_request_embargo_raise(
+    arco_adaptor: ArcoDataLakeCdsAdaptor, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(arco_adaptor.config, "embargo", {"days": 2})
+    request = {
+        "data_format": "netcdf",
+        "location": {
+            "latitude": 2.0,
+            "longitude": 1.0,
+        },
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "variable": ["bar", "foo"],
+    }
+    with pytest.raises(InvalidRequest, match="You have requested data under embargo"):
+        arco_adaptor.normalise_request(request)
+
+
+def test_arco_normalise_request_embargo_warn(
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setitem(arco_adaptor.config, "embargo", {"days": 2})
+    request = {
+        "data_format": "netcdf",
+        "location": {
+            "latitude": 2.0,
+            "longitude": 1.0,
+        },
+        "date": [
+            (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+            datetime.now().strftime("%Y-%m-%d"),
+        ],
+        "variable": ["bar", "foo"],
+    }
+    with caplog.at_level(logging.ERROR):
+        request = arco_adaptor.normalise_request(request)
+        assert any(
+            "Part of the data you have requested is under embargo" in message
+            for message in arco_adaptor.context.user_visible_errors
+        )
+
+
 @pytest.mark.parametrize(
     "invalid_request, match",
     [
@@ -206,7 +272,11 @@ def test_arco_select_variable(
 
 
 def test_arco_select_location(arco_adaptor: ArcoDataLakeCdsAdaptor):
-    request = {"variable": "FOO", "location": {"latitude": 31, "longitude": "41"}, "date": "2000"}
+    request = {
+        "variable": "FOO",
+        "location": {"latitude": 31, "longitude": "41"},
+        "date": "2000",
+    }
     fp = arco_adaptor.retrieve(request)
     ds = xr.open_dataset(fp.name)
     assert ds["latitude"].item() == 30

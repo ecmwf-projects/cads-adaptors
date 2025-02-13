@@ -40,14 +40,39 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         date = ensure_list(request.get(date_key))
         if len(date) == 1:
             split = sorted(str(date[0]).split("/"))
-            request[date_key] = [split[0], split[-1]]
+            date_range = [split[0], split[-1]]
         elif len(date) == 2:
-            request[date_key] = date
+            date_range = date
         else:
             raise InvalidRequest(
                 'Please specify a single date range using the format "yyyy-mm-dd/yyyy-mm-dd" or '
                 '["yyyy-mm-dd", "yyyy-mm-dd"].'
             )
+
+        # Embargo check
+        if "embargo" in self.config and self.config["embargo"]:
+            from datetime import UTC, datetime, timedelta
+
+            from dateutil.parser import parse as dtparse
+
+            embargo = self.config["embargo"]
+            embargo_error_time_format: str = embargo.pop(
+                "error_time_format", "%Y-%m-%d %H:00"
+            )
+            embargo_datetime = datetime.now(UTC) - timedelta(**embargo)
+            if dtparse(date_range[0]).date() > embargo_datetime.date():
+                raise InvalidRequest(
+                    "You have requested data under embargo, the latest available data is: "
+                    f" {embargo_datetime.strftime(embargo_error_time_format)}"
+                )
+            if dtparse(date_range[1]).date() > embargo_datetime.date():
+                date_range[1] = embargo_datetime.strftime(embargo_error_time_format)
+                self.context.add_user_visible_error(
+                    "Part of the data you have requested is under embargo, "
+                    "your request has been modified to the latest available data: "
+                    f"{date_key}={date_range}"
+                )
+        request[date_key] = date_range
 
     def _normalise_data_format(self, request: Request) -> None:
         data_formats = ensure_list(request.get("data_format", DEFAULT_DATA_FORMAT))
