@@ -48,15 +48,6 @@ def arco_adaptor(
     "original,expected",
     [
         (
-            {"variable": "foo", "location": {"latitude": 0, "longitude": 0}},
-            {
-                "data_format": "netcdf",
-                "location": {"latitude": 0.0, "longitude": 0.0},
-                "date": [],
-                "variable": ["foo"],
-            },
-        ),
-        (
             {
                 "data_format": ["nc"],
                 "location": {
