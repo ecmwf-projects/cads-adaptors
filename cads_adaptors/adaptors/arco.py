@@ -40,7 +40,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         date = ensure_list(request.get(date_key))
         if len(date) == 1:
             split = sorted(str(date[0]).split("/"))
-            request[date_key] = ["/".join([split[0], split[-1]])]
+            request[date_key] = [split[0], split[-1]]
         elif len(date) == 2:
             request[date_key] = date
         else:
@@ -64,7 +64,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             f"Invalid {data_format=}. Available options: {available_options}"
         )
 
-    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+    def pre_mapping_modifications(self, request: Request) -> Request:
         request = super().pre_mapping_modifications(request)
 
         download_format = request.pop("download_format", "as_source")
@@ -110,33 +110,37 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             self.context.add_user_visible_error(f"Invalid variable: {exc}.")
             raise
 
-        date_key=self.config.get("date_key", "date")
-        if date := request[date_key]:
-            try:
-                ds = ds.sel(time=slice(*date[0].split("/")))
-            except TypeError:
-                self.context.add_user_visible_error(f"Invalid {date=}")
-                raise
-            if not ds.sizes["time"]:
-                msg = f"No data found for {date=}"
-                self.context.add_user_visible_error(msg)
-                raise ArcoDataLakeNoDataError(msg)
+        # Normalised request is guarenteed to have a date key, set to a list of two values
+        date = request[self.config.get("date_key", "date")]
+
+        source_date_key = self.config.get("source_date_key", "time")
+        try:
+            ds = ds.sel(**{source_date_key: slice(*date)})
+        except TypeError:
+            self.context.add_user_visible_error(f"Invalid {date=}")
+            raise
+        if not ds.sizes[source_date_key]:
+            msg = f"No data found for {date=}"
+            self.context.add_user_visible_error(msg)
+            raise ArcoDataLakeNoDataError(msg)
 
         ds = ds.sel(request["location"], method="nearest")
         ds = ds.rename(NAME_DICT)
 
-        with dask.config.set(scheduler="threads"):
+        with dask.config.set(scheduler="single-threaded"):
             match request["data_format"]:
                 case "netcdf":
                     _, path = tempfile.mkstemp(
                         prefix=self.config.get("collection-id", "arco-data"),
-                        suffix=".nc", dir=self.cache_tmp_path
+                        suffix=".nc",
+                        dir=self.cache_tmp_path,
                     )
                     ds.to_netcdf(path)
                 case "csv":
                     _, path = tempfile.mkstemp(
                         prefix=self.config.get("collection-id", "arco-data"),
-                        suffix=".csv", dir=self.cache_tmp_path
+                        suffix=".csv",
+                        dir=self.cache_tmp_path,
                     )
                     ds.to_pandas().to_csv(path)
                 case data_format:

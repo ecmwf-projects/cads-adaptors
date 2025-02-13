@@ -154,6 +154,7 @@ def test_arco_normalise_request(
             {
                 "variable": "FOO",
                 "location": {"latitude": 0, "longitude": 0},
+                "date": [1, 2],
                 "data_format": ["foo", "bar"],
             },
             "specify a single data_format",
@@ -162,6 +163,7 @@ def test_arco_normalise_request(
             {
                 "variable": "FOO",
                 "location": {"latitude": 0, "longitude": 0},
+                "date": [1, 2],
                 "data_format": "foo",
             },
             "Invalid data_format",
@@ -194,6 +196,7 @@ def test_arco_select_variable(
         {
             "variable": variable,
             "location": {"latitude": 0, "longitude": 0},
+            "date": "2000",
         }
     )
     ds = xr.open_dataset(fp.name)
@@ -203,7 +206,7 @@ def test_arco_select_variable(
 
 
 def test_arco_select_location(arco_adaptor: ArcoDataLakeCdsAdaptor):
-    request = {"variable": "FOO", "location": {"latitude": 31, "longitude": "41"}}
+    request = {"variable": "FOO", "location": {"latitude": 31, "longitude": "41"}, "date": "2000"}
     fp = arco_adaptor.retrieve(request)
     ds = xr.open_dataset(fp.name)
     assert ds["latitude"].item() == 30
@@ -251,6 +254,7 @@ def test_arco_data_format(
     request = {
         "variable": "FOO",
         "location": {"latitude": 0, "longitude": 0},
+        "date": "2000",
         "data_format": data_format,
     }
     fp = arco_adaptor.retrieve(request)
@@ -280,6 +284,7 @@ def test_arco_data_format(
             {
                 "variable": "wrong",
                 "location": {"latitude": 0, "longitude": 0},
+                "date": "2000",
             },
             KeyError,
             "Invalid variable: 'wrong'.",
@@ -291,7 +296,7 @@ def test_arco_data_format(
                 "date": "foo",
             },
             TypeError,
-            "Invalid date=['foo/foo']",
+            "Invalid date=['foo', 'foo']",
         ),
         (
             {
@@ -300,7 +305,7 @@ def test_arco_data_format(
                 "date": 1990,
             },
             ArcoDataLakeNoDataError,
-            "No data found for date=['1990/1990']",
+            "No data found for date=['1990', '1990']",
         ),
     ],
 )
@@ -324,6 +329,7 @@ def test_connection_problems(
             {
                 "variable": "FOO",
                 "location": {"latitude": 0, "longitude": 0},
+                "date": "2000",
             }
         )
     assert (
