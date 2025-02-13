@@ -63,7 +63,47 @@ def arco_adaptor(
                     "latitude": 2.0,
                     "longitude": 1.0,
                 },
-                "date": ["1990/1990"],
+                "date": ["1990", "1990"],
+                "variable": ["bar", "foo"],
+            },
+        ),
+        (
+            {
+                "data_format": ["nc"],
+                "location": {
+                    "longitude": 1,
+                    "latitude": "2",
+                },
+                "date": "1990/1991",
+                "variable": ("foo", "bar"),
+            },
+            {
+                "data_format": "netcdf",
+                "location": {
+                    "latitude": 2.0,
+                    "longitude": 1.0,
+                },
+                "date": ["1990", "1991"],
+                "variable": ["bar", "foo"],
+            },
+        ),
+        (
+            {
+                "data_format": ["nc"],
+                "location": {
+                    "longitude": 1,
+                    "latitude": "2",
+                },
+                "date": ["1990", "1991"],
+                "variable": ("foo", "bar"),
+            },
+            {
+                "data_format": "netcdf",
+                "location": {
+                    "latitude": 2.0,
+                    "longitude": 1.0,
+                },
+                "date": ["1990", "1991"],
                 "variable": ["bar", "foo"],
             },
         ),
