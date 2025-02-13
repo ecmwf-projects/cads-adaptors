@@ -180,7 +180,7 @@ def test_arco_normalise_request_embargo_warn(
         request = arco_adaptor.normalise_request(request)
         assert any(
             "Part of the data you have requested is under embargo" in message
-            for message in arco_adaptor.context.user_visible_errors
+            for message in arco_adaptor.context.user_visible_errors   # type: ignore[attr-defined]
         )
 
 
