@@ -36,18 +36,18 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         except (ValueError, TypeError):
             raise InvalidRequest(f"Invalid {location=}. {msg}")
 
-    def _normalise_date(self, request: Request) -> None:
-        date = ensure_list(request.get("date"))
-        if not date:
-            request["date"] = date
-            return
-
-        if len(date) != 1:
+    def _normalise_date(self, request: Request, date_key="date") -> None:
+        date = ensure_list(request.get(date_key))
+        if len(date) == 1:
+            split = sorted(str(date[0]).split("/"))
+            request[date_key] = ["/".join([split[0], split[-1]])]
+        elif len(date) == 2:
+            request[date_key] = date
+        else:
             raise InvalidRequest(
-                "Please specify a single date range using the format yyyy-mm-dd/yyyy-mm-dd."
+                'Please specify a single date range using the format "yyyy-mm-dd/yyyy-mm-dd" or '
+                '["yyyy-mm-dd", "yyyy-mm-dd"].'
             )
-        split = sorted(str(date[0]).split("/"))
-        request["date"] = ["/".join([split[0], split[-1]])]
 
     def _normalise_data_format(self, request: Request) -> None:
         data_formats = ensure_list(request.get("data_format", DEFAULT_DATA_FORMAT))
@@ -64,6 +64,13 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             f"Invalid {data_format=}. Available options: {available_options}"
         )
 
+    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+        request = super().pre_mapping_modifications(request)
+
+        download_format = request.pop("download_format", "as_source")
+        self.set_download_format(download_format)
+        return request
+
     def normalise_request(self, request: Request) -> Request:
         if self.normalised:
             return request
@@ -71,7 +78,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         request = copy.deepcopy(request)
         self._normalise_variable(request)
         self._normalise_location(request)
-        self._normalise_date(request)
+        self._normalise_date(request, date_key=self.config.get("date_key", "date"))
         self._normalise_data_format(request)
 
         request = super().normalise_request(request)
@@ -103,7 +110,8 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             self.context.add_user_visible_error(f"Invalid variable: {exc}.")
             raise
 
-        if date := request["date"]:
+        date_key=self.config.get("date_key", "date")
+        if date := request[date_key]:
             try:
                 ds = ds.sel(time=slice(*date[0].split("/")))
             except TypeError:
@@ -120,13 +128,18 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         with dask.config.set(scheduler="threads"):
             match request["data_format"]:
                 case "netcdf":
-                    _, path = tempfile.mkstemp(suffix=".nc", dir=self.cache_tmp_path)
+                    _, path = tempfile.mkstemp(
+                        prefix=self.config.get("collection-id", "arco-data"),
+                        suffix=".nc", dir=self.cache_tmp_path
+                    )
                     ds.to_netcdf(path)
                 case "csv":
-                    _, path = tempfile.mkstemp(suffix=".csv", dir=self.cache_tmp_path)
+                    _, path = tempfile.mkstemp(
+                        prefix=self.config.get("collection-id", "arco-data"),
+                        suffix=".csv", dir=self.cache_tmp_path
+                    )
                     ds.to_pandas().to_csv(path)
                 case data_format:
                     raise NotImplementedError(f"Invalid {data_format=}.")
 
-        self.download_format = "as_source"  # Prevent from writing a zip file
         return [str(path)]
