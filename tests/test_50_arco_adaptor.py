@@ -366,7 +366,7 @@ def test_arco_data_format(
                 "date": "foo",
             },
             TypeError,
-            "Invalid date=['foo', 'foo']",
+            "Invalid date_range=['foo', 'foo']",
         ),
         (
             {
