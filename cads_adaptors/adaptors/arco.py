@@ -1,5 +1,9 @@
 import copy
 import tempfile
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from dateutil.parser import parse as dtparse
 
 from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
@@ -37,17 +41,38 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             raise InvalidRequest(f"Invalid {location=}. {msg}")
 
     def _normalise_date(self, request: Request) -> None:
-        date = ensure_list(request.get("date"))
-        if not date:
-            request["date"] = date
-            return
-
-        if len(date) != 1:
+        date_key = self.config.get("date_key", "date")
+        date = ensure_list(request.get(date_key))
+        date_range = sorted(str(date[0]).split("/") if len(date) == 1 else date)
+        if len(date_range) == 1:
+            date_range *= 2
+        if len(date_range) != 2:
             raise InvalidRequest(
-                "Please specify a single date range using the format yyyy-mm-dd/yyyy-mm-dd."
+                'Please specify a single date range using the format "yyyy-mm-dd/yyyy-mm-dd" or '
+                '["yyyy-mm-dd", "yyyy-mm-dd"].'
             )
-        split = sorted(str(date[0]).split("/"))
-        request["date"] = ["/".join([split[0], split[-1]])]
+
+        # Embargo check
+        if "embargo" in self.config and self.config["embargo"]:
+            embargo = self.config["embargo"]
+            embargo_error_time_format: str = embargo.pop(
+                "error_time_format",
+                "%Y-%m-%d",  # Default to daily embargo
+            )
+            embargo_datetime = datetime.now(UTC) - timedelta(**embargo)
+            if dtparse(date_range[0]).date() > embargo_datetime.date():
+                raise InvalidRequest(
+                    "You have requested data under embargo, the latest available data is: "
+                    f" {embargo_datetime.strftime(embargo_error_time_format)}"
+                )
+            if dtparse(date_range[1]).date() > embargo_datetime.date():
+                date_range[1] = embargo_datetime.strftime(embargo_error_time_format)
+                self.context.add_user_visible_error(
+                    "Part of the data you have requested is under embargo, "
+                    "your request has been modified to the latest available data: "
+                    f"{date_key}={date_range}"
+                )
+        request[date_key] = date_range
 
     def _normalise_data_format(self, request: Request) -> None:
         data_formats = ensure_list(request.get("data_format", DEFAULT_DATA_FORMAT))
@@ -63,6 +88,13 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         raise InvalidRequest(
             f"Invalid {data_format=}. Available options: {available_options}"
         )
+
+    def pre_mapping_modifications(self, request: Request) -> Request:
+        request = super().pre_mapping_modifications(request)
+
+        download_format = request.pop("download_format", "as_source")
+        self.set_download_format(download_format)
+        return request
 
     def normalise_request(self, request: Request) -> Request:
         if self.normalised:
@@ -103,30 +135,40 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             self.context.add_user_visible_error(f"Invalid variable: {exc}.")
             raise
 
-        if date := request["date"]:
-            try:
-                ds = ds.sel(time=slice(*date[0].split("/")))
-            except TypeError:
-                self.context.add_user_visible_error(f"Invalid {date=}")
-                raise
-            if not ds.sizes["time"]:
-                msg = f"No data found for {date=}"
-                self.context.add_user_visible_error(msg)
-                raise ArcoDataLakeNoDataError(msg)
+        # Normalised request is guarenteed to have a value for date_key, set to a list of two values
+        date_range = request[self.config.get("date_key", "date")]
+        source_date_key = self.config.get("source_date_key", "time")
+        selection: dict[str, Any] = {source_date_key: slice(*date_range)}
+        try:
+            ds = ds.sel(**selection)
+        except TypeError:
+            self.context.add_user_visible_error(f"Invalid {date_range=}")
+            raise
+        if not ds.sizes[source_date_key]:
+            msg = f"No data found for {date_range=}"
+            self.context.add_user_visible_error(msg)
+            raise ArcoDataLakeNoDataError(msg)
 
         ds = ds.sel(request["location"], method="nearest")
         ds = ds.rename(NAME_DICT)
 
-        with dask.config.set(scheduler="threads"):
+        with dask.config.set(scheduler="single-threaded"):
             match request["data_format"]:
                 case "netcdf":
-                    _, path = tempfile.mkstemp(suffix=".nc", dir=self.cache_tmp_path)
+                    _, path = tempfile.mkstemp(
+                        prefix=self.config.get("collection-id", "arco-data"),
+                        suffix=".nc",
+                        dir=self.cache_tmp_path,
+                    )
                     ds.to_netcdf(path)
                 case "csv":
-                    _, path = tempfile.mkstemp(suffix=".csv", dir=self.cache_tmp_path)
+                    _, path = tempfile.mkstemp(
+                        prefix=self.config.get("collection-id", "arco-data"),
+                        suffix=".csv",
+                        dir=self.cache_tmp_path,
+                    )
                     ds.to_pandas().to_csv(path)
                 case data_format:
                     raise NotImplementedError(f"Invalid {data_format=}.")
 
-        self.download_format = "as_source"  # Prevent from writing a zip file
         return [str(path)]
