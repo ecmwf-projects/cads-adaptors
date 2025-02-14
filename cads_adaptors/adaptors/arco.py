@@ -58,7 +58,8 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         if "embargo" in self.config and self.config["embargo"]:
             embargo = self.config["embargo"]
             embargo_error_time_format: str = embargo.pop(
-                "error_time_format", "%Y-%m-%d %H:00"
+                "error_time_format",
+                "%Y-%m-%d",  # Default to daily embargo
             )
             embargo_datetime = datetime.now(UTC) - timedelta(**embargo)
             if dtparse(date_range[0]).date() > embargo_datetime.date():

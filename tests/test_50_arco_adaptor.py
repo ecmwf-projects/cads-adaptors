@@ -120,29 +120,63 @@ def test_arco_normalise_request(
     assert request == expected
 
 
+@pytest.mark.parametrize(
+    "in_date,out_date",
+    (
+        (
+            (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+            [(datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")] * 2,
+        ),
+        (
+            [
+                (datetime.now() - timedelta(days=4)).strftime("%Y-%m-%d"),
+                (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+            ],
+            [
+                (datetime.now() - timedelta(days=4)).strftime("%Y-%m-%d"),
+                (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+            ],
+        ),
+    ),
+)
 def test_arco_normalise_request_embargo_pass(
-    arco_adaptor: ArcoDataLakeCdsAdaptor, monkeypatch: pytest.MonkeyPatch
+    in_date: str | int | list[str, int],
+    out_date: list[str],
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setitem(arco_adaptor.config, "embargo", {"days": 2})
-
     request = {
         "data_format": "netcdf",
         "location": {
             "latitude": 2.0,
             "longitude": 1.0,
         },
-        "date": (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+        "date": in_date,
         "variable": ["bar", "foo"],
     }
     request = arco_adaptor.normalise_request(request)
-    assert request["date"] == [
-        (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
-        (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
-    ]
+    assert request["date"] == out_date
 
 
+@pytest.mark.parametrize(
+    "in_date",
+    (
+        datetime.now().strftime("%Y-%m-%d"),
+        [
+            (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
+            datetime.now().strftime("%Y-%m-%d"),
+        ],
+        [
+            datetime.now().strftime("%Y-%m-%d"),
+            (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
+        ],
+    ),
+)
 def test_arco_normalise_request_embargo_raise(
-    arco_adaptor: ArcoDataLakeCdsAdaptor, monkeypatch: pytest.MonkeyPatch
+    in_date: str | int | list[str, int],
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setitem(arco_adaptor.config, "embargo", {"days": 2})
     request = {
@@ -151,14 +185,31 @@ def test_arco_normalise_request_embargo_raise(
             "latitude": 2.0,
             "longitude": 1.0,
         },
-        "date": datetime.now().strftime("%Y-%m-%d"),
+        "date": in_date,
         "variable": ["bar", "foo"],
     }
     with pytest.raises(InvalidRequest, match="You have requested data under embargo"):
         arco_adaptor.normalise_request(request)
 
 
+@pytest.mark.parametrize(
+    "in_date,out_date",
+    (
+        (
+            [
+                (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+                datetime.now().strftime("%Y-%m-%d"),
+            ],
+            [
+                (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+                (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d"),
+            ],
+        ),
+    ),
+)
 def test_arco_normalise_request_embargo_warn(
+    in_date: str | int | list[str, int],
+    out_date: list[str],
     arco_adaptor: ArcoDataLakeCdsAdaptor,
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
@@ -170,10 +221,7 @@ def test_arco_normalise_request_embargo_warn(
             "latitude": 2.0,
             "longitude": 1.0,
         },
-        "date": [
-            (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
-            datetime.now().strftime("%Y-%m-%d"),
-        ],
+        "date": in_date,
         "variable": ["bar", "foo"],
     }
     with caplog.at_level(logging.ERROR):
@@ -182,6 +230,7 @@ def test_arco_normalise_request_embargo_warn(
             "Part of the data you have requested is under embargo" in message
             for message in arco_adaptor.context.user_visible_errors  # type: ignore[attr-defined]
         )
+        assert request["date"] == out_date
 
 
 @pytest.mark.parametrize(
