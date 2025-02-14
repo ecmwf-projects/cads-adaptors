@@ -40,10 +40,11 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         except (ValueError, TypeError):
             raise InvalidRequest(f"Invalid {location=}. {msg}")
 
-    def _normalise_date(self, request: Request, date_key="date") -> None:
+    def _normalise_date(self, request: Request) -> None:
+        date_key = self.config.get("date_key", "date")
         date = ensure_list(request.get(date_key))
         if len(date) == 1:
-            split = sorted(str(date[0]).split("/"))
+            split = str(date[0]).split("/")
             date_range = [split[0], split[-1]]
         elif len(date) == 2:
             date_range = date
@@ -52,7 +53,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
                 'Please specify a single date range using the format "yyyy-mm-dd/yyyy-mm-dd" or '
                 '["yyyy-mm-dd", "yyyy-mm-dd"].'
             )
-
+        date_range = sorted(date_range)
         # Embargo check
         if "embargo" in self.config and self.config["embargo"]:
             embargo = self.config["embargo"]
@@ -103,7 +104,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         request = copy.deepcopy(request)
         self._normalise_variable(request)
         self._normalise_location(request)
-        self._normalise_date(request, date_key=self.config.get("date_key", "date"))
+        self._normalise_date(request)
         self._normalise_data_format(request)
 
         request = super().normalise_request(request)
