@@ -1,6 +1,9 @@
 import copy
 import tempfile
+from datetime import UTC, datetime, timedelta
 from typing import Any
+
+from dateutil.parser import parse as dtparse
 
 from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
@@ -52,10 +55,6 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # Embargo check
         if "embargo" in self.config and self.config["embargo"]:
-            from datetime import UTC, datetime, timedelta
-
-            from dateutil.parser import parse as dtparse
-
             embargo = self.config["embargo"]
             embargo_error_time_format: str = embargo.pop(
                 "error_time_format", "%Y-%m-%d %H:00"
