@@ -43,17 +43,15 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
     def _normalise_date(self, request: Request) -> None:
         date_key = self.config.get("date_key", "date")
         date = ensure_list(request.get(date_key))
-        if len(date) == 1:
-            split = str(date[0]).split("/")
-            date_range = [split[0], split[-1]]
-        elif len(date) == 2:
-            date_range = date
-        else:
+        date_range = sorted(str(date[0]).split("/") if len(date) == 1 else date)
+        if len(date_range) == 1:
+            date_range *= 2
+        if len(date_range) != 2:
             raise InvalidRequest(
                 'Please specify a single date range using the format "yyyy-mm-dd/yyyy-mm-dd" or '
                 '["yyyy-mm-dd", "yyyy-mm-dd"].'
             )
-        date_range = sorted(date_range)
+
         # Embargo check
         if "embargo" in self.config and self.config["embargo"]:
             embargo = self.config["embargo"]
