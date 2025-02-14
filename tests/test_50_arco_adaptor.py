@@ -140,7 +140,7 @@ def test_arco_normalise_request(
     ),
 )
 def test_arco_normalise_request_embargo_pass(
-    in_date: str | int | list[str, int],
+    in_date: str | int | list[str | int],
     out_date: list[str],
     arco_adaptor: ArcoDataLakeCdsAdaptor,
     monkeypatch: pytest.MonkeyPatch,
@@ -174,7 +174,7 @@ def test_arco_normalise_request_embargo_pass(
     ),
 )
 def test_arco_normalise_request_embargo_raise(
-    in_date: str | int | list[str, int],
+    in_date: str | int | list[str | int],
     arco_adaptor: ArcoDataLakeCdsAdaptor,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -208,7 +208,7 @@ def test_arco_normalise_request_embargo_raise(
     ),
 )
 def test_arco_normalise_request_embargo_warn(
-    in_date: str | int | list[str, int],
+    in_date: str | int | list[str | int],
     out_date: list[str],
     arco_adaptor: ArcoDataLakeCdsAdaptor,
     monkeypatch: pytest.MonkeyPatch,
