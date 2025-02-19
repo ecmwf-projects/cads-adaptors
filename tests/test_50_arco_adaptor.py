@@ -1,4 +1,6 @@
+import logging
 import pathlib
+from datetime import datetime, timedelta
 from typing import Any, Type
 
 import numpy as np
@@ -48,15 +50,6 @@ def arco_adaptor(
     "original,expected",
     [
         (
-            {"variable": "foo", "location": {"latitude": 0, "longitude": 0}},
-            {
-                "data_format": "netcdf",
-                "location": {"latitude": 0.0, "longitude": 0.0},
-                "date": [],
-                "variable": ["foo"],
-            },
-        ),
-        (
             {
                 "data_format": ["nc"],
                 "location": {
@@ -72,7 +65,47 @@ def arco_adaptor(
                     "latitude": 2.0,
                     "longitude": 1.0,
                 },
-                "date": ["1990/1990"],
+                "date": ["1990", "1990"],
+                "variable": ["bar", "foo"],
+            },
+        ),
+        (
+            {
+                "data_format": ["nc"],
+                "location": {
+                    "longitude": 1,
+                    "latitude": "2",
+                },
+                "date": "1990/1991",
+                "variable": ("foo", "bar"),
+            },
+            {
+                "data_format": "netcdf",
+                "location": {
+                    "latitude": 2.0,
+                    "longitude": 1.0,
+                },
+                "date": ["1990", "1991"],
+                "variable": ["bar", "foo"],
+            },
+        ),
+        (
+            {
+                "data_format": ["nc"],
+                "location": {
+                    "longitude": 1,
+                    "latitude": "2",
+                },
+                "date": ["1990", "1991"],
+                "variable": ("foo", "bar"),
+            },
+            {
+                "data_format": "netcdf",
+                "location": {
+                    "latitude": 2.0,
+                    "longitude": 1.0,
+                },
+                "date": ["1990", "1991"],
                 "variable": ["bar", "foo"],
             },
         ),
@@ -85,6 +118,119 @@ def test_arco_normalise_request(
 ) -> None:
     request = arco_adaptor.normalise_request(original)
     assert request == expected
+
+
+@pytest.mark.parametrize(
+    "in_date,out_date",
+    (
+        (
+            (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+            [(datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")] * 2,
+        ),
+        (
+            [
+                (datetime.now() - timedelta(days=4)).strftime("%Y-%m-%d"),
+                (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+            ],
+            [
+                (datetime.now() - timedelta(days=4)).strftime("%Y-%m-%d"),
+                (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+            ],
+        ),
+    ),
+)
+def test_arco_normalise_request_embargo_pass(
+    in_date: str | int | list[str | int],
+    out_date: list[str],
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(arco_adaptor.config, "embargo", {"days": 2})
+    request = {
+        "data_format": "netcdf",
+        "location": {
+            "latitude": 2.0,
+            "longitude": 1.0,
+        },
+        "date": in_date,
+        "variable": ["bar", "foo"],
+    }
+    request = arco_adaptor.normalise_request(request)
+    assert request["date"] == out_date
+
+
+@pytest.mark.parametrize(
+    "in_date",
+    (
+        datetime.now().strftime("%Y-%m-%d"),
+        [
+            (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
+            datetime.now().strftime("%Y-%m-%d"),
+        ],
+        [
+            datetime.now().strftime("%Y-%m-%d"),
+            (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
+        ],
+    ),
+)
+def test_arco_normalise_request_embargo_raise(
+    in_date: str | int | list[str | int],
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(arco_adaptor.config, "embargo", {"days": 2})
+    request = {
+        "data_format": "netcdf",
+        "location": {
+            "latitude": 2.0,
+            "longitude": 1.0,
+        },
+        "date": in_date,
+        "variable": ["bar", "foo"],
+    }
+    with pytest.raises(InvalidRequest, match="You have requested data under embargo"):
+        arco_adaptor.normalise_request(request)
+
+
+@pytest.mark.parametrize(
+    "in_date,out_date",
+    (
+        (
+            [
+                (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+                datetime.now().strftime("%Y-%m-%d"),
+            ],
+            [
+                (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"),
+                (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d"),
+            ],
+        ),
+    ),
+)
+def test_arco_normalise_request_embargo_warn(
+    in_date: str | int | list[str | int],
+    out_date: list[str],
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setitem(arco_adaptor.config, "embargo", {"days": 2})
+    request = {
+        "data_format": "netcdf",
+        "location": {
+            "latitude": 2.0,
+            "longitude": 1.0,
+        },
+        "date": in_date,
+        "variable": ["bar", "foo"],
+    }
+    with caplog.at_level(logging.ERROR):
+        request = arco_adaptor.normalise_request(request)
+        assert any(
+            "Part of the data you have requested is under embargo" in message
+            for message in arco_adaptor.context.user_visible_errors  # type: ignore[attr-defined]
+        )
+        assert request["date"] == out_date
 
 
 @pytest.mark.parametrize(
@@ -123,6 +269,7 @@ def test_arco_normalise_request(
             {
                 "variable": "FOO",
                 "location": {"latitude": 0, "longitude": 0},
+                "date": [1, 2],
                 "data_format": ["foo", "bar"],
             },
             "specify a single data_format",
@@ -131,6 +278,7 @@ def test_arco_normalise_request(
             {
                 "variable": "FOO",
                 "location": {"latitude": 0, "longitude": 0},
+                "date": [1, 2],
                 "data_format": "foo",
             },
             "Invalid data_format",
@@ -163,6 +311,7 @@ def test_arco_select_variable(
         {
             "variable": variable,
             "location": {"latitude": 0, "longitude": 0},
+            "date": "2000",
         }
     )
     ds = xr.open_dataset(fp.name)
@@ -172,7 +321,11 @@ def test_arco_select_variable(
 
 
 def test_arco_select_location(arco_adaptor: ArcoDataLakeCdsAdaptor):
-    request = {"variable": "FOO", "location": {"latitude": 31, "longitude": "41"}}
+    request = {
+        "variable": "FOO",
+        "location": {"latitude": 31, "longitude": "41"},
+        "date": "2000",
+    }
     fp = arco_adaptor.retrieve(request)
     ds = xr.open_dataset(fp.name)
     assert ds["latitude"].item() == 30
@@ -220,6 +373,7 @@ def test_arco_data_format(
     request = {
         "variable": "FOO",
         "location": {"latitude": 0, "longitude": 0},
+        "date": "2000",
         "data_format": data_format,
     }
     fp = arco_adaptor.retrieve(request)
@@ -249,6 +403,7 @@ def test_arco_data_format(
             {
                 "variable": "wrong",
                 "location": {"latitude": 0, "longitude": 0},
+                "date": "2000",
             },
             KeyError,
             "Invalid variable: 'wrong'.",
@@ -260,7 +415,7 @@ def test_arco_data_format(
                 "date": "foo",
             },
             TypeError,
-            "Invalid date=['foo/foo']",
+            "Invalid date_range=['foo', 'foo']",
         ),
         (
             {
@@ -269,7 +424,7 @@ def test_arco_data_format(
                 "date": 1990,
             },
             ArcoDataLakeNoDataError,
-            "No data found for date=['1990/1990']",
+            "No data found for date_range=['1990', '1990']",
         ),
     ],
 )
@@ -293,6 +448,7 @@ def test_connection_problems(
             {
                 "variable": "FOO",
                 "location": {"latitude": 0, "longitude": 0},
+                "date": "2000",
             }
         )
     assert (
