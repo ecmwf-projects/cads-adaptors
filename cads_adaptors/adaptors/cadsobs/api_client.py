@@ -86,7 +86,7 @@ class CadsobsApiClient:
         return self._send_request_and_capture_exceptions("GET", "cdm/lite_variables")
 
     def get_objects_to_retrieve(
-        self, dataset_name: str, mapped_request: dict
+        self, dataset_name: str, mapped_request: dict, size_limit: int
     ) -> list[str]:
         """
         Get the list of S3 objects that will be further read and filtered.
@@ -97,9 +97,16 @@ class CadsobsApiClient:
           Name of the dataset, for example insitu-observations-gnss
         mapped_request: dict
           Request parameters after being mapped by
+        size_limit: int
+          Size limit for the data request in bytes. Note that this is enforced based on
+          an approximation. The size of each partition is multiplied by the percentage
+          of "fields" (entries in the internal constraints) requested, and then added.
         """
-        payload = dict(dataset=dataset_name, params=mapped_request)
+        payload = dict(
+            retrieve_args=dict(dataset=dataset_name, params=mapped_request),
+            config=dict(size_limit=size_limit),
+        )
         objects_to_retrieve = self._send_request_and_capture_exceptions(
-            "POST", "get_object_urls", payload=payload
+            "POST", "get_object_urls_and_check_size", payload=payload
         )
         return objects_to_retrieve
