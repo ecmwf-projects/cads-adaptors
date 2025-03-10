@@ -326,10 +326,9 @@ def implement_embargo(
     embargo_datetime = datetime.now(UTC) - timedelta(**embargo)
     out_requests = []
     for req in requests:
-        in_dates = req.get("date", [])
         _out_dates = []
         _extra_requests = []
-        for date in in_dates:
+        for date in req.get("date", []):
             this_date = dtparse(str(date)).date()
             if this_date < embargo_datetime.date() or (
                 not filter_timesteps and this_date == embargo_datetime.date()
