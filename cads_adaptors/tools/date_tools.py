@@ -363,6 +363,7 @@ def implement_embargo(
             req["date"] = _out_dates
             out_requests.append(req)
 
+        # Check if dates have changed
         if in_dates != _out_dates:
             cacheable = False
 
