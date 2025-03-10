@@ -372,8 +372,8 @@ def implement_embargo(
             f"{embargo_datetime.strftime(embargo_error_time_format)}",
         )
 
-    if len(out_requests) != len(requests):
-        # One final check that the embargo has not added or removed any complete requests
+    if out_requests != requests:
+        # One final check that the embargo has not modified the requests
         cacheable = False
 
     return out_requests, cacheable
