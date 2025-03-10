@@ -358,14 +358,14 @@ def implement_embargo(
                     if len(times) > 0:
                         extra_request = {**req, "date": [date], "time": times}
                         _extra_requests.append(extra_request)
+            else:
+                # Request has been effected by embargo, therefore should not be cached
+                cacheable = False
+
 
         if len(_out_dates) > 0:
             req["date"] = _out_dates
             out_requests.append(req)
-
-        # Check if dates have changed
-        if in_dates != _out_dates:
-            cacheable = False
 
         # append any extra requests to the end
         out_requests += _extra_requests
