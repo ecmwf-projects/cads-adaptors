@@ -176,10 +176,10 @@ TEST_ADAPTOR_CONFIG = {
     "mapping": {
         "remap": {
             "time_aggregation": {
-                "daily": "USCRN_DAILY",
-                "hourly": "USCRN_HOURLY",
-                "monthly": "USCRN_MONTHLY",
-                "sub_hourly": "USCRN_SUBHOURLY",
+                "daily": "uscrn_daily",
+                "hourly": "uscrn_hourly",
+                "monthly": "uscrn_monthly",
+                "sub_hourly": "uscrn_subhourly",
             },
             "variable": {
                 "maximum_air_temperature": "daily_maximum_air_temperature",
