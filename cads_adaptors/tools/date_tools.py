@@ -362,7 +362,6 @@ def implement_embargo(
                 # Request has been effected by embargo, therefore should not be cached
                 cacheable = False
 
-
         if len(_out_dates) > 0:
             req["date"] = _out_dates
             out_requests.append(req)
