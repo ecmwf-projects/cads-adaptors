@@ -331,33 +331,30 @@ def implement_embargo(
         _extra_requests = []
         for date in in_dates:
             this_date = dtparse(str(date)).date()
-            if this_date < embargo_datetime.date():
+            if this_date < embargo_datetime.date() or (
+                not filter_timesteps and this_date == embargo_datetime.date()
+            ):
                 _out_dates.append(date)
             elif this_date == embargo_datetime.date():
-                if not filter_timesteps:
-                    _out_dates.append(date)
-                else:
-                    # Request has been effected by embargo, therefore should not be cached
-                    cacheable = False
-                    # create a new request for data on embargo day
-                    embargo_hour = embargo_datetime.hour
-                    # Times must be in correct list format to see if in or outside of embargo
-                    times = ensure_and_expand_list_items(req.get("time", []), "/")
-                    try:
-                        times = [
-                            t for t in times if time2seconds(t) / 3600 <= embargo_hour
-                        ]
-                    except Exception:
-                        raise exceptions.InvalidRequest(
-                            "Your request straddles the last date available for this dataset, therefore the "
-                            "time period must be provided in a format that is understandable to the CDS/ADS "
-                            "pre-processing. Please revise your request and, if necessary, use the cdsapi "
-                            "sample code provided on the catalogue entry for this dataset."
-                        )
-                    # Only append embargo days request if there is at least one valid time
-                    if len(times) > 0:
-                        extra_request = {**req, "date": [date], "time": times}
-                        _extra_requests.append(extra_request)
+                # Request has been effected by embargo, therefore should not be cached
+                cacheable = False
+                # create a new request for data on embargo day
+                embargo_hour = embargo_datetime.hour
+                # Times must be in correct list format to see if in or outside of embargo
+                times = ensure_and_expand_list_items(req.get("time", []), "/")
+                try:
+                    times = [t for t in times if time2seconds(t) / 3600 <= embargo_hour]
+                except Exception:
+                    raise exceptions.InvalidRequest(
+                        "Your request straddles the last date available for this dataset, therefore the "
+                        "time period must be provided in a format that is understandable to the CDS/ADS "
+                        "pre-processing. Please revise your request and, if necessary, use the cdsapi "
+                        "sample code provided on the catalogue entry for this dataset."
+                    )
+                # Only append embargo days request if there is at least one valid time
+                if len(times) > 0:
+                    extra_request = {**req, "date": [date], "time": times}
+                    _extra_requests.append(extra_request)
             else:
                 # Request has been effected by embargo, therefore should not be cached
                 cacheable = False
