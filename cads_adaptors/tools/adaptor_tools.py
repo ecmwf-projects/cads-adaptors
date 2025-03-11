@@ -3,6 +3,37 @@ from typing import Any
 from cads_adaptors.adaptors import AbstractAdaptor
 
 
+def handle_data_and_download_format(
+    request: dict[str, Any],
+    default_data_format: str = "grib",
+    default_download_format: str = "as_source",
+) -> dict[str, Any]:
+    data_format: list[str] | str = request.pop("format", default_data_format)
+    data_format = request.pop("data_format", data_format)
+    if isinstance(data_format, (list, tuple, set)):
+        data_format = list(data_format)
+        assert len(data_format) == 1, "Only one value of data_format is allowed"
+        data_format = data_format[0]
+
+    if data_format.lower() in [
+        "netcdf.zip",
+        "netcdf_zip",
+        "netcdf4.zip",
+    ]:
+        data_format = "netcdf"
+        default_download_format = "zip"
+
+    download_format = request.pop("download_format", default_download_format)
+
+    data_format = handle_data_format(data_format)
+
+    return {
+        **request,
+        "data_format": data_format,
+        "download_format": download_format,
+    }
+
+
 def handle_data_format(data_format: Any) -> str:
     if isinstance(data_format, (list, tuple, set)):
         data_format = list(data_format)

@@ -203,27 +203,23 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         """Implemented in normalise_request, before the mapping is applied."""
         request = super().pre_mapping_modifications(request)
 
-        # TODO: Remove legacy syntax all together
-        data_format = request.pop("format", "grib")
-        data_format = request.pop("data_format", data_format)
+        # This will ensure that data_format and download_format are set in the request
+        request = adaptor_tools.handle_data_and_download_format(request)
 
-        # Account from some horribleness from the legacy system:
-        if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
-            data_format = "netcdf"
-            request.setdefault("download_format", "zip")
-
-        default_download_format = "as_source"
-        download_format = request.pop("download_format", default_download_format)
-        self.set_download_format(
-            download_format, default_download_format=default_download_format
-        )
-
+        # Now we can safely take out data_format, and add as attribute:
+        data_format = request.pop("data_format")
         # Apply any mapping
         mapped_formats = self.apply_mapping({"data_format": data_format})
-        # TODO: Add this extra mapping to apply_mapping?
         self.data_format = adaptor_tools.handle_data_format(
             mapped_formats["data_format"]
         )
+
+        # And the same for download_format:
+        download_format = request.pop("download_format")
+        self.set_download_format(
+            download_format,
+        )
+
         return request
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
