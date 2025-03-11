@@ -383,7 +383,7 @@ def test_arco_data_format(
     expected_variables = {"latitude", "foo", "valid_time", "longitude"}
     match extension:
         case ".nc":
-            obj = xr.open_dataset(fp.name)
+            obj: xr.Dataset | pd.DataFrame = xr.open_dataset(fp.name)
             assert set(obj.variables) == expected_variables
         case ".csv":
             obj = pd.read_csv(fp)
