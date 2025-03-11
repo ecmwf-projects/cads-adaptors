@@ -1,8 +1,10 @@
 # copied from cdscommon
 
 import re
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
+
+from dateutil.parser import parse as dtparse
 
 from cads_adaptors import exceptions
 
@@ -317,13 +319,10 @@ def implement_embargo(
     convert months to days, taking into account a number of days in a given month,
     then remove months key from embargo.
     """
-    from datetime import UTC, datetime, timedelta
-
-    from dateutil.parser import parse as dtparse
-
     embargo.setdefault("days", 0)
     embargo["days"] += months_to_days(embargo.pop("months", 0), datetime.now(UTC))
     embargo_error_time_format: str = embargo.pop("error_time_format", "%Y-%m-%d %H:00")
+    filter_timesteps = embargo.pop("filter_timesteps", True)
     embargo_datetime = datetime.now(UTC) - timedelta(**embargo)
     out_requests = []
     for req in requests:
@@ -331,7 +330,9 @@ def implement_embargo(
         _extra_requests = []
         for date in req.get("date", []):
             this_date = dtparse(str(date)).date()
-            if this_date < embargo_datetime.date():
+            if this_date < embargo_datetime.date() or (
+                not filter_timesteps and this_date == embargo_datetime.date()
+            ):
                 _out_dates.append(date)
             elif this_date == embargo_datetime.date():
                 # Request has been effected by embargo, therefore should not be cached
@@ -344,15 +345,18 @@ def implement_embargo(
                     times = [t for t in times if time2seconds(t) / 3600 <= embargo_hour]
                 except Exception:
                     raise exceptions.InvalidRequest(
-                        "Your request straddles the last date available for this dataset, therefore the time "
-                        "period must be provided in a format that is understandable to the CDS/ADS "
-                        "pre-processing. Please revise your request and, if necessary, use the cdsapi sample "
-                        "code provided on the catalogue entry for this dataset."
+                        "Your request straddles the last date available for this dataset, therefore the "
+                        "time period must be provided in a format that is understandable to the CDS/ADS "
+                        "pre-processing. Please revise your request and, if necessary, use the cdsapi "
+                        "sample code provided on the catalogue entry for this dataset."
                     )
                 # Only append embargo days request if there is at least one valid time
                 if len(times) > 0:
                     extra_request = {**req, "date": [date], "time": times}
                     _extra_requests.append(extra_request)
+            else:
+                # Request has been effected by embargo, therefore should not be cached
+                cacheable = False
 
         if len(_out_dates) > 0:
             req["date"] = _out_dates
@@ -367,7 +371,9 @@ def implement_embargo(
             "The latest date available for this dataset is: "
             f"{embargo_datetime.strftime(embargo_error_time_format)}",
         )
-    elif len(out_requests) != len(requests):
-        # Request has been effected by embargo, therefore should not be cached
+
+    if len(out_requests) != len(requests):
+        # One final check that the embargo has not added or removed any complete requests
         cacheable = False
+
     return out_requests, cacheable
