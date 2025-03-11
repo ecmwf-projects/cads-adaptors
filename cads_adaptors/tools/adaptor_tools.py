@@ -1,6 +1,7 @@
 from typing import Any
 
 from cads_adaptors.adaptors import AbstractAdaptor
+from cads_adaptors.exceptions import InvalidRequest
 
 
 def handle_data_and_download_format(
@@ -12,8 +13,14 @@ def handle_data_and_download_format(
     data_format = request.pop("data_format", data_format)
     if isinstance(data_format, (list, tuple, set)):
         data_format = list(data_format)
-        assert len(data_format) == 1, "Only one value of data_format is allowed"
+        if len(data_format) > 1:
+            raise InvalidRequest(
+                f"Only one value of data_format is allowed: {data_format}"
+            )
         data_format = data_format[0]
+
+    if not isinstance(data_format, str):
+        raise InvalidRequest(f"data_format must be a string, data_format={data_format}")
 
     if data_format.lower() in [
         "netcdf.zip",
@@ -24,6 +31,10 @@ def handle_data_and_download_format(
         default_download_format = "zip"
 
     download_format = request.pop("download_format", default_download_format)
+    if not isinstance(download_format, str):
+        raise InvalidRequest(
+            f"download_format must be a string, download_format={download_format}"
+        )
 
     data_format = handle_data_format(data_format)
 
@@ -37,8 +48,14 @@ def handle_data_and_download_format(
 def handle_data_format(data_format: Any) -> str:
     if isinstance(data_format, (list, tuple, set)):
         data_format = list(data_format)
-        assert len(data_format) == 1, "Only one value of data_format is allowed"
+        if len(data_format) > 1:
+            raise InvalidRequest(
+                f"Only one value of data_format is allowed: {data_format}"
+            )
         data_format = data_format[0]
+
+    if not isinstance(data_format, str):
+        raise InvalidRequest(f"data_format must be a string, data_format={data_format}")
 
     if data_format in ["netcdf4", "netcdf", "nc"]:
         data_format = "netcdf"
