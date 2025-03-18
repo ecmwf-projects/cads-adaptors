@@ -39,7 +39,9 @@ def test_implement_embargo_all_filtered():
     with pytest.raises(
         InvalidRequest, match="None of the data you have requested is available yet"
     ):
-        implement_embargo(requests, embargo)
+        with patch("cads_adaptors.tools.date_tools.datetime") as mock_datetime:
+            mock_datetime.now.return_value = datetime(2025, 3, 2)
+            implement_embargo(requests, embargo)
 
 
 def test_implement_embargo_filter_timesteps():
