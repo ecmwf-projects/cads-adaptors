@@ -45,7 +45,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         # Catalogue credentials are in config, which is parsed from adaptor.json
         obs_api_url = self.config["obs_api_url"]
         # Dataset name is in this config too
-        dataset_name = self.config["collection_id"]
+        dataset_name = self.config.get("dataset_name", self.collection_id)
         # dataset_source must be a string, asking for two sources is unsupported
         dataset_source = self.handle_sources_list(self.mapped_request["dataset_source"])
         self.mapped_request["dataset_source"] = dataset_source
