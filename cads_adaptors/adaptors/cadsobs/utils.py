@@ -123,19 +123,9 @@ def _filter_asset_and_save(
             # Get the variables in the input file that are in the CDM lite specification.
             vars_in_cdm_lite = _get_vars_in_cdm_lite(incobj, cdm_lite_variables)
             # Handle coordinate renaming
-            vars_to_rename = dict()
-            for varname in vars_in_cdm_lite.copy():
-                if "|" in varname:
-                    varname_notable, table_name = varname.split("|")
-                    if varname_notable in SPATIAL_COORDINATES:
-                        if table_name == "observations_table":
-                            vars_to_rename[varname] = varname_notable
-                        elif table_name in ["station_configuration", "header_table"]:
-                            name_obs_table = f"{varname_notable}|observations_table"
-                            if name_obs_table not in vars_in_cdm_lite:
-                                vars_to_rename[varname] = varname_notable
-                            else:
-                                vars_in_cdm_lite.remove(varname)
+            vars_to_rename, vars_in_cdm_lite = handle_coordinate_renaming(
+                vars_in_cdm_lite
+            )
 
             # Filter and save the data for each variable.
             for ivar in vars_in_cdm_lite:
@@ -155,6 +145,48 @@ def _filter_asset_and_save(
             # Sometimes no data will be found as for example requested station may not
             # have the requested varaibles available.
             logger.debug("No data found in asset for the query paramater.")
+
+
+def handle_coordinate_renaming(vars_in_cdm_lite: list[str]) -> tuple[dict, list[str]]:
+    """
+    Rename spatial coordinates if needed.
+
+    We have coordinates in latitude|observations format and want to rename them to
+    just latitude. In case latitude|observations is not available, we rename
+    latitude|station_configuration or latitude|header_table, the one available.
+    In case both latitude|station_configuration and latitude|header_table are available,
+    we won't rename them as we don't know hot to combine them.
+    """
+    vars_to_rename = dict()
+    for varname in vars_in_cdm_lite.copy():
+        if "|" in varname:
+            varname_notable, table_name = varname.split("|")
+            if varname_notable in SPATIAL_COORDINATES:
+                if table_name == "observations_table":
+                    # latitude|observations table is renamed to latitude (also longitude)
+                    vars_to_rename[varname] = varname_notable
+                elif table_name in ["station_configuration", "header_table"]:
+                    # if latitude|station_configuration or header table exist
+                    name_obs_table = f"{varname_notable}|observations_table"
+                    if table_name == "station_configuration":
+                        other_table = "header_table"
+                    else:
+                        other_table = "station_configuration"
+                    other = f"{table_name}|{other_table}"
+                    if name_obs_table not in vars_in_cdm_lite:
+                        # if latitude|observations exists does not exist, rename to
+                        # latitude/longitude.
+                        if other in vars_in_cdm_lite:
+                            logger.info(
+                                f"Both {varname} and {other} exist," f"keeping them."
+                            )
+                        else:
+                            vars_to_rename[varname] = varname_notable
+                    else:
+                        logger.info(
+                            f"{name_obs_table} is set as {varname_notable} and {varname} is kept as it is."
+                        )
+    return vars_to_rename, vars_in_cdm_lite
 
 
 def _get_mask(incobj: h5netcdf.File, retrieve_params: RetrieveParams) -> numpy.ndarray:
