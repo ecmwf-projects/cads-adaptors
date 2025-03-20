@@ -138,6 +138,7 @@ def test_decrypt_errors(monkeypatch: pytest.MonkeyPatch, raises: bool) -> None:
     key = "ZYG9zAgLeW1FPIwcoRifFpbXgv3oCVcVi5z4AUDB0aE="  # gitleaks:allow
     token = "invalid_token"
 
+    monkeypatch.delenv("ADAPTOR_DECRYPTION_KEY", raising=False)
     with pytest.raises(KeyError) if raises else contextlib.nullcontext():
         assert general.decrypt(token, raises=raises) == token
 
