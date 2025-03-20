@@ -41,15 +41,19 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         download_kwargs: dict[str, Any] = self.config.get("download_kwargs", {})
         # Handle legacy syntax for authentication
         if "auth" in self.config:
+            download_kwargs.setdefault(
+                "auth",
+                (self.config["auth"]["username"], self.config["auth"]["username"]),
+            )
+        if "auth" in download_kwargs:
+            username, password = self.download_kwargs["auth"]
             password = general.decrypt(
-                token=self.config["auth"]["password"],
+                token=password,
                 key_name="URL_ADAPTOR_DECRYPTION_KEY",  # TODO: name of the env variable. To be set by ECMWF
                 raises=False,
             )
-            download_kwargs.setdefault(
-                "auth",
-                (self.config["auth"]["username"], password),
-            )
+            download_kwargs["auth"] = (username, password)
+
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
         if self.area is not None:
