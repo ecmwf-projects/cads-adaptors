@@ -1,4 +1,5 @@
 import pytest
+from cryptography.fernet import InvalidToken
 
 from cads_adaptors.tools import general
 
@@ -118,3 +119,27 @@ def test_general_ensure_list(input_item, expected_output):
 )
 def test_general_split_requests_on_keys(requests, split_on_keys, expected_output):
     assert general.split_requests_on_keys(requests, split_on_keys) == expected_output
+
+
+def test_decrypt(monkeypatch: pytest.MonkeyPatch) -> None:
+    key = "ZYG9zAgLeW1FPIwcoRifFpbXgv3oCVcVi5z4AUDB0aE="  # gitleaks:allow
+    token = (
+        "gAAAAABn3ABNABb1W2XKHyFKjNPS5HWS9ZQRlSIhh4xxUMxuLQ"
+        "yziwIrv7U1ahA7QcGxiZvPuPOsoRNSOolPjz8ciJeOtEeIaQ=="
+    )
+    monkeypatch.setenv("FOO_KEY", key)
+    assert general.decrypt(token, "FOO_KEY") == "foo"
+
+
+def test_decrypt_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    key = "ZYG9zAgLeW1FPIwcoRifFpbXgv3oCVcVi5z4AUDB0aE="  # gitleaks:allow
+    token = "invalid_token"
+
+    with pytest.raises(KeyError):
+        general.decrypt(token, "FOO_KEY", raises=True)
+    assert general.decrypt(token, "FOO_KEY", raises=False) == token
+
+    monkeypatch.setenv("FOO_KEY", key)
+    with pytest.raises(InvalidToken):
+        general.decrypt(token, "FOO_KEY", raises=True)
+    assert general.decrypt(token, "FOO_KEY", raises=False) == token
