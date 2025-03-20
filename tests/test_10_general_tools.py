@@ -133,15 +133,15 @@ def test_decrypt(monkeypatch: pytest.MonkeyPatch) -> None:
     assert general.decrypt(token, "FOO_KEY") == "foo"
 
 
-@pytest.mark.parametrize("raises", [True, False])
-def test_decrypt_errors(monkeypatch: pytest.MonkeyPatch, raises: bool) -> None:
+@pytest.mark.parametrize("ignore_errors", [True, False])
+def test_decrypt_errors(monkeypatch: pytest.MonkeyPatch, ignore_errors: bool) -> None:
     key = "ZYG9zAgLeW1FPIwcoRifFpbXgv3oCVcVi5z4AUDB0aE="  # gitleaks:allow
     token = "invalid_token"
 
     monkeypatch.delenv("ADAPTOR_DECRYPTION_KEY", raising=False)
-    with pytest.raises(KeyError) if raises else contextlib.nullcontext():
-        assert general.decrypt(token, raises=raises) == token
+    with contextlib.nullcontext() if ignore_errors else pytest.raises(KeyError):
+        assert general.decrypt(token, ignore_errors=ignore_errors) == token
 
     monkeypatch.setenv("ADAPTOR_DECRYPTION_KEY", key)
-    with pytest.raises(InvalidToken) if raises else contextlib.nullcontext():
-        assert general.decrypt(token, raises=raises) == token
+    with contextlib.nullcontext() if ignore_errors else pytest.raises(InvalidToken):
+        assert general.decrypt(token, ignore_errors=ignore_errors) == token

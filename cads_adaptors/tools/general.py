@@ -84,14 +84,16 @@ def split_requests_on_keys(
     return out_requests
 
 
-def decrypt(token: str, key_name: str | None = None, raises: bool = True) -> str:
+def decrypt(
+    token: str, key_name: str | None = None, ignore_errors: bool = False
+) -> str:
     if key_name is None:
         key_name = "ADAPTOR_DECRYPTION_KEY"
 
     try:
         key = os.environ[key_name]
     except KeyError:
-        if not raises:
+        if ignore_errors:
             return token
         raise
 
@@ -99,7 +101,7 @@ def decrypt(token: str, key_name: str | None = None, raises: bool = True) -> str
     try:
         decrypted = fernet.decrypt(token.encode())
     except InvalidToken:
-        if not raises:
+        if ignore_errors:
             return token
         raise
 

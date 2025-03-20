@@ -47,7 +47,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
             )
         if "auth" in download_kwargs:
             username, password = download_kwargs["auth"]
-            password = general.decrypt(token=password, raises=False)
+            password = general.decrypt(token=password, ignore_errors=True)
             download_kwargs["auth"] = (username, password)
 
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
