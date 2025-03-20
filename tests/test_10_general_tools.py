@@ -1,3 +1,5 @@
+import contextlib
+
 import pytest
 from cryptography.fernet import InvalidToken
 
@@ -131,15 +133,14 @@ def test_decrypt(monkeypatch: pytest.MonkeyPatch) -> None:
     assert general.decrypt(token, "FOO_KEY") == "foo"
 
 
-def test_decrypt_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("raises", [True, False])
+def test_decrypt_errors(monkeypatch: pytest.MonkeyPatch, raises: bool) -> None:
     key = "ZYG9zAgLeW1FPIwcoRifFpbXgv3oCVcVi5z4AUDB0aE="  # gitleaks:allow
     token = "invalid_token"
 
-    with pytest.raises(KeyError):
-        general.decrypt(token, "FOO_KEY", raises=True)
-    assert general.decrypt(token, "FOO_KEY", raises=False) == token
+    with pytest.raises(KeyError) if raises else contextlib.nullcontext():
+        assert general.decrypt(token, "FOO_KEY", raises=raises) == token
 
     monkeypatch.setenv("FOO_KEY", key)
-    with pytest.raises(InvalidToken):
-        general.decrypt(token, "FOO_KEY", raises=True)
-    assert general.decrypt(token, "FOO_KEY", raises=False) == token
+    with pytest.raises(InvalidToken) if raises else contextlib.nullcontext():
+        assert general.decrypt(token, "FOO_KEY", raises=raises) == token
