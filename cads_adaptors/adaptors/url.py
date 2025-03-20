@@ -46,7 +46,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
                 (self.config["auth"]["username"], self.config["auth"]["password"]),
             )
         if "auth" in download_kwargs:
-            username, password = self.download_kwargs["auth"]
+            username, password = download_kwargs["auth"]
             password = general.decrypt(
                 token=password,
                 key_name="URL_ADAPTOR_DECRYPTION_KEY",  # TODO: name of the env variable. To be set by ECMWF
