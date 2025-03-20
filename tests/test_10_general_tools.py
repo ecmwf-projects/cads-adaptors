@@ -139,8 +139,8 @@ def test_decrypt_errors(monkeypatch: pytest.MonkeyPatch, raises: bool) -> None:
     token = "invalid_token"
 
     with pytest.raises(KeyError) if raises else contextlib.nullcontext():
-        assert general.decrypt(token, "FOO_KEY", raises=raises) == token
+        assert general.decrypt(token, raises=raises) == token
 
-    monkeypatch.setenv("FOO_KEY", key)
+    monkeypatch.setenv("ADAPTOR_DECRYPTION_KEY", key)
     with pytest.raises(InvalidToken) if raises else contextlib.nullcontext():
-        assert general.decrypt(token, "FOO_KEY", raises=raises) == token
+        assert general.decrypt(token, raises=raises) == token
