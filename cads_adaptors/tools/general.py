@@ -92,9 +92,9 @@ def decrypt(token: str, key_name: str, raises: bool = True) -> str:
             return token
         raise
 
-    f = Fernet(key.encode())
+    fernet = Fernet(key.encode())
     try:
-        decrypted = f.decrypt(token.encode())
+        decrypted = fernet.decrypt(token.encode())
     except InvalidToken:
         if not raises:
             return token
