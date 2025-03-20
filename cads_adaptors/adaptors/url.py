@@ -43,7 +43,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         if "auth" in self.config:
             download_kwargs.setdefault(
                 "auth",
-                (self.config["auth"]["username"], self.config["auth"]["username"]),
+                (self.config["auth"]["username"], self.config["auth"]["password"]),
             )
         if "auth" in download_kwargs:
             username, password = self.download_kwargs["auth"]
