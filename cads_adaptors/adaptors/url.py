@@ -26,7 +26,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         return request
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
-        from cads_adaptors.tools import area_selector, url_tools
+        from cads_adaptors.tools import area_selector, general, url_tools
 
         request = self.normalise_request(request)
         assert self.mapped_requests is not None  # Type-setting
@@ -41,9 +41,13 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         download_kwargs: dict[str, Any] = self.config.get("download_kwargs", {})
         # Handle legacy syntax for authentication
         if "auth" in self.config:
+            password = general.decrypt(
+                token=self.config["auth"]["password"],
+                key_name="URL_ADAPTOR_DECRYPTION_KEY",  # TODO: name of the env variable. To be set by ECMWF
+            )
             download_kwargs.setdefault(
                 "auth",
-                (self.config["auth"]["username"], self.config["auth"]["password"]),
+                (self.config["auth"]["username"], password),
             )
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
