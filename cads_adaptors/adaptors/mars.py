@@ -1,5 +1,6 @@
 import os
 import pathlib
+import time
 from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
@@ -85,10 +86,17 @@ def execute_mars(
         "host": os.getenv("HOSTNAME"),
     }
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
-
+    time0 = time.time()
     context.info(f"Request sent to proxy MARS client: {requests}")
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
+    delta_time = time.time() - time0
+    filesize = os.path.getsize(target)
+    context.info(
+        f"MARS Request complete. Filesize={filesize*1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
+        delta_time=delta_time,
+        filesize=filesize,
+    )
     context.debug(message=reply_message)
 
     if reply.error:
@@ -105,7 +113,7 @@ def execute_mars(
         error_message += f"Exception: {reply.error}\n"
         raise MarsRuntimeError(error_message)
 
-    if not os.path.getsize(target):
+    if not filesize:
         error_message = (
             "MARS returned no data, please check your selection."
             f"Request submitted to the MARS server:\n{requests}\n"

@@ -1,5 +1,6 @@
 import os
 import pathlib
+import time
 from copy import deepcopy
 from random import randint
 from typing import Any, BinaryIO
@@ -387,7 +388,24 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         #     f"Creating download object as {download_format} with files:\n{filenames}"
         # )
         try:
-            return download_tools.DOWNLOAD_FORMATS[download_format](paths, **kwargs)
+            time0 = time.time()
+            download_object = download_tools.DOWNLOAD_FORMATS[download_format](
+                paths, **kwargs
+            )
+            delta_time = time.time() - time0
+            try:
+                filesize = os.path.getsize(download_object.name)
+            except AttributeError:
+                self.context.warning(f"Unexpected download object: {download_object}")
+                filesize = 0
+
+            self.context.info(
+                f"Download object created. Filesize={filesize*1e-6} Mb, "
+                f"delta_time= {delta_time:.2f} seconds.",
+                delta_time=delta_time,
+                filesize=filesize,
+            )
+            return download_object
         except Exception as err:
             self.context.add_user_visible_error(
                 message=(

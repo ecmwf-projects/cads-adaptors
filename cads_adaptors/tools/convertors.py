@@ -1,5 +1,6 @@
 import itertools
 import os
+import time
 from typing import Any, Callable, NoReturn
 
 import cfgrib
@@ -375,6 +376,8 @@ def xarray_dict_to_netcdf(
 
     to_netcdf_kwargs.setdefault("engine", compression_options.pop("engine", "netcdf4"))
     out_nc_files = []
+    time0 = time.time()
+    total_filesize = 0
     for out_fname_base, dataset in datasets.items():
         to_netcdf_kwargs.update(
             {
@@ -385,6 +388,13 @@ def xarray_dict_to_netcdf(
         context.debug(f"Writing {out_fname} with kwargs:\n{to_netcdf_kwargs}")
         dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
         out_nc_files.append(out_fname)
+        total_filesize += os.path.getsize(out_fname)
+    context.info(
+        f"Converted {len(datasets)} datasets to netCDF. "
+        f"Total filesize={total_filesize*1e-6:.2f} Mb, delta_time={time.time()-time0:.2f} seconds.",
+        delta_time=time.time() - time0,
+        filesize=total_filesize,
+    )
 
     return out_nc_files
 

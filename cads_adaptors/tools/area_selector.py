@@ -1,4 +1,5 @@
 import os
+import time
 from copy import deepcopy
 from typing import Any, Callable, Type
 
@@ -304,6 +305,8 @@ def area_selector_paths(
     context: Context = Context(),
     **kwargs: Any,
 ) -> list[str]:
+    time0 = time.time()
+    total_filesize = 0
     with dask.config.set(scheduler="threads"):
         # We try to select the area for all paths, if any fail we return the original paths
         out_paths = []
@@ -312,9 +315,16 @@ def area_selector_paths(
                 out_paths += area_selector_path(
                     path, area=area, context=context, **kwargs
                 )
+                total_filesize += os.path.getsize(path)
             except (NotImplementedError, CdsFormatConversionError):
                 context.logger.debug(
                     f"could not convert {path} to xarray; returning the original data"
                 )
                 out_paths.append(path)
+    context.info(
+        f"Area selection for {len(paths)} files complete"
+        f"Total filesize: {total_filesize}, subset time: {time.time() - time0:.2f} seconds",
+        delta_time=time.time() - time0,
+        filesize=total_filesize,
+    )
     return out_paths
