@@ -391,7 +391,7 @@ def xarray_dict_to_netcdf(
         total_filesize += os.path.getsize(out_fname)
     context.info(
         f"Converted {len(datasets)} datasets to netCDF. "
-        f"Total filesize={total_filesize*1e-6:.2f} Mb, total time={time.time()-time0:.2f} seconds.",
+        f"Total filesize={total_filesize*1e-6:.2f} Mb, delta_time={time.time()-time0:.2f} seconds.",
         delta_time=time.time() - time0,
         filesize=total_filesize,
     )
