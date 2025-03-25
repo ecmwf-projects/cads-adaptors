@@ -141,6 +141,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
             facts = result.split("/")
             if facts[-2] == "mars":
                 os.environ["CACHOLOTE_IO_DELETE_ORIGINAL"]= "FALSE"
+                os.environ["CACHOLOTE_IO_SERVE_FROM_ORIGINAL"]= "TRUE"
         return open(result, "rb")
 
 
