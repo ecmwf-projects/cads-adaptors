@@ -2,6 +2,7 @@ import itertools
 import os
 import zipfile
 from typing import Any, BinaryIO, Callable, Dict, List
+from cacholote.extra_encoders import InPlaceFile
 
 import yaml
 
@@ -108,6 +109,10 @@ def targz_paths(
 def as_source(paths: List[str], **kwargs) -> BinaryIO:
     # Only return as_source if a single path, otherwise list MUST be requested
     if len(paths) == 1:
+        if paths[0].endswith(".grib"):
+            facts = paths[0].split("/")
+            if facts[-2] == "mars":
+                return InPlaceFile(paths[0], "rb")
         return open(paths[0], "rb")
     else:
         raise ValueError("as_source can only be used for a single file.")

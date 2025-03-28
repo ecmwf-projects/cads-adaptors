@@ -2,6 +2,9 @@ import os
 import time
 from typing import Any, BinaryIO
 
+from cacholote.extra_encoders import InPlaceFile
+
+
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
 from cads_adaptors.tools import adaptor_tools
@@ -140,8 +143,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
         if result.endswith(".grib"):
             facts = result.split("/")
             if facts[-2] == "mars":
-                os.environ["CACHOLOTE_IO_DELETE_ORIGINAL"]= "FALSE"
-                os.environ["CACHOLOTE_IO_SERVE_FROM_ORIGINAL"]= "TRUE"
+                return InPlaceFile(result, 'rb')
         return open(result, "rb")
 
 
