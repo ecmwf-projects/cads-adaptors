@@ -401,12 +401,6 @@ class CacherS3AndFile(CacherS3):
 
     def _write_field_sync(self, data, fieldinfo):
 
-        # Write to the S3 bucket
-        try:
-            super()._write_field_sync(data, fieldinfo)
-        except Exception as e:
-            self._log_s3_error("S3 write", e)
-
         # Write to a local path?
         if self.field2path:
             path = self.field2path(fieldinfo)
@@ -415,12 +409,11 @@ class CacherS3AndFile(CacherS3):
             with open(path, "wb") as f:
                 f.write(data)
 
-    def close(self):
-        """Wrap CacheS3.close() so it's not fatal if it fails"""
+        # Write to the S3 bucket
         try:
-            super().close()
+            super()._write_field_sync(data, fieldinfo)
         except Exception as e:
-            self._log_s3_error("CacheS3.close()", e)
+            self._log_s3_error("S3 write", e)
 
     def _log_s3_error(self, prelude, exc):
         txt = f"{prelude} failed with:\n" + "".join(
