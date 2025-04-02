@@ -5,6 +5,7 @@ import os
 import re
 import threading
 import time
+import traceback
 from urllib.parse import urlparse
 
 import boto3
@@ -49,14 +50,14 @@ class AbstractCacher:
             permanent_fields = [{"model": ["ENS"], "level": ["0"]}]
         self.permanent_fields = permanent_fields
 
-    def done(self):
+    def close(self):
         pass
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
-        self.done()
+        self.close()
 
     def put(self, req):
         """Write grib fields from a request into the cache."""
@@ -246,8 +247,8 @@ class AbstractAsyncCacher(AbstractCacher):
         self._futures = [exr.submit(self._copier) for _ in range(self.nthreads)]
         exr.shutdown(wait=False)
 
-    def done(self):
-        """Must be called once all files copied."""
+    def close(self):
+        """Close the queue and wait for threads to finish"""
         if self._futures:
             # Close the queue
             self._queue.put((b"", None))
@@ -270,12 +271,6 @@ class AbstractAsyncCacher(AbstractCacher):
                 "io": iotime,
             }
             self.logger.info(f"MemSafeQueue summary: {summary!r}")
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.done()
 
     def _write_field(self, data, fieldinfo):
         """Asynchronously copy the bytes data to the specified file on
@@ -386,16 +381,23 @@ class CacherS3(AbstractAsyncCacher):
 
 class CacherS3AndFile(CacherS3):
     """Sub-class of CacherS3 to cache not only to an S3 bucket but to a local
-    file as well.
+    file as well. Failures to write to the S3 bucket are logged but considered
+    non-fatal so as not to disrupt the caching to file, which is considered
+    higher priority.
     """
 
     def __init__(self, *args, field2path=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.field2path = field2path
+        self.s3_errors = []
 
     def _write_field_sync(self, data, fieldinfo):
+
         # Write to the S3 bucket
-        super()._write_field_sync(data, fieldinfo)
+        try:
+            super()._write_field_sync(data, fieldinfo)
+        except Exception as e:
+            self._log_s3_error("S3 write", e)
 
         # Write to a local path?
         if self.field2path:
@@ -404,3 +406,17 @@ class CacherS3AndFile(CacherS3):
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "wb") as f:
                 f.write(data)
+
+    def close(self):
+        """Wrap CacheS3.close() so it's not fatal if it fails"""
+        try:
+            super().close()
+        except Exception as e:
+            self._log_s3_error("CacheS3.close()", e)
+
+    def _log_s3_error(self, prelude, exc):
+        txt = f"{prelude} failed with:\n" + "".join(
+            traceback.format_exception(exc)
+        )
+        self.s3_errors.append(txt)
+        self.logger.error(txt)
