@@ -216,7 +216,7 @@ class AbstractAsyncCacher(AbstractCacher):
         nthreads=None,
         max_mem=None,
         tmpdir=None,
-        end_timeout=None,
+        timeout=None,
         **kwargs,
     ):
         """The number of fields that will be written concurrently to the cache
@@ -231,7 +231,7 @@ class AbstractAsyncCacher(AbstractCacher):
         """
         super().__init__(*args, logger=logger, **kwargs)
         self.nthreads = 10 if nthreads is None else nthreads
-        self.end_timeout = 300 if end_timeout is None else end_timeout
+        self.timeout = 300 if timeout is None else timeout
         self._lock1 = threading.Lock()
         self._lock2 = threading.Lock()
         self._qclosed = False
@@ -260,7 +260,9 @@ class AbstractAsyncCacher(AbstractCacher):
             # exception
             for future in self._futures:
                 try:
-                    exc = future.exception(timeout=self.end_timeout)
+                    exc = future.exception(
+                        timeout=max(self.timeout-(qclose_time-self._start_time),
+                                    60))
                 except TimeoutError:
                     # This won't cancel running futures, but it's better than
                     # nothing
