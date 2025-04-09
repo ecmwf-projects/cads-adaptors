@@ -131,17 +131,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         
         # add costing class
         costing_class_kwargs: dict[str, Any] = costing_config.get("costing_class_kwargs", dict())
-        self.context.add_stdout(f"costing_class_kwargs: {costing_class_kwargs}")
         if costing_class_kwargs:
             DEFAULT_COST_TYPE_FOR_COSTING_CLASS = "size"
             based_on_cost_type = costing_class_kwargs.get("cost_type", DEFAULT_COST_TYPE_FOR_COSTING_CLASS)
             cost_value = costs.get(based_on_cost_type, costs[DEFAULT_COST_TYPE_FOR_COSTING_CLASS])
             
-            self.context.add_stdout(f"costing_class_kwargs->cost_type: {based_on_cost_type}")
-            self.context.add_stdout(f"costing_class_kwargs->cost_value: {cost_value}")
-            
             costing_classes_inclusive_upper_bounds = costing_class_kwargs.get("inclusive_upper_bounds", [])
-            self.context.add_stdout(f"costing_class_kwargs->inclusive_upper_bounds: {costing_classes_inclusive_upper_bounds}")
             if isinstance(costing_classes_inclusive_upper_bounds, list):
                 costing_classes_inclusive_upper_bounds.sort()
                 cost_class = bisect.bisect_left(costing_classes_inclusive_upper_bounds, cost_value)
@@ -154,11 +149,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     cost_class = costing_classes_inclusive_upper_bounds[cost_class_index][1]
                 else:
                     cost_class = costing_class_kwargs.get("last_class_name", cost_class_index)
-                    self.context.add_stdout(f"costing_class_kwargs->last_class_name: {cost_class}")
             else:
                 raise NotImplementedError
-            
-            self.context.add_stdout(f"costing_class_kwargs->cost_class: {cost_class}")
             
             costs["cost_class"] = cost_class
         
