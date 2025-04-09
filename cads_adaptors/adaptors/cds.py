@@ -1,7 +1,7 @@
+import bisect
 import os
 import pathlib
 import time
-import bisect
 from copy import deepcopy
 from random import randint
 from typing import Any, BinaryIO
@@ -128,32 +128,51 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         )
         # Safety net for integration tests:
         costs["number_of_fields"] = costs["size"]
-        
+
         # add costing class
-        costing_class_kwargs: dict[str, Any] = costing_config.get("costing_class_kwargs", dict())
+        costing_class_kwargs: dict[str, Any] = costing_config.get(
+            "costing_class_kwargs", dict()
+        )
         if costing_class_kwargs:
             DEFAULT_COST_TYPE_FOR_COSTING_CLASS = "size"
-            based_on_cost_type = costing_class_kwargs.get("cost_type", DEFAULT_COST_TYPE_FOR_COSTING_CLASS)
-            cost_value = costs.get(based_on_cost_type, costs[DEFAULT_COST_TYPE_FOR_COSTING_CLASS])
-            
-            costing_classes_inclusive_upper_bounds = costing_class_kwargs.get("inclusive_upper_bounds", [])
+            based_on_cost_type = costing_class_kwargs.get(
+                "cost_type", DEFAULT_COST_TYPE_FOR_COSTING_CLASS
+            )
+            cost_value = costs.get(
+                based_on_cost_type, costs[DEFAULT_COST_TYPE_FOR_COSTING_CLASS]
+            )
+
+            costing_classes_inclusive_upper_bounds = costing_class_kwargs.get(
+                "inclusive_upper_bounds", []
+            )
             if isinstance(costing_classes_inclusive_upper_bounds, list):
                 costing_classes_inclusive_upper_bounds.sort()
-                cost_class = bisect.bisect_left(costing_classes_inclusive_upper_bounds, cost_value)
+                cost_class = bisect.bisect_left(
+                    costing_classes_inclusive_upper_bounds, cost_value
+                )
             elif isinstance(costing_classes_inclusive_upper_bounds, dict):
-                costing_classes_inclusive_upper_bounds = [(v,k) for k,v in costing_classes_inclusive_upper_bounds.items()]
+                costing_classes_inclusive_upper_bounds = [
+                    (v, k) for k, v in costing_classes_inclusive_upper_bounds.items()
+                ]
                 costing_classes_inclusive_upper_bounds.sort()
-                bisect_key = lambda x: x[0]
-                cost_class_index = bisect.bisect_left(costing_classes_inclusive_upper_bounds, cost_value, key=bisect_key)
+                cost_class_index = bisect.bisect_left(
+                    costing_classes_inclusive_upper_bounds,
+                    cost_value,
+                    key=lambda x: x[0],
+                )
                 if cost_class_index < len(costing_classes_inclusive_upper_bounds):
-                    cost_class = costing_classes_inclusive_upper_bounds[cost_class_index][1]
+                    cost_class = costing_classes_inclusive_upper_bounds[
+                        cost_class_index
+                    ][1]
                 else:
-                    cost_class = costing_class_kwargs.get("last_class_name", cost_class_index)
+                    cost_class = costing_class_kwargs.get(
+                        "last_class_name", cost_class_index
+                    )
             else:
                 raise NotImplementedError
-            
+
             costs["cost_class"] = cost_class
-        
+
         return costs
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
