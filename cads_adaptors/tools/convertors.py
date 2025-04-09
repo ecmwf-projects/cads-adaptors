@@ -1,11 +1,13 @@
 import itertools
 import os
+import time
 from typing import Any, Callable, NoReturn
 
 import cfgrib
 import xarray as xr
 
 from cads_adaptors.adaptors import Context
+from cads_adaptors.exceptions import CdsFormatConversionError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 
@@ -35,7 +37,7 @@ DEFAULT_CHUNKS = {
 def add_user_log_and_raise_error(
     message: str,
     context: Context = Context(),
-    thisError=ValueError,
+    thisError=CdsFormatConversionError,
 ) -> NoReturn:
     context.add_user_visible_error(message)
     raise thisError(message)
@@ -46,13 +48,17 @@ def convert_format(
     target_format: str,
     context: Context = Context(),
     config: dict[str, Any] = {},
+    target_dir: str = ".",
+    **runtime_kwargs: dict[str, dict[str, Any]],
 ) -> list[str]:
     target_format = adaptor_tools.handle_data_format(target_format)
     post_processing_kwargs = config.get("post_processing_kwargs", {})
-    context.add_stdout(
+    for k, v in runtime_kwargs.items():
+        post_processing_kwargs.setdefault(k, {}).update(v)
+    post_processing_kwargs.setdefault("target_dir", target_dir)
+    context.debug(
         f"Converting result ({result}) to {target_format} with kwargs: {post_processing_kwargs}"
     )
-
     convertor: None | Callable = CONVERTORS.get(target_format, None)
 
     if convertor is not None:
@@ -64,7 +70,7 @@ def convert_format(
             f"returning in original format: {result}"
         )
         context.add_user_visible_error(message=message)
-        context.add_stderr(message=message)
+        context.error(message=message)
         return ensure_list(result)
 
 
@@ -74,9 +80,6 @@ def result_to_grib_files(
     **kwargs,
 ) -> list[str]:
     """Convert a result of unknown type to grib files."""
-    context.add_stdout(
-        f"Converting result ({result}) to grib files with kwargs: {kwargs}"
-    )
     result_type = type(result)
     if isinstance(result, str):
         return unknown_filetype_to_grib_files(result, context=context, **kwargs)
@@ -124,7 +127,6 @@ def result_to_grib_files(
     add_user_log_and_raise_error(
         f"Unable to convert result of type {result_type} to grib files. result:\n{result}",
         context=context,
-        thisError=ValueError,
     )
 
 
@@ -134,9 +136,6 @@ def result_to_netcdf_files(
     **kwargs,
 ) -> list[str]:
     """Convert a result of unknown type to netCDF files."""
-    context.add_stdout(
-        f"Converting result ({result}) to netCDF files with kwargs: {kwargs}"
-    )
     result_type = type(result)
     if isinstance(result, str):
         return unknown_filetype_to_netcdf_files(result, context=context, **kwargs)
@@ -171,7 +170,6 @@ def result_to_netcdf_files(
     add_user_log_and_raise_error(
         f"Unable to convert result of type {result_type} to netCDF files. result:\n{result}",
         context=context,
-        thisError=ValueError,
     )
 
 
@@ -179,6 +177,7 @@ def result_to_netcdf_legacy_files(
     result: Any,
     context: Context = Context(),
     to_netcdf_legacy_kwargs: dict[str, Any] = {},
+    target_dir: str = ".",
     **kwargs,
 ) -> list[str]:
     """
@@ -194,12 +193,6 @@ def result_to_netcdf_legacy_files(
     context.add_user_visible_log(
         "The 'netcdf_legacy' format is deprecated and no longer supported. "
         "Users are encouraged to update workflows to use the updated, and CF compliant, 'netcdf' option."
-    )
-    context.add_stdout(
-        f"Converting result ({result}) to legacy netCDF files with grib_to_netcdf.\n"
-        f"filter_rules: {filter_rules}\n"
-        f"command: {command}"
-        f"kwargs: {kwargs}"
     )
 
     # Check result is a single grib_file or a list/dict of grib_files
@@ -238,7 +231,6 @@ def result_to_netcdf_legacy_files(
         add_user_log_and_raise_error(
             f"Unable to convert result of type {type(result)} to 'netcdf_legacy' files. result:\n{result}",
             context=context,
-            thisError=ValueError,
         )
 
     if filter_rules:
@@ -265,7 +257,7 @@ def result_to_netcdf_legacy_files(
 
     nc_files = []
     for out_fname_base, grib_file in result.items():
-        out_fname = f"{out_fname_base}.nc"
+        out_fname = os.path.join(target_dir, f"{out_fname_base}.nc")
         nc_files.append(out_fname)
         command = ensure_list(command)
         os.system(" ".join(command + ["-o", out_fname, grib_file]))
@@ -275,7 +267,7 @@ def result_to_netcdf_legacy_files(
             "We are unable to convert this GRIB data to netCDF, "
             "please download as GRIB and convert to netCDF locally.\n"
         )
-        add_user_log_and_raise_error(message, context=context, thisError=RuntimeError)
+        add_user_log_and_raise_error(message, context=context)
 
     return nc_files
 
@@ -302,9 +294,7 @@ def unknown_filetype_to_grib_files(
         )
         return [infile]
     else:
-        add_user_log_and_raise_error(
-            f"Unknown file type: {infile}", context=context, thisError=ValueError
-        )
+        add_user_log_and_raise_error(f"Unknown file type: {infile}", context=context)
 
 
 def unknown_filetype_to_netcdf_files(
@@ -317,28 +307,24 @@ def unknown_filetype_to_netcdf_files(
     if ext.lower() in [".netcdf", ".nc"]:
         return [infile]
     elif ext.lower() in [".grib", ".grib2"]:
-        context.add_stdout(f"Converting {infile} to netCDF files with kwargs: {kwargs}")
+        context.debug(f"Converting {infile} to netCDF files with kwargs: {kwargs}")
         return grib_to_netcdf_files(infile, context=context, **kwargs)
     else:
-        add_user_log_and_raise_error(
-            f"Unknown file type: {infile}", context=context, thisError=ValueError
-        )
+        add_user_log_and_raise_error(f"Unknown file type: {infile}", context=context)
 
 
 def grib_to_netcdf_files(
     grib_file: str,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
     post_open_datasets_kwargs: dict[str, Any] = {},
-    to_netcdf_kwargs: dict[str, Any] = {},
     context: Context = Context(),
     **kwargs,
 ):
-    to_netcdf_kwargs.update(kwargs.pop("to_netcdf_kwargs", {}))
     grib_file = os.path.realpath(grib_file)
 
-    context.add_stdout(
+    context.debug(
         f"Converting {grib_file} to netCDF files with:\n"
-        f"to_netcdf_kwargs: {to_netcdf_kwargs}\n"
+        f"to_netcdf_kwargs: {kwargs}\n"
         f"open_datasets_kwargs: {open_datasets_kwargs}\n"
         f"post_open_datasets_kwargs: {post_open_datasets_kwargs}\n"
     )
@@ -355,13 +341,9 @@ def grib_to_netcdf_files(
             "We are unable to convert this GRIB data to netCDF, "
             "please download as GRIB and convert to netCDF locally.\n"
         )
-        context.add_user_visible_error(message=message)
-        context.add_stderr(message=message)
-        raise RuntimeError(message)
+        add_user_log_and_raise_error(message, context=context)
 
-    out_nc_files = xarray_dict_to_netcdf(
-        datasets, context=context, to_netcdf_kwargs=to_netcdf_kwargs
-    )
+    out_nc_files = xarray_dict_to_netcdf(datasets, context=context, **kwargs)
 
     return out_nc_files
 
@@ -372,12 +354,16 @@ def xarray_dict_to_netcdf(
     compression_options: str | dict[str, Any] = "default",
     to_netcdf_kwargs: dict[str, Any] = {},
     out_fname_prefix: str = "",
+    target_dir: str = ".",
     **kwargs,
 ) -> list[str]:
     """
     Convert a dictionary of xarray datasets to netCDF files, where the key of the dictionary
     is used in the filename.
     """
+    # Untangle any nested kwargs (I don't think this is necessary anymore)
+    to_netcdf_kwargs.update(kwargs.pop("to_netcdf_kwargs", {}))
+
     # Check if compression_options or out_fname_prefix have been provided in to_netcdf_kwargs
     compression_options = to_netcdf_kwargs.pop(
         "compression_options", compression_options
@@ -390,16 +376,25 @@ def xarray_dict_to_netcdf(
 
     to_netcdf_kwargs.setdefault("engine", compression_options.pop("engine", "netcdf4"))
     out_nc_files = []
+    time0 = time.time()
+    total_filesize = 0
     for out_fname_base, dataset in datasets.items():
         to_netcdf_kwargs.update(
             {
                 "encoding": {var: compression_options for var in dataset},
             }
         )
-        out_fname = f"{out_fname_prefix}{out_fname_base}.nc"
-        context.add_stdout(f"Writing {out_fname} with kwargs:\n{to_netcdf_kwargs}")
+        out_fname = os.path.join(target_dir, f"{out_fname_prefix}{out_fname_base}.nc")
+        context.debug(f"Writing {out_fname} with kwargs:\n{to_netcdf_kwargs}")
         dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
         out_nc_files.append(out_fname)
+        total_filesize += os.path.getsize(out_fname)
+    context.info(
+        f"Converted {len(datasets)} datasets to netCDF. "
+        f"Total filesize={total_filesize*1e-6:.2f} Mb, delta_time={time.time()-time0:.2f} seconds.",
+        delta_time=time.time() - time0,
+        filesize=total_filesize,
+    )
 
     return out_nc_files
 
@@ -435,7 +430,6 @@ def open_result_as_xarray_dictionary(
     add_user_log_and_raise_error(
         f"Unable to open result as an xarray dataset: \n{result}",
         context=context,
-        thisError=ValueError,
     )
 
 
@@ -457,7 +451,6 @@ def open_file_as_xarray_dictionary(
         add_user_log_and_raise_error(
             f"Unable to open file {infile} as an xarray dataset.",
             context=context,
-            thisError=ValueError,
         )
 
 
@@ -487,7 +480,7 @@ def safely_rename_variable(dataset: xr.Dataset, rename: dict[str, str]) -> xr.Da
         if (new_name not in rename_order) or (
             rename_order.index(conflict) > rename_order.index(new_name)
         ):
-            raise ValueError(
+            raise CdsFormatConversionError(
                 f"Refusing to to rename to existing variable name: {conflict}->{new_name}"
             )
 
@@ -536,7 +529,7 @@ def post_open_datasets_modifications(
 def open_netcdf_as_xarray_dictionary(
     netcdf_file: str,
     context: Context = Context(),
-    open_datasets_kwargs: dict[str, Any] = {},
+    open_datasets_kwargs: list[dict[str, Any]] | dict[str, Any] = {},
     post_open_datasets_kwargs: dict[str, Any] = {},
     **kwargs,
 ) -> dict[str, xr.Dataset]:
@@ -546,9 +539,14 @@ def open_netcdf_as_xarray_dictionary(
     """
     fname, _ = os.path.splitext(os.path.basename(netcdf_file))
 
-    assert isinstance(
-        open_datasets_kwargs, dict
-    ), "open_datasets_kwargs must be a dictionary for netCDF"
+    if isinstance(open_datasets_kwargs, list):
+        assert (
+            len(open_datasets_kwargs) == 1
+        ), "Only one set of open_datasets_kwargs allowed for netCDF"
+        open_datasets_kwargs = open_datasets_kwargs[0]
+        assert isinstance(
+            open_datasets_kwargs, dict
+        ), "open_datasets_kwargs must be a single dictionary for netCDF"
     # This is to maintain some consistency with the grib file opening
     open_datasets_kwargs = {
         "chunks": DEFAULT_CHUNKS,
@@ -556,7 +554,7 @@ def open_netcdf_as_xarray_dictionary(
         **kwargs,
     }
 
-    context.add_stdout(f"Opening {netcdf_file} with kwargs: {open_datasets_kwargs}")
+    context.debug(f"Opening {netcdf_file} with kwargs: {open_datasets_kwargs}")
     datasets = {fname: xr.open_dataset(netcdf_file, **open_datasets_kwargs)}
 
     datasets = post_open_datasets_modifications(datasets, **post_open_datasets_kwargs)
@@ -602,7 +600,7 @@ def prepare_open_datasets_kwargs_grib(
                 try:
                     _unique_key_values = ekd_ds.unique_values(k)
                 except KeyError:
-                    context.add_stderr(f"key {k} not found in dataset, skipping")
+                    context.error(f"key {k} not found in dataset, skipping")
                 else:
                     # Always split to ensure consistent naming
                     unique_key_values.update(_unique_key_values)
@@ -614,13 +612,13 @@ def prepare_open_datasets_kwargs_grib(
                 try:
                     k1_unique_values: list[str] = ekd_ds.unique_values(k1)[k1]
                 except KeyError:
-                    context.add_stderr(f"key {k1} not found in dataset, skipping")
+                    context.error(f"key {k1} not found in dataset, skipping")
                 else:
                     if len(k1_unique_values) > 1:
                         try:
                             k2_unique_key_values = ekd_ds.unique_values(k2)
                         except KeyError:
-                            context.add_stderr(
+                            context.error(
                                 f"key {k2} not found in dataset, splitting on {k1} instead"
                             )
                             unique_key_values.update(ekd_ds.unique_values(k1))
@@ -682,7 +680,7 @@ def open_grib_file_as_xarray_dictionary(
     if len(open_datasets_kwargs) == 1:
         open_datasets_kwargs[0].setdefault("errors", "raise")
 
-    context.add_stdout(f"Opening {grib_file} with kwargs: {open_datasets_kwargs}")
+    context.debug(f"Opening {grib_file} with kwargs: {open_datasets_kwargs}")
 
     # Open grib file as a dictionary of datasets
     datasets: dict[str, xr.Dataset] = {}
@@ -696,7 +694,7 @@ def open_grib_file_as_xarray_dictionary(
             datasets[f"{fname}_{ds_tag}"] = ds
 
     if len(datasets) == 0:
-        context.add_stderr(
+        context.error(
             "Failed to open any valid hypercube with xarray.open_dataset, "
             "opening with cfgrib.open_datasets instead. "
             f"\nGRIB file={grib_file}"

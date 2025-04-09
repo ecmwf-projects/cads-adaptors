@@ -10,7 +10,7 @@ from cds_common.url2.downloader import Downloader
 from cads_adaptors.exceptions import InvalidRequest
 
 from .assert_valid_grib import assert_valid_grib
-from .cacher import Cacher
+from .cacher import CacherS3
 from .convert_grib import convert_grib
 from .create_file import create_file, temp_file
 from .formats import Formats
@@ -150,10 +150,10 @@ def get_local(req_groups, integration_server, config, context):
     """Retrieve only the fields which are stored locally (in the cache or on
     the datastore) and identify the remaining non-local fields.
     """
-    # Cacher has knowledge of cache locations
+    # CacherS3 has knowledge of cache locations
     cfg = config.get("regional_fc", {})
     no_cache_key = cfg.get("no_cache_key")
-    with Cacher(
+    with CacherS3(
         integration_server,
         logger=context,
         no_cache_key=no_cache_key,

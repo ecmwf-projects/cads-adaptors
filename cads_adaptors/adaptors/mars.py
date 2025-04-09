@@ -1,4 +1,5 @@
 import os
+import pathlib
 import time
 from typing import Any, BinaryIO
 
@@ -53,7 +54,7 @@ def get_mars_server_list(config) -> list[str]:
 
 def execute_mars(
     request: dict[str, Any] | list[dict[str, Any]],
-    context: Context,
+    context: Context = Context(),
     config: dict[str, Any] = dict(),
     mapping: dict[str, Any] = dict(),
     target: str = None
@@ -71,6 +72,8 @@ def execute_mars(
     #  and the some adaptors may not use normalise_request yet
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
+
+    target = str(pathlib.Path(target_dir) / target_fname)
 
     split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
     requests = split_requests_on_keys(requests, split_on_keys, context, mapping)
@@ -90,8 +93,8 @@ def execute_mars(
         "host": os.getenv("HOSTNAME"),
     }
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
-
-    context.add_stdout(f"Request sent to proxy MARS client: {requests}")
+    time0 = time.time()
+    context.info(f"Request sent to proxy MARS client: {requests}")
     if is_pipe:
         context.add_stdout(f"Pipe to {target}")
         cluster.execute(requests, env, target)
@@ -107,6 +110,14 @@ def execute_mars(
             if running:
                 time.sleep(1)
         target = local_target(reply.data)
+    delta_time = time.time() - time0
+    filesize = os.path.getsize(target)
+    context.info(
+        f"MARS Request complete. Filesize={filesize*1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
+        delta_time=delta_time,
+        filesize=filesize,
+    )
+    context.debug(message=reply_message)
 
     if reply.error:
         error_lines = "\n".join(
@@ -122,7 +133,7 @@ def execute_mars(
         error_message += f"Exception: {reply.error}\n"
         raise MarsRuntimeError(error_message)
 
-    if not os.path.getsize(target):
+    if not filesize:
         error_message = (
             "MARS returned no data, please check your selection."
             f"Request submitted to the MARS server:\n{requests}\n"
@@ -139,11 +150,11 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
-        result = execute_mars(request, context=self.context)
-        if result.endswith(".grib"):
-            facts = result.split("/")
-            if facts[-2] == "mars":
-                return InPlaceFile(result, 'rb')
+        result = execute_mars(
+            request,
+            context=self.context,
+            target_dir=self.cache_tmp_path,
+        )
         return open(result, "rb")
 
 
@@ -203,22 +214,24 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
-        result: Any = execute_mars(
+        result = execute_mars(
             self.mapped_requests,
             context=self.context,
             config=self.config,
             mapping=self.mapping,
+            target_dir=self.cache_tmp_path,
         )
 
         with dask.config.set(scheduler="threads"):
-            result = self.post_process(result)
+            results_dict = self.post_process(result)
 
             # TODO?: Generalise format conversion to be a post-processor
             paths = self.convert_format(
-                result,
+                results_dict,
                 self.data_format,
                 context=self.context,
                 config=self.config,
+                target_dir=str(self.cache_tmp_path),
             )
 
         # A check to ensure that if there is more than one path, and download_format

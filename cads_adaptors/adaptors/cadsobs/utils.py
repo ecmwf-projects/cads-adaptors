@@ -20,6 +20,7 @@ from cads_adaptors.exceptions import CadsObsRuntimeError
 logger = logging.getLogger(__name__)
 MAX_NUMBER_OF_GROUPS = 10
 TIME_UNITS_REFERENCE_DATE = "1900-01-01 00:00:00"
+SPATIAL_COORDINATES = ["latitude", "longitude"]
 
 
 def _get_output_path(output_dir: Path, dataset: str, format: RetrieveFormat) -> Path:
@@ -39,14 +40,12 @@ def _add_attributes(
     if "height_of_station_above_sea_level" in oncobj.variables:
         oncobj.variables["height_of_station_above_sea_level"].attrs["units"] = "m"
     for coord in ["longitude", "latitude"]:
-        for table in ["station_configuration", "header_table", "observations_table"]:
-            coord_with_table = f"{coord}|{table}"
-            if coord_with_table in oncobj.variables:
-                oncobj.variables[coord_with_table].attrs["standard_name"] = coord
-                if coord == "longitude":
-                    oncobj.variables[coord_with_table].attrs["units"] = "degrees_east"
-                if coord == "latitude":
-                    oncobj.variables[coord_with_table].attrs["units"] = "degrees_north"
+        if coord in oncobj.variables:
+            oncobj.variables[coord].attrs["standard_name"] = coord
+            if coord == "longitude":
+                oncobj.variables[coord].attrs["units"] = "degrees_east"
+            if coord == "latitude":
+                oncobj.variables[coord].attrs["units"] = "degrees_north"
     oncobj.variables["report_timestamp"].attrs["standard_name"] = "time"
     oncobj.attrs["featureType"] = "point"
     # Variables defined as part of the CDM lite
@@ -123,6 +122,11 @@ def _filter_asset_and_save(
             oncobj.resize_dimension("index", new_size)
             # Get the variables in the input file that are in the CDM lite specification.
             vars_in_cdm_lite = _get_vars_in_cdm_lite(incobj, cdm_lite_variables)
+            # Handle coordinate renaming
+            vars_to_rename, vars_in_cdm_lite = handle_coordinate_renaming(
+                vars_in_cdm_lite
+            )
+
             # Filter and save the data for each variable.
             for ivar in vars_in_cdm_lite:
                 _filter_and_save_var(
@@ -135,11 +139,54 @@ def _filter_asset_and_save(
                     mask,
                     mask_size,
                     download_all_chunk,
+                    rename=vars_to_rename,
                 )
         else:
             # Sometimes no data will be found as for example requested station may not
             # have the requested varaibles available.
             logger.debug("No data found in asset for the query paramater.")
+
+
+def handle_coordinate_renaming(vars_in_cdm_lite: list[str]) -> tuple[dict, list[str]]:
+    """
+    Rename spatial coordinates if needed.
+
+    We have coordinates in latitude|observations format and want to rename them to
+    just latitude. In case latitude|observations is not available, we rename
+    latitude|station_configuration or latitude|header_table, the one available.
+    In case both latitude|station_configuration and latitude|header_table are available,
+    we won't rename them as we don't know hot to combine them.
+    """
+    vars_to_rename = dict()
+    for varname in vars_in_cdm_lite.copy():
+        if "|" in varname:
+            varname_notable, table_name = varname.split("|")
+            if varname_notable in SPATIAL_COORDINATES:
+                if table_name == "observations_table":
+                    # latitude|observations table is renamed to latitude (also longitude)
+                    vars_to_rename[varname] = varname_notable
+                elif table_name in ["station_configuration", "header_table"]:
+                    # if latitude|station_configuration or header table exist
+                    name_obs_table = f"{varname_notable}|observations_table"
+                    if table_name == "station_configuration":
+                        other_table = "header_table"
+                    else:
+                        other_table = "station_configuration"
+                    other = f"{table_name}|{other_table}"
+                    if name_obs_table not in vars_in_cdm_lite:
+                        # if latitude|observations exists does not exist, rename to
+                        # latitude/longitude.
+                        if other in vars_in_cdm_lite:
+                            logger.info(
+                                f"Both {varname} and {other} exist," f"keeping them."
+                            )
+                        else:
+                            vars_to_rename[varname] = varname_notable
+                    else:
+                        logger.info(
+                            f"{name_obs_table} is set as {varname_notable} and {varname} is kept as it is."
+                        )
+    return vars_to_rename, vars_in_cdm_lite
 
 
 def _get_mask(incobj: h5netcdf.File, retrieve_params: RetrieveParams) -> numpy.ndarray:
@@ -238,6 +285,7 @@ def _filter_and_save_var(
     mask: numpy.typing.NDArray,
     mask_size: int,
     download_all_chunk: bool,
+    rename: dict | None = None,
 ):
     """
     Filter and save the data for each variable.
@@ -253,7 +301,7 @@ def _filter_and_save_var(
     dtype = _get_output_dtype(ivar, ivarobj)
     attrs = dict()
     # Set time units
-    if ivar == "report_timestamp":
+    if ivar in ["report_timestamp", "record_timestamp"]:
         attrs["units"] = ivarobj.attrs["units"]
     # Handle character dimensions
     is_char = len(ivarobj.shape) > 1 or ivar == "observed_variable"
@@ -261,6 +309,8 @@ def _filter_and_save_var(
         chunksize, dimensions = _handle_string_dims(
             char_sizes, chunksize, dimensions, ivar, oncobj
         )
+    if rename is not None and ivar in rename:
+        ivar = rename[ivar]
     # Create the variable
     if ivar not in oncobj.variables:
         # It is not worth it to go further than complevel 1 and it is much faster

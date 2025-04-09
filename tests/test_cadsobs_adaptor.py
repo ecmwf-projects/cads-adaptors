@@ -128,7 +128,7 @@ class MockerCadsobsApiClient:
         return CDM_LITE_VARIABLES
 
     def get_objects_to_retrieve(
-        self, dataset_name: str, mapped_request: dict, size_limit: int
+        self, dataset_name: str, mapped_request: dict
     ) -> list[str]:
         return [
             "https://object-store.os-api.cci2.ecmwf.int/"
@@ -138,9 +138,7 @@ class MockerCadsobsApiClient:
 
 
 class ClientErrorMockerCadsobsApiClient(MockerCadsobsApiClient):
-    def get_objects_to_retrieve(
-        self, dataset_name: str, mapped_request: dict, size_limit: int
-    ):
+    def get_objects_to_retrieve(self, dataset_name: str, mapped_request: dict):
         raise RuntimeError("This is a test error")
 
 
@@ -178,10 +176,10 @@ TEST_ADAPTOR_CONFIG = {
     "mapping": {
         "remap": {
             "time_aggregation": {
-                "daily": "USCRN_DAILY",
-                "hourly": "USCRN_HOURLY",
-                "monthly": "USCRN_MONTHLY",
-                "sub_hourly": "USCRN_SUBHOURLY",
+                "daily": "uscrn_daily",
+                "hourly": "uscrn_hourly",
+                "monthly": "uscrn_monthly",
+                "sub_hourly": "uscrn_subhourly",
             },
             "variable": {
                 "maximum_air_temperature": "daily_maximum_air_temperature",
@@ -218,6 +216,21 @@ def test_adaptor(tmp_path, monkeypatch):
     assert tempfile.stat().st_size > 0
     actual = h5netcdf.File(tempfile)
     assert actual.dimensions["index"].size > 0
+
+
+def test_adaptor_estimate_costs(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        MockerCadsobsApiClient,
+    )
+    test_form = {}
+    adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
+    costs_noarea = adaptor.estimate_costs(TEST_REQUEST)
+    request = TEST_REQUEST.copy()
+    request["area"] = ["50", "-10", "20", "10"]
+    costs = adaptor.estimate_costs(request)
+    assert costs_noarea["number_of_fields"] > costs["number_of_fields"]
+    assert costs_noarea["size"] > costs["size"]
 
 
 def test_adaptor_csv(tmp_path, monkeypatch):

@@ -1,5 +1,6 @@
 import os
 import pathlib
+import time
 from copy import deepcopy
 from random import randint
 from typing import Any, BinaryIO
@@ -243,7 +244,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         #  it is the only one. Adaptors should be updated to use self.mapped_requests instead.
         self.mapped_request = self.mapped_requests[0]
 
-        self.context.add_stdout(
+        self.context.info(
             f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_requests}"
         )
 
@@ -298,7 +299,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def post_process(self, result: Any) -> dict[str, Any]:
         """Perform post-process steps on the retrieved data."""
         for i, pp_step in enumerate(self.pp_mapping(self.post_process_steps)):
-            self.context.add_stdout(
+            self.context.info(
                 f"Performing post-process step {i+1} of {len(self.post_process_steps)}: {pp_step}"
             )
             # TODO: pp_mapping should have ensured "method" is always present
@@ -333,7 +334,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 post_open_datasets_kwargs = post_processing_kwargs.get(
                     "post_open_datasets_kwargs", {}
                 )
-                self.context.add_stdout(
+                self.context.debug(
                     f"Opening result: {result} as xarray dictionary with kwargs:\n"
                     f"open_dataset_kwargs: {open_datasets_kwargs}\n"
                     f"post_open_datasets_kwargs: {post_open_datasets_kwargs}"
@@ -380,14 +381,31 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             kwargs.setdefault(
                 "receipt", self.make_receipt(filenames=filenames, **receipt_kwargs)
             )
-        self.context.add_stdout(
+        self.context.debug(
             f"Creating download object as {download_format} with paths:\n{paths}\n and kwargs:\n{kwargs}"
         )
         # self.context.add_user_visible_log(
         #     f"Creating download object as {download_format} with files:\n{filenames}"
         # )
         try:
-            return download_tools.DOWNLOAD_FORMATS[download_format](paths, **kwargs)
+            time0 = time.time()
+            download_object = download_tools.DOWNLOAD_FORMATS[download_format](
+                paths, **kwargs
+            )
+            delta_time = time.time() - time0
+            try:
+                filesize = os.path.getsize(download_object.name)
+            except AttributeError:
+                self.context.warning(f"Unexpected download object: {download_object}")
+                filesize = 0
+
+            self.context.info(
+                f"Download object created. Filesize={filesize*1e-6} Mb, "
+                f"delta_time= {delta_time:.2f} seconds.",
+                delta_time=delta_time,
+                filesize=filesize,
+            )
+            return download_object
         except Exception as err:
             self.context.add_user_visible_error(
                 message=(
@@ -398,7 +416,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     "\n -".join(filenames)
                 )
             )
-            self.context.add_stderr(
+            self.context.error(
                 f"Error whilst preparing download object: {err}\n"
                 f"Paths: {paths}\n"
                 f"Download format: {download_format}\n"

@@ -6,7 +6,7 @@ from cads_adaptors import mapping
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 from cads_adaptors.exceptions import RoocsRuntimeError, RoocsValueError
 
-ROOK_URL = "http://compute.mips.copernicus-climate.eu/wps"
+ROOK_URL = "http://compute.mips.climate.copernicus.eu/wps"
 ROOK_MODE = "async"
 
 
@@ -47,7 +47,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             raise RoocsRuntimeError(response.status)
         urls += [response.provenance(), response.provenance_image()]
 
-        self.context.add_stdout(f"DOWNLOAD KWARGS: {download_kwargs}")
+        self.context.debug(f"DOWNLOAD KWARGS: {download_kwargs}")
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
         return download_tools.DOWNLOAD_FORMATS["zip"](paths)

@@ -17,6 +17,7 @@ dependencies = [
   # Only mandatory dependencies required by the broker and retrieve-api images
   "DateTimeRange",
   "python-dateutil",
+  "structlog",
   "jsonschema"
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
@@ -35,6 +36,7 @@ complete = [
   "cdsapi",
   "cfgrib>=0.9.14.0",
   "cftime",
+  "cryptography",
   "dask",
   "ecmwflibs",
   "earthkit-transforms>=0.3.3",
@@ -54,7 +56,8 @@ complete = [
   "sqlalchemy",
   "tabulate",
   "tqdm",
-  "xarray"
+  "xarray",
+  "zarr"
 ]
 tests = [
   "pytest",

@@ -70,11 +70,13 @@ class CadsobsApiClient:
             detail = response.json()["detail"]
             message = detail["message"]
             traceback = detail["traceback"]
-        except self.requests.JSONDecodeError:
+        except (self.requests.JSONDecodeError, TypeError, KeyError):
             # When the exception is not handled well by the API server response.content
-            # will not be JSON parseable. Then we can get the traceback like this.
+            # will not be JSON parseable or it won't have the expected fields.
+            # Then we can get the traceback like this.
             message = response.reason
             traceback = response.content.decode("UTF-8")
+
         return message, traceback
 
     def get_service_definition(self, dataset: str) -> dict:
@@ -86,7 +88,7 @@ class CadsobsApiClient:
         return self._send_request_and_capture_exceptions("GET", "cdm/lite_variables")
 
     def get_objects_to_retrieve(
-        self, dataset_name: str, mapped_request: dict, size_limit: int
+        self, dataset_name: str, mapped_request: dict
     ) -> list[str]:
         """
         Get the list of S3 objects that will be further read and filtered.
@@ -97,16 +99,22 @@ class CadsobsApiClient:
           Name of the dataset, for example insitu-observations-gnss
         mapped_request: dict
           Request parameters after being mapped by
-        size_limit: int
-          Size limit for the data request in bytes. Note that this is enforced based on
-          an approximation. The size of each partition is multiplied by the percentage
-          of "fields" (entries in the internal constraints) requested, and then added.
         """
-        payload = dict(
-            retrieve_args=dict(dataset=dataset_name, params=mapped_request),
-            config=dict(size_limit=size_limit),
-        )
-        objects_to_retrieve = self._send_request_and_capture_exceptions(
-            "POST", "get_object_urls_and_check_size", payload=payload
-        )
+        payload = dict(dataset=dataset_name, params=mapped_request)
+        try:
+            objects_to_retrieve = self._send_request_and_capture_exceptions(
+                "POST", "get_object_urls", payload=payload
+            )
+        except CadsObsConnectionError as e:
+            self.context.warning(
+                f"Requess failed: {e}, possibly the API it outdated, "
+                f"falling back to the old payload format."
+            )
+            payload = dict(
+                retrieve_args=dict(dataset=dataset_name, params=mapped_request),
+                config=dict(size_limit=10000000000),
+            )
+            objects_to_retrieve = self._send_request_and_capture_exceptions(
+                "POST", "get_object_urls_and_check_size", payload=payload
+            )
         return objects_to_retrieve

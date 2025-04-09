@@ -12,6 +12,7 @@ dependencies:
 - cdsapi
 - cfgrib>=0.9.14.0
 - cftime
+- cryptography
 - dask
 - DateTimeRange
 - fsspec
@@ -28,9 +29,11 @@ dependencies:
 - pyyaml
 - requests
 - sqlalchemy
+- structlog
 - tabulate
 - tqdm
 - xarray
+- zarr
 - pip:
   - rooki
   - earthkit-transforms>=0.3.3
