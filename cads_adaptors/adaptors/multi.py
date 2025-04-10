@@ -268,6 +268,10 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             )
 
         if len(mapped_requests) == 0:
+            self.context.add_user_visible_error(
+                "Request has not produced a valid combination of values, "
+                f"please check your selection.\n{request}"
+            )
             raise InvalidRequest(
                 "Request has not produced a valid combination of values, "
                 f"please check your selection.\n{request}"
