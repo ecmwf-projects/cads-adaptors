@@ -146,10 +146,13 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
 
         if len(sub_adaptors) == 0:
-            raise InvalidRequest(
+            message = (
                 "Request has not produced a valid combination of values, "
                 f"please check your selection.\n{request}"
             )
+            self.context.add_user_visible_error(message)
+            raise InvalidRequest(message)
+
         return sub_adaptors
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
@@ -268,14 +271,12 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             )
 
         if len(mapped_requests) == 0:
-            self.context.add_user_visible_error(
+            message = (
                 "Request has not produced a valid combination of values, "
                 f"please check your selection.\n{request}"
             )
-            raise InvalidRequest(
-                "Request has not produced a valid combination of values, "
-                f"please check your selection.\n{request}"
-            )
+            self.context.add_user_visible_error(message)
+            raise InvalidRequest(message)
 
         self.context.debug(
             f"MultiMarsCdsAdaptor, mapped and split requests: {mapped_requests}"
