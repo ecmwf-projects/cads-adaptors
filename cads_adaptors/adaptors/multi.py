@@ -131,7 +131,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.extract_subrequest(
                 request, this_values, **extract_subrequest_kwargs
             )
-            self.context.debug(
+            self.context.info(
                 f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
