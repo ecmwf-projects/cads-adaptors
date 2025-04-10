@@ -2,7 +2,7 @@ from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.exceptions import CdsConfigurationError, MultiAdaptorNoDataError
+from cads_adaptors.exceptions import CdsConfigurationError, MultiAdaptorNoDataError, InvalidRequest
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 
@@ -145,6 +145,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
                     )
                 sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
 
+        if len(sub_adaptors) == 0:
+            raise InvalidRequest(
+                "Request has not produced a valid combination of values, "
+                f"please check your selection.\n{request}"
+            )
         return sub_adaptors
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
