@@ -123,7 +123,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 adaptor_desc | {"context": self.context},
                 self.form,
             )
-            self.context.info(f"{this_adaptor.config}")
+            self.context.info(f"adatpr_desc: {adaptor_desc}")
+            self.context.info(f"this_adaptor.config {this_adaptor.config}")
             this_values = adaptor_desc.get("values", {})
 
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
