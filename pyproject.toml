@@ -15,10 +15,11 @@ classifiers = [
 ]
 dependencies = [
   # Only mandatory dependencies required by the broker and retrieve-api images
+  "cryptography",
   "DateTimeRange",
   "python-dateutil",
   "structlog",
-  "jsonschema"
+  "jsonschema",
 ]
 description = "CADS data retrieve utilities to be used by adaptors"
 dynamic = ["version"]
@@ -36,7 +37,6 @@ complete = [
   "cdsapi",
   "cfgrib>=0.9.14.0",
   "cftime",
-  "cryptography",
   "dask",
   "ecmwflibs",
   "earthkit-transforms>=0.3.3",
