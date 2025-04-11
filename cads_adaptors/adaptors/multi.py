@@ -293,7 +293,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             )
 
             for mapped_request_piece in self.mapped_requests:
-                self.context.info(
+                self.context.add_user_visible_log(
                     f"MultiMarsCdsAdaptor, {adaptor_tag}, mapped_request_piece: {mapped_request_piece}"
                 )
                 this_request = self.extract_subrequest(
@@ -304,7 +304,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                         mapping.apply_mapping(this_request, this_adaptor.mapping)
                     )
 
-            self.context.debug(
+            self.context.add_user_visible_log(
                 f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
