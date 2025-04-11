@@ -558,6 +558,7 @@ def legacy_intersect_constraints(
     request: dict[str, Any],
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
     context: adaptors.Context = adaptors.Context(),
+    raise_on_empty: bool = True,
 ) -> list[dict[str, list[Any]]]:
     """
     'Constrain' a request by intersecting it with the constraints.
@@ -713,7 +714,7 @@ def legacy_intersect_constraints(
         if len(output_request) != 0:
             requests.append(output_request)
 
-    if len(requests) == 0:
+    if raise_on_empty and len(requests) == 0:
         context.add_user_visible_error(
             "Your request has not produced a valid combination of values, please check your selection.\n"
             "If using the cdsapi, please ensure that the values in your request match the values provided"

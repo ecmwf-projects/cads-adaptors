@@ -70,13 +70,14 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         request: Request,
         constraints_list: list[dict[str, Any]] | None = None,
         context: Context | None = None,
+        **kwargs
     ) -> list[Request]:
         if constraints_list is None:
             constraints_list = self.constraints
         if context is None:
             context = self.context
         return constraints.legacy_intersect_constraints(
-            request, constraints_list, context=context
+            request, constraints_list, context=context, **kwargs
         )
 
     def apply_mapping(self, request: Request) -> Request:

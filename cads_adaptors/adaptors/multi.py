@@ -124,7 +124,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(
-                adaptor_desc | {"context": self.context},
+                adaptor_desc,  # | {"context": self.context},
                 self.form,
             )
             this_values = adaptor_desc.get("values", {})
@@ -141,9 +141,10 @@ class MultiAdaptor(AbstractCdsAdaptor):
             #  but we don't raise the error here, just return an empty request
             #  Provide a dummy context to remove duplicate logging
             if this_adaptor.intersect_constraints_bool:
+                # this_adaptor.constraints = self.constraints
                 try:
                     this_request = self.intersect_constraints(
-                        this_request, context=Context()
+                        this_request, raise_on_empty=False
                     )
                 except InvalidRequest:
                     # This is a valid case, we just return an empty request
@@ -158,10 +159,12 @@ class MultiAdaptor(AbstractCdsAdaptor):
                         f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}\n"
                         f"Exception: {err}"
                     )
-                sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
-                self.context.info(
-                    f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
-                )
+                if len(this_request) > 0:
+                    this_adaptor.context = self.context
+                    sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
+                    self.context.info(
+                        f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
+                    )
 
         if len(sub_adaptors) == 0:
             message = (
