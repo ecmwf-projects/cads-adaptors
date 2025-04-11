@@ -189,20 +189,29 @@ class MultiAdaptor(AbstractCdsAdaptor):
         )
 
         paths: list[str] = []
-        exception_logs: dict[str, str] = {}
+        exceptions: dict[str, Exception] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
             try:
                 this_result = adaptor.retrieve_list_of_results(req)
             except Exception as err:
-                exception_logs[adaptor_tag] = f"{err}"
+                exceptions[adaptor_tag] = err
             else:
                 paths.extend(this_result)
 
         if len(paths) == 0:
-            raise MultiAdaptorNoDataError(
-                "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
-                f"{exception_logs}"
-            )
+            if len(exceptions) == 1:
+                raise exceptions.popitem()[1]
+            elif len(exceptions) > 1:
+                exception_logs = "\n".join(
+                    [f"{k}: {v}" for k, v in exceptions.items()]
+                )
+                self.context.add_user_visible_log(
+                    "Multiple sub-adaptors failed:\n" f"{exception_logs}"
+                )
+                raise MultiAdaptorNoDataError(
+                    "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
+                    f"{exception_logs}"
+                )
 
         self.context.debug(f"MultiAdaptor, result paths:\n{paths}")
 
@@ -265,6 +274,12 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
                 this_adaptor.config
             )
+            # If a sub-adaptor has intersect_constraints set to True, then
+            #  we need to set the constraints for that sub-adaptor
+            #  normalise_request will then intersect the constraints
+            if this_adaptor.intersect_constraints_bool:
+                this_adaptor.constraints = self.constraints
+
             for mapped_request_piece in self.mapped_requests:
                 this_request = self.extract_subrequest(
                     mapped_request_piece, this_values, **extract_subrequest_kwargs
