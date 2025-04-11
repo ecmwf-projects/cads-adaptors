@@ -3,14 +3,13 @@ import time
 from copy import deepcopy
 from typing import Any, Callable, Type
 
-import dask
 import numpy as np
 import xarray as xr
 from earthkit.transforms import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
 from cads_adaptors.exceptions import CdsFormatConversionError, InvalidRequest
-from cads_adaptors.tools import adaptor_tools, convertors
+from cads_adaptors.tools import adaptor_tools, convertors, general
 
 
 def area_to_checked_dictionary(area: list[float | int]) -> dict[str, float | int]:
@@ -307,7 +306,7 @@ def area_selector_paths(
 ) -> list[str]:
     time0 = time.time()
     total_filesize = 0
-    with dask.config.set(scheduler="threads"):
+    with general.set_postprocess_dask_config():
         # We try to select the area for all paths, if any fail we return the original paths
         out_paths = []
         for path in paths:
