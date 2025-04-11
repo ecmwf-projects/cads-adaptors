@@ -123,8 +123,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 adaptor_desc | {"context": self.context},
                 self.form,
             )
-            self.context.info(f"adatpr_desc: {adaptor_desc}")
             self.context.info(f"this_adaptor.config {this_adaptor.config}")
+            self.context.info(f"this_adaptor.intersect_constraints_bool {this_adaptor.intersect_constraints_bool}")
             this_values = adaptor_desc.get("values", {})
 
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
@@ -133,19 +133,20 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.extract_subrequest(
                 request, this_values, **extract_subrequest_kwargs
             )
-            self.context.info(
-                f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
-            )
 
             if len(this_request) > 0:
                 try:
                     this_request = this_adaptor.normalise_request(this_request)
-                except Exception:
+                except Exception as err:
                     self.context.warning(
-                        f"MultiAdaptor failed to normalise request.\n"
-                        f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
+                        "MultiAdaptor failed to normalise request.\n"
+                        f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}\n"
+                        f"Exception: {err}"
                     )
                 sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
+                self.context.info(
+                    f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
+                )
 
         if len(sub_adaptors) == 0:
             message = (
@@ -179,7 +180,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
         self.mapped_request = self.mapped_requests[0]
 
         self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
-        self.context.info(f"full_config: {self.config}")
 
         sub_adaptors = self.split_adaptors(
             self.mapped_request
