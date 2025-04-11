@@ -2,7 +2,11 @@ from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.exceptions import CdsConfigurationError, MultiAdaptorNoDataError, InvalidRequest
+from cads_adaptors.exceptions import (
+    CdsConfigurationError,
+    InvalidRequest,
+    MultiAdaptorNoDataError,
+)
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 
@@ -123,7 +127,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 adaptor_desc | {"context": self.context},
                 self.form,
             )
-                this_adaptor.constraints = self.constraints
             this_values = adaptor_desc.get("values", {})
 
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
@@ -132,7 +135,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.extract_subrequest(
                 request, this_values, **extract_subrequest_kwargs
             )
-            
+
             # If a sub-adaptor has intersect_constraints set to True, then
             #  we need to use the top level interesect_constraints method
             #  but we don't raise the error here, just return an empty request
@@ -192,9 +195,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
 
-        sub_adaptors = self.split_adaptors(
-            self.mapped_request
-        )
+        sub_adaptors = self.split_adaptors(self.mapped_request)
 
         paths: list[str] = []
         exceptions: dict[str, Exception] = {}
