@@ -140,7 +140,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             #  at least one intersection exists, and if one does then we add constraints
             #  to the sub-adaptor.
             # Unfortunately this means that we have to check the constraints twice, but it
-            #  it means we rais a more useful error message if the request is empty without
+            #  it means we raise a more useful error message if the request is empty without
             #  rewriting the normalise_request function.
             if this_adaptor.intersect_constraints_bool:
                 if len(self.intersect_constraints(
@@ -291,13 +291,11 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
                 this_adaptor.config
             )
-            # If a sub-adaptor has intersect_constraints set to True, then
-            #  we need to set the constraints for that sub-adaptor
-            #  normalise_request will then intersect the constraints
-            if this_adaptor.intersect_constraints_bool:
-                this_adaptor.constraints = self.constraints
 
             for mapped_request_piece in self.mapped_requests:
+                self.context.info(
+                    f"MultiMarsCdsAdaptor, {adaptor_tag}, mapped_request_piece: {mapped_request_piece}"
+                )
                 this_request = self.extract_subrequest(
                     mapped_request_piece, this_values, **extract_subrequest_kwargs
                 )
