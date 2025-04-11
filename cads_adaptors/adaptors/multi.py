@@ -136,19 +136,19 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 request, this_values, **extract_subrequest_kwargs
             )
 
-            # If a sub-adaptor has intersect_constraints set to True, then
-            #  we need to use the top level interesect_constraints method
-            #  but we don't raise the error here, just return an empty request
-            #  Provide a dummy context to remove duplicate logging
+            # If a sub-adaptor has intersect_constraints set to True, we check that 
+            #  at least one intersection exists, and if one does then we add constraints
+            #  to the sub-adaptor.
+            # Unfortunately this means that we have to check the constraints twice, but it
+            #  it means we rais a more useful error message if the request is empty without
+            #  rewriting the normalise_request function.
             if this_adaptor.intersect_constraints_bool:
-                # this_adaptor.constraints = self.constraints
-                try:
-                    this_request = self.intersect_constraints(
-                        this_request, raise_on_empty=False
-                    )
-                except InvalidRequest:
-                    # This is a valid case, we just return an empty request
+                if len(self.intersect_constraints(
+                    this_request, raise_on_empty=False
+                )) == 0:
                     this_request = dict()
+                else:
+                    this_adaptor.constraints = self.constraints
 
             if len(this_request) > 0:
                 try:
