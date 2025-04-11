@@ -123,8 +123,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 adaptor_desc | {"context": self.context},
                 self.form,
             )
-            self.context.info(f"this_adaptor.config {this_adaptor.config}")
-            self.context.info(f"this_adaptor.intersect_constraints_bool {this_adaptor.intersect_constraints_bool}")
+            # If a sub-adaptor has intersect_constraints set to True, then
+            #  we need to set the constraints for that sub-adaptor
+            #  normalise_request will then intersect the constraints
+            if this_adaptor.intersect_constraints_bool:
+                this_adaptor.constraints = self.constraints
             this_values = adaptor_desc.get("values", {})
 
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
