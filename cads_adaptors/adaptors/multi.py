@@ -292,21 +292,21 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                 this_adaptor.config
             )
 
+            _sub_adaptor_requests: list[Request] = []
             for mapped_request_piece in self.mapped_requests:
-                self.context.add_user_visible_log(
-                    f"MultiMarsCdsAdaptor, {adaptor_tag}, mapped_request_piece: {mapped_request_piece}"
-                )
                 this_request = self.extract_subrequest(
                     mapped_request_piece, this_values, **extract_subrequest_kwargs
                 )
                 if len(this_request) > 0:
-                    mapped_requests.append(
+                    _sub_adaptor_requests.append(
                         mapping.apply_mapping(this_request, this_adaptor.mapping)
                     )
 
-            self.context.add_user_visible_log(
-                f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {this_request}"
-            )
+            if len(_sub_adaptor_requests) > 0:
+                mapped_requests.extend(_sub_adaptor_requests)
+                self.context.debug(
+                    f"MultiMarsCdsAdaptor, {adaptor_tag}, this_request: {_sub_adaptor_requests}"
+                )
 
         if len(mapped_requests) == 0:
             message = (
