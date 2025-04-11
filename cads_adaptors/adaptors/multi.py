@@ -1,6 +1,6 @@
 from typing import Any
 
-from cads_adaptors import AbstractCdsAdaptor, mapping
+from cads_adaptors import AbstractCdsAdaptor, Context, mapping
 from cads_adaptors.adaptors import Request
 from cads_adaptors.exceptions import (
     CdsConfigurationError,
@@ -139,10 +139,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
             # If a sub-adaptor has intersect_constraints set to True, then
             #  we need to use the top level interesect_constraints method
             #  but we don't raise the error here, just return an empty request
+            #  Provide a dummy context to remove duplicate logging
             if this_adaptor.intersect_constraints_bool:
                 try:
                     this_request = self.intersect_constraints(
-                        this_request,
+                        this_request, context=Context()
                     )
                 except InvalidRequest:
                     # This is a valid case, we just return an empty request
