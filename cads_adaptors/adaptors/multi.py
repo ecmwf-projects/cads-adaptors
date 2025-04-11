@@ -123,10 +123,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 adaptor_desc | {"context": self.context},
                 self.form,
             )
-            # If a sub-adaptor has intersect_constraints set to True, then
-            #  we need to set the constraints for that sub-adaptor
-            #  normalise_request will then intersect the constraints
-            if this_adaptor.intersect_constraints_bool:
                 this_adaptor.constraints = self.constraints
             this_values = adaptor_desc.get("values", {})
 
@@ -136,6 +132,18 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.extract_subrequest(
                 request, this_values, **extract_subrequest_kwargs
             )
+            
+            # If a sub-adaptor has intersect_constraints set to True, then
+            #  we need to use the top level interesect_constraints method
+            #  but we don't raise the error here, just return an empty request
+            if this_adaptor.intersect_constraints_bool:
+                try:
+                    this_request = self.intersect_constraints(
+                        this_request,
+                    )
+                except InvalidRequest:
+                    # This is a valid case, we just return an empty request
+                    this_request = dict()
 
             if len(this_request) > 0:
                 try:
@@ -199,18 +207,22 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 paths.extend(this_result)
 
         if len(paths) == 0:
+            self.context
             if len(exceptions) == 1:
                 raise exceptions.popitem()[1]
             elif len(exceptions) > 1:
-                exception_logs = "\n".join(
-                    [f"{k}: {v}" for k, v in exceptions.items()]
-                )
                 self.context.add_user_visible_log(
-                    "Multiple sub-adaptors failed:\n" f"{exception_logs}"
+                    "Multiple parts of the request failed to return data. The sub-adaptor components "
+                    f" of the request were:\n{list(exceptions.keys())}\n"
                 )
                 raise MultiAdaptorNoDataError(
-                    "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
-                    f"{exception_logs}"
+                    "Multiple parts of request failed and no results were returned. "
+                )
+            else:
+                # Unlikely to reach here, probably an error in config if we are here
+                raise MultiAdaptorNoDataError(
+                    "MultiAdaptor returned no results and did not raise an exception. "
+                    "Please check your selection"
                 )
 
         self.context.debug(f"MultiAdaptor, result paths:\n{paths}")
