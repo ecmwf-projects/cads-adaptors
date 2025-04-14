@@ -60,7 +60,7 @@ def execute_mars(
     target_fname: str = "data.grib",
     target_dir: str = "",
 ) -> str:
-    is_pipe = True
+    is_pipe = False
     if is_pipe:
         from cads_mars_server import client_pipe as mars_client
     else:
@@ -100,7 +100,6 @@ def execute_mars(
         context.debug(f"Pipe to {target}")
         cluster.execute(requests, env, target)
     else:
-        running = True
         context.add_user_visible_log(f'Requesting data from cads-mars-server on shared MARS cephfs ')
         reply = cluster.execute(requests, env)
         context.info(f'Request submitted {config.get("request_uid")} cached {reply.data is not None}')
@@ -111,6 +110,7 @@ def execute_mars(
                 time.sleep(1)
             reply = cluster.execute(requests, env)
         target = local_target(reply.data)
+    reply_message = str(reply.message)
     delta_time = time.time() - time0
     filesize = os.path.getsize(target)
     context.info(
