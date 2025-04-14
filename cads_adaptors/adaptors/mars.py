@@ -57,7 +57,8 @@ def execute_mars(
     context: Context = Context(),
     config: dict[str, Any] = dict(),
     mapping: dict[str, Any] = dict(),
-    target: str = None
+    target_fname: str = None,
+    target_dir: str = None,
 ) -> str:
     is_pipe = target is not None
     if is_pipe:
@@ -96,19 +97,19 @@ def execute_mars(
     time0 = time.time()
     context.info(f"Request sent to proxy MARS client: {requests}")
     if is_pipe:
-        context.add_stdout(f"Pipe to {target}")
+        context.debug(f"Pipe to {target}")
         cluster.execute(requests, env, target)
     else:
         running = True
-        while running:
-            context.add_user_visible_log(f'Requesting data from cads-mars-server on shared MARS cephfs ')
-            reply = cluster.execute(requests, env)
+        context.add_user_visible_log(f'Requesting data from cads-mars-server on shared MARS cephfs ')
+        reply = cluster.execute(requests, env)
+        context.info(f'Request submitted {config.get("request_uid")} cached {reply.data is not None}')
+        while reply.data is None:
             reply_message = str(reply.message)
             context.add_stdout(message=reply_message)
-            running = reply.data is None
-            context.add_stdout(f'Request submitted {config.get("request_uid")}')
-            if running:
+            if reply.data is None:
                 time.sleep(1)
+            reply = cluster.execute(requests, env)
         target = local_target(reply.data)
     delta_time = time.time() - time0
     filesize = os.path.getsize(target)
