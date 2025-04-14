@@ -60,7 +60,7 @@ def execute_mars(
     target_fname: str = None,
     target_dir: str = None,
 ) -> str:
-    is_pipe = target is not None
+    is_pipe = True
     if is_pipe:
         from cads_mars_server import client_pipe as mars_client
     else:
