@@ -57,8 +57,8 @@ def execute_mars(
     context: Context = Context(),
     config: dict[str, Any] = dict(),
     mapping: dict[str, Any] = dict(),
-    target_fname: str = None,
-    target_dir: str = None,
+    target_fname: str = "data.grib",
+    target_dir: str = "",
 ) -> str:
     is_pipe = True
     if is_pipe:
