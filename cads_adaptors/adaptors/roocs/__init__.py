@@ -63,7 +63,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
             ".".join(facet for facet in sub_facets.values() if facet is not None)
             for sub_facets in facets
         ]
-        variable_id = facets[0].get("variable", "")
+        variable_id = facets[0].get("variable", facets[0].get("variable_id", ""))
 
         workflow = rookops.Input(variable_id, dataset_ids)
 
