@@ -39,12 +39,12 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         try:
             response = workflow.orchestrate()
         except Exception as err:
-            raise RoocsRuntimeError(str(workflow))
+            raise RoocsRuntimeError(str(workflow._serialise()))
 
         try:
             urls = response.download_urls()
         except Exception:
-            raise RoocsRuntimeError(str(workflow))
+            raise RoocsRuntimeError(str(str(workflow._serialise())))
         urls += [response.provenance(), response.provenance_image()]
 
         self.context.debug(f"DOWNLOAD KWARGS: {download_kwargs}")
