@@ -8,10 +8,13 @@ from typing import Any, BinaryIO
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
-from cads_adaptors.exceptions import InvalidRequest
+from cads_adaptors.exceptions import CdsConfigurationError, InvalidRequest
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.hcube_tools import hcubes_intdiff2
 from cads_adaptors.validation import enforce
+
+DEFAULT_COST_TYPE = "size"
+DEFAULT_COST_TYPE_FOR_COSTING_CLASS = DEFAULT_COST_TYPE
 
 
 class AbstractCdsAdaptor(AbstractAdaptor):
@@ -116,7 +119,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 **costing_kwargs,
             )
         # size is a fast and rough estimate of the number of fields
-        costs["size"] = costing.estimate_number_of_fields(
+        costs[DEFAULT_COST_TYPE] = costing.estimate_number_of_fields(
             self.form,
             mapped_request,
             mapping=self.mapping,
@@ -127,14 +130,13 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             },
         )
         # Safety net for integration tests:
-        costs["number_of_fields"] = costs["size"]
+        costs["number_of_fields"] = costs[DEFAULT_COST_TYPE]
 
         # add costing class
         costing_class_kwargs: dict[str, Any] = costing_config.get(
             "costing_class_kwargs", dict()
         )
         if costing_class_kwargs:
-            DEFAULT_COST_TYPE_FOR_COSTING_CLASS = "size"
             based_on_cost_type = costing_class_kwargs.get(
                 "cost_type", DEFAULT_COST_TYPE_FOR_COSTING_CLASS
             )
@@ -169,7 +171,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                         "last_class_name", cost_class_index
                     )
             else:
-                raise NotImplementedError
+                raise CdsConfigurationError
 
             costs["cost_class"] = cost_class
 
