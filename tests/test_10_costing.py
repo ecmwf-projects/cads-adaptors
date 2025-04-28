@@ -1072,7 +1072,7 @@ def test_costing_classes() -> None:
             "css": "todo",
             "type": "DateRangeWidget",
             "details": {
-                "minStart": "2003-01-01",
+                "minStart": "2025-03-15",
                 "maxEnd": "2025-04-09",
                 "defaultStart": "2025-04-09",
                 "defaultEnd": "2025-04-09",
@@ -1098,7 +1098,34 @@ def test_costing_classes() -> None:
 
     constraints = [
         {
-            "date": ["2003-01-01/2025-04-09"],
+            "date": [
+                "2025-03-15",
+                "2025-03-16",
+                "2025-03-17",
+                "2025-03-18",
+                "2025-03-19",
+                "2025-03-20",
+                "2025-03-21",
+                "2025-03-22",
+                "2025-03-23",
+                "2025-03-24",
+                "2025-03-25",
+                "2025-03-26",
+                "2025-03-27",
+                "2025-03-28",
+                "2025-03-29",
+                "2025-03-30",
+                "2025-03-31",
+                "2025-04-01",
+                "2025-04-02",
+                "2025-04-03",
+                "2025-04-04",
+                "2025-04-05",
+                "2025-04-06",
+                "2025-04-07",
+                "2025-04-08",
+                "2025-04-09",
+            ],
             "variable": [
                 "altitude_of_plume_top",
                 "mean_altitude_of_maximum_injection",
@@ -1149,7 +1176,17 @@ def test_costing_classes() -> None:
             ],
         },
         {
-            "date": ["2018-07-02/2025-04-09"],
+            "date": [
+                "2025-04-01",
+                "2025-04-02",
+                "2025-04-03",
+                "2025-04-04",
+                "2025-04-05",
+                "2025-04-06",
+                "2025-04-07",
+                "2025-04-08",
+                "2025-04-09",
+            ],
             "variable": ["altitude_of_plume_bottom", "injection_height"],
         },
     ]
@@ -1270,10 +1307,10 @@ def test_costing_classes() -> None:
             "wildfire_flux_of_black_carbon",
         ],
         "date": [
-            "2025-03-01",
-            "2025-03-02",
-            "2025-03-07",
-            "2025-03-08",
+            "2025-03-21",
+            "2025-03-22",
+            "2025-03-27",
+            "2025-03-28",
             "2025-03-29",
             "2025-04-01",
             "2025-04-02",
@@ -1397,9 +1434,51 @@ def test_costing_classes() -> None:
             "mean_altitude_of_maximum_injection",
             "wildfire_combustion_rate",
         ],
-        "date": ["2025-04-01", "2025-04-02", "2025-04-07"],
+        "date": ["2025-03-15", "2025-04-02", "2025-04-07"],
         "data_format": "grib",
     }
     costs = adaptor_with_explicit_classes_and_weights.estimate_costs(request)
     assert costs["size"] == 48
+    assert costs["precise_size"] == 44
     assert costs["cost_class"] == "large"
+
+    costing = {
+        "costing_kwargs": {
+            "weighted_keys": {"variable": 2},
+            "weighted_values": {
+                "variable": {
+                    "altitude_of_plume_top": 2,
+                    "injection_height": 3,
+                }
+            },
+            "ignore_keys": ["area"],
+        },
+        "costing_class_kwargs": {
+            "cost_type": "highest_cost_limit_ratio",
+            "inclusive_upper_bounds": {"small": 5, "medium": 40, "large": 100},
+            "last_class_name": "extra_large",
+        },
+        "max_costs": {"size": 1000, "precise_size": 50},
+    }
+
+    adaptor_with_explicit_classes_and_weights_for_highest_cost_limit_ratio = (
+        DummyCdsAdaptor(form, constraints=constraints, costing=costing)
+    )
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+            "wildfire_combustion_rate",
+        ],
+        "date": ["2025-03-15", "2025-04-02", "2025-04-07"],
+        "data_format": "grib",
+    }
+    costs = adaptor_with_explicit_classes_and_weights_for_highest_cost_limit_ratio.estimate_costs(
+        request
+    )
+    assert costs["size"] == 48
+    assert costs["precise_size"] == 40
+    assert costs["cost_class"] == "medium"
