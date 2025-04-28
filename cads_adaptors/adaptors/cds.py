@@ -15,6 +15,7 @@ from cads_adaptors.validation import enforce
 
 DEFAULT_COST_TYPE = "size"
 DEFAULT_COST_TYPE_FOR_COSTING_CLASS = DEFAULT_COST_TYPE
+COST_TYPE_WITH_HIGHEST_COST_LIMIT_RATIO_FOR_COSTING_CLASS = "highest_cost_limit_ratio"
 
 
 class AbstractCdsAdaptor(AbstractAdaptor):
@@ -77,6 +78,23 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def apply_mapping(self, request: Request) -> Request:
         return mapping.apply_mapping(request, self.mapping)
 
+    def get_cost_type_with_highest_cost_limit_ratio(
+        self, costs: dict[str, int], limits: dict[str, int]
+    ) -> str | None:
+        """
+        Determine the cost type with the highest cost/limit ratio.
+        This is implementing the same logic as https://github.com/ecmwf-projects/cads-processing-api-service/blob/main/cads_processing_api_service/costing.py.
+        """
+        highest_cost_limit_ratio = 0.0
+        highest_cost: dict[str, Any] = {"type": None, "cost": 0.0, "limit": 1.0}
+        for limit_id, limit in limits.items():
+            cost = costs.get(limit_id, 0.0)
+            cost_limit_ratio = cost / limit if limit > 0 else 1.0
+            if cost_limit_ratio > highest_cost_limit_ratio:
+                highest_cost_limit_ratio = cost_limit_ratio
+                highest_cost = {"type": limit_id, "cost": cost, "limit": limit}
+        return highest_cost["type"]
+
     def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         cost_threshold = kwargs.get("cost_threshold", "max_costs")
         costing_config: dict[str, Any] = self.config.get("costing", dict())
@@ -111,7 +129,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         }
 
         # "precise_size" is a new costing method that is more accurate than "size
-        if "precise_size" in costing_config.get(cost_threshold, {}):
+        costing_limits = costing_config.get(cost_threshold, {})
+        if "precise_size" in costing_limits:
             costs["precise_size"] = costing.estimate_precise_size(
                 self.form,
                 mapped_request,
@@ -140,6 +159,14 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             based_on_cost_type = costing_class_kwargs.get(
                 "cost_type", DEFAULT_COST_TYPE_FOR_COSTING_CLASS
             )
+            if (
+                based_on_cost_type
+                == COST_TYPE_WITH_HIGHEST_COST_LIMIT_RATIO_FOR_COSTING_CLASS
+            ):
+                based_on_cost_type = self.get_cost_type_with_highest_cost_limit_ratio(
+                    costs, costing_limits
+                )
+
             cost_value = costs.get(
                 based_on_cost_type, costs[DEFAULT_COST_TYPE_FOR_COSTING_CLASS]
             )
