@@ -44,10 +44,11 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         # convert date arguments to the expected type
         for date_input_key in EUMDACAdaptor.DATE_INPUT_KEYS:
-            if isinstance(eumdac_request[date_input_key], str):
-                eumdac_request[date_input_key] = datetime.datetime.strptime(
-                    eumdac_request[date_input_key], "%Y%m%d"
-                )
+            if date_input_key in eumdac_request:
+                if isinstance(eumdac_request[date_input_key], str):
+                    eumdac_request[date_input_key] = datetime.datetime.strptime(
+                        eumdac_request[date_input_key], "%Y%m%d"
+                    )
         return eumdac_request
 
     def has_token_expired(self):
