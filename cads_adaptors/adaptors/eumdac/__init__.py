@@ -117,7 +117,8 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         except Exception as e:
             msg = e.args[0]
             self.context.add_user_visible_error(msg)
-            raise InvalidRequest(msg)
+            #raise InvalidRequest(msg)
+            return 0, 0
 
         return result_size
 
