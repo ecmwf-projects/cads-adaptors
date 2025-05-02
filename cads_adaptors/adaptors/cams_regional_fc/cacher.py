@@ -263,6 +263,7 @@ class AbstractAsyncCacher(AbstractCacher):
         exr = concurrent.futures.ThreadPoolExecutor(max_workers=self.nthreads)
         self._start_time = time.time()
         self._waiting = [False] * self.nthreads
+        self._exception_in_thread = None
         self._futures = [exr.submit(self._copier, i)
                          for i in range(self.nthreads)]
         exr.shutdown(wait=False)
@@ -308,7 +309,16 @@ class AbstractAsyncCacher(AbstractCacher):
             if not self._futures:
                 self._start_copy_threads()
 
-    def _copier(self, ithread):
+    def _copier(self, *args, **kwargs):
+        try:
+            self._copier2(*args, **kwargs)
+        except Exception as e:
+            # Signal to other threads that they should stop because this one
+            # encountered an exception
+            self._exception_in_thread = e
+            raise
+
+    def _copier2(self, ithread):
         """Thread to actually copy the data. There will be several of these
            running at the same time."""
 
@@ -344,6 +354,10 @@ class AbstractAsyncCacher(AbstractCacher):
 
         # Loop to poll for a new item
         while time.time() - self._start_time < self.timeout:
+
+            if self._exception_in_thread:
+                raise Exception('Stopping due to exception in another thread: '
+                                + repr(self._exception_in_thread))
 
             closed = self._close_was_called
             self._waiting[ithread] = False
