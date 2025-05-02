@@ -93,10 +93,9 @@ def apply_schema(requests, config, context):
         set(mandatory_keys).union(
             [
                 "no_cache",  # Old user cache subversion key, still used by some
-                DEFAULT_NO_CACHE_KEY,     # New user cache subversion key
+                DEFAULT_NO_CACHE_KEY,  # New user cache subversion key
                 "__in_adaptor_no_cache",  # System cache subversion key
-                config.get("regional_fc", {}).get("no_cache_key",
-                                                  DEFAULT_NO_CACHE_KEY),
+                config.get("regional_fc", {}).get("no_cache_key", DEFAULT_NO_CACHE_KEY),
                 "area",
                 "_local_subarea",
             ]

@@ -16,9 +16,9 @@ from cds_common.message_iterators import grib_bytes_iterator
 from cds_common.url2.caching import NotInCache
 from eccodes import codes_get_message
 
+from . import DEFAULT_NO_CACHE_KEY
 from .grib2request import grib2request
 from .mem_safe_queue import MemSafeQueue
-from . import DEFAULT_NO_CACHE_KEY
 
 
 class AbstractCacher:
@@ -55,7 +55,7 @@ class AbstractCacher:
 
     def close(self):
         if self._close_was_called:
-            raise Exception('close() called twice?')
+            raise Exception("close() called twice?")
         self._close_was_called = True
 
     def __enter__(self):
@@ -66,10 +66,8 @@ class AbstractCacher:
 
     def put(self, req):
         """Write grib fields from a request into the cache."""
-
         if self._close_was_called:
-            raise Exception('Attempt to write another field after close() '
-                            'called')
+            raise Exception("Attempt to write another field after close() called")
 
         # Do not cache sub-area requests when the sub-area is done by the Meteo
         # France backend. With the current code below they would be cached
@@ -165,9 +163,8 @@ class AbstractCacher:
 
     def _field_iter(self, req):
         """Yield a descriptive dict and the associated data for each of the
-        fields in req
+        fields in req.
         """
-
         # Archive-backend requests can retrieve a hypercube of fields. Parse the
         # comma-separated lists into proper lists.
         request = {k: str(v).split(",") for k, v in req["req"].items()}
@@ -192,14 +189,11 @@ class AbstractCacher:
 
         # Loop over the grib fields
         for msg in grib_bytes_iterator(data):
-
             # Figure out the request values that correspond to this field
             fieldinfo = grib2request(msg)
 
             # Sanity-check that fieldinfo was part of the request
-            intn, _, _ = hcube_intdiff(
-                request, {k: [v] for k, v in fieldinfo.items()}
-            )
+            intn, _, _ = hcube_intdiff(request, {k: [v] for k, v in fieldinfo.items()})
             nmatches = count_fields(intn)
             if nmatches == 0:
                 raise Exception(
@@ -218,6 +212,7 @@ class AbstractCacher:
                 fieldinfo[self.no_cache_key] = req["req"][self.no_cache_key]
 
             yield (fieldinfo, codes_get_message(msg))
+
 
 class AbstractAsyncCacher(AbstractCacher):
     """Augment the AbstractCacher class to add asynchronous cache puts. This
@@ -264,12 +259,11 @@ class AbstractAsyncCacher(AbstractCacher):
         self._start_time = time.time()
         self._waiting = [False] * self.nthreads
         self._exception_in_thread = None
-        self._futures = [exr.submit(self._copier, i)
-                         for i in range(self.nthreads)]
+        self._futures = [exr.submit(self._copier, i) for i in range(self.nthreads)]
         exr.shutdown(wait=False)
 
     def close(self):
-        """Close the queue and wait for threads to finish"""
+        """Close the queue and wait for threads to finish."""
         super().close()
 
         if self._futures:
@@ -280,8 +274,8 @@ class AbstractAsyncCacher(AbstractCacher):
             for future in self._futures:
                 try:
                     exc = future.exception(
-                        timeout=max(self.timeout-(time.time()-self._start_time),
-                                    0))
+                        timeout=max(self.timeout - (time.time() - self._start_time), 0)
+                    )
                 except TimeoutError:
                     # This won't cancel running futures, but it's better than
                     # nothing
@@ -302,7 +296,7 @@ class AbstractAsyncCacher(AbstractCacher):
             self.logger.info(f"MemSafeQueue summary: {summary!r}")
 
     def _write_fields(self, req):
-        """Asynchronously cache fields"""
+        """Asynchronously cache fields."""
         self._queue.put(req)
         # Start the copying thread if not done already
         with self._lock1:
@@ -320,11 +314,10 @@ class AbstractAsyncCacher(AbstractCacher):
 
     def _copier2(self, ithread):
         """Thread to actually copy the data. There will be several of these
-           running at the same time."""
-
+        running at the same time.
+        """
         # Loop over items in the queue
         while True:
-
             # Get an item from the queue
             req = self._queue_get(ithread)
             if req is None:
@@ -339,8 +332,7 @@ class AbstractAsyncCacher(AbstractCacher):
             for fieldinfo, data in self._field_iter(req):
                 if prev:
                     self._queue.put(prev)
-                prev = {"req": fieldinfo,
-                        "data": data}
+                prev = {"req": fieldinfo, "data": data}
             req = prev
 
             self._write_fields_sync(req)
@@ -350,14 +342,14 @@ class AbstractAsyncCacher(AbstractCacher):
             raise Exception(f"{n} unconsumed items in queue")
 
     def _queue_get(self, ithread):
-        """Return an item from the queue or None if there are no more items"""
-
+        """Return an item from the queue or None if there are no more items."""
         # Loop to poll for a new item
         while time.time() - self._start_time < self.timeout:
-
             if self._exception_in_thread:
-                raise Exception('Stopping due to exception in another thread: '
-                                + repr(self._exception_in_thread))
+                raise Exception(
+                    "Stopping due to exception in another thread: "
+                    + repr(self._exception_in_thread)
+                )
 
             closed = self._close_was_called
             self._waiting[ithread] = False
@@ -377,7 +369,6 @@ class AbstractAsyncCacher(AbstractCacher):
 
     def _write_fields_sync(self, req):
         """Write the fields to the appropriate cache location."""
-
         # Loop over grib messages in the data
         for fieldinfo, data in self._field_iter(req):
             self._write_1field_sync(data, fieldinfo)
@@ -411,7 +402,6 @@ class CacherS3(AbstractAsyncCacher):
 
     def _write_1field_sync(self, data, fieldinfo):
         """Write one field to the appropriate cache location."""
-
         local_object = io.BytesIO(data)
         remote_path = self._cache_file_path(fieldinfo)
 
@@ -460,13 +450,11 @@ class CacherS3(AbstractAsyncCacher):
 
 
 class CacherDisk(AbstractAsyncCacher):
-
     def __init__(self, *args, field2path=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.field2path = field2path
 
     def _write_1field_sync(self, data, fieldinfo):
-
         path = self.field2path(fieldinfo)
         self.logger.info(f"Caching {fieldinfo} to {path}")
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -487,7 +475,6 @@ class CacherS3AndDisk(CacherS3):
         self.s3_errors = []
 
     def _write_1fiels_sync(self, data, fieldinfo):
-
         # Write to a local path?
         if self.field2path:
             path = self.field2path(fieldinfo)
@@ -503,8 +490,6 @@ class CacherS3AndDisk(CacherS3):
             self._log_s3_error("S3 write", e)
 
     def _log_s3_error(self, prelude, exc):
-        txt = f"{prelude} failed with:\n" + "".join(
-            traceback.format_exception(exc)
-        )
+        txt = f"{prelude} failed with:\n" + "".join(traceback.format_exception(exc))
         self.s3_errors.append(txt)
         self.logger.error(txt)
