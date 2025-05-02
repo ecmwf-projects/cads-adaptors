@@ -6,6 +6,7 @@ from cds_common import date_tools, hcube_tools
 from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.validation.enforce import enforce as enforce_schema
 
+from . import DEFAULT_NO_CACHE_KEY
 from .formats import Formats
 
 
@@ -92,9 +93,10 @@ def apply_schema(requests, config, context):
         set(mandatory_keys).union(
             [
                 "no_cache",  # Old user cache subversion key, still used by some
-                "_no_cache",  # New user cache subversion key
+                DEFAULT_NO_CACHE_KEY,     # New user cache subversion key
                 "__in_adaptor_no_cache",  # System cache subversion key
-                config.get("regional_fc", {}).get("no_cache_key", "_no_cache"),
+                config.get("regional_fc", {}).get("no_cache_key",
+                                                  DEFAULT_NO_CACHE_KEY),
                 "area",
                 "_local_subarea",
             ]

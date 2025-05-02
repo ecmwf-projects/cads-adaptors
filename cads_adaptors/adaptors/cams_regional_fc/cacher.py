@@ -18,6 +18,7 @@ from eccodes import codes_get_message
 
 from .grib2request import grib2request
 from .mem_safe_queue import MemSafeQueue
+from . import DEFAULT_NO_CACHE_KEY
 
 
 class AbstractCacher:
@@ -44,7 +45,7 @@ class AbstractCacher:
         # will also mean corresponding files are always written to temporary
         # space. It is used for optionally avoiding the cache provided by this
         # class.
-        self.no_cache_key = no_cache_key or "_no_cache"
+        self.no_cache_key = no_cache_key or DEFAULT_NO_CACHE_KEY
 
         # Fields which should be cached permanently (on the datastore). All
         # other fields will be cached in temporary locations.
