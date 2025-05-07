@@ -948,3 +948,537 @@ def test_estimate_costs_with_mapping() -> None:
     costs3 = weighted_adaptor.estimate_costs(request3)
     assert costs1["size"] == costs2["size"]
     assert costs2["size"] == costs3["size"]
+
+
+def test_costing_classes() -> None:
+    from cads_adaptors import DummyCdsAdaptor
+
+    form: list[dict[str, Any]] = [
+        {
+            "name": "variable",
+            "label": "Variable",
+            "help": None,
+            "required": True,
+            "css": "todo",
+            "type": "StringListWidget",
+            "details": {
+                "values": [
+                    "altitude_of_plume_bottom",
+                    "altitude_of_plume_top",
+                    "injection_height",
+                    "mean_altitude_of_maximum_injection",
+                    "wildfire_combustion_rate",
+                    "wildfire_flux_of_acetaldehyde",
+                    "wildfire_flux_of_acetone",
+                    "wildfire_flux_of_ammonia",
+                    "wildfire_flux_of_benzene",
+                    "wildfire_flux_of_black_carbon",
+                    "wildfire_flux_of_butanes",
+                    "wildfire_flux_of_butenes",
+                    "wildfire_flux_of_carbon_dioxide",
+                    "wildfire_flux_of_carbon_monoxide",
+                    "wildfire_flux_of_dimethyl_sulfide",
+                    "wildfire_flux_of_ethane",
+                    "wildfire_flux_of_ethanol",
+                    "wildfire_flux_of_ethene",
+                    "wildfire_flux_of_formaldehyde",
+                    "wildfire_flux_of_heptane",
+                    "wildfire_flux_of_hexanes",
+                    "wildfire_flux_of_hexene",
+                    "wildfire_flux_of_higher_alkanes",
+                    "wildfire_flux_of_higher_alkenes",
+                    "wildfire_flux_of_hydrogen",
+                    "wildfire_flux_of_isoprene",
+                    "wildfire_flux_of_methane",
+                    "wildfire_flux_of_methanol",
+                    "wildfire_flux_of_nitrogen_oxides",
+                    "wildfire_flux_of_nitrous_oxide",
+                    "wildfire_flux_of_non_methane_hydrocarbons",
+                    "wildfire_flux_of_octene",
+                    "wildfire_flux_of_organic_carbon",
+                    "wildfire_flux_of_pentanes",
+                    "wildfire_flux_of_pentenes",
+                    "wildfire_flux_of_propane",
+                    "wildfire_flux_of_propene",
+                    "wildfire_flux_of_sulphur_dioxide",
+                    "wildfire_flux_of_terpenes",
+                    "wildfire_flux_of_toluene",
+                    "wildfire_flux_of_toluene_lump",
+                    "wildfire_flux_of_total_carbon_in_aerosols",
+                    "wildfire_flux_of_total_particulate_matter",
+                    "wildfire_flux_of_xylene",
+                    "wildfire_fraction_of_area_observed",
+                    "wildfire_overall_flux_of_burnt_carbon",
+                    "wildfire_radiative_power",
+                ],
+                "columns": 2,
+                "labels": {
+                    "altitude_of_plume_bottom": "Altitude of plume bottom",
+                    "altitude_of_plume_top": "Altitude of plume top",
+                    "injection_height": "Injection height (from IS4FIRES)",
+                    "mean_altitude_of_maximum_injection": "Mean altitude of maximum injection",
+                    "wildfire_combustion_rate": "Wildfire combustion rate",
+                    "wildfire_flux_of_acetaldehyde": "Wildfire flux of acetaldehyde (C2H4O)",
+                    "wildfire_flux_of_acetone": "Wildfire flux of acetone (C3H6O)",
+                    "wildfire_flux_of_ammonia": "Wildfire flux of ammonia (NH3)",
+                    "wildfire_flux_of_benzene": "Wildfire flux of benzene (C6H6)",
+                    "wildfire_flux_of_black_carbon": "Wildfire flux of black carbon",
+                    "wildfire_flux_of_butanes": "Wildfire flux of butanes (C4H10)",
+                    "wildfire_flux_of_butenes": "Wildfire flux of butenes (C4H8)",
+                    "wildfire_flux_of_carbon_dioxide": "Wildfire flux of carbon dioxide (CO2)",
+                    "wildfire_flux_of_carbon_monoxide": "Wildfire flux of carbon monoxide (CO)",
+                    "wildfire_flux_of_dimethyl_sulfide": "Wildfire flux of dimethyl sulfide (DMS) (C2H6S)",
+                    "wildfire_flux_of_ethane": "Wildfire flux of ethane (C2H6)",
+                    "wildfire_flux_of_ethanol": "Wildfire flux of ethanol (C2H5OH)",
+                    "wildfire_flux_of_ethene": "Wildfire flux of ethene (C2H4)",
+                    "wildfire_flux_of_formaldehyde": "Wildfire flux of formaldehyde (CH2O)",
+                    "wildfire_flux_of_heptane": "Wildfire flux of heptane (C7H16)",
+                    "wildfire_flux_of_hexanes": "Wildfire flux of hexanes (C6H14)",
+                    "wildfire_flux_of_hexene": "Wildfire flux of hexene (C6H12)",
+                    "wildfire_flux_of_higher_alkanes": "Wildfire flux of higher alkanes (CnH2n+2, c>=4)",
+                    "wildfire_flux_of_higher_alkenes": "Wildfire flux of higher alkenes (CnH2n, c>=4)",
+                    "wildfire_flux_of_hydrogen": "Wildfire flux of hydrogen (H)",
+                    "wildfire_flux_of_isoprene": "Wildfire flux of isoprene (C5H8)",
+                    "wildfire_flux_of_methane": "Wildfire flux of methane (CH4)",
+                    "wildfire_flux_of_methanol": "Wildfire flux of methanol (CH3OH)",
+                    "wildfire_flux_of_nitrogen_oxides": "Wildfire flux of nitrogen oxides (NOx)",
+                    "wildfire_flux_of_nitrous_oxide": "Wildfire flux of nitrous oxide (N20)",
+                    "wildfire_flux_of_non_methane_hydrocarbons": "Wildfire flux of non-methane hydrocarbons",
+                    "wildfire_flux_of_octene": "Wildfire flux of octene (C8H16)",
+                    "wildfire_flux_of_organic_carbon": "Wildfire flux of organic carbon",
+                    "wildfire_flux_of_pentanes": "Wildfire flux of pentanes (C5H12)",
+                    "wildfire_flux_of_pentenes": "Wildfire flux of pentenes (C5H10)",
+                    "wildfire_flux_of_propane": "Wildfire flux of propane (C3H8)",
+                    "wildfire_flux_of_propene": "Wildfire flux of propene (C3H6)",
+                    "wildfire_flux_of_sulphur_dioxide": "Wildfire flux of sulphur dioxide (SO2)",
+                    "wildfire_flux_of_terpenes": "Wildfire flux of terpenes ((C5H8)n)",
+                    "wildfire_flux_of_toluene": "Wildfire flux of toluene (C7H8)",
+                    "wildfire_flux_of_toluene_lump": "Wildfire flux of toluene_lump (C7H8+ C6H6 + C8H10)",
+                    "wildfire_flux_of_total_carbon_in_aerosols": "Wildfire flux of total carbon in aerosols",
+                    "wildfire_flux_of_total_particulate_matter": "Wildfire flux of total particulate matter",
+                    "wildfire_flux_of_xylene": "Wildfire flux of xylene (C8H10)",
+                    "wildfire_fraction_of_area_observed": "Wildfire fraction of area observed",
+                    "wildfire_overall_flux_of_burnt_carbon": "Wildfire overall flux of burnt carbon",
+                    "wildfire_radiative_power": "Wildfire radiative power",
+                },
+            },
+            "id": 0,
+        },
+        {
+            "name": "date",
+            "label": "Date",
+            "help": None,
+            "required": True,
+            "css": "todo",
+            "type": "DateRangeWidget",
+            "details": {
+                "minStart": "2025-03-15",
+                "maxEnd": "2025-04-09",
+                "defaultStart": "2025-04-09",
+                "defaultEnd": "2025-04-09",
+            },
+            "id": 1,
+        },
+        {
+            "name": "data_format",
+            "label": "Data format",
+            "help": None,
+            "required": True,
+            "css": "todo",
+            "type": "StringChoiceWidget",
+            "details": {
+                "values": ["grib", "netcdf"],
+                "columns": 2,
+                "labels": {"grib": "GRIB", "netcdf": "NetCDF4 (Experimental)"},
+                "default": ["grib"],
+            },
+            "id": 2,
+        },
+    ]
+
+    constraints = [
+        {
+            "date": [
+                "2025-03-15",
+                "2025-03-16",
+                "2025-03-17",
+                "2025-03-18",
+                "2025-03-19",
+                "2025-03-20",
+                "2025-03-21",
+                "2025-03-22",
+                "2025-03-23",
+                "2025-03-24",
+                "2025-03-25",
+                "2025-03-26",
+                "2025-03-27",
+                "2025-03-28",
+                "2025-03-29",
+                "2025-03-30",
+                "2025-03-31",
+                "2025-04-01",
+                "2025-04-02",
+                "2025-04-03",
+                "2025-04-04",
+                "2025-04-05",
+                "2025-04-06",
+                "2025-04-07",
+                "2025-04-08",
+                "2025-04-09",
+            ],
+            "variable": [
+                "altitude_of_plume_top",
+                "mean_altitude_of_maximum_injection",
+                "wildfire_combustion_rate",
+                "wildfire_flux_of_acetaldehyde",
+                "wildfire_flux_of_acetone",
+                "wildfire_flux_of_ammonia",
+                "wildfire_flux_of_benzene",
+                "wildfire_flux_of_black_carbon",
+                "wildfire_flux_of_butanes",
+                "wildfire_flux_of_butenes",
+                "wildfire_flux_of_carbon_dioxide",
+                "wildfire_flux_of_carbon_monoxide",
+                "wildfire_flux_of_dimethyl_sulfide",
+                "wildfire_flux_of_ethane",
+                "wildfire_flux_of_ethanol",
+                "wildfire_flux_of_ethene",
+                "wildfire_flux_of_formaldehyde",
+                "wildfire_flux_of_heptane",
+                "wildfire_flux_of_hexanes",
+                "wildfire_flux_of_hexene",
+                "wildfire_flux_of_higher_alkanes",
+                "wildfire_flux_of_higher_alkenes",
+                "wildfire_flux_of_hydrogen",
+                "wildfire_flux_of_isoprene",
+                "wildfire_flux_of_methane",
+                "wildfire_flux_of_methanol",
+                "wildfire_flux_of_nitrogen_oxides",
+                "wildfire_flux_of_nitrous_oxide",
+                "wildfire_flux_of_non_methane_hydrocarbons",
+                "wildfire_flux_of_octene",
+                "wildfire_flux_of_organic_carbon",
+                "wildfire_flux_of_particulate_matter_d_2_5_\u00b5m",
+                "wildfire_flux_of_pentanes",
+                "wildfire_flux_of_pentenes",
+                "wildfire_flux_of_propane",
+                "wildfire_flux_of_propene",
+                "wildfire_flux_of_sulphur_dioxide",
+                "wildfire_flux_of_terpenes",
+                "wildfire_flux_of_toluene",
+                "wildfire_flux_of_toluene_lump",
+                "wildfire_flux_of_total_carbon_in_aerosols",
+                "wildfire_flux_of_total_particulate_matter",
+                "wildfire_flux_of_xylene",
+                "wildfire_fraction_of_area_observed",
+                "wildfire_overall_flux_of_burnt_carbon",
+                "wildfire_radiative_power",
+            ],
+        },
+        {
+            "date": [
+                "2025-04-01",
+                "2025-04-02",
+                "2025-04-03",
+                "2025-04-04",
+                "2025-04-05",
+                "2025-04-06",
+                "2025-04-07",
+                "2025-04-08",
+                "2025-04-09",
+            ],
+            "variable": ["altitude_of_plume_bottom", "injection_height"],
+        },
+    ]
+
+    costing = {
+        "costing_kwargs": {"ignore_keys": ["area"]},
+        "costing_class_kwargs": {
+            "cost_type": "size",
+            "inclusive_upper_bounds": [1, 5, 10, 50, 70],
+        },
+        "max_costs": {"size": 1000},
+    }
+
+    adaptor = DummyCdsAdaptor(form, constraints=constraints, costing=costing)
+
+    request: dict[str, Any] = {
+        "variable": ["altitude_of_plume_bottom"],
+        "date": ["2025-04-01"],
+        "data_format": "grib",
+    }
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 1
+    assert costs["cost_class"] == 0
+
+    request = {
+        "variable": ["altitude_of_plume_bottom", "altitude_of_plume_top"],
+        "date": ["2025-04-01"],
+        "data_format": "grib",
+    }
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 2
+    assert costs["cost_class"] == 1
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+            "wildfire_combustion_rate",
+        ],
+        "date": ["2025-04-01"],
+        "data_format": "grib",
+    }
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 5
+    assert costs["cost_class"] == 1
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+            "wildfire_combustion_rate",
+            "wildfire_flux_of_dimethyl_sulfide",
+        ],
+        "date": ["2025-04-01"],
+        "data_format": "grib",
+    }
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 6
+    assert costs["cost_class"] == 2
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+            "wildfire_combustion_rate",
+        ],
+        "date": ["2025-04-01", "2025-04-02", "2025-04-07"],
+        "data_format": "grib",
+    }
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 15
+    assert costs["cost_class"] == 3
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+            "wildfire_combustion_rate",
+            "wildfire_flux_of_acetaldehyde",
+            "wildfire_flux_of_acetone",
+            "wildfire_flux_of_ammonia",
+            "wildfire_flux_of_benzene",
+            "wildfire_flux_of_black_carbon",
+        ],
+        "date": [
+            "2025-04-01",
+            "2025-04-02",
+            "2025-04-05",
+            "2025-04-06",
+            "2025-04-07",
+            "2025-04-08",
+        ],
+        "data_format": "grib",
+    }
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 60
+    assert costs["cost_class"] == 4
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+            "wildfire_combustion_rate",
+            "wildfire_flux_of_acetaldehyde",
+            "wildfire_flux_of_acetone",
+            "wildfire_flux_of_ammonia",
+            "wildfire_flux_of_benzene",
+            "wildfire_flux_of_black_carbon",
+        ],
+        "date": [
+            "2025-03-21",
+            "2025-03-22",
+            "2025-03-27",
+            "2025-03-28",
+            "2025-03-29",
+            "2025-04-01",
+            "2025-04-02",
+            "2025-04-07",
+            "2025-04-08",
+            "2025-04-09",
+        ],
+        "data_format": "grib",
+    }
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 100
+    assert costs["cost_class"] == 5
+
+    costing = {
+        "costing_kwargs": {"ignore_keys": ["area"]},
+        "costing_class_kwargs": {
+            "cost_type": "size",
+            "inclusive_upper_bounds": {"small": 5, "medium": 10, "large": 30},
+            "last_class_name": "extra_large",
+        },
+        "max_costs": {"size": 1000},
+    }
+
+    adaptor_with_explicit_classes = DummyCdsAdaptor(
+        form, constraints=constraints, costing=costing
+    )
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+        ],
+        "date": ["2025-04-01"],
+        "data_format": "grib",
+    }
+    costs = adaptor_with_explicit_classes.estimate_costs(request)
+    assert costs["size"] == 4
+    assert costs["cost_class"] == "small"
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+            "wildfire_combustion_rate",
+            "wildfire_flux_of_dimethyl_sulfide",
+        ],
+        "date": ["2025-04-01"],
+        "data_format": "grib",
+    }
+    costs = adaptor_with_explicit_classes.estimate_costs(request)
+    assert costs["size"] == 6
+    assert costs["cost_class"] == "medium"
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+            "wildfire_combustion_rate",
+        ],
+        "date": ["2025-04-01", "2025-04-02", "2025-04-07"],
+        "data_format": "grib",
+    }
+    costs = adaptor_with_explicit_classes.estimate_costs(request)
+    assert costs["size"] == 15
+    assert costs["cost_class"] == "large"
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+            "wildfire_combustion_rate",
+            "wildfire_flux_of_acetaldehyde",
+            "wildfire_flux_of_acetone",
+            "wildfire_flux_of_ammonia",
+            "wildfire_flux_of_benzene",
+            "wildfire_flux_of_black_carbon",
+        ],
+        "date": ["2025-04-01", "2025-04-02", "2025-04-05", "2025-04-06", "2025-04-07"],
+        "data_format": "grib",
+    }
+    costs = adaptor_with_explicit_classes.estimate_costs(request)
+    assert costs["size"] == 50
+    assert costs["cost_class"] == "extra_large"
+
+    costing = {
+        "costing_kwargs": {
+            "weighted_keys": {"variable": 2},
+            "weighted_values": {
+                "variable": {
+                    "altitude_of_plume_top": 2,
+                    "wildfire_combustion_rate": 3,
+                }
+            },
+            "ignore_keys": ["area"],
+        },
+        "costing_class_kwargs": {
+            "cost_type": "size",
+            "inclusive_upper_bounds": {"small": 5, "medium": 10, "large": 100},
+            "last_class_name": "extra_large",
+        },
+        "max_costs": {"precise_size": 1000},
+    }
+
+    adaptor_with_explicit_classes_and_weights = DummyCdsAdaptor(
+        form, constraints=constraints, costing=costing
+    )
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+            "wildfire_combustion_rate",
+        ],
+        "date": ["2025-03-15", "2025-04-02", "2025-04-07"],
+        "data_format": "grib",
+    }
+    costs = adaptor_with_explicit_classes_and_weights.estimate_costs(request)
+    assert costs["size"] == 48
+    assert costs["precise_size"] == 44
+    assert costs["cost_class"] == "large"
+
+    costing = {
+        "costing_kwargs": {
+            "weighted_keys": {"variable": 2},
+            "weighted_values": {
+                "variable": {
+                    "altitude_of_plume_top": 2,
+                    "injection_height": 3,
+                }
+            },
+            "ignore_keys": ["area"],
+        },
+        "costing_class_kwargs": {
+            "cost_type": "highest_cost_limit_ratio",
+            "inclusive_upper_bounds": {"small": 5, "medium": 40, "large": 100},
+            "last_class_name": "extra_large",
+        },
+        "max_costs": {"size": 1000, "precise_size": 50},
+    }
+
+    adaptor_with_explicit_classes_and_weights_for_highest_cost_limit_ratio = (
+        DummyCdsAdaptor(form, constraints=constraints, costing=costing)
+    )
+
+    request = {
+        "variable": [
+            "altitude_of_plume_bottom",
+            "altitude_of_plume_top",
+            "injection_height",
+            "mean_altitude_of_maximum_injection",
+            "wildfire_combustion_rate",
+        ],
+        "date": ["2025-03-15", "2025-04-02", "2025-04-07"],
+        "data_format": "grib",
+    }
+    costs = adaptor_with_explicit_classes_and_weights_for_highest_cost_limit_ratio.estimate_costs(
+        request
+    )
+    assert costs["size"] == 48
+    assert costs["precise_size"] == 40
+    assert costs["cost_class"] == "medium"
