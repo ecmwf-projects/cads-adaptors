@@ -1,5 +1,6 @@
 import copy
 import datetime
+import itertools
 import os
 import shutil
 from typing import Any
@@ -41,6 +42,16 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         # remove keys that are not supported by EUMDAC
         for non_eumdac_key in EUMDACAdaptor.NON_EUMDAC_KEYS:
             eumdac_request.pop(non_eumdac_key, None)
+
+
+        for date_ymd in itertools.product(eumdac_request["year"], eumdac_request["month"], eumdac_request["day"]):
+            eumdac_request["dtstart"] = f"{date_ymd[0]}{date_ymd[1]}{date_ymd[2]}"
+            eumdac_request["dtend"] = f"{date_ymd[0]}{date_ymd[1]}{date_ymd[2]}"
+            break
+        eumdac_request.pop('year', None)
+        eumdac_request.pop('month', None)
+        eumdac_request.pop('day', None)
+            
 
         # convert date arguments to the expected type
         for date_input_key in EUMDACAdaptor.DATE_INPUT_KEYS:
@@ -138,7 +149,9 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
             for subrequest in self.mapped_requests:
                 eumdac_request = self.cds_to_eumdac_preprocessing(subrequest)
                 downloaded_products_for_subrequest = self.download(eumdac_request)
+                self.context.add_stdout(f"Calling EUMDAC for: {eumdac_request}")
                 downloaded_products.extend(downloaded_products_for_subrequest)
+                self.context.add_stdout(f"Downloaded products: {downloaded_products_for_subrequest}")
         except Exception as e:
             msg = e.args[0]
             self.context.add_user_visible_error(msg)
