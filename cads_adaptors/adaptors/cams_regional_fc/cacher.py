@@ -259,13 +259,11 @@ class AbstractAsyncCacher(AbstractCacher):
         exr = concurrent.futures.ThreadPoolExecutor(max_workers=self.nthreads)
         self._start_time = time.time()
         self._processing_item = [False] * self.nthreads
-        self._futures = {exr.submit(self._copier, i): i
-                         for i in range(self.nthreads)}
+        self._futures = {exr.submit(self._copier, i): i for i in range(self.nthreads)}
         exr.shutdown(wait=False)
 
     def close(self):
         """Close the queue and wait for threads to finish."""
-
         super().close()
 
         # This try-except will catch KeyboardInterrupts, which are only sent to
@@ -280,7 +278,6 @@ class AbstractAsyncCacher(AbstractCacher):
                 raise
 
     def _wait_for_threads(self):
-
         close_time = time.time()
 
         # Wait for each thread to complete and check if any raised an
@@ -296,10 +293,10 @@ class AbstractAsyncCacher(AbstractCacher):
                 # This won't cancel running futures, but it's better than
                 # nothing
                 [f.cancel() for f in self._futures]
-                self.logger.debug(f'Thread {ithread} raised {e!r}')
+                self.logger.debug(f"Thread {ithread} raised {e!r}")
                 raise
             else:
-                self.logger.debug(f'Thread {ithread} exited successfully')
+                self.logger.debug(f"Thread {ithread} exited successfully")
 
         # Log a summary for performance monitoring
         summary = self._queue.stats.copy()
@@ -316,7 +313,7 @@ class AbstractAsyncCacher(AbstractCacher):
         """Asynchronously cache fields."""
         # Refuse puts if the object is in an error state
         if self._fatal_exception:
-            raise Exception(f'Cacher has raised {self._fatal_exception!r}')
+            raise Exception(f"Cacher has raised {self._fatal_exception!r}")
         # Start the copying thread if not done already
         with self._lock1:
             if not self._futures:
@@ -333,7 +330,7 @@ class AbstractAsyncCacher(AbstractCacher):
             # Signal to other threads that they should stop because this one
             # encountered an exception
             self._fatal_exception = self._fatal_exception or e
-            self.logger.error('Exception in copy thread: ' + repr(e))
+            self.logger.error("Exception in copy thread: " + repr(e))
             raise
 
     def _copier2(self, ithread):
@@ -344,7 +341,7 @@ class AbstractAsyncCacher(AbstractCacher):
             if req is None:
                 break
 
-            #if time.time() - self._start_time > 3:
+            # if time.time() - self._start_time > 3:
             #    raise Exception('foobar')
 
             # It may be that this item represents multiple fields, in which case
@@ -355,7 +352,7 @@ class AbstractAsyncCacher(AbstractCacher):
             prev = None
             for fieldinfo, data in self._field_iter(req):
                 if self._fatal_exception:
-                    raise Exception('Stopping due to exception in another thread')
+                    raise Exception("Stopping due to exception in another thread")
                 if prev:
                     self._queue.put(prev)
                 prev = {"req": fieldinfo, "data": data}
@@ -363,8 +360,6 @@ class AbstractAsyncCacher(AbstractCacher):
             # Indicate that there is no longer any chance of this thread putting
             # anything related to this item in self._queue.
             self._processing_item[ithread] = False
-
-            #self.logger.info(f"Thread {ithread} handing {req['req']}")
 
             self._write_fields_sync(req)
 
