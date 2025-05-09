@@ -131,11 +131,14 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         self.context.debug(f"Request is {request!r}")
 
-        # self.normalise_request(request)
+        self.normalise_request(request)
 
+        downloaded_products = []
         try:
-            eumdac_request = self.cds_to_eumdac_preprocessing(request)
-            downloaded_products = self.download(eumdac_request)
+            for subrequest in self.mapped_requests:
+                eumdac_request = self.cds_to_eumdac_preprocessing(subrequest)
+                downloaded_products_for_subrequest = self.download(eumdac_request)
+                downloaded_products.extend(downloaded_products_for_subrequest)
         except Exception as e:
             msg = e.args[0]
             self.context.add_user_visible_error(msg)
