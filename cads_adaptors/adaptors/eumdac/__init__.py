@@ -43,15 +43,9 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         for non_eumdac_key in EUMDACAdaptor.NON_EUMDAC_KEYS:
             eumdac_request.pop(non_eumdac_key, None)
 
-
-        for date_ymd in itertools.product(eumdac_request["year"], eumdac_request["month"], eumdac_request["day"]):
-            eumdac_request["dtstart"] = f"{date_ymd[0]}{date_ymd[1]}{date_ymd[2]}"
-            eumdac_request["dtend"] = f"{date_ymd[0]}{date_ymd[1]}{date_ymd[2]}"
-            break
-        eumdac_request.pop('year', None)
-        eumdac_request.pop('month', None)
-        eumdac_request.pop('day', None)
-            
+        eumdac_request["dtstart"] = eumdac_request["date"][0]
+        eumdac_request["dtend"] = eumdac_request["date"][0]
+        eumdac_request.pop('date', None)
 
         # convert date arguments to the expected type
         for date_input_key in EUMDACAdaptor.DATE_INPUT_KEYS:
