@@ -243,11 +243,12 @@ class AbstractAsyncCacher(AbstractCacher):
         """
         super().__init__(*args, logger=logger, **kwargs)
         self.nthreads = 10 if nthreads is None else nthreads
-        self.timeout = 300 if timeout is None else timeout
+        self.timeout = 3600 if timeout is None else timeout
         self._lock1 = threading.Lock()
         self._lock2 = threading.Lock()
         self._templates = {}
-        self._futures = []
+        self._futures = {}
+        self._fatal_exception = None
         self._start_time = None
         self._queue = MemSafeQueue(
             100000000 if max_mem is None else max_mem, tmpdir=tmpdir, logger=logger
@@ -257,71 +258,94 @@ class AbstractAsyncCacher(AbstractCacher):
         """Start the threads that will do the remote copies."""
         exr = concurrent.futures.ThreadPoolExecutor(max_workers=self.nthreads)
         self._start_time = time.time()
-        self._waiting = [False] * self.nthreads
-        self._exception_in_thread = None
-        self._futures = [exr.submit(self._copier, i) for i in range(self.nthreads)]
+        self._processing_item = [False] * self.nthreads
+        self._futures = {exr.submit(self._copier, i): i
+                         for i in range(self.nthreads)}
         exr.shutdown(wait=False)
 
     def close(self):
         """Close the queue and wait for threads to finish."""
+
         super().close()
 
+        # This try-except will catch KeyboardInterrupts, which are only sent to
+        # the main thread and would otherwise leave the other threads still
+        # running. It signals those to stop by setting
+        # self._fatal_exception.
         if self._futures:
-            close_time = time.time()
+            try:
+                self._wait_for_threads()
+            except BaseException as e:
+                self._fatal_exception = self._fatal_exception or e
+                raise
 
-            # Wait for each thread to complete and check if any raised an
-            # exception
-            for future in self._futures:
-                try:
-                    exc = future.exception(
-                        timeout=max(self.timeout - (time.time() - self._start_time), 0)
-                    )
-                except TimeoutError:
-                    # This won't cancel running futures, but it's better than
-                    # nothing
-                    [f.cancel() for f in self._futures]
-                    raise
-                if exc is not None:
-                    raise exc from exc
+    def _wait_for_threads(self):
 
-            # Log a summary for performance monitoring
-            summary = self._queue.stats.copy()
-            iotime = summary.pop("iotime")
-            now = time.time()
-            summary["time_secs"] = {
-                "elapsed": now - self._start_time,
-                "drain": now - close_time,
-                "io": iotime,
-            }
-            self.logger.info(f"MemSafeQueue summary: {summary!r}")
+        close_time = time.time()
+
+        # Wait for each thread to complete and check if any raised an
+        # exception
+        for future in concurrent.futures.as_completed(self._futures):
+            ithread = self._futures[future]
+            try:
+                future.result(
+                    timeout=max(self.timeout - (time.time() - self._start_time), 0)
+                )
+            except Exception as e:
+                self._fatal_exception = self._fatal_exception or e
+                # This won't cancel running futures, but it's better than
+                # nothing
+                [f.cancel() for f in self._futures]
+                self.logger.debug(f'Thread {ithread} raised {e!r}')
+                raise
+            else:
+                self.logger.debug(f'Thread {ithread} exited successfully')
+
+        # Log a summary for performance monitoring
+        summary = self._queue.stats.copy()
+        iotime = summary.pop("iotime")
+        now = time.time()
+        summary["time_secs"] = {
+            "elapsed": now - self._start_time,
+            "drain": now - close_time,
+            "io": iotime,
+        }
+        self.logger.info(f"MemSafeQueue summary: {summary!r}")
 
     def _write_fields(self, req):
         """Asynchronously cache fields."""
-        self._queue.put(req)
+        # Refuse puts if the object is in an error state
+        if self._fatal_exception:
+            raise Exception(f'Cacher has raised {self._fatal_exception!r}')
         # Start the copying thread if not done already
         with self._lock1:
             if not self._futures:
                 self._start_copy_threads()
+        self._queue.put(req)
 
     def _copier(self, *args, **kwargs):
+        """Thread to actually copy the data. There will be several of these
+        running at the same time.
+        """
         try:
             self._copier2(*args, **kwargs)
         except Exception as e:
             # Signal to other threads that they should stop because this one
             # encountered an exception
-            self._exception_in_thread = e
+            self._fatal_exception = self._fatal_exception or e
+            self.logger.error('Exception in copy thread: ' + repr(e))
             raise
 
     def _copier2(self, ithread):
-        """Thread to actually copy the data. There will be several of these
-        running at the same time.
-        """
         # Loop over items in the queue
         while True:
             # Get an item from the queue
             req = self._queue_get(ithread)
             if req is None:
                 break
+
+            #if time.time() - self._start_time > 3:
+            #    raise Exception('foobar')
 
             # It may be that this item represents multiple fields, in which case
             # we want to cache them in parallel for speed, so put every item
@@ -330,10 +354,17 @@ class AbstractAsyncCacher(AbstractCacher):
             # still work, just slower for multi-field inputs.
             prev = None
             for fieldinfo, data in self._field_iter(req):
+                if self._fatal_exception:
+                    raise Exception('Stopping due to exception in another thread')
                 if prev:
                     self._queue.put(prev)
                 prev = {"req": fieldinfo, "data": data}
             req = prev
+            # Indicate that there is no longer any chance of this thread putting
+            # anything related to this item in self._queue.
+            self._processing_item[ithread] = False
+
+            #self.logger.info(f"Thread {ithread} handing {req['req']}")
 
             self._write_fields_sync(req)
 
@@ -345,27 +376,22 @@ class AbstractAsyncCacher(AbstractCacher):
         """Return an item from the queue or None if there are no more items."""
         # Loop to poll for a new item
         while time.time() - self._start_time < self.timeout:
-            if self._exception_in_thread:
-                raise Exception(
-                    "Stopping due to exception in another thread: "
-                    + repr(self._exception_in_thread)
-                )
+            if self._fatal_exception:
+                raise Exception("Stopping due to exception in another thread")
 
             closed = self._close_was_called
-            self._waiting[ithread] = False
             with self._lock2:
                 try:
-                    req = self._queue.get(block=False)
+                    req = self._queue.get(timeout=0.1)
+                    self._processing_item[ithread] = True
                 except queue.Empty:
                     # There will be no new items if self.close() has been called
-                    # and all other threads are waiting inside this same loop
-                    self._waiting[ithread] = True
-                    if closed and all(self._waiting):
+                    # and no other thread is at a stage whereby it might put
+                    # something else in the queue.
+                    if closed and not any(self._processing_item):
                         return None
                 else:
                     return req
-
-            time.sleep(0.1)
 
     def _write_fields_sync(self, req):
         """Write the fields to the appropriate cache location."""
