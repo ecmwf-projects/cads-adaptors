@@ -14,7 +14,7 @@ REQUEST: dict[str, Any] = {}
 def test_expand_date() -> None:
     # This used to fail because of different treatment for single dates and date
     # ranges
-    r = {DATE_KEY: ["2021-01-01", "2021-01-02/2021-01-03"]}
+    r = {DATE_KEY: ["2021-01-01", "2021-01-02/2021-01-03", "2021-01-04/to/2021-01-05"]}
     mapping.expand_dates(
         r,
         REQUEST,
@@ -24,7 +24,11 @@ def test_expand_date() -> None:
         DAY_KEY,
         OPTIONS.get("date_format", "%Y-%m-%d"),
     )
-    assert r[DATE_KEY] == ["2021-01-01", "2021-01-02", "2021-01-03"], r["date"]
+    assert (
+        r[DATE_KEY]
+        == ["2021-01-01", "2021-01-02", "2021-01-03", "2021-01-04", "2021-01-05"]
+        == r["date"]
+    )
 
     # Test separate year/month/day
     request = {YEAR_KEY: "2021", MONTH_KEY: "2", DAY_KEY: 1}
@@ -85,6 +89,17 @@ def test_date_mapping() -> None:
     assert (
         mapped_request["date"][0]
         == f"{request['year']}{request['month']}{request['day']}"
+    )
+
+    request = {
+        "date": ["2004-04-04", "2004-04-05/2004-04-06", "2004-04-07/to/2004-04-08"],
+    }
+    req_mapping = {"options": {"wants_dates": True, "date_format": "%Y-%m-%d"}}
+    mapped_request = mapping.apply_mapping(request, req_mapping)
+    assert "date" in mapped_request
+    assert (
+        mapped_request["date"]
+        == [f"2004-04-{i:02d}" for i in range(4, 9)]
     )
 
 

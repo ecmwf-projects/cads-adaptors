@@ -198,10 +198,10 @@ def expand_dates(r, request, date, year, month, day, date_format):
         if not isinstance(dates, list):
             dates = [dates]
         dates = [str(d) for d in dates]
-        # Expand intervals
+        # Expand intervals, remove "to/" string so that we can support MARS date ranges
         for d in dates:
             if "/" in d:
-                items = [_.strip() for _ in d.split("/")]
+                items = [_.strip() for _ in d.replace("to/", "").split("/")]
                 if len(items) != 2 or not items[0] or not items[1]:
                     raise exceptions.InvalidRequest(
                         f'Date ranges must be of the form "start_date/end_date": "{d}"'
