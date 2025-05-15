@@ -70,7 +70,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         products = selected_collection.search(**request)
 
-        self.context.debug(
+        self.context.add_stdout(
             f"{products.total_results} products found."
         )
 
