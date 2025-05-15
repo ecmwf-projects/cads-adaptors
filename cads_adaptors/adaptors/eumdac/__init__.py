@@ -47,6 +47,16 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         eumdac_request["dtend"] = eumdac_request["date"][0]
         eumdac_request.pop('date', None)
 
+        # convert lists to EUMDAC {,}-format
+        for eumdac_key in eumdac_request:
+            if isinstance(eumdac_request[eumdac_key],list):
+                if len(eumdac_request[eumdac_key]) > 1:
+                    eumdac_request[eumdac_key] = "{" + ",".join(
+                        [str(x) for x in eumdac_request[eumdac_key]]
+                    ) + "}"
+                else:
+                    eumdac_request[eumdac_key] = str(eumdac_request[eumdac_key][0])
+
         # convert date arguments to the expected type
         for date_input_key in EUMDACAdaptor.DATE_INPUT_KEYS:
             if date_input_key in eumdac_request:
