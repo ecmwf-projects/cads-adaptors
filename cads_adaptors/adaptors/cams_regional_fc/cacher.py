@@ -14,6 +14,7 @@ import jinja2
 from cds_common.hcube_tools import count_fields, hcube_intdiff, hcubes_intdiff2
 from cds_common.message_iterators import grib_bytes_iterator
 from cds_common.url2.caching import NotInCache
+from cds_common.atomic_write import AtomicWrite
 from eccodes import codes_get_message
 
 from . import DEFAULT_NO_CACHE_KEY
@@ -479,7 +480,7 @@ class CacherDisk(AbstractAsyncCacher):
         path = self.field2path(fieldinfo)
         self.logger.info(f"Writing {fieldinfo} to {path}")
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "wb") as f:
+        with AtomicWrite(path, "wb") as f:
             f.write(data)
 
 
@@ -501,7 +502,7 @@ class CacherS3AndDisk(CacherS3):
             path = self.field2path(fieldinfo)
             self.logger.info(f"Writing {fieldinfo} to {path}")
             os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, "wb") as f:
+            with AtomicWrite(path, "wb") as f:
                 f.write(data)
 
         # Write to the S3 bucket
