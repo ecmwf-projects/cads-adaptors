@@ -34,7 +34,6 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         return self.token
 
     NON_EUMDAC_KEYS = ["__in_adaptor_no_cache"]
-    DATE_INPUT_KEYS = ["dtstart", "dtend"]
 
     def cds_to_eumdac_preprocessing(self, request):
         eumdac_request = copy.deepcopy(request)
@@ -57,14 +56,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
                 else:
                     eumdac_request[eumdac_key] = str(eumdac_request[eumdac_key][0])
 
-        # convert date arguments to the expected type
-        for date_input_key in EUMDACAdaptor.DATE_INPUT_KEYS:
-            if date_input_key in eumdac_request:
-                if isinstance(eumdac_request[date_input_key], str):
-                    eumdac_request[date_input_key] = datetime.datetime.strptime(
-                        eumdac_request[date_input_key], "%Y%m%d"
-                    )
-        return eumdac_request
+        return [eumdac_request]
 
     def has_token_expired(self):
         return self.token.expiration < datetime.datetime.now()
@@ -151,11 +143,12 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         downloaded_products = []
         try:
             for subrequest in self.mapped_requests:
-                eumdac_request = self.cds_to_eumdac_preprocessing(subrequest)
-                downloaded_products_for_subrequest = self.download(eumdac_request)
-                self.context.add_stdout(f"Calling EUMDAC for: {eumdac_request}")
-                downloaded_products.extend(downloaded_products_for_subrequest)
-                self.context.add_stdout(f"Downloaded products: {downloaded_products_for_subrequest}")
+                eumdac_requests = self.cds_to_eumdac_preprocessing(subrequest)
+                for eumdac_request in eumdac_requests:
+                    self.context.add_stdout(f"Calling EUMDAC for: {eumdac_request}")
+                    downloaded_products_for_subrequest = self.download(eumdac_request)
+                    downloaded_products.extend(downloaded_products_for_subrequest)
+                    self.context.add_stdout(f"Downloaded products: {downloaded_products_for_subrequest}")
         except Exception as e:
             msg = e.args[0]
             self.context.add_user_visible_error(msg)
