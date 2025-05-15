@@ -477,7 +477,7 @@ class CacherDisk(AbstractAsyncCacher):
 
     def _write_1field_sync(self, data, fieldinfo):
         path = self.field2path(fieldinfo)
-        self.logger.info(f"Caching {fieldinfo} to {path}")
+        self.logger.info(f"Writing {fieldinfo} to {path}")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "wb") as f:
             f.write(data)
@@ -499,7 +499,7 @@ class CacherS3AndDisk(CacherS3):
         # Write to a local path?
         if self.field2path:
             path = self.field2path(fieldinfo)
-            self.logger.info(f"Caching {fieldinfo} to {path}")
+            self.logger.info(f"Writing {fieldinfo} to {path}")
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "wb") as f:
                 f.write(data)
