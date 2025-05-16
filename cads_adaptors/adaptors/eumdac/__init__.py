@@ -7,6 +7,7 @@ from typing import Any
 
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 from cads_adaptors.exceptions import InvalidRequest
+from cads_adaptors.tools.general import ensure_list
 
 
 class EUMDACAdaptor(AbstractCdsAdaptor):
@@ -35,6 +36,26 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
     NON_EUMDAC_KEYS = ["__in_adaptor_no_cache"]
 
+    def str_to_date(self, date_str):
+        return datetime.datetime.strptime(date_str, "%Y-%m-%d")
+
+    def merge_into_maximal_date_intervals(self, request):
+        dates = copy.deepcopy(request["date"])
+        request["date"] = []
+        dates = sorted(ensure_list(dates))
+        current_interval = (dates[0],dates[0])
+        previous_date = dates[0]
+        ONE_DAY = datetime.timedelta(days=1)
+        for date in dates[1:]:
+            if self.str_to_date(date) != self.str_to_date(previous_date) + ONE_DAY:
+                current_interval = (current_interval[0],previous_date)
+                request["date"].append(current_interval)
+                current_interval = (date,date)
+            previous_date = date
+        current_interval = (current_interval[0],dates[-1])
+        request["date"].append(current_interval)
+        return request
+
     def cds_to_eumdac_preprocessing(self, request):
         eumdac_request = copy.deepcopy(request)
 
@@ -42,21 +63,20 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         for non_eumdac_key in EUMDACAdaptor.NON_EUMDAC_KEYS:
             eumdac_request.pop(non_eumdac_key, None)
 
-        eumdac_request["dtstart"] = eumdac_request["date"][0]
-        eumdac_request["dtend"] = eumdac_request["date"][0]
-        eumdac_request.pop('date', None)
+        eumdac_request = self.merge_into_maximal_date_intervals(eumdac_request)
 
         # convert lists to EUMDAC {,}-format
         for eumdac_key in eumdac_request:
-            if isinstance(eumdac_request[eumdac_key],list):
-                if len(eumdac_request[eumdac_key]) > 1:
-                    eumdac_request[eumdac_key] = "{" + ",".join(
-                        [str(x) for x in eumdac_request[eumdac_key]]
-                    ) + "}"
-                else:
-                    eumdac_request[eumdac_key] = str(eumdac_request[eumdac_key][0])
+            if eumdac_key!="date":
+                if isinstance(eumdac_request[eumdac_key], list):
+                    if len(eumdac_request[eumdac_key]) > 1:
+                        eumdac_request[eumdac_key] = "{" + ",".join(
+                            [str(x) for x in eumdac_request[eumdac_key]]
+                        ) + "}"
+                    else:
+                        eumdac_request[eumdac_key] = str(eumdac_request[eumdac_key][0])
 
-        return [eumdac_request]
+        return eumdac_request
 
     def has_token_expired(self):
         return self.token.expiration < datetime.datetime.now()
@@ -91,14 +111,22 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         return downloaded_products
 
-    def get_result_size(self, request):
-        products = self.search(request)
-
-        number_of_products = products.total_results
+    def get_result_size(self, eumdac_request):
+        request = copy.deepcopy(eumdac_request)
 
         total_size_in_kb = 0
-        for product in products:
-            total_size_in_kb += product.size
+        number_of_products = 0
+
+        date_intervals = request.pop("date", None)
+        for date_interval in date_intervals:
+            request["dtstart"],request["dtend"] = date_interval
+            products = self.search(request)
+
+            number_of_products += products.total_results
+
+            for product in products:
+                total_size_in_kb += product.size
+
         self.context.debug(
             f"The total size is {total_size_in_kb}KB (before any DS post-processing or packing) for {number_of_products} products."
         )
@@ -132,7 +160,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
     def estimate_costs(self, request, **kwargs):
         costs= {}
         costs['number_of_fields'], costs["precise_size"] = self.compute_result_size(request)
-        costs["size"] = costs["precise_size"]
+        costs["size"] = costs["number_of_fields"]
         return costs
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
@@ -143,8 +171,10 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         downloaded_products = []
         try:
             for subrequest in self.mapped_requests:
-                eumdac_requests = self.cds_to_eumdac_preprocessing(subrequest)
-                for eumdac_request in eumdac_requests:
+                eumdac_request = self.cds_to_eumdac_preprocessing(subrequest)
+                date_intervals = eumdac_request.pop("date", None)
+                for date_interval in date_intervals:
+                    eumdac_request["dtstart"],eumdac_request["dtend"] = date_interval
                     self.context.add_stdout(f"Calling EUMDAC for: {eumdac_request}")
                     downloaded_products_for_subrequest = self.download(eumdac_request)
                     downloaded_products.extend(downloaded_products_for_subrequest)
