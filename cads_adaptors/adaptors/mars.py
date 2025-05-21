@@ -51,6 +51,20 @@ def get_mars_server_list(config) -> list[str]:
         )
     return mars_servers
 
+def download_file(url):
+    import requests
+    local_filename = url.split('/')[-1]
+    # NOTE the stream=True parameter below
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(local_filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192): 
+                # If you have chunk encoded response uncomment if
+                # and set chunk_size parameter to None.
+                #if chunk: 
+                f.write(chunk)
+    return local_filename
+
 
 def execute_mars(
     request: dict[str, Any] | list[dict[str, Any]],
@@ -113,17 +127,15 @@ def execute_mars(
     reply_message = str(reply.message)
     delta_time = time.time() - time0
     # Check if the file exists
-    if os.path.exists(target):
-        filesize = os.path.getsize(target)
-    elif target.startswith("http"):
+        
+    if target.startswith("http"):
+        _this_t0 = time.time()
         # If the target is a URL, we need to get the size from the headers
-        import requests as req
-        response = req.head(target)
-        if response.status_code == 200:
-            filesize = int(response.headers.get("Content-Length", 0))
-        else:
-            filesize = 0   
-    
+        ot = target
+        target = download_file(target)
+        context.info(f"Downloaded file from {ot} in {time.time() - _this_t0:.2f} seconds")
+    filesize = os.path.getsize(target)
+        
     context.info(
         f"MARS Request complete. Filesize={filesize*1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
         delta_time=delta_time,
