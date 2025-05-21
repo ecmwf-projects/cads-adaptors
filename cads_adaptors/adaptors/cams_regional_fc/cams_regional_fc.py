@@ -317,7 +317,7 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
             dataset,
             {"requests": requests, "parent_config": config},
         )
-        sub_request_uid = response.request_uid
+        sub_request_uid = response.request_id
         context.info(
             f"Sub-request {sub_request_uid} has been launched (via the " "CDSAPI)."
         )
