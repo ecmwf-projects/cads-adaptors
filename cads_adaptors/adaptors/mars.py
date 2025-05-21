@@ -112,7 +112,18 @@ def execute_mars(
         target = local_target(reply.data)
     reply_message = str(reply.message)
     delta_time = time.time() - time0
-    filesize = os.path.getsize(target)
+    # Check if the file exists
+    if os.path.exists(target):
+        filesize = os.path.getsize(target)
+    elif target.startswith("http"):
+        # If the target is a URL, we need to get the size from the headers
+        import requests as req
+        response = req.head(target)
+        if response.status_code == 200:
+            filesize = int(response.headers.get("Content-Length", 0))
+        else:
+            filesize = 0   
+    
     context.info(
         f"MARS Request complete. Filesize={filesize*1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
         delta_time=delta_time,
