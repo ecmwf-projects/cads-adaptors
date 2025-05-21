@@ -19,7 +19,7 @@ dependencies:
 - h5netcdf
 - jinja2
 - jsonschema
-- multiurl=0.3.1
+- multiurl>=0.3.3
 - netcdf4
 - numpy
 - pandas
