@@ -134,7 +134,7 @@ def execute_mars(
         ot = target
         try:
             target = download_file(target)
-            context.info(f"Downloaded file from {ot} in {time.time() - _this_t0:.2f} seconds")
+            context.info(f"Downloaded file from {ot} to {target} in {time.time() - _this_t0:.2f} seconds")
         except Exception as e:
             context.error(f"Failed to download file from {ot}: {e}")
             raise MarsRuntimeError(f"Failed to download file from {ot}: {e}")
