@@ -132,8 +132,12 @@ def execute_mars(
         _this_t0 = time.time()
         # If the target is a URL, we need to get the size from the headers
         ot = target
-        target = download_file(target)
-        context.info(f"Downloaded file from {ot} in {time.time() - _this_t0:.2f} seconds")
+        try:
+            target = download_file(target)
+            context.info(f"Downloaded file from {ot} in {time.time() - _this_t0:.2f} seconds")
+        except Exception as e:
+            context.error(f"Failed to download file from {ot}: {e}")
+            raise MarsRuntimeError(f"Failed to download file from {ot}: {e}")
     filesize = os.path.getsize(target)
         
     context.info(
