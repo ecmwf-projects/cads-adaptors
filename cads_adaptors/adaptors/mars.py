@@ -159,7 +159,10 @@ def execute_mars(
         context.add_user_visible_error(message=error_message)
 
         error_message += f"Exception: {reply.error}\n"
-        raise MarsRuntimeError(error_message)
+        if filesize > 0:
+            context.add_user_visible_error(message=f"Not rising this error { error_message } because the file exists")
+        else:
+            raise MarsRuntimeError(error_message)
 
     if not filesize:
         error_message = (
