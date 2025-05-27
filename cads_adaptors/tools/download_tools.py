@@ -111,8 +111,9 @@ def as_source(paths: List[str], **kwargs) -> BinaryIO:
     if len(paths) == 1:
         if paths[0].endswith(".grib"):
             facts = paths[0].split("/")
-            if facts[-2] == "mars":
-                return InPlaceFile(paths[0], "rb")
+            if len(facts) > 1:
+                if facts[-2] == "mars":
+                    return InPlaceFile(paths[0], "rb")
         return open(paths[0], "rb")
     else:
         raise ValueError("as_source can only be used for a single file.")
