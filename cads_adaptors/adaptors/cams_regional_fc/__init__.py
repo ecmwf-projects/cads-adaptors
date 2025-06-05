@@ -4,6 +4,7 @@ from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 
 STACK_TEMP_DIR = "/tmp/cams-europe-air-quality-forecasts/temp"
 STACK_DOWNLOAD_DIR = "/tmp/cams-europe-air-quality-forecasts/download"
+DEFAULT_NO_CACHE_KEY = "_no_cache"
 
 
 class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
