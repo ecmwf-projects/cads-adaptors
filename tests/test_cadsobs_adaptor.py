@@ -247,6 +247,7 @@ def test_adaptor_csv(tmp_path, monkeypatch):
     with zipfile.ZipFile(result, "r") as zipf:
         file_lines = zipf.read(name=zipf.namelist()[0]).decode("UTF-8").split("\n")
     assert len(file_lines) > 0
+    assert file_lines[0] != ""
     assert "# daily_maximum_air_temperature [K]" in file_lines
     assert "# daily_maximum_relative_humidity [%]" in file_lines
 
