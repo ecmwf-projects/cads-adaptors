@@ -133,7 +133,7 @@ class MockerCadsobsApiClient:
         return [
             "https://object-store.os-api.cci2.ecmwf.int/"
             "cds2-obs-dev-insitu-observations-near-surface-temperature-us-cl/"
-            "insitu-observations-near-surface-temperature-us-climate-reference-network_uscrn_daily_200808_30.0_-150.0.nc"
+            "insitu-observations-near-surface-temperature-us-climate-reference-network_1.0.0_uscrn_daily_200808_30.0_-150.0.nc"
         ]
 
 
@@ -247,6 +247,7 @@ def test_adaptor_csv(tmp_path, monkeypatch):
     with zipfile.ZipFile(result, "r") as zipf:
         file_lines = zipf.read(name=zipf.namelist()[0]).decode("UTF-8").split("\n")
     assert len(file_lines) > 0
+    assert file_lines[0] != ""
     assert "# daily_maximum_air_temperature [K]" in file_lines
     assert "# daily_maximum_relative_humidity [%]" in file_lines
 
