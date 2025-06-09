@@ -4,8 +4,6 @@ import os
 import re
 from typing import Any
 
-import _pytest
-import _pytest.python_api
 import jsonschema
 import jsonschema_specifications
 import packaging.version
@@ -1637,7 +1635,7 @@ def test_enforce(draft_specs, req, schema, expected, err_msgs):
     if draft_specs["post_201909"]:
         schema = modernise_schema(schema)
 
-    if isinstance(expected, _pytest.python_api.RaisesContext):
+    if isinstance(expected, pytest.RaisesExc):
         with expected as exc_info:
             enforce.enforce(req, schema)
         assert exc_info.value.args == err_msgs

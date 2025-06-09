@@ -7,7 +7,7 @@ from dateutil.parser import parse as dtparse
 
 from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
-from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools.general import ensure_list, set_postprocess_dask_config
 
 SPATIAL_COORDINATES = {"latitude", "longitude"}
 DEFAULT_DATA_FORMAT = "netcdf"
@@ -113,7 +113,6 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         return dict(sorted(request.items()))
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
-        import dask
         import xarray as xr
 
         self.normalise_request(request)  # Needed to populate self.mapped_requests
@@ -152,7 +151,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         ds = ds.sel(request["location"], method="nearest")
         ds = ds.rename(NAME_DICT)
 
-        with dask.config.set(scheduler="single-threaded"):
+        with set_postprocess_dask_config(scheduler="single-threaded"):
             match request["data_format"]:
                 case "netcdf":
                     _, path = tempfile.mkstemp(

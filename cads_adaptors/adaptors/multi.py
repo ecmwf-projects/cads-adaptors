@@ -8,7 +8,7 @@ from cads_adaptors.exceptions import (
     MultiAdaptorNoDataError,
 )
 from cads_adaptors.tools import adaptor_tools
-from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools.general import ensure_list, set_postprocess_dask_config
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
@@ -270,8 +270,6 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
-        import dask
-
         from cads_adaptors.adaptors.mars import execute_mars
 
         request = self.normalise_request(request)
@@ -327,7 +325,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             target_dir=self.cache_tmp_path,
         )
 
-        with dask.config.set(scheduler="threads"):
+        with set_postprocess_dask_config():
             paths = self.convert_format(
                 result,
                 self.data_format,

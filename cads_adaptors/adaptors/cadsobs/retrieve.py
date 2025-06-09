@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import dask
 import fsspec
 
 from cads_adaptors import Context
@@ -13,6 +12,7 @@ from cads_adaptors.adaptors.cadsobs.utils import (
     _get_output_path,
 )
 from cads_adaptors.exceptions import CadsObsRuntimeError
+from cads_adaptors.tools import general
 
 
 def retrieve_data(
@@ -62,7 +62,7 @@ def retrieve_data(
         output_path = output_path_netcdf
     else:
         try:
-            with dask.config.set(scheduler="single-threaded"):
+            with general.set_postprocess_dask_config(scheduler="single-threaded"):
                 output_path_csv = to_csv(output_dir, output_path_netcdf, retrieve_args)
                 output_path = to_zip(output_path_csv)
         finally:
