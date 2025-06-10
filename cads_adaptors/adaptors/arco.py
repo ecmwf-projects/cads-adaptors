@@ -198,7 +198,10 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             }
         ds = ds.sel(indexers, method=method)
         if not all([ds.sizes.get(dim, 1) for dim in indexers]):
-            raise ArcoDataLakeNoDataError(f"No data found for {indexers=}.")
+            msg = f"No data found for {indexers=}."
+            self.context.add_user_visible_error(msg)
+            raise ArcoDataLakeNoDataError(msg)
+
         ds = ds.rename(NAME_DICT)
 
         with set_postprocess_dask_config(scheduler="single-threaded"):
