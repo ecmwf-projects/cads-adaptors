@@ -53,8 +53,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         if "area" not in request:
             return
 
-        area = ensure_list(request.get("area"))
-        area = area or DEFAULT_AREA
+        area = ensure_list(request.get("area")) or DEFAULT_AREA
         msg = "Please specify the `area` parameter in the form [north, west, south, east]."
         if len(area) != 4:
             raise InvalidRequest(msg)
@@ -181,10 +180,10 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         try:
             ds = ds.sel(**selection)
         except TypeError:
-            self.context.add_user_visible_error(f"Invalid {date_range=}")
+            self.context.add_user_visible_error(f"Invalid {date_range=}.")
             raise
         if not ds.sizes[source_date_key]:
-            msg = f"No data found for {date_range=}"
+            msg = f"No data found for {date_range=}."
             self.context.add_user_visible_error(msg)
             raise ArcoDataLakeNoDataError(msg)
 
@@ -198,6 +197,8 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
                 LON_NAME: slice(request["area"][1], request["area"][3]),
             }
         ds = ds.sel(indexers, method=method)
+        if not all([ds.sizes.get(dim, 1) for dim in indexers]):
+            raise ArcoDataLakeNoDataError(f"No data found for {indexers=}.")
         ds = ds.rename(NAME_DICT)
 
         with set_postprocess_dask_config(scheduler="single-threaded"):

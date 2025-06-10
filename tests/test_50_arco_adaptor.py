@@ -393,6 +393,16 @@ def test_arco_select_area(
     assert ds["longitude"].values.tolist() == list(range(-180, 1, 20))
 
 
+def test_arco_select_wrong_area(arco_adaptor: ArcoDataLakeCdsAdaptor):
+    request = {
+        "variable": "FOO",
+        "area": [0, 0, 0, 0],
+        "date": "2000",
+    }
+    with pytest.raises(ArcoDataLakeNoDataError, match="No data found for indexers="):
+        arco_adaptor.retrieve(request)
+
+
 @pytest.mark.parametrize(
     "date,expected_size",
     [
@@ -476,7 +486,7 @@ def test_arco_data_format(
                 "date": "foo",
             },
             TypeError,
-            "Invalid date_range=['foo', 'foo']",
+            "Invalid date_range=['foo', 'foo'].",
         ),
         (
             {
@@ -485,7 +495,7 @@ def test_arco_data_format(
                 "date": 1990,
             },
             ArcoDataLakeNoDataError,
-            "No data found for date_range=['1990', '1990']",
+            "No data found for date_range=['1990', '1990'].",
         ),
     ],
 )
