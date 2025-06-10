@@ -169,10 +169,10 @@ class MultiAdaptor(AbstractCdsAdaptor):
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         request = self.normalise_request(request)
         self.context.debug(
-            f"MultiAdaptor, full mapped and intersected request: {self.mapped_request}"
+            f"MultiAdaptor, full mapped and intersected request: {self.mapped_requests}"
         )
 
-        sub_adaptors = self.split_adaptors(self.mapped_request)
+        sub_adaptors = self.split_adaptors(self.mapped_requests)
 
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
