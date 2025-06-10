@@ -176,7 +176,7 @@ def test_area_selector_regular(ds, area, test_result):
     result = area_selector(ds, area=area)
 
     assert isinstance(result, xr.Dataset)
-    assert result.dims == test_result.dims
+    assert result.sizes == test_result.sizes
     assert np.allclose(result.latitude.values, test_result.latitude.values)
     assert np.allclose(result.longitude.values, test_result.longitude.values)
 
@@ -219,7 +219,7 @@ def test_area_selector_path_regular(ds, area, test_result):
         result = area_selector_path(test_file, area=area)
         result_xr = xr.open_dataset(result[0])
         assert isinstance(result_xr, xr.Dataset)
-        assert result_xr.dims == test_result.dims
+        assert result_xr.sizes == test_result.sizes
         assert np.allclose(result_xr.latitude.values, test_result.latitude.values)
         assert np.allclose(result_xr.longitude.values, test_result.longitude.values)
 
