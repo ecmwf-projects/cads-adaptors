@@ -9,7 +9,8 @@ from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
 from cads_adaptors.tools.general import ensure_list, set_postprocess_dask_config
 
-SPATIAL_COORDINATES = {"latitude", "longitude"}
+LAT_NAME = "latitude"
+LON_NAME = "longitude"
 DEFAULT_DATA_FORMAT = "netcdf"
 DATA_FORMATS = {
     "netcdf": ["netcdf", "netcdf4", "nc"],
@@ -18,6 +19,8 @@ DATA_FORMATS = {
 NAME_DICT = {
     "time": "valid_time",
 }
+DEFAULT_AREA = [90, -180, -90, 180]
+DEFAULT_MAXIMUM_AREA_EXTENT = {"latitude": 1, "longitude": 1}
 
 
 class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -28,17 +31,49 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         request["variable"] = variable
 
     def _normalise_location(self, request: Request) -> None:
+        if "location" not in request:
+            return
+
         locations = ensure_list(request.get("location"))
-        msg = "Please specify a single valid location using the format {'latitude': 0, 'longitude': 0}"
+        msg = (
+            "Please specify a single valid location using the format "
+            f"{dict.fromkeys([LAT_NAME, LON_NAME], 0)}."
+        )
         if len(locations) != 1:
             raise InvalidRequest(msg)
         (location,) = locations
-        if not isinstance(location, dict) or not set(location) == SPATIAL_COORDINATES:
+        if not isinstance(location, dict) or not set(location) == {LAT_NAME, LON_NAME}:
             raise InvalidRequest(f"Invalid {location=}. {msg}")
         try:
             request["location"] = {k: float(v) for k, v in sorted(location.items())}
         except (ValueError, TypeError):
             raise InvalidRequest(f"Invalid {location=}. {msg}")
+
+    def _normalise_area(self, request: Request) -> None:
+        if "area" not in request:
+            return
+
+        area = ensure_list(request.get("area"))
+        area = area or DEFAULT_AREA
+        msg = "Please specify the `area` parameter in the form [north, west, south, east]."
+        if len(area) != 4:
+            raise InvalidRequest(msg)
+        try:
+            area = list(map(float, area))
+        except ValueError:
+            raise InvalidRequest(msg)
+        if area[0] < area[2] or area[3] < area[1]:
+            raise InvalidRequest(msg)
+
+        max_extent = self.config.get("maximum_area_extent", DEFAULT_MAXIMUM_AREA_EXTENT)
+        extent = {LAT_NAME: abs(area[0] - area[2]), LON_NAME: abs(area[1] - area[3])}
+        for k, v in extent.items():
+            if k in max_extent and v > max_extent[k]:
+                raise InvalidRequest(
+                    f"{LAT_NAME} exceeds the maximum extent allowed ({max_extent[k]}°). Received: {v}°."
+                )
+
+        request["area"] = area
 
     def _normalise_date(self, request: Request) -> None:
         date_key = self.config.get("date_key", "date")
@@ -100,9 +135,16 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         if self.normalised:
             return request
 
+        print(request)
+        if len({"area", "location"} & set(request)) != 1:
+            raise InvalidRequest(
+                "The parameters `area` and `request` are mutually exclusive, and one of them is required."
+            )
+
         request = copy.deepcopy(request)
         self._normalise_variable(request)
         self._normalise_location(request)
+        self._normalise_area(request)
         self._normalise_date(request)
         self._normalise_data_format(request)
 
@@ -148,7 +190,16 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             self.context.add_user_visible_error(msg)
             raise ArcoDataLakeNoDataError(msg)
 
-        ds = ds.sel(request["location"], method="nearest")
+        if "location" in request:
+            method = "nearest"
+            indexers = request["location"]
+        else:
+            method = None
+            indexers = {
+                LAT_NAME: slice(request["area"][2], request["area"][0]),
+                LON_NAME: slice(request["area"][1], request["area"][3]),
+            }
+        ds = ds.sel(indexers, method=method)
         ds = ds.rename(NAME_DICT)
 
         with set_postprocess_dask_config(scheduler="single-threaded"):
