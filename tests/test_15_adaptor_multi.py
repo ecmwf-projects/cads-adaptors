@@ -252,7 +252,7 @@ def test_multi_adaptor_split_adaptors():
 
     # Check that the sub-adaptors have the correct values
     for adaptor in ["mean", "max"]:
-        sub_adaptor_request = sub_adaptors[adaptor][1]
+        sub_adaptor_request = sub_adaptors[f"{adaptor}-0"][1]
         assert sub_adaptor_request == ADAPTOR_CONFIG["adaptors"][adaptor]["values"]
 
     for adaptor_tag, [adaptor, req] in sub_adaptors.items():
@@ -273,8 +273,8 @@ def test_multi_adaptor_split_adaptors_required_keys():
         request,
     )
 
-    assert "mean" not in sub_adaptors.keys()
-    assert "max" in sub_adaptors.keys()
+    assert "mean-0" not in sub_adaptors.keys()
+    assert "max-0" in sub_adaptors.keys()
 
 
 def test_multi_adaptor_split_adaptors_dont_split_keys():
@@ -288,9 +288,9 @@ def test_multi_adaptor_split_adaptors_dont_split_keys():
         request,
     )
 
-    assert "dont_split" in sub_adaptors["mean"][1].keys()
-    assert "dont_split" not in sub_adaptors["max"][1].keys()
-    assert "area" in sub_adaptors["max"][1].keys()
+    assert "dont_split" in sub_adaptors["mean-0"][1].keys()
+    assert "dont_split" not in sub_adaptors["max-0"][1].keys()
+    assert "area" in sub_adaptors["max-0"][1].keys()
 
 
 def test_convert_format(tmp_path, monkeypatch):
