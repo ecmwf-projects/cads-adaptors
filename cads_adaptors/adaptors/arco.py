@@ -72,7 +72,6 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
                 raise InvalidRequest(
                     f"{LAT_NAME} exceeds the maximum extent allowed ({max_extent[k]}°). Received: {v}°."
                 )
-
         request["area"] = area
 
     def _normalise_date(self, request: Request) -> None:
@@ -135,7 +134,6 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         if self.normalised:
             return request
 
-        print(request)
         if len({"area", "location"} & set(request)) != 1:
             raise InvalidRequest(
                 "The parameters `area` and `request` are mutually exclusive, and one of them is required."
