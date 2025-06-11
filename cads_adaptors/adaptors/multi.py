@@ -139,15 +139,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                     _request, this_values, **extract_subrequest_kwargs
                 )
                 if len(this_request) > 0:
-                    try:
-                        this_request = this_adaptor.normalise_request(this_request)
-                    except Exception:
-                        self.context.warning(
-                            f"MultiAdaptor failed to normalise request.\n"
-                            f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
-                        )
-                    else:
-                        this_requests.extend(deepcopy(this_adaptor.mapped_requests))
+                    this_requests.extend(deepcopy(this_request))
 
             if len(this_requests) > 0:
                 self.context.info(
