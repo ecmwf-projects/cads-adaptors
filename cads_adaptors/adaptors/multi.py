@@ -165,6 +165,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
         )
 
         sub_adaptors = self.split_adaptors(self.mapped_requests)
+        self.context.debug(
+            f"MultiAdaptor, split requests into sub-adaptors: {sub_adaptors}"
+        )
 
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
