@@ -169,6 +169,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
+            self.context.debug(
+                f"MultiAdaptor, {adaptor_tag}, request: {req}, adaptor: {adaptor}"
+            )
             try:
                 this_result = adaptor.retrieve_list_of_results(req)
             except Exception as err:
