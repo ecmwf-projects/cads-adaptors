@@ -141,11 +141,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 if len(this_request) > 0:
                     this_requests.extend(deepcopy(this_request))
 
+            self.context.info(
+                f"MultiAdaptor, {adaptor_tag}, this_requests: {this_requests}"
+            )
             if len(this_requests) > 0:
-                self.context.info(
-                    f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
-                )
-                for i, this_request in enumerate(this_requests):
+                for i, _request in enumerate(this_requests):
                     sub_adaptors[f"{adaptor_tag}-{i}"] = (this_adaptor, this_request)
 
         return sub_adaptors
