@@ -7,7 +7,7 @@ from dateutil.parser import parse as dtparse
 
 from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
-from cads_adaptors.tools.general import ensure_list, set_postprocess_dask_config
+from cads_adaptors.tools.general import ensure_list
 
 SPATIAL_COORDINATES = {"latitude", "longitude"}
 DEFAULT_DATA_FORMAT = "netcdf"
@@ -151,23 +151,22 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         ds = ds.sel(request["location"], method="nearest")
         ds = ds.rename(NAME_DICT)
 
-        with set_postprocess_dask_config(scheduler="single-threaded"):
-            match request["data_format"]:
-                case "netcdf":
-                    _, path = tempfile.mkstemp(
-                        prefix=self.config.get("collection-id", "arco-data"),
-                        suffix=".nc",
-                        dir=self.cache_tmp_path,
-                    )
-                    ds.to_netcdf(path)
-                case "csv":
-                    _, path = tempfile.mkstemp(
-                        prefix=self.config.get("collection-id", "arco-data"),
-                        suffix=".csv",
-                        dir=self.cache_tmp_path,
-                    )
-                    ds.to_pandas().to_csv(path)
-                case data_format:
-                    raise NotImplementedError(f"Invalid {data_format=}.")
+        match request["data_format"]:
+            case "netcdf":
+                _, path = tempfile.mkstemp(
+                    prefix=self.config.get("collection-id", "arco-data"),
+                    suffix=".nc",
+                    dir=self.cache_tmp_path,
+                )
+                ds.to_netcdf(path)
+            case "csv":
+                _, path = tempfile.mkstemp(
+                    prefix=self.config.get("collection-id", "arco-data"),
+                    suffix=".csv",
+                    dir=self.cache_tmp_path,
+                )
+                ds.to_pandas().to_csv(path)
+            case data_format:
+                raise NotImplementedError(f"Invalid {data_format=}.")
 
         return [str(path)]
