@@ -3,12 +3,9 @@ from __future__ import annotations
 import os
 from collections import defaultdict
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from cryptography.fernet import Fernet, InvalidToken
-
-if TYPE_CHECKING:
-    pass
 
 
 def ensure_list(input_item: Any) -> list:
