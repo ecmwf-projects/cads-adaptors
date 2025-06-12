@@ -9,7 +9,7 @@ from earthkit.transforms import tools as eka_tools
 
 from cads_adaptors.adaptors import Context
 from cads_adaptors.exceptions import CdsFormatConversionError, InvalidRequest
-from cads_adaptors.tools import adaptor_tools, convertors, general
+from cads_adaptors.tools import adaptor_tools, convertors
 
 
 def area_to_checked_dictionary(area: list[float | int]) -> dict[str, float | int]:
@@ -306,20 +306,17 @@ def area_selector_paths(
 ) -> list[str]:
     time0 = time.time()
     total_filesize = 0
-    with general.set_postprocess_dask_config():
-        # We try to select the area for all paths, if any fail we return the original paths
-        out_paths = []
-        for path in paths:
-            try:
-                out_paths += area_selector_path(
-                    path, area=area, context=context, **kwargs
-                )
-                total_filesize += os.path.getsize(path)
-            except (NotImplementedError, CdsFormatConversionError):
-                context.logger.debug(
-                    f"could not convert {path} to xarray; returning the original data"
-                )
-                out_paths.append(path)
+    # We try to select the area for all paths, if any fail we return the original paths
+    out_paths = []
+    for path in paths:
+        try:
+            out_paths += area_selector_path(path, area=area, context=context, **kwargs)
+            total_filesize += os.path.getsize(path)
+        except (NotImplementedError, CdsFormatConversionError):
+            context.logger.debug(
+                f"could not convert {path} to xarray; returning the original data"
+            )
+            out_paths.append(path)
     context.info(
         f"Area selection for {len(paths)} files complete"
         f"Total filesize: {total_filesize}, subset time: {time.time() - time0:.2f} seconds",

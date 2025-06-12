@@ -4,7 +4,7 @@ from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
 from cads_adaptors.exceptions import CdsConfigurationError, MultiAdaptorNoDataError
 from cads_adaptors.tools import adaptor_tools
-from cads_adaptors.tools.general import ensure_list, set_postprocess_dask_config
+from cads_adaptors.tools.general import ensure_list
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
@@ -271,14 +271,13 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             target_dir=self.cache_tmp_path,
         )
 
-        with set_postprocess_dask_config():
-            paths = self.convert_format(
-                result,
-                self.data_format,
-                self.context,
-                self.config,
-                target_dir=str(self.cache_tmp_path),
-            )
+        paths = self.convert_format(
+            result,
+            self.data_format,
+            self.context,
+            self.config,
+            target_dir=str(self.cache_tmp_path),
+        )
 
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"
