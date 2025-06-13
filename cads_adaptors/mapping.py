@@ -264,7 +264,9 @@ def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
             else:
                 request[name] = remap.get(oldvalues, oldvalues)
 
+    print("Request, options:", request, options)
     if "area" in request and "area_as_mapping" in options:
+        print("Applying area mapping...")
         # If area is a mapping, we need to apply it
         area_mapping = options["area_as_mapping"]
         area = request["area"]
@@ -285,7 +287,7 @@ def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
                         mapped_values[_key] = [latlon_mapping[_key]]
                     else:
                         mapped_values[_key].append(latlon_mapping[_key])
-
+        print("Mapped values:", mapped_values)
         for key, values in mapped_values.items():
             if key in request:
                 if isinstance(request[key], list):
