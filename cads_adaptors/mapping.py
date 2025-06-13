@@ -271,9 +271,9 @@ def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
         area_mapping = options["area_as_mapping"]
         area = request["area"]
 
-        if not isinstance(area_mapping, dict):
+        if not isinstance(area_mapping, list):
             raise exceptions.CdsConfigurationError(
-                "Invalid area_as_mapping option, should be a string or a dict"
+                "Invalid area_as_mapping option, should be a list"
             )
 
         mapped_values: dict[list[str]] = {}
