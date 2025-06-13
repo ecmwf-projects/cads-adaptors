@@ -21,7 +21,8 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         download_format = request.pop("download_format", download_format)
         self.set_download_format(download_format)
 
-        self.area = request.pop("area", None)
+        if self.config.get("mapping", {}).get("options", {}).get("area_as_mapping") is not None:
+            self.area = request.pop("area", None)
 
         return request
 

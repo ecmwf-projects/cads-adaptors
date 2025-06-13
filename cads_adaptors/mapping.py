@@ -264,6 +264,37 @@ def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
             else:
                 request[name] = remap.get(oldvalues, oldvalues)
 
+    if "area" in request and "area_as_mapping" in options:
+        # If area is a mapping, we need to apply it
+        area_mapping = options["area_as_mapping"]
+        area = request["area"]
+
+        if not isinstance(area_mapping, dict):
+            raise exceptions.CdsConfigurationError(
+                "Invalid area_as_mapping option, should be a string or a dict"
+            )
+
+        mapped_values: dict[list[str]] = {}
+        for latlon_mapping in area_mapping:
+            _lat = latlon_mapping.get("latitude")
+            _lon = latlon_mapping.get("longitude")
+            if _lat < area[0] and _lon > area[1] and _lat > area[2] and _lon < area[3]:
+                _keys = [_k for _k in latlon_mapping.keys() if _k not in ("latitude", "longitude")]
+                for _key in _keys:
+                    if _key not in mapped_values:
+                        mapped_values[_key] = [latlon_mapping[_key]]
+                    else:
+                        mapped_values[_key].append(latlon_mapping[_key])
+
+        for key, values in mapped_values.items():
+            if key in request:
+                if isinstance(request[key], list):
+                    request[key].extend(values)
+                else:
+                    request[key] = [request[key]] + values
+            else:
+                request[key] = values
+
     r = {}
 
     # Apply patches
