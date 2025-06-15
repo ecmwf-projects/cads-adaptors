@@ -1,6 +1,7 @@
 import functools
 import os
 import tarfile
+import time
 import urllib
 import zipfile
 from typing import Any, Dict, Generator, List, Optional
@@ -58,12 +59,38 @@ def try_download(
             os.makedirs(dir, exist_ok=True)
         try:
             context.debug(f"Downloading {url} to {path}")
-            multiurl.download(
-                url,
-                path,
-                progress_bar=functools.partial(tqdm, file=context, mininterval=5),
-                **kwargs,
+            MAX_RETRIES = kwargs.get("max_retries", 10)
+            IS_RESUME_TRANSFERS_ON = kwargs.get("resume_transfers", False)
+            SLEEP_BETWEEN_RETRIES = kwargs.get("sleep_between_retries", 1)
+            SLEEP_BETWEEN_RETRIES_INCREASE_RATE = kwargs.get(
+                "sleep_between_retries_increase_rate", 1.3
             )
+            MAX_SLEEP_BETWEEN_RETRIES = kwargs.get("max_sleep_between_retries", 120)
+            for i_retry in range(MAX_RETRIES):
+                try:
+                    multiurl.download(
+                        url,
+                        path,
+                        progress_bar=functools.partial(
+                            tqdm, file=context, mininterval=5
+                        ),
+                        **kwargs,
+                    )
+                    break
+                except Exception as e:
+                    downloaded_bytes = os.path.getsize(path)
+                    context.add_stdout(
+                        f"Attempt {i_retry+1} to download {url} failed "
+                        f"(only {downloaded_bytes}B downloaded so far, "
+                        f"with resume_transfers={IS_RESUME_TRANSFERS_ON}): {e!r}"
+                    )
+                    time.sleep(SLEEP_BETWEEN_RETRIES)
+                    SLEEP_BETWEEN_RETRIES = min(
+                        SLEEP_BETWEEN_RETRIES * SLEEP_BETWEEN_RETRIES_INCREASE_RATE,
+                        MAX_SLEEP_BETWEEN_RETRIES,
+                    )
+                    if i_retry + 1 == MAX_RETRIES:
+                        raise
         except requests.exceptions.ConnectionError as e:
             # The way "multiurl" uses "requests" at the moment,
             # the read timeouts raise requests.exceptions.ConnectionError.
