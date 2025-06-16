@@ -1,7 +1,8 @@
 from typing import Any
+
 import pytest
 
-from cads_adaptors import mapping, exceptions
+from cads_adaptors import exceptions, mapping
 
 DATE_KEY = "date"
 YEAR_KEY = "year"
@@ -207,7 +208,7 @@ def test_area_as_mapping_applied_correctly():
                     "latitude": 55,
                     "longitude": 0,
                     "country": "UK",
-                    "source": ["satellite"]
+                    "source": ["satellite"],
                 }
             ]
         }
@@ -219,22 +220,12 @@ def test_area_as_mapping_applied_correctly():
 
 
 def test_area_as_mapping_merges_multiple_matches():
-    request = {
-        "area": [60, -10, 50, 10]
-    }
+    request = {"area": [60, -10, 50, 10]}
     adaptor_mapping = {
         "options": {
             "area_as_mapping": [
-                {
-                    "latitude": 55,
-                    "longitude": 0,
-                    "tag": "A"
-                },
-                {
-                    "latitude": 52,
-                    "longitude": 5,
-                    "tag": "B"
-                }
+                {"latitude": 55, "longitude": 0, "tag": "A"},
+                {"latitude": 52, "longitude": 5, "tag": "B"},
             ]
         }
     }
@@ -250,7 +241,7 @@ def test_area_as_mapping_raises_if_not_list():
             "area_as_mapping": {
                 "latitude": 55,
                 "longitude": 0,
-                "country": "UK"
+                "country": "UK",
             }  # Invalid: should be a list
         }
     }
@@ -262,13 +253,7 @@ def test_area_as_mapping_does_nothing_if_no_match():
     request = {"area": [10, -10, 0, 10]}  # Area does not match the lat/lon in mapping
     adaptor_mapping = {
         "options": {
-            "area_as_mapping": [
-                {
-                    "latitude": 50,
-                    "longitude": 5,
-                    "country": "Nowhere"
-                }
-            ]
+            "area_as_mapping": [{"latitude": 50, "longitude": 5, "country": "Nowhere"}]
         }
     }
     result = mapping.apply_mapping(request, adaptor_mapping)
@@ -276,19 +261,10 @@ def test_area_as_mapping_does_nothing_if_no_match():
 
 
 def test_area_as_mapping_merges_with_existing_keys():
-    request = {
-        "area": [60, -10, 50, 10],
-        "source": "ground"
-    }
+    request = {"area": [60, -10, 50, 10], "source": "ground"}
     adaptor_mapping = {
         "options": {
-            "area_as_mapping": [
-                {
-                    "latitude": 55,
-                    "longitude": 0,
-                    "source": "satellite"
-                }
-            ]
+            "area_as_mapping": [{"latitude": 55, "longitude": 0, "source": "satellite"}]
         }
     }
     result = mapping.apply_mapping(request, adaptor_mapping)
