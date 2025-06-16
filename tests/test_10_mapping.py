@@ -1,6 +1,7 @@
 from typing import Any
+import pytest
 
-from cads_adaptors import mapping
+from cads_adaptors import mapping, exceptions
 
 DATE_KEY = "date"
 YEAR_KEY = "year"
@@ -193,3 +194,102 @@ def test_hdate_date_mapping() -> None:
         mapped_request["hdate"][0]
         == f"{request['hyear']}-{request['hmonth']}-{request['hday']}"
     )
+
+
+def test_area_as_mapping_applied_correctly():
+    request = {
+        "area": [60, -10, 50, 10]  # N, W, S, E
+    }
+    adaptor_mapping = {
+        "options": {
+            "area_as_mapping": [
+                {
+                    "latitude": 55,
+                    "longitude": 0,
+                    "country": "UK",
+                    "source": ["satellite"]
+                }
+            ]
+        }
+    }
+    result = mapping.apply_mapping(request, adaptor_mapping)
+
+    assert result["country"] == ["UK"]
+    assert result["source"] == ["satellite"]
+
+
+def test_area_as_mapping_merges_multiple_matches():
+    request = {
+        "area": [60, -10, 50, 10]
+    }
+    adaptor_mapping = {
+        "options": {
+            "area_as_mapping": [
+                {
+                    "latitude": 55,
+                    "longitude": 0,
+                    "tag": "A"
+                },
+                {
+                    "latitude": 52,
+                    "longitude": 5,
+                    "tag": "B"
+                }
+            ]
+        }
+    }
+    result = mapping.apply_mapping(request, adaptor_mapping)
+
+    assert sorted(result["tag"]) == ["A", "B"]
+
+
+def test_area_as_mapping_raises_if_not_list():
+    request = {"area": [60, -10, 50, 10]}
+    adaptor_mapping = {
+        "options": {
+            "area_as_mapping": {
+                "latitude": 55,
+                "longitude": 0,
+                "country": "UK"
+            }  # Invalid: should be a list
+        }
+    }
+    with pytest.raises(exceptions.CdsConfigurationError):
+        mapping.apply_mapping(request, adaptor_mapping)
+
+
+def test_area_as_mapping_does_nothing_if_no_match():
+    request = {"area": [10, -10, 0, 10]}  # Area does not match the lat/lon in mapping
+    adaptor_mapping = {
+        "options": {
+            "area_as_mapping": [
+                {
+                    "latitude": 50,
+                    "longitude": 5,
+                    "country": "Nowhere"
+                }
+            ]
+        }
+    }
+    result = mapping.apply_mapping(request, adaptor_mapping)
+    assert "country" not in result
+
+
+def test_area_as_mapping_merges_with_existing_keys():
+    request = {
+        "area": [60, -10, 50, 10],
+        "source": "ground"
+    }
+    adaptor_mapping = {
+        "options": {
+            "area_as_mapping": [
+                {
+                    "latitude": 55,
+                    "longitude": 0,
+                    "source": "satellite"
+                }
+            ]
+        }
+    }
+    result = mapping.apply_mapping(request, adaptor_mapping)
+    assert result["source"] == ["ground", "satellite"]
