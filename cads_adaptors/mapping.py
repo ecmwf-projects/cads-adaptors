@@ -292,6 +292,7 @@ def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
                     request[key] = [request[key]] + values
             else:
                 request[key] = values
+        del request["area"]
 
     r = {}
 

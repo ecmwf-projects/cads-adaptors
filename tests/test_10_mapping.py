@@ -217,6 +217,7 @@ def test_area_as_mapping_applied_correctly():
 
     assert result["country"] == ["UK"]
     assert result["source"] == ["satellite"]
+    assert "area" not in result  # Area should not be in the result
 
 
 def test_area_as_mapping_merges_multiple_matches():
@@ -232,6 +233,7 @@ def test_area_as_mapping_merges_multiple_matches():
     result = mapping.apply_mapping(request, adaptor_mapping)
 
     assert sorted(result["tag"]) == ["A", "B"]
+    assert "area" not in result  # Area should not be in the result
 
 
 def test_area_as_mapping_raises_if_not_list():
