@@ -4,7 +4,7 @@ import copy
 import datetime
 from typing import Any
 
-from cads_adaptors import exceptions
+from cads_adaptors import Context, exceptions
 from cads_adaptors.tools.general import ensure_list
 
 DATE_KEYWORD_CONFIGS = [
@@ -235,7 +235,9 @@ def expand_dates(r, request, date, year, month, day, date_format):
                     del r[k]
 
 
-def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
+def apply_mapping(
+    request: dict[str, Any], mapping: dict[str, Any], context: Context = Context()
+) -> dict[str, Any]:
     request = copy.deepcopy(request)
     mapping = copy.deepcopy(mapping)
 
@@ -273,18 +275,26 @@ def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
                 "Invalid area_as_mapping option, should be a list"
             )
 
-        mapped_values: dict[str, list[str]] = {}
+        mapped_area_values: dict[str, list[str]] = {}
         for latlon_mapping in area_mapping:
-            _lat = latlon_mapping.get("latitude")
-            _lon = latlon_mapping.get("longitude")
+            try:
+                _lat = float(latlon_mapping["latitude"])
+                _lon = float(latlon_mapping["longitude"])
+            except (KeyError, ValueError):
+                # Ignore incorrectly configured area_as_mapping elements
+                context.warning(
+                    f"Invalid area_as_mapping element: {latlon_mapping!r}, "
+                    "should contain 'latitude' and 'longitude' keys with float values."
+                )
+                continue
             if _lat < area[0] and _lon > area[1] and _lat > area[2] and _lon < area[3]:
                 for _key, _value in latlon_mapping.items():
-                    if _key not in mapped_values:
-                        mapped_values[_key] = ensure_list(_value)
+                    if _key not in mapped_area_values:
+                        mapped_area_values[_key] = ensure_list(_value)
                     else:
-                        mapped_values[_key].extend(ensure_list(_value))
+                        mapped_area_values[_key].extend(ensure_list(_value))
 
-        for key, values in mapped_values.items():
+        for key, values in mapped_area_values.items():
             if key in request:
                 if isinstance(request[key], list):
                     request[key].extend(values)
