@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import pytest
 import requests
@@ -17,6 +18,20 @@ FORM = {
     "stat": ["mean", "max"],
 }
 REQUEST = FORM.copy()
+
+REQUEST_1 = {
+    "level": ["500"],
+    "time": ["12:00"],
+    "param": ["Z", "T"],
+    "stat": ["mean", "max"],
+}
+
+REQUEST_2 = {
+    "level": ["850"],
+    "time": ["00:00"],
+    "param": ["Z", "T"],
+    "stat": ["mean", "max"],
+}
 
 ADAPTOR_CONFIG = {
     "entry_point": "MultiAdaptor",
@@ -43,6 +58,20 @@ ADAPTOR_CONFIG = {
         },
     },
 }
+
+
+def dict_is_subset(subset: dict[str, Any], superset: dict[str, Any]) -> bool:
+    for key, sub_value in subset.items():
+        if key not in superset:
+            return False
+        super_value = superset[key]
+        if isinstance(sub_value, list) and isinstance(super_value, list):
+            if not set(sub_value).issubset(super_value):
+                return False
+        else:
+            if sub_value != super_value:
+                return False
+    return True
 
 
 def test_multi_adaptor_extract_subrequests():
@@ -252,7 +281,7 @@ def test_multi_adaptor_split_adaptors():
 
     # Check that the sub-adaptors have the correct values
     for adaptor in ["mean", "max"]:
-        sub_adaptor_request = sub_adaptors[adaptor][1]
+        sub_adaptor_request = sub_adaptors[f"{adaptor}-0"][1]
         assert sub_adaptor_request == ADAPTOR_CONFIG["adaptors"][adaptor]["values"]
 
     for adaptor_tag, [adaptor, req] in sub_adaptors.items():
@@ -264,6 +293,26 @@ def test_multi_adaptor_split_adaptors():
         assert adaptor.context is multi_adaptor.context
 
 
+def test_multi_adaptor_split_adaptors_request_list():
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
+
+    sub_adaptors = multi_adaptor.split_adaptors(
+        [REQUEST_1, REQUEST_2],
+    )
+
+    # Check that the sub-adaptors have the correct values
+    for sub_adaptor_tag, [sub_adaptor, sub_request] in sub_adaptors.items():
+        assert isinstance(sub_adaptor_tag, str)
+        assert isinstance(sub_adaptor, AbstractAdaptor)
+        assert isinstance(sub_request, dict)
+        assert dict_is_subset(
+            sub_request,
+            ADAPTOR_CONFIG["adaptors"][sub_adaptor_tag.split("-")[0]]["values"],
+        )
+        # Check context is inherited from parent
+        assert sub_adaptor.context is multi_adaptor.context
+
+
 def test_multi_adaptor_split_adaptors_required_keys():
     multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
 
@@ -273,8 +322,8 @@ def test_multi_adaptor_split_adaptors_required_keys():
         request,
     )
 
-    assert "mean" not in sub_adaptors.keys()
-    assert "max" in sub_adaptors.keys()
+    assert "mean-0" not in sub_adaptors.keys()
+    assert "max-0" in sub_adaptors.keys()
 
 
 def test_multi_adaptor_split_adaptors_dont_split_keys():
@@ -288,9 +337,9 @@ def test_multi_adaptor_split_adaptors_dont_split_keys():
         request,
     )
 
-    assert "dont_split" in sub_adaptors["mean"][1].keys()
-    assert "dont_split" not in sub_adaptors["max"][1].keys()
-    assert "area" in sub_adaptors["max"][1].keys()
+    assert "dont_split" in sub_adaptors["mean-0"][1].keys()
+    assert "dont_split" not in sub_adaptors["max-0"][1].keys()
+    assert "area" in sub_adaptors["max-0"][1].keys()
 
 
 def test_convert_format(tmp_path, monkeypatch):

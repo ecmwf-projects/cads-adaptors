@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
@@ -113,9 +114,13 @@ class MultiAdaptor(AbstractCdsAdaptor):
         return this_request
 
     def split_adaptors(
-        self, request: Request
+        self,
+        request: Request | list[Request],  # Mapped request, or list of mapped requests
     ) -> dict[str, tuple[AbstractCdsAdaptor, Request]]:
         from cads_adaptors.tools import adaptor_tools
+
+        if not isinstance(request, (list, tuple)):
+            request = [request]
 
         sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
@@ -128,22 +133,20 @@ class MultiAdaptor(AbstractCdsAdaptor):
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
                 this_adaptor.config
             )
-            this_request = self.extract_subrequest(
-                request, this_values, **extract_subrequest_kwargs
-            )
-            self.context.debug(
-                f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
-            )
+            this_requests = []
+            for _request in request:
+                this_request = self.extract_subrequest(
+                    _request, this_values, **extract_subrequest_kwargs
+                )
+                if len(this_request) > 0:
+                    this_requests.extend(deepcopy(this_request))
 
-            if len(this_request) > 0:
-                try:
-                    this_request = this_adaptor.normalise_request(this_request)
-                except Exception:
-                    self.context.warning(
-                        f"MultiAdaptor failed to normalise request.\n"
-                        f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
-                    )
-                sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
+            self.context.info(
+                f"MultiAdaptor, {adaptor_tag}, this_requests: {this_requests}"
+            )
+            if len(this_requests) > 0:
+                for i, _request in enumerate(this_requests):
+                    sub_adaptors[f"{adaptor_tag}-{i}"] = (this_adaptor, this_request)
 
         return sub_adaptors
 
@@ -157,24 +160,21 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         request = self.normalise_request(request)
-        # TODO: handle lists of requests, normalise_request has the power to implement_constraints
-        #  which produces a list of complete hypercube requests.
-        try:
-            assert len(self.mapped_requests) == 1
-        except AssertionError:
-            self.context.add_user_visible_log(
-                f"WARNING: More than one request was mapped: {self.mapped_requests}, "
-                f"returning the first one only:\n{self.mapped_requests[0]}"
-            )
-        self.mapped_request = self.mapped_requests[0]
+        self.context.info(
+            f"MultiAdaptor, full mapped and intersected request: {self.mapped_requests}"
+        )
 
-        self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
-
-        sub_adaptors = self.split_adaptors(self.mapped_request)
+        sub_adaptors = self.split_adaptors(self.mapped_requests)
+        self.context.debug(
+            f"MultiAdaptor, split requests into sub-adaptors: {sub_adaptors}"
+        )
 
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
+            self.context.debug(
+                f"MultiAdaptor, {adaptor_tag}, request: {req}, adaptor: {adaptor}"
+            )
             try:
                 this_result = adaptor.retrieve_list_of_results(req)
             except Exception as err:
@@ -188,7 +188,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 f"{exception_logs}"
             )
 
-        self.context.debug(f"MultiAdaptor, result paths:\n{paths}")
+        self.context.info(f"MultiAdaptor, result paths:\n{paths}")
 
         return paths
 
