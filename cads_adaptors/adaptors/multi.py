@@ -253,7 +253,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                 )
                 if len(this_request) > 0:
                     mapped_requests.append(
-                        mapping.apply_mapping(this_request, this_adaptor.mapping)
+                        mapping.apply_mapping(this_request, this_adaptor.mapping, context=self.context)
                     )
 
             self.context.debug(
