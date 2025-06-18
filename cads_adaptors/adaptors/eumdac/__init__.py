@@ -1,6 +1,5 @@
 import copy
 import datetime
-import itertools
 import os
 import shutil
 from typing import Any
@@ -30,7 +29,9 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         self.token = eumdac.AccessToken(credentials)
 
-        self.context.debug(f"The active token is '{self.token}'. It expires {self.token.expiration}.")
+        self.context.debug(
+            f"The active token is '{self.token}'. It expires {self.token.expiration}."
+        )
 
         return self.token
 
@@ -43,16 +44,16 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         dates = copy.deepcopy(request["date"])
         request["date"] = []
         dates = sorted(ensure_list(dates))
-        current_interval = (dates[0],dates[0])
+        current_interval = (dates[0], dates[0])
         previous_date = dates[0]
         ONE_DAY = datetime.timedelta(days=1)
         for date in dates[1:]:
             if self.str_to_date(date) != self.str_to_date(previous_date) + ONE_DAY:
-                current_interval = (current_interval[0],previous_date)
+                current_interval = (current_interval[0], previous_date)
                 request["date"].append(current_interval)
-                current_interval = (date,date)
+                current_interval = (date, date)
             previous_date = date
-        current_interval = (current_interval[0],dates[-1])
+        current_interval = (current_interval[0], dates[-1])
         request["date"].append(current_interval)
         return request
 
@@ -67,12 +68,34 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         # convert lists to EUMDAC {,}-format
         for eumdac_key in eumdac_request:
-            if eumdac_key!="date":
+            if eumdac_key != "date":
                 if isinstance(eumdac_request[eumdac_key], list):
-                    if len(eumdac_request[eumdac_key]) > 1:
-                        eumdac_request[eumdac_key] = "{" + ",".join(
-                            [str(x) for x in eumdac_request[eumdac_key]]
-                        ) + "}"
+                    if eumdac_key == "bbox":
+                        if len(eumdac_request[eumdac_key]) == 4:
+                            # the EUMDAC bounding box orders limits as (W, S, E, N)
+                            # while the CDS API orders them as (N, W, S E)
+                            # also, the resulting string is NOT surrounded by {}
+                            eumdac_request[eumdac_key] = (
+                                eumdac_request[eumdac_key][1:]
+                                + eumdac_request[eumdac_key][:1]
+                            )
+                            eumdac_request[eumdac_key] = ", ".join(
+                                [str(x) for x in eumdac_request[eumdac_key]]
+                            )
+                        else:
+                            self.context.add_user_visible_error(
+                                f"Invalid bounding box: {eumdac_request[eumdac_key]}. "
+                                "It should contain exactly 4 values."
+                            )
+                            raise InvalidRequest(
+                                f"Invalid bounding box: {eumdac_request[eumdac_key]}"
+                            )
+                    elif len(eumdac_request[eumdac_key]) > 1:
+                        eumdac_request[eumdac_key] = (
+                            "{"
+                            + ",".join([str(x) for x in eumdac_request[eumdac_key]])
+                            + "}"
+                        )
                     else:
                         eumdac_request[eumdac_key] = str(eumdac_request[eumdac_key][0])
 
@@ -92,9 +115,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         products = selected_collection.search(**request)
 
-        self.context.add_stdout(
-            f"{products.total_results} products found."
-        )
+        self.context.add_stdout(f"{products.total_results} products found.")
 
         return products
 
@@ -119,7 +140,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         date_intervals = request.pop("date", None)
         for date_interval in date_intervals:
-            request["dtstart"],request["dtend"] = date_interval
+            request["dtstart"], request["dtend"] = date_interval
             products = self.search(request)
 
             number_of_products += products.total_results
@@ -128,7 +149,8 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
                 total_size_in_kb += product.size
 
         self.context.debug(
-            f"The total size is {total_size_in_kb}KB (before any DS post-processing or packing) for {number_of_products} products."
+            f"The total size is {total_size_in_kb}KB (before any DS post-processing or packing) "
+            "for {number_of_products} products."
         )
 
         return number_of_products, total_size_in_kb
@@ -152,14 +174,16 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         except Exception as e:
             msg = e.args[0]
             self.context.add_user_visible_error(msg)
-            #raise InvalidRequest(msg)
+            # raise InvalidRequest(msg)
             return 0, 0
 
         return result_size
 
     def estimate_costs(self, request, **kwargs):
-        costs= {}
-        costs['number_of_fields'], costs["precise_size"] = self.compute_result_size(request)
+        costs = {}
+        costs["number_of_fields"], costs["precise_size"] = self.compute_result_size(
+            request
+        )
         costs["size"] = costs["number_of_fields"]
         return costs
 
@@ -174,11 +198,13 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
                 eumdac_request = self.cds_to_eumdac_preprocessing(subrequest)
                 date_intervals = eumdac_request.pop("date", None)
                 for date_interval in date_intervals:
-                    eumdac_request["dtstart"],eumdac_request["dtend"] = date_interval
+                    eumdac_request["dtstart"], eumdac_request["dtend"] = date_interval
                     self.context.add_stdout(f"Calling EUMDAC for: {eumdac_request}")
                     downloaded_products_for_subrequest = self.download(eumdac_request)
                     downloaded_products.extend(downloaded_products_for_subrequest)
-                    self.context.add_stdout(f"Downloaded products: {downloaded_products_for_subrequest}")
+                    self.context.add_stdout(
+                        f"Downloaded products: {downloaded_products_for_subrequest}"
+                    )
         except Exception as e:
             msg = e.args[0]
             self.context.add_user_visible_error(msg)
