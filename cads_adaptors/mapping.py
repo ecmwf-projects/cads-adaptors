@@ -283,7 +283,7 @@ def apply_mapping(
                 "Should be a list of four numeric values."
             )
 
-        mapped_area_values: dict[str, list[str]] = {}
+        mapped_area_values: dict[str, list[str | int | float]] = {}
         for latlon_mapping in area_mapping:
             try:
                 _lat = float(latlon_mapping["latitude"])
