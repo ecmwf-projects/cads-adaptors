@@ -23,7 +23,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         if (
             self.config.get("mapping", {}).get("options", {}).get("area_as_mapping")
-            is not None
+            is None
         ):
             self.area = request.pop("area", None)
 
