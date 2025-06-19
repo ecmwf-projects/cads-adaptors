@@ -275,6 +275,14 @@ def apply_mapping(
                 "Invalid area_as_mapping option, should be a list"
             )
 
+        try:
+            area = [float(coord) for coord in area]
+        except (ValueError, TypeError):
+            raise exceptions.InvalidRequest(
+                f"Invalid area provided: {area!r}. "
+                "Should be a list of four numeric values."
+            )
+
         mapped_area_values: dict[str, list[str]] = {}
         for latlon_mapping in area_mapping:
             try:
