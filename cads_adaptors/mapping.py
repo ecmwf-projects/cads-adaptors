@@ -270,7 +270,7 @@ def apply_mapping(
     if (area_mapping := options.get("area_as_mapping")) and (
         area := request.get("area")
     ):
-        context.info(f"Mapping area {area!r} using area_as_mapping: {area_mapping!r}")
+        context.debug(f"Mapping area {area!r} using area_as_mapping: {area_mapping!r}")
         if not isinstance(area_mapping, list):
             raise exceptions.CdsConfigurationError(
                 "Invalid area_as_mapping option, should be a list"
