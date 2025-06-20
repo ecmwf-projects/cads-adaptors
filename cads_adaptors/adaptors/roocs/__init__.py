@@ -33,7 +33,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         if "timeout" in self.config:
             download_kwargs["timeout"] = self.config["timeout"]
 
-        request = mapping.apply_mapping(request, self.mapping)
+        request = mapping.apply_mapping(request, self.mapping, context=self.context)
 
         workflow = self.construct_workflow(request)
         try:
