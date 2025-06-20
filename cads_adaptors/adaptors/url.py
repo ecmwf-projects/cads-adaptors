@@ -20,13 +20,8 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         download_format = request.pop("format", default_download_format)
         download_format = request.pop("download_format", download_format)
         self.set_download_format(download_format)
-        self.context.info(
-            f"mapping.options: {self.mapping.get('options', {})}"
-        )
-        if (
-            self.mapping.get('options', {}).get("options", {}).get("area_as_mapping")
-            is None
-        ):
+        self.context.info(f"mapping.options: {self.mapping.get('options', {})}")
+        if self.mapping.get("options", {}).get("area_as_mapping") is None:
             self.area = request.pop("area", None)
 
         return request
