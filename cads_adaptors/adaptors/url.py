@@ -20,7 +20,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         download_format = request.pop("format", default_download_format)
         download_format = request.pop("download_format", download_format)
         self.set_download_format(download_format)
-        self.context.debug(
+        self.context.info(
             f"mapping.options: {self.config.get('mapping', {}).get('options', {})}"
         )
         if (
