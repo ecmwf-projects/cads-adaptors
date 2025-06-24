@@ -236,6 +236,7 @@ def area_selector_path(
     if isinstance(area, list):
         area = area_to_checked_dictionary(area)
 
+    precompute: bool = area_selector_kwargs.pop("precompute", True)
     # Deduce input format from infile
     in_ext = infile.split(".")[-1]
     in_format = adaptor_tools.handle_data_format(in_ext)
@@ -282,7 +283,9 @@ def area_selector_path(
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
             # Need to compute before writing to disk as dask loses too many jobs
-            ds_area.compute().to_netcdf(out_path)
+            if precompute:
+                ds_area.compute()
+            ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
     else:
         context.add_user_visible_error(
@@ -292,7 +295,9 @@ def area_selector_path(
             out_path = os.path.join(target_dir, f"{fname_tag}.nc")
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
-            ds_area.compute().to_netcdf(out_path)
+            if precompute:
+                ds_area.compute()
+            ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
 
     return out_paths
