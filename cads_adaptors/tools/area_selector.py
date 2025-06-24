@@ -236,8 +236,11 @@ def area_selector_path(
     if isinstance(area, list):
         area = area_to_checked_dictionary(area)
 
+    # Initialise area_selector_kwargs if not provided, and ensure it is a copy
     if area_selector_kwargs is None:
         area_selector_kwargs = {}
+    area_selector_kwargs = deepcopy(area_selector_kwargs)
+
     # Initialise open_datasets_kwargs if not provided, and ensure it is a copy
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {}
