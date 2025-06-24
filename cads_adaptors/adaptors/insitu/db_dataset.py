@@ -32,7 +32,7 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
         dataset = api_url.split("/")[-1]
         endpoint = api_url.replace("http://", "").split("/")[0]
 
-        request = mapping.apply_mapping(request, self.mapping)
+        request = mapping.apply_mapping(request, self.mapping, context=self.context)
 
         _q = {}
         if isinstance(request, list):
