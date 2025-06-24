@@ -284,7 +284,7 @@ def area_selector_path(
                 ds_area[var].encoding.setdefault("_FillValue", None)
             # Need to compute before writing to disk as dask loses too many jobs
             if precompute:
-                ds_area.compute()
+                ds_area = ds_area.compute()
             ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
     else:
@@ -296,7 +296,7 @@ def area_selector_path(
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
             if precompute:
-                ds_area.compute()
+                ds_area = ds_area.compute()
             ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
 
