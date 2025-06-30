@@ -1,7 +1,6 @@
 import itertools
 import os
 import time
-from copy import deepcopy
 from typing import Any, Callable, NoReturn
 
 import cfgrib
@@ -52,7 +51,6 @@ def convert_format(
     target_dir: str = ".",
     **runtime_kwargs: dict[str, dict[str, Any]],
 ) -> list[str]:
-    config = deepcopy(config)
     if config is None:
         config = {}
 
@@ -190,7 +188,6 @@ def result_to_netcdf_legacy_files(
     Can only accept a grib file, or list/dict of grib files as input.
     Converts to netCDF3 only.
     """
-    to_netcdf_legacy_kwargs = deepcopy(to_netcdf_legacy_kwargs)
     if to_netcdf_legacy_kwargs is None:
         to_netcdf_legacy_kwargs = {}
 
@@ -370,7 +367,6 @@ def xarray_dict_to_netcdf(
     Convert a dictionary of xarray datasets to netCDF files, where the key of the dictionary
     is used in the filename.
     """
-    to_netcdf_kwargs = deepcopy(to_netcdf_kwargs)
     if to_netcdf_kwargs is None:
         to_netcdf_kwargs = {}
     # Untangle any nested kwargs (I don't think this is necessary anymore)
@@ -553,10 +549,8 @@ def open_netcdf_as_xarray_dictionary(
     Open a netcdf file and return as a dictionary of xarray datasets,
     where the key will be used in any filenames created from the dataset.
     """
-    open_datasets_kwargs = deepcopy(open_datasets_kwargs)
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {}
-    post_open_datasets_kwargs = deepcopy(post_open_datasets_kwargs)
     if post_open_datasets_kwargs is None:
         post_open_datasets_kwargs = {}
     fname, _ = os.path.splitext(os.path.basename(netcdf_file))
@@ -687,11 +681,9 @@ def open_grib_file_as_xarray_dictionary(
     where the key will be used in any filenames created from the dataset.
     """
     fname, _ = os.path.splitext(os.path.basename(grib_file))
-    open_datasets_kwargs = deepcopy(open_datasets_kwargs)
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {}
 
-    post_open_datasets_kwargs = deepcopy(post_open_datasets_kwargs)
     if post_open_datasets_kwargs is None:
         post_open_datasets_kwargs = {}
 
