@@ -184,11 +184,16 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         return number_of_products, total_size_in_kb
 
     def estimate_costs(self, request, **kwargs):
-        costs = {}
-        costs["number_of_fields"], costs["precise_size"] = self.compute_result_size(
-            request
-        )
-        costs["size"] = costs["number_of_fields"]
+        # the EUM approach
+        # costs = {}
+        # costs["number_of_fields"], costs["precise_size"] = self.compute_result_size(
+        #     request
+        # )
+        # costs["size"] = costs["number_of_fields"]
+
+        # for now, we rely on the general DS cost estimation procedure
+        # and do not provide any specific costs from EUM
+        costs = super().estimate_costs(request, **kwargs)
         return costs
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
