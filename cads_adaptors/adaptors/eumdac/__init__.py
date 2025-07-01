@@ -115,7 +115,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         products = selected_collection.search(**request)
 
-        self.context.add_stdout(f"{products.total_results} products found.")
+        self.context.debug(f"{products.total_results} products found.")
 
         return products
 
@@ -150,7 +150,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
 
         self.context.debug(
             f"The total size is {total_size_in_kb}KB (before any DS post-processing or packing) "
-            "for {number_of_products} products."
+            f"for {number_of_products} products."
         )
 
         return number_of_products, total_size_in_kb
@@ -168,16 +168,20 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         return request
 
     def compute_result_size(self, request: dict[str, Any]):
+        number_of_products, total_size_in_kb = 0, 0
         try:
-            eumdac_request = self.cds_to_eumdac_preprocessing(request)
-            result_size = self.get_result_size(eumdac_request)
+            self.normalise_request(request)
+            for subrequest in self.mapped_requests:
+                eumdac_request = self.cds_to_eumdac_preprocessing(subrequest)
+                subrequest_result_size = self.get_result_size(eumdac_request)
+                number_of_products += subrequest_result_size[0]
+                total_size_in_kb += subrequest_result_size[1]
         except Exception as e:
-            msg = e.args[0]
-            self.context.add_user_visible_error(msg)
+            self.context.debug(f"Exception: {e!r}")
             # raise InvalidRequest(msg)
             return 0, 0
 
-        return result_size
+        return number_of_products, total_size_in_kb
 
     def estimate_costs(self, request, **kwargs):
         costs = {}
@@ -199,10 +203,10 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
                 date_intervals = eumdac_request.pop("date", None)
                 for date_interval in date_intervals:
                     eumdac_request["dtstart"], eumdac_request["dtend"] = date_interval
-                    self.context.add_stdout(f"Calling EUMDAC for: {eumdac_request}")
+                    self.context.debug(f"Calling EUMDAC for: {eumdac_request}")
                     downloaded_products_for_subrequest = self.download(eumdac_request)
                     downloaded_products.extend(downloaded_products_for_subrequest)
-                    self.context.add_stdout(
+                    self.context.debug(
                         f"Downloaded products: {downloaded_products_for_subrequest}"
                     )
         except Exception as e:
