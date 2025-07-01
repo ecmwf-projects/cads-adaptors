@@ -244,6 +244,10 @@ def area_selector_path(
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {}
 
+    # Preserve the original area_selector_kwargs and extract precompute
+    _area_selector_kwargs = deepcopy(area_selector_kwargs)
+    precompute: bool = _area_selector_kwargs.pop("precompute", True)
+
     # Deduce input format from infile
     in_ext = infile.split(".")[-1]
     in_format = adaptor_tools.handle_data_format(in_ext)
@@ -278,7 +282,7 @@ def area_selector_path(
         ".".join(
             [fname_tag, "area-subset"]
             + [str(area[a]) for a in ["north", "west", "south", "east"]]
-        ): area_selector(ds, area=area, context=context, **area_selector_kwargs)
+        ): area_selector(ds, area=area, context=context, **_area_selector_kwargs)
         for fname_tag, ds in ds_dict.items()
     }
 
@@ -290,7 +294,9 @@ def area_selector_path(
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
             # Need to compute before writing to disk as dask loses too many jobs
-            ds_area.compute().to_netcdf(out_path)
+            if precompute:
+                ds_area = ds_area.compute()
+            ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
     else:
         context.add_user_visible_error(
@@ -300,7 +306,9 @@ def area_selector_path(
             out_path = os.path.join(target_dir, f"{fname_tag}.nc")
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
-            ds_area.compute().to_netcdf(out_path)
+            if precompute:
+                ds_area = ds_area.compute()
+            ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
 
     return out_paths
