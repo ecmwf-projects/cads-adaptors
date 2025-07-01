@@ -4,7 +4,8 @@ import copy
 import datetime
 from typing import Any
 
-from cads_adaptors import exceptions
+from cads_adaptors import Context, exceptions
+from cads_adaptors.tools.general import ensure_list
 
 DATE_KEYWORD_CONFIGS = [
     {
@@ -234,7 +235,9 @@ def expand_dates(r, request, date, year, month, day, date_format):
                     del r[k]
 
 
-def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
+def apply_mapping(
+    request: dict[str, Any], mapping: dict[str, Any], context: Context = Context()
+) -> dict[str, Any]:
     request = copy.deepcopy(request)
     mapping = copy.deepcopy(mapping)
 
@@ -263,6 +266,52 @@ def apply_mapping(request: dict[str, Any], mapping: dict[str, Any]):
                 request[name] = [remap.get(v, v) for v in oldvalues]
             else:
                 request[name] = remap.get(oldvalues, oldvalues)
+
+    if (area_mapping := options.get("area_as_mapping")) and (
+        area := request.get("area")
+    ):
+        context.debug(f"Mapping area {area!r} using area_as_mapping: {area_mapping!r}")
+        if not isinstance(area_mapping, list):
+            raise exceptions.CdsConfigurationError(
+                "Invalid area_as_mapping option, should be a list"
+            )
+
+        try:
+            area = [float(coord) for coord in area]
+        except (ValueError, TypeError):
+            raise exceptions.InvalidRequest(
+                f"Invalid area provided: {area!r}. "
+                "Should be a list of four numeric values."
+            )
+
+        mapped_area_values: dict[str, list[str | int | float]] = {}
+        for latlon_mapping in area_mapping:
+            try:
+                _lat = float(latlon_mapping["latitude"])
+                _lon = float(latlon_mapping["longitude"])
+            except (KeyError, ValueError):
+                # Ignore incorrectly configured area_as_mapping elements
+                context.warning(
+                    f"Invalid area_as_mapping element: {latlon_mapping!r}, "
+                    "should contain 'latitude' and 'longitude' keys with float values."
+                )
+                continue
+            if _lat < area[0] and _lon > area[1] and _lat > area[2] and _lon < area[3]:
+                for _key, _value in latlon_mapping.items():
+                    if _key not in mapped_area_values:
+                        mapped_area_values[_key] = ensure_list(_value)
+                    else:
+                        mapped_area_values[_key].extend(ensure_list(_value))
+
+        for key, values in mapped_area_values.items():
+            if key in request:
+                if isinstance(request[key], list):
+                    request[key].extend(values)
+                else:
+                    request[key] = [request[key]] + values
+            else:
+                request[key] = values
+        del request["area"]
 
     r = {}
 

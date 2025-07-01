@@ -76,7 +76,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         )
 
     def apply_mapping(self, request: Request) -> Request:
-        return mapping.apply_mapping(request, self.mapping)
+        return mapping.apply_mapping(request, self.mapping, context=self.context)
 
     def get_cost_type_with_highest_cost_limit_ratio(
         self, costs: dict[str, int], limits: dict[str, int]

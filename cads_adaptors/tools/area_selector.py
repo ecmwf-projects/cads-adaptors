@@ -229,15 +229,25 @@ def area_selector_path(
     context: Context = Context(),
     out_format: str | None = None,
     target_dir: str | None = None,
-    area_selector_kwargs: dict[str, Any] = {},
-    open_datasets_kwargs: list[dict[str, Any]] | dict[str, Any] = {},
+    area_selector_kwargs: None | dict[str, Any] = None,
+    open_datasets_kwargs: None | list[dict[str, Any]] | dict[str, Any] = None,
     **kwargs: dict[str, Any],
 ) -> list[str]:
     if isinstance(area, list):
         area = area_to_checked_dictionary(area)
 
+    # Initialise area_selector_kwargs if not provided
+    if area_selector_kwargs is None:
+        area_selector_kwargs = {}
+
+    # Initialise open_datasets_kwargs if not provided
+    if open_datasets_kwargs is None:
+        open_datasets_kwargs = {}
+
+    # Preserve the original area_selector_kwargs and extract precompute
     _area_selector_kwargs = deepcopy(area_selector_kwargs)
     precompute: bool = _area_selector_kwargs.pop("precompute", True)
+
     # Deduce input format from infile
     in_ext = infile.split(".")[-1]
     in_format = adaptor_tools.handle_data_format(in_ext)
