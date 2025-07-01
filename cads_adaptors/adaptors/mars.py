@@ -9,7 +9,6 @@ from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import (
     ensure_list,
-    set_postprocess_dask_config,
     split_requests_on_keys,
 )
 
@@ -204,17 +203,16 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             target_dir=self.cache_tmp_path,
         )
 
-        with set_postprocess_dask_config():
-            results_dict = self.post_process(result)
+        results_dict = self.post_process(result)
 
-            # TODO?: Generalise format conversion to be a post-processor
-            paths = self.convert_format(
-                results_dict,
-                self.data_format,
-                context=self.context,
-                config=self.config,
-                target_dir=str(self.cache_tmp_path),
-            )
+        # TODO?: Generalise format conversion to be a post-processor
+        paths = self.convert_format(
+            results_dict,
+            self.data_format,
+            context=self.context,
+            config=self.config,
+            target_dir=str(self.cache_tmp_path),
+        )
 
         # A check to ensure that if there is more than one path, and download_format
         #  is as_source, we over-ride and zip up the files

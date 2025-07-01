@@ -72,6 +72,20 @@ def arco_adaptor(
         (
             {
                 "data_format": ["nc"],
+                "area": ["90", "-180", "89", "-179"],
+                "date": 1990,
+                "variable": ("foo", "bar"),
+            },
+            {
+                "data_format": "netcdf",
+                "area": [90, -180, 89, -179],
+                "date": ["1990", "1990"],
+                "variable": ["bar", "foo"],
+            },
+        ),
+        (
+            {
+                "data_format": ["nc"],
                 "location": {
                     "longitude": 1,
                     "latitude": "2",
@@ -106,6 +120,26 @@ def arco_adaptor(
                     "longitude": 1.0,
                 },
                 "date": ["1990", "1991"],
+                "variable": ["bar", "foo"],
+            },
+        ),
+        (
+            {
+                "data_format": ["nc"],
+                "location": {
+                    "longitude": 1,
+                    "latitude": "2",
+                },
+                "date": 1990,
+                "variable": ("foo", "bar"),
+            },
+            {
+                "data_format": "netcdf",
+                "location": {
+                    "latitude": 2.0,
+                    "longitude": 1.0,
+                },
+                "date": ["1990", "1990"],
                 "variable": ["bar", "foo"],
             },
         ),
@@ -240,7 +274,17 @@ def test_arco_normalise_request_embargo_warn(
             {"location": {"latitude": 0, "longitude": 0}},
             "specify at least one variable",
         ),
-        ({"variable": "FOO"}, "specify a single valid location"),
+        (
+            {"area": "FOO", "location": "FOO"},
+            "`area` and `request` are mutually exclusive",
+        ),
+        ({"area": [1], "variable": "FOO"}, "specify the `area` parameter in the form"),
+        (
+            {"area": ["foo"], "variable": "FOO"},
+            "specify the `area` parameter in the form",
+        ),
+        ({"area": [], "variable": "FOO"}, "exceeds the maximum extent allowed"),
+        ({"variable": "FOO"}, "`area` and `request` are mutually exclusive"),
         (
             {
                 "variable": "FOO",
@@ -332,6 +376,33 @@ def test_arco_select_location(arco_adaptor: ArcoDataLakeCdsAdaptor):
     assert ds["longitude"].item() == 40
 
 
+def test_arco_select_area(
+    arco_adaptor: ArcoDataLakeCdsAdaptor, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setitem(
+        arco_adaptor.config, "maximum_area_extent", {"latitude": 90, "longitude": 180}
+    )
+    request = {
+        "variable": "FOO",
+        "area": [90, -180, 0, 0],
+        "date": "2000",
+    }
+    fp = arco_adaptor.retrieve(request)
+    ds = xr.open_dataset(fp.name)
+    assert ds["latitude"].values.tolist() == list(range(10, 91, 20))
+    assert ds["longitude"].values.tolist() == list(range(-180, 1, 20))
+
+
+def test_arco_select_wrong_area(arco_adaptor: ArcoDataLakeCdsAdaptor):
+    request = {
+        "variable": "FOO",
+        "area": [0, 0, 0, 0],
+        "date": "2000",
+    }
+    with pytest.raises(ArcoDataLakeNoDataError, match="No data found for indexers="):
+        arco_adaptor.retrieve(request)
+
+
 @pytest.mark.parametrize(
     "date,expected_size",
     [
@@ -415,7 +486,7 @@ def test_arco_data_format(
                 "date": "foo",
             },
             TypeError,
-            "Invalid date_range=['foo', 'foo']",
+            "Invalid date_range=['foo', 'foo'].",
         ),
         (
             {
@@ -424,7 +495,7 @@ def test_arco_data_format(
                 "date": 1990,
             },
             ArcoDataLakeNoDataError,
-            "No data found for date_range=['1990', '1990']",
+            "No data found for date_range=['1990', '1990'].",
         ),
     ],
 )
