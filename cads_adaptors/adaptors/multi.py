@@ -12,7 +12,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
     @property
     def extract_subrequest_kws(self) -> list[str]:
         # extract keywords from a function signature
-        # (this is possibly overkill, but it's useful if )we think the function signature may change)
+        # (this is possibly overkill, but it's useful if we think the function signature may change)
         import inspect
 
         sig = inspect.signature(self.extract_subrequest)
