@@ -133,12 +133,19 @@ class MultiAdaptor(AbstractCdsAdaptor):
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
                 this_adaptor.config
             )
-            this_requests = []
+            this_requests: list[dict[str, Any]] = []
             for _request in request:
                 this_request = self.extract_subrequest(
                     _request, this_values, **extract_subrequest_kwargs
                 )
                 if len(this_request) > 0:
+                    try:
+                        this_request = this_adaptor.normalise_request(this_request)
+                    except Exception:
+                        self.context.warning(
+                            f"MultiAdaptor failed to normalise request.\n"
+                            f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
+                        )
                     this_requests.extend(deepcopy(this_request))
 
             self.context.info(
