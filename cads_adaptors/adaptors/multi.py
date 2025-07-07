@@ -200,7 +200,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             except Exception as err:
                 exception_logs[adaptor_tag] = f"{err}"
             else:
-                paths.extend(this_result)
+                paths.extend(deepcopy(this_result))
 
         if len(paths) == 0:
             raise MultiAdaptorNoDataError(
