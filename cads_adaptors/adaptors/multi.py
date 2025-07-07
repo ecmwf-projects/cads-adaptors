@@ -144,6 +144,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 this_request = self.extract_subrequest(
                     _request, this_values, **extract_subrequest_kwargs
                 )
+                intersected_request = self.intersect_constraints(
+                    this_request,
+                )
                 # # NOTE for later, is the try/except here needed?
                 # try:
                 #     this_request = this_adaptor.normalise_request(this_request)
@@ -153,7 +156,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 #         f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
                 #     )
                 #     self.mapped_requests = [this_request]
-                if len(this_request) > 0:
+                if len(intersected_request) > 0:
                     this_requests.append(deepcopy(this_request))
 
             self.context.info(
