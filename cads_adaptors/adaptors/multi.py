@@ -122,6 +122,10 @@ class MultiAdaptor(AbstractCdsAdaptor):
         if not isinstance(request, (list, tuple)):
             request = [request]
 
+        self.context.info(
+            f"MultiAdaptor, split_adadptors, start with {len(request)} requests"
+        )
+
         sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(
@@ -135,6 +139,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
             this_requests: list[dict[str, Any]] = []
             for _request in request:
+                self.context.info(
+                    f"MultiAdaptor, {adaptor_tag}, _request: {_request}"
+                )
                 this_request = self.extract_subrequest(
                     _request, this_values, **extract_subrequest_kwargs
                 )
