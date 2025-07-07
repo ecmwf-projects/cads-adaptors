@@ -147,16 +147,19 @@ class MultiAdaptor(AbstractCdsAdaptor):
                         f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
                     )
                 self.context.info(
-                    f"MultiAdaptor, {adaptor_tag}, this_requests: {this_request}"
+                    f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
                 )
                 if len(this_request) > 0:
                     this_requests.extend(deepcopy(this_request))
 
             self.context.info(
-                f"MultiAdaptor, {adaptor_tag}, this_requests: {this_requests}"
+                f"MultiAdaptor, {adaptor_tag}, this_requests: {len(this_requests)}"
             )
             if len(this_requests) > 0:
                 for i, _request in enumerate(this_requests):
+                    self.context.debug(
+                        f"MultiAdaptor, {adaptor_tag}, this_request[{i}]: {_request}"
+                    )
                     sub_adaptors[f"{adaptor_tag}-{i}"] = (this_adaptor, this_request)
 
         return sub_adaptors
@@ -177,7 +180,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         sub_adaptors = self.split_adaptors(self.mapped_requests)
         self.context.debug(
-            f"MultiAdaptor, split requests into sub-adaptors: {sub_adaptors}"
+            f"MultiAdaptor, split requests into {len(sub_adaptors)} sub-adaptors"
         )
 
         paths: list[str] = []
