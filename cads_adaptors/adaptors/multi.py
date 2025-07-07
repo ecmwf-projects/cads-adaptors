@@ -169,7 +169,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
             if len(this_requests) > 0:
                 for i, _request in enumerate(this_requests):
-                    sub_adaptors[f"{adaptor_tag}-{i}"] = (this_adaptor, deepcopy(this_request))
+                    sub_adaptors[f"{adaptor_tag}-{i}"] = (this_adaptor, deepcopy(_request))
 
         return sub_adaptors
 
