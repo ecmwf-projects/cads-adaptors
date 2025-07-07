@@ -77,7 +77,10 @@ def try_download(
                         **kwargs,
                     )
                     break
-                except Exception as e:
+                except (
+                    requests.exceptions.ConnectionError,
+                    requests.exceptions.ReadTimeout,
+                ) as e:
                     downloaded_bytes = os.path.getsize(path)
                     context.add_stdout(
                         f"Attempt {i_retry+1} to download {url} failed "
@@ -91,7 +94,10 @@ def try_download(
                     )
                     if i_retry + 1 == max_retries:
                         raise
-        except requests.exceptions.ConnectionError as e:
+        except (
+            requests.exceptions.ConnectionError,
+            requests.exceptions.ReadTimeout,
+        ) as e:
             # The way "multiurl" uses "requests" at the moment,
             # the read timeouts raise requests.exceptions.ConnectionError.
             if kwargs.get("fail_on_timeout_for_any_part", True):
