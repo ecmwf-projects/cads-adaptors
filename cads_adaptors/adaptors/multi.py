@@ -156,7 +156,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 if len(this_request) > 0:
                     this_requests.append(deepcopy(this_request))
 
-            self.context.debug(
+            self.context.info(
                 f"MultiAdaptor, {adaptor_tag}, this_requests: {this_requests}"
             )
             if len(this_requests) > 0:
@@ -175,7 +175,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         request = self.normalise_request(request)
-        self.context.debug(
+        self.context.info(
             f"MultiAdaptor, full mapped and intersected request: {self.mapped_requests}"
         )
 
@@ -184,7 +184,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
-            self.context.debug(
+            self.context.info(
                 f"MultiAdaptor, {adaptor_tag}, request: {req}, adaptor: {adaptor}"
             )
             try:
