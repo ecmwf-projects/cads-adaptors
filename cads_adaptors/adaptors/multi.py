@@ -145,19 +145,20 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 this_request = self.extract_subrequest(
                     _request, this_values, **extract_subrequest_kwargs
                 )
-                # NOTE for later, is the try/except here needed?
-                try:
-                    this_request = this_adaptor.normalise_request(this_request)
-                except Exception:
-                    self.context.warning(
-                        f"MultiAdaptor failed to normalise request.\n"
-                        f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
-                    )
-                self.context.info(
-                    f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
-                )
+                # # NOTE for later, is the try/except here needed?
+                # try:
+                #     this_request = this_adaptor.normalise_request(this_request)
+                # except Exception:
+                #     self.context.warning(
+                #         f"MultiAdaptor failed to normalise request.\n"
+                #         f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
+                #     )
+                #     self.mapped_requests = [this_request]
+                # self.context.info(
+                #     f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
+                # )
                 if len(this_request) > 0:
-                    this_requests.extend(deepcopy(this_request))
+                    this_requests.append(deepcopy(this_request))
 
             self.context.info(
                 f"MultiAdaptor, {adaptor_tag}, this_requests: {len(this_requests)}"
