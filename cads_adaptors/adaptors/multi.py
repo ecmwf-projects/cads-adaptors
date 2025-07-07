@@ -3,7 +3,7 @@ from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.exceptions import CdsConfigurationError, MultiAdaptorNoDataError
+from cads_adaptors.exceptions import CdsConfigurationError, MultiAdaptorNoDataError, InvalidRequest
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 
@@ -124,17 +124,14 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
+            # Propagate intersect_constraints from the top-level config to the sub-adaptor
+            adaptor_desc.setdefault("intersect_constraints", self.config.get("intersect_constraints", False))
+            self.context.info(f"MultiAdaptor, intersect_constraints: {self.intersect_constraints_bool}")
             this_adaptor = adaptor_tools.get_adaptor(
                 adaptor_desc | {"context": self.context},
                 self.form,
             )
             this_values = adaptor_desc.get("values", {})
-
-            # Propagate intersect_constraints from the top-level config to the sub-adaptor
-            this_adaptor.config.setdefault(
-                "intersect_constraints",
-                self.config.get("intersect_constraints", False),
-            )
 
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
                 this_adaptor.config
@@ -144,9 +141,17 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 this_request = self.extract_subrequest(
                     _request, this_values, **extract_subrequest_kwargs
                 )
-                intersected_request = self.intersect_constraints(
-                    this_request,
-                )
+                if this_adaptor.intersect_constraints_bool:
+                    try:
+                        intersected_requests = self.intersect_constraints(
+                            this_request,
+                        )
+                    except InvalidRequest:
+                        pass
+                    else:
+                        if len(intersected_requests) > 0:
+                            this_requests.extend(deepcopy(intersected_requests))
+
                 # # NOTE for later, is the try/except here needed?
                 # try:
                 #     this_request = this_adaptor.normalise_request(this_request)
@@ -156,8 +161,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 #         f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
                 #     )
                 #     self.mapped_requests = [this_request]
-                if len(intersected_request) > 0:
-                    this_requests.append(deepcopy(this_request))
+                # if len(intersected_request) > 0:
+                #     this_requests.append(deepcopy(this_request))
 
             self.context.info(
                 f"MultiAdaptor, {adaptor_tag}, this_requests: {this_requests}"
