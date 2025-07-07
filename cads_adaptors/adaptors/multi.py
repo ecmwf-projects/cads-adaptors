@@ -122,10 +122,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
         if not isinstance(request, (list, tuple)):
             request = [request]
 
-        self.context.info(
-            f"MultiAdaptor, split_adadptors, start with {len(request)} requests"
-        )
-
         sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(
@@ -134,14 +130,17 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
             this_values = adaptor_desc.get("values", {})
 
+            # Propagate intersect_constraints from the top-level config to the sub-adaptor
+            this_adaptor.config.setdefault(
+                "intersect_constraints",
+                self.config.get("intersect_constraints", False),
+            )
+
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
                 this_adaptor.config
             )
             this_requests: list[dict[str, Any]] = []
             for _request in request:
-                self.context.info(
-                    f"MultiAdaptor, {adaptor_tag}, _request: {_request}"
-                )
                 this_request = self.extract_subrequest(
                     _request, this_values, **extract_subrequest_kwargs
                 )
@@ -154,20 +153,14 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 #         f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
                 #     )
                 #     self.mapped_requests = [this_request]
-                # self.context.info(
-                #     f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
-                # )
                 if len(this_request) > 0:
                     this_requests.append(deepcopy(this_request))
 
-            self.context.info(
-                f"MultiAdaptor, {adaptor_tag}, this_requests: {len(this_requests)}"
+            self.context.debug(
+                f"MultiAdaptor, {adaptor_tag}, this_requests: {this_requests}"
             )
             if len(this_requests) > 0:
                 for i, _request in enumerate(this_requests):
-                    self.context.debug(
-                        f"MultiAdaptor, {adaptor_tag}, this_request[{i}]: {_request}"
-                    )
                     sub_adaptors[f"{adaptor_tag}-{i}"] = (this_adaptor, this_request)
 
         return sub_adaptors
@@ -182,14 +175,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         request = self.normalise_request(request)
-        self.context.info(
-            f"MultiAdaptor, full mapped and intersected request: {len(self.mapped_requests)}"
+        self.context.debug(
+            f"MultiAdaptor, full mapped and intersected request: {self.mapped_requests}"
         )
 
         sub_adaptors = self.split_adaptors(self.mapped_requests)
-        self.context.debug(
-            f"MultiAdaptor, split requests into {len(sub_adaptors)} sub-adaptors"
-        )
 
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
