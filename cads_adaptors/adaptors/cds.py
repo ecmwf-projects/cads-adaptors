@@ -1,3 +1,4 @@
+import bisect
 import os
 import pathlib
 import time
@@ -7,10 +8,14 @@ from typing import Any, BinaryIO
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
-from cads_adaptors.exceptions import InvalidRequest
+from cads_adaptors.exceptions import CdsConfigurationError, InvalidRequest
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.hcube_tools import hcubes_intdiff2
 from cads_adaptors.validation import enforce
+
+DEFAULT_COST_TYPE = "size"
+DEFAULT_COST_TYPE_FOR_COSTING_CLASS = DEFAULT_COST_TYPE
+COST_TYPE_WITH_HIGHEST_COST_LIMIT_RATIO_FOR_COSTING_CLASS = "highest_cost_limit_ratio"
 
 
 class AbstractCdsAdaptor(AbstractAdaptor):
@@ -71,7 +76,24 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         )
 
     def apply_mapping(self, request: Request) -> Request:
-        return mapping.apply_mapping(request, self.mapping)
+        return mapping.apply_mapping(request, self.mapping, context=self.context)
+
+    def get_cost_type_with_highest_cost_limit_ratio(
+        self, costs: dict[str, int], limits: dict[str, int]
+    ) -> str | None:
+        """
+        Determine the cost type with the highest cost/limit ratio.
+        This is implementing the same logic as https://github.com/ecmwf-projects/cads-processing-api-service/blob/main/cads_processing_api_service/costing.py.
+        """
+        highest_cost_limit_ratio = 0.0
+        highest_cost: dict[str, Any] = {"type": None, "cost": 0.0, "limit": 1.0}
+        for limit_id, limit in limits.items():
+            cost = costs.get(limit_id, 0.0)
+            cost_limit_ratio = cost / limit if limit > 0 else 1.0
+            if cost_limit_ratio > highest_cost_limit_ratio:
+                highest_cost_limit_ratio = cost_limit_ratio
+                highest_cost = {"type": limit_id, "cost": cost, "limit": limit}
+        return highest_cost["type"]
 
     def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         cost_threshold = kwargs.get("cost_threshold", "max_costs")
@@ -107,7 +129,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         }
 
         # "precise_size" is a new costing method that is more accurate than "size
-        if "precise_size" in costing_config.get(cost_threshold, {}):
+        costing_limits = costing_config.get(cost_threshold, {})
+        if "precise_size" in costing_limits:
             costs["precise_size"] = costing.estimate_precise_size(
                 self.form,
                 mapped_request,
@@ -115,7 +138,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 **costing_kwargs,
             )
         # size is a fast and rough estimate of the number of fields
-        costs["size"] = costing.estimate_number_of_fields(
+        costs[DEFAULT_COST_TYPE] = costing.estimate_number_of_fields(
             self.form,
             mapped_request,
             mapping=self.mapping,
@@ -126,7 +149,59 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             },
         )
         # Safety net for integration tests:
-        costs["number_of_fields"] = costs["size"]
+        costs["number_of_fields"] = costs[DEFAULT_COST_TYPE]
+
+        # add costing class
+        costing_class_kwargs: dict[str, Any] = costing_config.get(
+            "costing_class_kwargs", dict()
+        )
+        if costing_class_kwargs:
+            based_on_cost_type = costing_class_kwargs.get(
+                "cost_type", DEFAULT_COST_TYPE_FOR_COSTING_CLASS
+            )
+            if (
+                based_on_cost_type
+                == COST_TYPE_WITH_HIGHEST_COST_LIMIT_RATIO_FOR_COSTING_CLASS
+            ):
+                based_on_cost_type = self.get_cost_type_with_highest_cost_limit_ratio(
+                    costs, costing_limits
+                )
+
+            cost_value = costs.get(
+                based_on_cost_type, costs[DEFAULT_COST_TYPE_FOR_COSTING_CLASS]
+            )
+
+            costing_classes_inclusive_upper_bounds = costing_class_kwargs.get(
+                "inclusive_upper_bounds", []
+            )
+            if isinstance(costing_classes_inclusive_upper_bounds, list):
+                costing_classes_inclusive_upper_bounds.sort()
+                cost_class = bisect.bisect_left(
+                    costing_classes_inclusive_upper_bounds, cost_value
+                )
+            elif isinstance(costing_classes_inclusive_upper_bounds, dict):
+                costing_classes_inclusive_upper_bounds = [
+                    (v, k) for k, v in costing_classes_inclusive_upper_bounds.items()
+                ]
+                costing_classes_inclusive_upper_bounds.sort()
+                cost_class_index = bisect.bisect_left(
+                    costing_classes_inclusive_upper_bounds,
+                    cost_value,
+                    key=lambda x: x[0],
+                )
+                if cost_class_index < len(costing_classes_inclusive_upper_bounds):
+                    cost_class = costing_classes_inclusive_upper_bounds[
+                        cost_class_index
+                    ][1]
+                else:
+                    cost_class = costing_class_kwargs.get(
+                        "last_class_name", cost_class_index
+                    )
+            else:
+                raise CdsConfigurationError
+
+            costs["cost_class"] = cost_class
+
         return costs
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:

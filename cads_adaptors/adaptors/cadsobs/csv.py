@@ -36,9 +36,8 @@ def get_csv_header(
     retrieve_args: RetrieveArgs, cdm_lite_dataset: xarray.Dataset
 ) -> str:
     """Return the header of the CSV file."""
-    template = """
-########################################################################################
-# This file contains data retrieved from the CDS https://cds.climate.copernicus.eu/cdsapp#!/dataset/{dataset}
+    template = """########################################################################################
+# This file contains data retrieved from the CDS https://cds.climate.copernicus.eu/datasets/{dataset}
 # This is a C3S product under the following licences:
 {licence_list}
 # This is a CSV file following the CDS convention cdm-obs
