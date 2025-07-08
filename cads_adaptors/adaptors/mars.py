@@ -55,19 +55,42 @@ def get_mars_server_list(config) -> list[str]:
         )
     return mars_servers
 
-def download_file(url):
+def download_file(url, timeout=30, chunk_size=8192, max_retries=3):
     import requests
+
     local_filename = url.split('/')[-1]
-    # NOTE the stream=True parameter below
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
-        with open(local_filename, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=8192): 
-                # If you have chunk encoded response uncomment if
-                # and set chunk_size parameter to None.
-                #if chunk: 
-                f.write(chunk)
-    return local_filename
+    attempt = 0
+
+    while attempt < max_retries:
+        try:
+            # Check if file exists and get its size
+            mode = 'ab' if os.path.exists(local_filename) else 'wb'
+            file_size = os.path.getsize(local_filename) if os.path.exists(local_filename) else 0
+
+            headers = {}
+            if file_size > 0:
+                headers['Range'] = f'bytes={file_size}-'
+
+            with requests.get(url, stream=True, headers=headers, timeout=timeout) as r:
+                if file_size > 0 and r.status_code == 416:
+                    # Already fully downloaded
+                    return local_filename
+                r.raise_for_status()
+                with open(local_filename, mode) as f:
+                    for chunk in r.iter_content(chunk_size=chunk_size):
+                        if chunk:
+                            f.write(chunk)
+            return local_filename
+
+        except requests.exceptions.Timeout:
+            attempt += 1
+            print(f"Timeout occurred, retrying (attempt {attempt}/{max_retries})...")
+            # On next attempt, resume from where we left off
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to download file: {e}")
+
+    raise RuntimeError("Max retries exceeded while downloading file.")
 
 
 def execute_mars(

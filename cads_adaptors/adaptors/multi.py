@@ -268,7 +268,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             context=self.context,
             config=self.config,
             mapping=self.mapping,
-            target_dir=self.cache_tmp_path,
+            target_dir=self.cache_tmp_path, # theis one need to be improved as mars will return an accessible file path, but it is going to igonre any requests of location
         )
 
         with set_postprocess_dask_config():
@@ -277,7 +277,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                 self.data_format,
                 self.context,
                 self.config,
-                target_dir=str(self.cache_tmp_path),
+                target_dir=str(self.cache_tmp_path), # possibly here we have a list of files produced in previous call
             )
 
         if len(paths) > 1 and self.download_format == "as_source":
