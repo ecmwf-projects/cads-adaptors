@@ -108,14 +108,16 @@ def try_download(
             # To remove this, we would need to change how we use jinja in gecko and here,
             # or have a check against the URLs in the manifest file.
             status = e.response.status_code if e.response else None
-            if status and status >= 400 and status < 500:
-                context.debug(f"HTTP error {status} for URL {url}, skipping download.")
-            else:
+            if not (status and status >= 400 and status < 500):
                 # If the error is not a 4XX, we raise it as an exception
-                # so that the user can see it in the logs.
                 context.error(f"Failed download for URL: {url}\nException: {e}")
+                context.add_user_visible_error(
+                    "Your request has failed unexpectedly, this may be a temporary "
+                    "issue with the data source, please try your request again. "
+                    "If the issue persists, please contact user support."
+                )
                 raise UrlUnknownError(e)
-            context.debug(f"Failed download for URL: {url}\nException: {e}")
+            context.debug(f"HTTP error {status} for URL {url}, skipping download.")
         except UrlConnectionError:
             # The way "multiurl" uses "requests" at the moment,
             # the read timeouts raise requests.exceptions.ConnectionError.
@@ -130,9 +132,15 @@ def try_download(
             )
         except Exception as e:
             context.error(f"Failed download for URL: {url}\nException: {e}")
-            # System flag to raise unknown exceptions, this is a change in behaviour hence to be monitored
-            # when changed. Setting to True is how the legacy CDS operated.
+            # System flag to raise unknown exceptions, this is a change in 
+            # behaviour hence to be monitored when changed.
+            # Setting to True is closer to how the legacy CDS operated.
             if os.getenv("RAISE_UKNOWN_URL_EXCEPTIONS", False):
+                context.add_user_visible_error(
+                    "Your request has failed unexpectedly, this may be a temporary "
+                    "issue with the data source, please try your request again. "
+                    "If the issue persists, please contact user support."
+                )
                 raise UrlUnknownError(e)
         else:
             paths.append(path)
