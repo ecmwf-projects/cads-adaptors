@@ -34,7 +34,15 @@ class MarsSystemError(SystemError):
 
 
 class UrlNoDataError(InvalidRequest):
-    """Raised when a MARS request returns no data."""
+    """Raised when an URL request returns no data."""
+
+
+class UrlConnectionError(InvalidRequest):
+    """Raised when an URL request suffers a connection error."""
+
+
+class UrlUnknownError(InvalidRequest):
+    """Raised when an URL request suffers an error of unknown origin."""
 
 
 class MultiAdaptorNoDataError(InvalidRequest):

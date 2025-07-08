@@ -13,7 +13,12 @@ import yaml
 from tqdm import tqdm
 
 from cads_adaptors.adaptors import Context
-from cads_adaptors.exceptions import InvalidRequest, UrlNoDataError
+from cads_adaptors.exceptions import (
+    InvalidRequest,
+    UrlConnectionError,
+    UrlNoDataError,
+    UrlUnknownError,
+)
 from cads_adaptors.tools import hcube_tools
 
 
@@ -39,7 +44,7 @@ def requests_to_urls(
 
 
 def try_download(
-    urls: List[str], context: Context, server_suggested_filename=False, **kwargs
+    urls: List[str], context: Context, server_suggested_filename: bool = False, **kwargs
 ) -> List[str]:
     # Ensure that URLs are unique to prevent downloading the same file multiple times
     urls = sorted(set(urls))
@@ -93,27 +98,42 @@ def try_download(
                         max_sleep_between_retries,
                     )
                     if i_retry + 1 == max_retries:
-                        raise
-        except (
-            requests.exceptions.ConnectionError,
-            requests.exceptions.ReadTimeout,
-        ) as e:
+                        raise UrlConnectionError(e)
+        except requests.exceptions.HTTPError as e:
+            # We don't care about HTTP 4XX errors, the current adaptor setup relies on ignoring them
+            # The reason for this is that our jinja templating is an incomplete extension of jinja,
+            # which uses patterns created from multiple regex definitions.
+            # It is possible that a single valid combination of key:values pairs can create multiple URLs,
+            # but only one should exist.
+            # To remove this, we would need to change how we use jinja in gecko and here,
+            # or have a check against the URLs in the manifest file.
+            status = e.response.status_code if e.response else None
+            if status and status >= 400 and status < 500:
+                context.debug(f"HTTP error {status} for URL {url}, skipping download.")
+            else:
+                # If the error is not a 4XX, we raise it as an exception
+                # so that the user can see it in the logs.
+                context.error(f"Failed download for URL: {url}\nException: {e}")
+                raise UrlUnknownError(e)
+            context.debug(f"Failed download for URL: {url}\nException: {e}")
+        except UrlConnectionError:
             # The way "multiurl" uses "requests" at the moment,
             # the read timeouts raise requests.exceptions.ConnectionError.
-            if kwargs.get("fail_on_timeout_for_any_part", True):
-                context.add_user_visible_error(
-                    "Your request has not found some of the data expected to be present.\n"
-                    "This may be due to temporary connectivity issues with the source data.\n"
-                    "If this problem persists, please contact user support."
-                )
-                raise UrlNoDataError(
-                    f"Incomplete request result. No data found from the following URL:"
-                    f"\n{yaml.safe_dump(url, indent=2)} "
-                )
-            else:
-                context.debug(f"Failed download for URL: {url}\nException: {e}")
+            context.add_user_visible_error(
+                "Your request has not found some of the data expected to be present.\n"
+                "This may be due to temporary connectivity issues with the source data.\n"
+                "If this problem persists, please contact user support."
+            )
+            raise UrlConnectionError(
+                f"Incomplete request result. No data found from the following URL:"
+                f"\n{yaml.safe_dump(url, indent=2)} "
+            )
         except Exception as e:
-            context.debug(f"Failed download for URL: {url}\nException: {e}")
+            context.error(f"Failed download for URL: {url}\nException: {e}")
+            # System flag to raise unknown exceptions, this is a change in behaviour hence to be monitored
+            # when changed. Setting to True is how the legacy CDS operated.
+            if os.getenv("RAISE_UKNOWN_URL_EXCEPTIONS", False):
+                raise UrlUnknownError(e)
         else:
             paths.append(path)
 
@@ -127,7 +147,7 @@ def try_download(
             f"Request empty. No data found from the following URLs:"
             f"\n{yaml.safe_dump(urls, indent=2)} "
         )
-    # TODO: raise a warning if len(paths)<len(urls). Need to check who sees this warning
+
     return paths
 
 
