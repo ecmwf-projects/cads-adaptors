@@ -108,6 +108,7 @@ def try_download(
             # To remove this, we would need to change how we use jinja in gecko and here,
             # or have a check against the URLs in the manifest file.
             status = e.response.status_code if e.response else None
+            context.debug(f"HTTP error {status} for URL {url}, skipping download.")
             if not (status and status >= 400 and status < 500):
                 # If the error is not a 4XX, we raise it as an exception
                 context.error(f"Failed download for URL: {url}\nException: {e}")
@@ -116,7 +117,7 @@ def try_download(
                     "issue with the data source, please try your request again. "
                     "If the issue persists, please contact user support."
                 )
-                raise UrlUnknownError(e)
+                raise e
             context.debug(f"HTTP error {status} for URL {url}, skipping download.")
         except UrlConnectionError:
             # The way "multiurl" uses "requests" at the moment,
