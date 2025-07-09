@@ -141,7 +141,7 @@ def try_download(
                     "issue with the data source, please try your request again. "
                     "If the issue persists, please contact user support."
                 )
-                raise UrlUnknownError(e)
+                raise e  #UrlUnknownError(e)
         else:
             paths.append(path)
 
