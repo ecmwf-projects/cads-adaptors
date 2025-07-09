@@ -1,5 +1,6 @@
 import functools
 import os
+import re
 import tarfile
 import time
 import urllib
@@ -9,7 +10,6 @@ from typing import Any, Dict, Generator, List, Optional
 import jinja2
 import multiurl
 import requests
-import re
 import yaml
 from tqdm import tqdm
 
@@ -138,7 +138,7 @@ def try_download(
             )
         except Exception as e:
             context.error(f"Failed download for URL: {url}\nException: {e}")
-            # System flag to raise unknown exceptions, this is a change in 
+            # System flag to raise unknown exceptions, this is a change in
             # behaviour hence to be monitored when changed.
             # Setting to True is closer to how the legacy CDS operated.
             if os.getenv("RAISE_UKNOWN_URL_EXCEPTIONS", False):
