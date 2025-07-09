@@ -122,7 +122,7 @@ def try_download(
                     "issue with the data source, please try your request again. "
                     "If the issue persists, please contact user support."
                 )
-                raise e
+                raise UrlUnknownError(e)
             context.debug(f"HTTP error {status} for URL {url}, skipping download.")
         except UrlConnectionError:
             # The way "multiurl" uses "requests" at the moment,
@@ -147,7 +147,7 @@ def try_download(
                     "issue with the data source, please try your request again. "
                     "If the issue persists, please contact user support."
                 )
-                raise e  #UrlUnknownError(e)
+                raise UrlUnknownError(e)
         else:
             paths.append(path)
 
