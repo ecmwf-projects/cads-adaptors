@@ -9,6 +9,7 @@ from typing import Any, Dict, Generator, List, Optional
 import jinja2
 import multiurl
 import requests
+import re
 import yaml
 from tqdm import tqdm
 
@@ -108,6 +109,10 @@ def try_download(
             # To remove this, we would need to change how we use jinja in gecko and here,
             # or have a check against the URLs in the manifest file.
             status = e.response.status_code if e.response else None
+            # Sometimes the status code is not in the exception, but can be found in message:
+            if status is None:
+                match = re.match(r"(\d{3})", str(e))
+                status = int(match.group(1)) if match else None
             context.debug(f"HTTP error {status} for URL {url}, skipping download.")
             if not (status and status >= 400 and status < 500):
                 # If the error is not a 4XX, we raise it as an exception
