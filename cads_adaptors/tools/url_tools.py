@@ -10,6 +10,7 @@ import jinja2
 import multiurl
 import requests
 import yaml
+from multiurl.http import RETRIABLE
 from tqdm import tqdm
 
 from cads_adaptors.adaptors import Context
@@ -107,23 +108,29 @@ def try_download(
             timeout=timeout,
             **kwargs,
         )
+        context.debug(f"Downloading {url} to {path}")
         try:
-            context.debug(f"Downloading {url} to {path}")
             downloader.download(url)
-        except (requests.ConnectionError, requests.ReadTimeout):
-            # The way "multiurl" uses "requests" at the moment,
-            # the read timeouts raise requests.exceptions.ConnectionError.
-            context.add_user_visible_error(
-                "Your request has not found some of the data expected to be present.\n"
-                "This may be due to temporary connectivity issues with the source data.\n"
-                "If this problem persists, please contact user support."
-            )
-            raise UrlNoDataError(
-                f"Incomplete request result. No data found from the following URL:"
-                f"\n{yaml.safe_dump(url, indent=2)} "
-            )
-        except Exception as e:
-            context.debug(f"Failed download for URL: {url}\nException: {e}")
+        except (
+            requests.ConnectionError,
+            requests.ReadTimeout,
+            requests.HTTPError,
+        ) as exc:
+            if (
+                isinstance(exc, requests.HTTPError)
+                and exc.response.status_code not in RETRIABLE
+            ):
+                context.debug(f"Failed download for URL: {url}\nException: {exc}")
+            else:
+                context.add_user_visible_error(
+                    "Your request has not found some of the data expected to be present.\n"
+                    "This may be due to temporary connectivity issues with the source data.\n"
+                    "If this problem persists, please contact user support."
+                )
+                raise UrlNoDataError(
+                    f"Incomplete request result. No data found from the following URL:"
+                    f"\n{yaml.safe_dump(url, indent=2)} "
+                )
         else:
             paths.append(path)
 
