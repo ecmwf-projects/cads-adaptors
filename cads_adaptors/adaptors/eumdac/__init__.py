@@ -14,10 +14,10 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         super().__init__(*args, **kwargs)
 
         self.eum_collection_id = self.config["eum_collection_id"]
+        self.connect_to_collection()
+        self.eumdac_keys = self.selected_collection.search_options
 
         # schema should go here
-
-        self.token = self.authenticate()
 
     def authenticate(self):
         import eumdac
@@ -34,8 +34,6 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         )
 
         return self.token
-
-    NON_EUMDAC_KEYS = ["__in_adaptor_no_cache"]
 
     def str_to_date(self, date_str):
         return datetime.datetime.strptime(date_str, "%Y-%m-%d")
@@ -57,12 +55,15 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         request["date"].append(current_interval)
         return request
 
+    ALLOWED_NON_EUMDAC_KEYS = ["date"]
+
     def cds_to_eumdac_preprocessing(self, request):
         eumdac_request = copy.deepcopy(request)
 
         # remove keys that are not supported by EUMDAC
-        for non_eumdac_key in EUMDACAdaptor.NON_EUMDAC_KEYS:
-            eumdac_request.pop(non_eumdac_key, None)
+        for key in list(eumdac_request.keys()):
+            if key not in self.eumdac_keys and key not in EUMDACAdaptor.ALLOWED_NON_EUMDAC_KEYS:
+                eumdac_request.pop(key, None)
 
         eumdac_request = self.merge_into_maximal_date_intervals(eumdac_request)
 
@@ -104,16 +105,18 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
     def has_token_expired(self):
         return self.token.expiration < datetime.datetime.now()
 
-    def search(self, request):
+    def connect_to_collection(self):
         import eumdac
 
-        if self.has_token_expired():
+        if not hasattr(self, "token") or self.has_token_expired():
             self.authenticate()
-        datastore = eumdac.DataStore(self.token)
+            self.datastore = eumdac.DataStore(self.token)
+            self.selected_collection = self.datastore.get_collection(self.eum_collection_id)
 
-        selected_collection = datastore.get_collection(self.eum_collection_id)
+    def search(self, request):
+        self.connect_to_collection()
 
-        products = selected_collection.search(**request)
+        products = self.selected_collection.search(**request)
 
         self.context.debug(f"{products.total_results} products found.")
 
