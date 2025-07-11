@@ -23,19 +23,19 @@ class RobustDownloader:
         target: str,
         maximum_tries: int,
         retry_after: float,
-        **download_kwargs,
-    ):
+        **download_kwargs: Any,
+    ) -> None:
         self.target = target
         self.maximum_tries = maximum_tries
         self.retry_after = retry_after
         self.download_kwargs = download_kwargs
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         path = Path(self.target)
         path.unlink(missing_ok=True)
         path.parent.mkdir(exist_ok=True, parents=True)
 
-    def _download(self, url):
+    def _download(self, url: str) -> requests.Response:
         multiurl.download(
             url=url,
             target=self.target,
@@ -44,7 +44,7 @@ class RobustDownloader:
             resume_transfers=True,
             **self.download_kwargs,
         )
-        return requests.Response()
+        return requests.Response()  # mutliurl robust needs a response
 
     def download(self, url: str) -> None:
         self.cleanup()
@@ -53,7 +53,7 @@ class RobustDownloader:
             maximum_tries=self.maximum_tries,
             retry_after=self.retry_after,
         )
-        return robust_download(url=url)
+        robust_download(url=url)
 
 
 # copied from cdscommon/url2
