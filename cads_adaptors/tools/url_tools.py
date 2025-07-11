@@ -30,7 +30,7 @@ class RobustDownloader:
         self.retry_after = retry_after
         self.download_kwargs = download_kwargs
 
-    def remove_target(self):
+    def cleanup(self):
         path = Path(self.target)
         path.unlink(missing_ok=True)
         path.parent.mkdir(exist_ok=True, parents=True)
@@ -47,7 +47,7 @@ class RobustDownloader:
         return requests.Response()
 
     def download(self, url: str) -> None:
-        self.remove_target()
+        self.cleanup()
         robust_download = multiurl.robust(
             self._download,
             maximum_tries=self.maximum_tries,
