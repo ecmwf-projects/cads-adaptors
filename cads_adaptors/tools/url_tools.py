@@ -1,9 +1,9 @@
 import functools
 import os
 import tarfile
-import time
 import urllib
 import zipfile
+from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional
 
 import jinja2
@@ -15,6 +15,45 @@ from tqdm import tqdm
 from cads_adaptors.adaptors import Context
 from cads_adaptors.exceptions import InvalidRequest, UrlNoDataError
 from cads_adaptors.tools import hcube_tools
+
+
+class RobustDownloader:
+    def __init__(
+        self,
+        target: str,
+        maximum_tries: int,
+        retry_after: float,
+        **download_kwargs,
+    ):
+        self.target = target
+        self.maximum_tries = maximum_tries
+        self.retry_after = retry_after
+        self.download_kwargs = download_kwargs
+
+    def remove_target(self):
+        path = Path(self.target)
+        path.unlink(missing_ok=True)
+        path.parent.mkdir(exist_ok=True, parents=True)
+
+    def _download(self, url):
+        multiurl.download(
+            url=url,
+            target=self.target,
+            maximum_retries=1,  # Handled by outer robust wrapper
+            stream=True,
+            resume_transfers=True,
+            **self.download_kwargs,
+        )
+        return requests.Response()
+
+    def download(self, url: str) -> None:
+        self.remove_target()
+        robust_download = multiurl.robust(
+            self._download,
+            maximum_tries=self.maximum_tries,
+            retry_after=self.retry_after,
+        )
+        return robust_download(url=url)
 
 
 # copied from cdscommon/url2
@@ -39,77 +78,57 @@ def requests_to_urls(
 
 
 def try_download(
-    urls: List[str], context: Context, server_suggested_filename=False, **kwargs
+    urls: List[str],
+    context: Context,
+    server_suggested_filename=False,
+    maximum_tries: int = 10,  # TODO: Check with ECMWF
+    retry_after: float = 60,  # TODO: Check with ECMWF
+    # the default timeout value (3) has been determined empirically (it also included a safety margin)
+    timeout: float = 3,
+    **kwargs,
 ) -> List[str]:
+    kwargs.setdefault(
+        "progress_bar", functools.partial(tqdm, file=context, mininterval=5)
+    )
+
     # Ensure that URLs are unique to prevent downloading the same file multiple times
     urls = sorted(set(urls))
 
     paths = []
     context.write_type = "stdout"
     # set some default kwargs for establishing a connection
-    # the default timeout value (3) has been determined empirically (it also included a safety margin)
-    kwargs = {"timeout": 3, "maximum_retries": 1, "retry_after": 1, **kwargs}
     for url in urls:
-        path = urllib.parse.urlparse(url).path.lstrip("/")
+        target = urllib.parse.urlparse(url).path.lstrip("/")
         if server_suggested_filename:
-            path = os.path.join(os.path.dirname(path), multiurl.Downloader(url).title())
-
-        dir = os.path.dirname(path)
-        if dir:
-            os.makedirs(dir, exist_ok=True)
-        try:
-            context.debug(f"Downloading {url} to {path}")
-            max_retries = kwargs.get("max_retries", 10)
-            is_resume_transfers_on = kwargs.get("resume_transfers", False)
-            sleep_between_retries = kwargs.get("sleep_between_retries", 1)
-            sleep_between_retries_increase_rate = kwargs.get(
-                "sleep_between_retries_increase_rate", 1.3
+            target = os.path.join(
+                os.path.dirname(target), multiurl.Downloader(url).title()
             )
-            max_sleep_between_retries = kwargs.get("max_sleep_between_retries", 120)
-            for i_retry in range(max_retries):
-                try:
-                    multiurl.download(
-                        url,
-                        path,
-                        progress_bar=functools.partial(
-                            tqdm, file=context, mininterval=5
-                        ),
-                        **kwargs,
-                    )
-                    break
-                except Exception as e:
-                    downloaded_bytes = os.path.getsize(path)
-                    context.add_stdout(
-                        f"Attempt {i_retry+1} to download {url} failed "
-                        f"(only {downloaded_bytes}B downloaded so far, "
-                        f"with resume_transfers={is_resume_transfers_on}): {e!r}"
-                    )
-                    time.sleep(sleep_between_retries)
-                    sleep_between_retries = min(
-                        sleep_between_retries * sleep_between_retries_increase_rate,
-                        max_sleep_between_retries,
-                    )
-                    if i_retry + 1 == max_retries:
-                        raise
-        except requests.exceptions.ConnectionError as e:
+        downloader = RobustDownloader(
+            target,
+            maximum_tries=maximum_tries,
+            retry_after=retry_after,
+            timeout=timeout,
+            **kwargs,
+        )
+        try:
+            context.debug(f"Downloading {url} to {target}")
+            downloader.download(url)
+        except (requests.ConnectionError, requests.ReadTimeout):
             # The way "multiurl" uses "requests" at the moment,
             # the read timeouts raise requests.exceptions.ConnectionError.
-            if kwargs.get("fail_on_timeout_for_any_part", True):
-                context.add_user_visible_error(
-                    "Your request has not found some of the data expected to be present.\n"
-                    "This may be due to temporary connectivity issues with the source data.\n"
-                    "If this problem persists, please contact user support."
-                )
-                raise UrlNoDataError(
-                    f"Incomplete request result. No data found from the following URL:"
-                    f"\n{yaml.safe_dump(url, indent=2)} "
-                )
-            else:
-                context.debug(f"Failed download for URL: {url}\nException: {e}")
+            context.add_user_visible_error(
+                "Your request has not found some of the data expected to be present.\n"
+                "This may be due to temporary connectivity issues with the source data.\n"
+                "If this problem persists, please contact user support."
+            )
+            raise UrlNoDataError(
+                f"Incomplete request result. No data found from the following URL:"
+                f"\n{yaml.safe_dump(url, indent=2)} "
+            )
         except Exception as e:
             context.debug(f"Failed download for URL: {url}\nException: {e}")
         else:
-            paths.append(path)
+            paths.append(target)
 
     if len(paths) == 0:
         context.add_user_visible_error(
