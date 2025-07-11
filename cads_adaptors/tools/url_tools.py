@@ -96,7 +96,6 @@ def try_download(
 
     paths = []
     context.write_type = "stdout"
-    # set some default kwargs for establishing a connection
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         if server_suggested_filename:
