@@ -1,10 +1,11 @@
 import hashlib
-import jinja2
 import logging
 import os
 import re
 import time
 import traceback
+
+import jinja2
 from owslib.wps import WebProcessingService
 
 
@@ -46,9 +47,12 @@ def encode(user_id):
     """Encode a user ID (in practice: append some extra text to it) in a way
     that could only be done by someone who knows a secret string. The string is
     only known by ECMWF and the contractor. This allows the contractor have
-    confidence that the request has come from us."""
+    confidence that the request has come from us.
+    """
     user_id = str(user_id)
-    hash = hashlib.md5((user_id + os.environ['CAMS_SOLAR_SECRET_STRING']).encode()).hexdigest()
+    hash = hashlib.md5(
+        (user_id + os.environ["CAMS_SOLAR_SECRET_STRING"]).encode()
+    ).hexdigest()
     return user_id + hash
 
 
@@ -56,14 +60,14 @@ def verify(encoded):
     """Given an encoded user ID encoded (created by encode(user_id)), verify
     that it is valid. This function is not used in the adaptor but is included
     here to demonstrate how the contractor can validate the string at their
-    end."""
+    end.
+    """
     user_id = encoded[:-32]
     return encode(user_id) == encoded
 
 
 def retrieve_by_wps(req, outfile, ntries, logger):
     """Execute a CAMS solar radiation data retrieval through the WPS API."""
-
     # Construct the XML to pass
     xml = jinja2.Template(template_xml()).render(req)
     logger.debug("request=" + repr(req))
@@ -116,7 +120,6 @@ def retrieve_by_wps(req, outfile, ntries, logger):
 
 
 def wps_execute(url, xml, outfile, logger):
-
     # Execute WPS. This can throw an immediate exception if the service is
     # down
     wps = WebProcessingService(url, skip_caps=True, timeout=3600)
@@ -256,23 +259,21 @@ def template_xml():
 
 
 def test_solar_rad_retrieve():
-    sky_types = ['get_cams_radiation',
-                 'get_mcclear']
-    time_refs = ['UT', 'TST']
-    formats = ['csv', 'csv_expert', 'netcdf']
-    request = {'altitude': '-999',
-               'date': '2022-02-20/2022-02-20',
-               'location': {
-                   'latitude': 0.,
-                   'longitude': 0.
-               },
-               'sky_type': sky_types[0],
-               'time_reference': time_refs[0],
-               'time_step': 'PT15M',
-               'format': formats[0]}
-    solar_rad_retrieve(request, 'a.dat', user_id=123, ntries=1)
+    sky_types = ["get_cams_radiation", "get_mcclear"]
+    time_refs = ["UT", "TST"]
+    formats = ["csv", "csv_expert", "netcdf"]
+    request = {
+        "altitude": "-999",
+        "date": "2022-02-20/2022-02-20",
+        "location": {"latitude": 0.0, "longitude": 0.0},
+        "sky_type": sky_types[0],
+        "time_reference": time_refs[0],
+        "time_step": "PT15M",
+        "format": formats[0],
+    }
+    solar_rad_retrieve(request, "a.dat", user_id=123, ntries=1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     test_solar_rad_retrieve()

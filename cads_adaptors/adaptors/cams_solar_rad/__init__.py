@@ -113,8 +113,12 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         req_user_id = mreq.get("_user_id")
         while isinstance(req_user_id, (list, tuple)) and req_user_id:
             req_user_id = req_user_id[0]
-        self.context.debug("Wekeo user IDs are " + repr(self.config.get("wekeo_user_ids")))
-        if req_user_id and self.config["user_uid"] in self.config.get("wekeo_user_ids", []):
+        self.context.debug(
+            "Wekeo user IDs are " + repr(self.config.get("wekeo_user_ids"))
+        )
+        if req_user_id and self.config["user_uid"] in self.config.get(
+            "wekeo_user_ids", []
+        ):
             self.context.info(f"Using WEKEO user ID for backend: {req_user_id}")
             return str(req_user_id)
         else:
