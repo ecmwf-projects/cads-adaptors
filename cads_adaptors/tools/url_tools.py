@@ -98,20 +98,18 @@ def try_download(
     context.write_type = "stdout"
     # set some default kwargs for establishing a connection
     for url in urls:
-        target = urllib.parse.urlparse(url).path.lstrip("/")
+        path = urllib.parse.urlparse(url).path.lstrip("/")
         if server_suggested_filename:
-            target = os.path.join(
-                os.path.dirname(target), multiurl.Downloader(url).title()
-            )
+            path = os.path.join(os.path.dirname(path), multiurl.Downloader(url).title())
         downloader = RobustDownloader(
-            target,
+            path,
             maximum_tries=maximum_tries,
             retry_after=retry_after,
             timeout=timeout,
             **kwargs,
         )
         try:
-            context.debug(f"Downloading {url} to {target}")
+            context.debug(f"Downloading {url} to {path}")
             downloader.download(url)
         except (requests.ConnectionError, requests.ReadTimeout):
             # The way "multiurl" uses "requests" at the moment,
@@ -128,7 +126,7 @@ def try_download(
         except Exception as e:
             context.debug(f"Failed download for URL: {url}\nException: {e}")
         else:
-            paths.append(target)
+            paths.append(path)
 
     if len(paths) == 0:
         context.add_user_visible_error(
