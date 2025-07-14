@@ -81,15 +81,15 @@ def requests_to_urls(
 
 
 def try_download(
-    urls: List[str],
+    urls: list[str],
     context: Context,
-    server_suggested_filename=False,
+    server_suggested_filename: bool = False,
     maximum_tries: int = 10,  # TODO: Check with ECMWF
     retry_after: float = 60,  # TODO: Check with ECMWF
     # the default timeout value (3) has been determined empirically (it also included a safety margin)
     timeout: float = 3,
-    **kwargs,
-) -> List[str]:
+    **kwargs: Any,
+) -> list[str]:
     kwargs.setdefault(
         "progress_bar", functools.partial(tqdm, file=context, mininterval=5)
     )
