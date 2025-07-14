@@ -107,7 +107,7 @@ class CadsobsApiClient:
             )
         except CadsObsConnectionError as e:
             self.context.warning(
-                f"Requess failed for payload {payload}: {e}, possibly the API it "
+                f"Request failed for payload {payload}: {e}, possibly the API it "
                 f"outdated, falling back to the old payload format."
             )
             payload = dict(
@@ -127,7 +127,7 @@ class CadsobsApiClient:
             )
         except CadsObsConnectionError as e:
             self.context.warning(
-                f"Requess failed when getting the list of disabled fields"
+                f"Request failed when getting the list of disabled fields"
                 f"for {dataset_name=} and {dataset_source=}: {e}, "
                 f"possibly the API it outdated"
             )
