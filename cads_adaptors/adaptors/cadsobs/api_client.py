@@ -123,7 +123,7 @@ class CadsobsApiClient:
         """Get the list of fields that are disabled for the given dataset."""
         try:
             response = self._send_request_and_capture_exceptions(
-                "GET", f"/{dataset_name}/{dataset_source}/disabled_variables"
+                "GET", f"/{dataset_name}/{dataset_source}/disabled_fields"
             )
         except CadsObsConnectionError as e:
             self.context.warning(
