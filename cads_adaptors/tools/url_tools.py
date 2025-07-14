@@ -40,7 +40,8 @@ class RobustDownloader:
         multiurl.download(
             url=url,
             target=self.target,
-            maximum_retries=1,  # Handled by outer robust wrapper
+            maximum_retries=self.maximum_tries,
+            retry_after=self.retry_after,
             stream=True,
             resume_transfers=True,
             **self.download_kwargs,

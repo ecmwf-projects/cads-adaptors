@@ -80,3 +80,49 @@ def test_ftp_download(tmp_path, monkeypatch, ftpserver, anon):
     ]
     with open(local_test_file) as original, open(local_test_download) as downloaded:
         assert original.read() == downloaded.read()
+
+
+def test_try_download_skips_404(caplog, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    context = url_tools.Context()
+    paths = url_tools.try_download(
+        [
+            "http://httpbin.org/status/404",
+            "http://httpbin.org/bytes/1",
+        ],
+        context,
+        maximum_tries=2,
+        retry_after=0,
+    )
+    assert "Recovering from HTTP error" not in caplog.text
+    assert paths == ["bytes/1"]
+    assert os.path.getsize("bytes/1") == 1
+
+
+def test_try_download_raises_500(caplog, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    context = url_tools.Context()
+    with pytest.raises(url_tools.UrlNoDataError, match="Incomplete request result."):
+        url_tools.try_download(
+            [
+                "http://httpbin.org/status/500",
+                "http://httpbin.org/bytes/1",
+            ],
+            context,
+            maximum_tries=2,
+            retry_after=0,
+        )
+    assert (
+        "Recovering from HTTP error [500 INTERNAL SERVER ERROR], attempt 1 of 2"
+        in caplog.text
+    )
+
+
+def test_try_download_raises_empty(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    context = url_tools.Context()
+    with pytest.raises(url_tools.UrlNoDataError, match="Request empty."):
+        url_tools.try_download(
+            ["http://httpbin.org/status/404"],
+            context,
+        )
