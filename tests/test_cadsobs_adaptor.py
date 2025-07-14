@@ -111,50 +111,6 @@ CDM_LITE_VARIABLES: dict[str, list[str] | dict] = {
 }
 
 
-class MockerCadsobsApiClient:
-    def __init__(self, baseurl: str, context: Context):
-        pass
-
-    def get_service_definition(self, dataset: str) -> dict:
-        return {
-            "global_attributes": {
-                "contactemail": "https://support.ecmwf.int",
-                "licence_list": "20180314_Copernicus_License_V1.1",
-                "responsible_organisation": "ECMWF",
-            }
-        }
-
-    def get_cdm_lite_variables(self):
-        return CDM_LITE_VARIABLES
-
-    def get_objects_to_retrieve(
-        self, dataset_name: str, mapped_request: dict
-    ) -> list[str]:
-        return [
-            "https://object-store.os-api.cci2.ecmwf.int/"
-            "cds2-obs-dev-insitu-observations-near-surface-temperature-us-cl/"
-            "insitu-observations-near-surface-temperature-us-climate-reference-network_1.0.0_uscrn_daily_200808_30.0_-150.0.nc"
-        ]
-
-
-class ClientErrorMockerCadsobsApiClient(MockerCadsobsApiClient):
-    def get_objects_to_retrieve(self, dataset_name: str, mapped_request: dict):
-        raise RuntimeError("This is a test error")
-
-
-class BackendErrorCadsobsApiClient(CadsobsApiClient):
-    def _send_request(self, endpoint, method, payload):
-        response = self.requests.Response()
-        response.code = "expired"
-        response.error_type = "expired"
-        response.status_code = 400
-        response._content = (
-            b'{"detail": {"message" : "Error: something failed somehow", '
-            b'"traceback": "this is a traceback" }}'
-        )
-        return response
-
-
 TEST_REQUEST = {
     "time_aggregation": "daily",
     "format": "netCDF",
@@ -168,6 +124,16 @@ TEST_REQUEST = {
     ],
     "_timestamp": str(time.time()),
 }
+
+TEST_REQUEST_CUON = {
+    "version": "1_1_0",
+    "variable": ["air_dewpoint", "air_temperature"],
+    "year": ["1965"],
+    "month": ["07"],
+    "day": ["01", "02"],
+    "data_format": "netcdf",
+}
+
 
 TEST_ADAPTOR_CONFIG = {
     "entry_point": "cads_adaptors:ObservationsAdaptor",
@@ -200,6 +166,98 @@ TEST_ADAPTOR_CONFIG = {
     "licences": ["licence-to-use-copernicus-products", "uscrn-data-policy"],
 }
 
+TEST_ADAPTOR_CONFIG_CUON = {
+    "costing": {"max_costs": {"size": 1600}},
+    "entry_point": "cads_adaptors:ObservationsAdaptor",
+    "intersect_constraints": True,
+    "collection_id": "insitu-comprehensive-upper-air-observation-network",
+    "obs_api_url": "http://localhost:8000",
+    "mapping": {
+        "force": {"dataset_source": ["CUON"]},
+        "remap": {
+            "data_format": {"netcdf": "netCDF"},
+            "version": {"1_1_0": "1.1.0"},
+        },
+        "rename": {"data_format": "format", "variable": "variables"},
+    },
+}
+
+API_URL = "https://object-store.os-api.cci2.ecmwf.int/"
+CUON_DISABLED_FIELDS = [
+    "report_type",
+    "report_duration",
+    "station_type",
+    "secondary_id",
+]
+
+
+class MockerCadsobsApiClient:
+    def __init__(self, baseurl: str, context: Context):
+        pass
+
+    def get_service_definition(self, dataset: str) -> dict:
+        return {
+            "global_attributes": {
+                "contactemail": "https://support.ecmwf.int",
+                "licence_list": "20180314_Copernicus_License_V1.1",
+                "responsible_organisation": "ECMWF",
+            }
+        }
+
+    def get_cdm_lite_variables(self):
+        return CDM_LITE_VARIABLES
+
+    def get_objects_to_retrieve(
+        self, dataset_name: str, mapped_request: dict
+    ) -> list[str]:
+        if (
+            dataset_name
+            == "insitu-observations-near-surface-temperature-us-climate-reference-network"
+        ):
+            return [
+                API_URL
+                + "cds2-obs-dev-insitu-observations-near-surface-temperature-us-cl/"
+                "insitu-observations-near-surface-temperature-us-climate-reference-network_1.0.0_uscrn_daily_200808_30.0_-150.0.nc"
+            ]
+        elif dataset_name == "insitu-comprehensive-upper-air-observation-network":
+            return [
+                API_URL
+                + "cds2-obs-dev-insitu-comprehensive-upper-air-observation-network/"
+                "insitu-comprehensive-upper-air-observation-network_1.1.0_CUON_196507_-90.0_-180.0.nc"
+            ]
+        else:
+            raise RuntimeError(f"Unknown dataset {dataset_name}")
+
+    def get_disabled_fields(self, dataset_name: str, dataset_source: str) -> []:
+        """Get the list of fields that are disabled for the given dataset."""
+        if (
+            dataset_name
+            == "insitu-observations-near-surface-temperature-us-climate-reference-network"
+        ):
+            return []
+        elif dataset_name == "insitu-comprehensive-upper-air-observation-network":
+            return CUON_DISABLED_FIELDS
+        else:
+            raise RuntimeError(f"Unknown dataset {dataset_name}")
+
+
+class ClientErrorMockerCadsobsApiClient(MockerCadsobsApiClient):
+    def get_objects_to_retrieve(self, dataset_name: str, mapped_request: dict):
+        raise RuntimeError("This is a test error")
+
+
+class BackendErrorCadsobsApiClient(CadsobsApiClient):
+    def _send_request(self, endpoint, method, payload):
+        response = self.requests.Response()
+        response.code = "expired"
+        response.error_type = "expired"
+        response.status_code = 400
+        response._content = (
+            b'{"detail": {"message" : "Error: something failed somehow", '
+            b'"traceback": "this is a traceback" }}'
+        )
+        return response
+
 
 def test_adaptor(tmp_path, monkeypatch):
     monkeypatch.setattr(
@@ -216,6 +274,24 @@ def test_adaptor(tmp_path, monkeypatch):
     assert tempfile.stat().st_size > 0
     actual = h5netcdf.File(tempfile)
     assert actual.dimensions["index"].size > 0
+
+
+def test_adaptor_cuon(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        MockerCadsobsApiClient,
+    )
+    test_form = {}
+
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG_CUON)
+    result = adaptor.retrieve(TEST_REQUEST_CUON)
+    tempfile = Path(tmp_path, "test_adaptor.nc")
+    with tempfile.open("wb") as tmpf:
+        tmpf.write(result.read())
+    assert tempfile.stat().st_size > 0
+    actual = h5netcdf.File(tempfile)
+    assert actual.dimensions["index"].size > 0
+    assert not any([f in actual for f in CUON_DISABLED_FIELDS])
 
 
 def test_adaptor_estimate_costs(tmp_path, monkeypatch):

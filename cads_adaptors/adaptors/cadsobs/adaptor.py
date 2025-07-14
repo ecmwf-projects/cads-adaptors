@@ -49,14 +49,17 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         # dataset_source must be a string, asking for two sources is unsupported
         dataset_source = self.handle_sources_list(self.mapped_request["dataset_source"])
         self.mapped_request["dataset_source"] = dataset_source
-
-        self.mapped_request = self.adapt_parameters()
         # Get CDM lite variables as a dict with mandatory, optional and auxiliary
         cadsobs_client = CadsobsApiClient(obs_api_url, self.context)
         cdm_lite_variables_dict = cadsobs_client.get_cdm_lite_variables()
         cdm_lite_variables = (
             cdm_lite_variables_dict["mandatory"] + cdm_lite_variables_dict["optional"]
         )
+        # Remove the disabled fields
+        disabled_fields = cadsobs_client.get_disabled_fields(
+            dataset_name, dataset_source
+        )
+        cdm_lite_variables = [v for v in cdm_lite_variables if v not in disabled_fields]
         # Get the objects that match the request
         object_urls = cadsobs_client.get_objects_to_retrieve(
             dataset_name, self.mapped_request
