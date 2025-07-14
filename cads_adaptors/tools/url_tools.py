@@ -23,7 +23,7 @@ class RobustDownloader:
         self,
         target: str,
         maximum_tries: int,
-        retry_after: float,
+        retry_after: float | tuple[float, float, float],
         **download_kwargs: Any,
     ) -> None:
         self.target = target
@@ -83,8 +83,9 @@ def try_download(
     urls: list[str],
     context: Context,
     server_suggested_filename: bool = False,
-    maximum_tries: int = 10,  # TODO: Check with ECMWF
-    retry_after: float = 60,  # TODO: Check with ECMWF
+    # TODO: Check with ECMWF these parameters before merging
+    maximum_tries: int = 10,
+    retry_after: float | tuple[float, float, float] = (1, 120, 1.3),
     # the default timeout value (3) has been determined empirically (it also included a safety margin)
     timeout: float = 3,
     **kwargs: Any,

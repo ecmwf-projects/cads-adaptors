@@ -43,7 +43,7 @@ complete = [
   "fsspec",
   "h5netcdf",
   "jinja2",
-  "multiurl>=0.3.3",
+  "multiurl@git+https://github.com/malmans2/multiurl.git@COPDS-2791",
   "netcdf4",
   "numpy",
   "pandas",
