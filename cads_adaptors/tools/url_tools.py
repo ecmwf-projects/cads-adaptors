@@ -32,6 +32,7 @@ class RobustDownloader:
         self.download_kwargs = download_kwargs
 
     def cleanup(self) -> None:
+        print("=" * 100)
         path = Path(self.target)
         path.unlink(missing_ok=True)
         path.parent.mkdir(exist_ok=True, parents=True)

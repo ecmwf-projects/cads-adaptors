@@ -1,8 +1,15 @@
+import contextlib
 import os
+import random
+from pathlib import Path
+from typing import Any
 
 import pytest
+import requests
 
 from cads_adaptors.tools import url_tools
+
+does_not_raise = contextlib.nullcontext
 
 
 @pytest.mark.parametrize(
@@ -126,3 +133,48 @@ def test_try_download_raises_empty(tmp_path, monkeypatch):
             ["http://httpbin.org/status/404"],
             context,
         )
+
+
+@pytest.mark.parametrize(
+    "maximum_tries,raises",
+    [
+        (500, does_not_raise()),
+        (
+            1,
+            pytest.raises(url_tools.UrlNoDataError, match="Incomplete request result."),
+        ),
+    ],
+)
+def test_try_download_robust_iter_content(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    maximum_tries: int,
+    raises: contextlib.nullcontext[Any],
+) -> None:
+    from multiurl.http import FullHTTPDownloader
+
+    def patched_iter_content(self, *args, **kwargs):  # type: ignore
+        for chunk in self.iter_content(chunk_size=1):
+            if random.choice([True, False]):
+                raise requests.ConnectionError("Random error.")
+            yield chunk
+
+    def make_stream(self):  # type: ignore
+        request = self.issue_request(self.range)
+        return request.patched_iter_content
+
+    monkeypatch.setattr(
+        requests.Response, "patched_iter_content", patched_iter_content, raising=False
+    )
+    monkeypatch.setattr(FullHTTPDownloader, "make_stream", make_stream)
+
+    monkeypatch.chdir(tmp_path)
+    context = url_tools.Context()
+    with raises:
+        url_tools.try_download(
+            ["https://httpbin.org/range/10"],
+            context,
+            maximum_tries=maximum_tries,
+            retry_after=0,
+        )
+        assert os.path.getsize("range/10") == 10
