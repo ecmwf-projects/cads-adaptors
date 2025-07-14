@@ -368,7 +368,7 @@ def test_adaptor_wrong_value(monkeypatch):
     )
     test_form = {}
     test_request = TEST_REQUEST.copy()
-    test_request["variable"] = "FAKE_VARIABLE"
+    test_request["variable"] = ["FAKE_VARIABLE"]
     adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     with pytest.raises(InvalidRequest):
         adaptor.retrieve(test_request)
