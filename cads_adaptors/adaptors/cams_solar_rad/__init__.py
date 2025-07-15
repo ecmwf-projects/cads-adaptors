@@ -64,8 +64,7 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         # name. This can't be done in the usual way (using remapping) because
         # data_format is in the constraints and remapping isn't done until after
         # the constraints are applied.
-        request.setdefault('data_format',
-                           request.pop('format', 'csv'))
+        request.setdefault("data_format", request.pop("format", "csv"))
 
         return request
 
