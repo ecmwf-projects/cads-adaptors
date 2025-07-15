@@ -401,7 +401,7 @@ class AbstractAsyncCacher(AbstractCacher):
         os.makedirs calls combined with a makedirs bug that possibly only
         manifests on Lustre. Wrapping the calls in a lock is an attempt to
         prevent it happening again."""
-        with self.locks[2]:
+        with self._locks[2]:
             os.makedirs(*args, **kwargs)
 
 
