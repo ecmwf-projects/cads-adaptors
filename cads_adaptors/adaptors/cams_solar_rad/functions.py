@@ -69,6 +69,7 @@ def retrieve_by_wps(req, outfile, ntries, logger):
     """Execute a CAMS solar radiation data retrieval through the WPS API."""
     # Construct the XML to pass
     import jinja2
+
     xml = jinja2.Template(template_xml()).render(req)
     logger.debug("request=" + repr(req))
     logger.debug("xml=" + xml)
@@ -123,6 +124,7 @@ def wps_execute(url, xml, outfile, logger):
     # Execute WPS. This can throw an immediate exception if the service is
     # down
     from owslib.wps import WebProcessingService
+
     wps = WebProcessingService(url, skip_caps=True, timeout=3600)
     execution = wps.execute(None, [], request=bytes(xml, encoding="utf-8"))
 
