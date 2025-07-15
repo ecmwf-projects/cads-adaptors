@@ -19,6 +19,7 @@ def solar_rad_retrieve(
 ):
     """Execute a CAMS solar radiation data retrieval."""
     req = {"username": encode(user_id)}
+    logger.info(f'Encoded user ID is {req["username"]!r}')
     req.update(request)
 
     # Set expert_mode depending on format
