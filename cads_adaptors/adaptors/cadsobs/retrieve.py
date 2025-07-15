@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import dask
 import fsspec
 
 from cads_adaptors import Context
@@ -62,9 +61,8 @@ def retrieve_data(
         output_path = output_path_netcdf
     else:
         try:
-            with dask.config.set(scheduler="single-threaded"):
-                output_path_csv = to_csv(output_dir, output_path_netcdf, retrieve_args)
-                output_path = to_zip(output_path_csv)
+            output_path_csv = to_csv(output_dir, output_path_netcdf, retrieve_args)
+            output_path = to_zip(output_path_csv)
         finally:
             # Ensure that the netCDF is not left behind taking disk space.
             output_path_netcdf.unlink()

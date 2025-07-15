@@ -7,7 +7,10 @@ from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
-from cads_adaptors.tools.general import ensure_list, split_requests_on_keys
+from cads_adaptors.tools.general import (
+    ensure_list,
+    split_requests_on_keys,
+)
 
 # This hard requirement of MARS requests should be moved to the proxy MARS client
 ALWAYS_SPLIT_ON: list[str] = [
@@ -189,8 +192,6 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         return request
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
-        import dask
-
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
@@ -202,17 +203,16 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             target_dir=self.cache_tmp_path,
         )
 
-        with dask.config.set(scheduler="threads"):
-            results_dict = self.post_process(result)
+        results_dict = self.post_process(result)
 
-            # TODO?: Generalise format conversion to be a post-processor
-            paths = self.convert_format(
-                results_dict,
-                self.data_format,
-                context=self.context,
-                config=self.config,
-                target_dir=str(self.cache_tmp_path),
-            )
+        # TODO?: Generalise format conversion to be a post-processor
+        paths = self.convert_format(
+            results_dict,
+            self.data_format,
+            context=self.context,
+            config=self.config,
+            target_dir=str(self.cache_tmp_path),
+        )
 
         # A check to ensure that if there is more than one path, and download_format
         #  is as_source, we over-ride and zip up the files

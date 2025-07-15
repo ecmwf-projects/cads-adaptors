@@ -228,8 +228,6 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
-        import dask
-
         from cads_adaptors.adaptors.mars import execute_mars
 
         request = self.normalise_request(request)
@@ -255,7 +253,9 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
                 )
                 if len(this_request) > 0:
                     mapped_requests.append(
-                        mapping.apply_mapping(this_request, this_adaptor.mapping)
+                        mapping.apply_mapping(
+                            this_request, this_adaptor.mapping, context=self.context
+                        )
                     )
 
             self.context.debug(
@@ -273,14 +273,13 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             target_dir=self.cache_tmp_path,
         )
 
-        with dask.config.set(scheduler="threads"):
-            paths = self.convert_format(
-                result,
-                self.data_format,
-                self.context,
-                self.config,
-                target_dir=str(self.cache_tmp_path),
-            )
+        paths = self.convert_format(
+            result,
+            self.data_format,
+            self.context,
+            self.config,
+            target_dir=str(self.cache_tmp_path),
+        )
 
         if len(paths) > 1 and self.download_format == "as_source":
             self.download_format = "zip"
