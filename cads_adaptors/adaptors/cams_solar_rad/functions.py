@@ -5,9 +5,6 @@ import re
 import time
 import traceback
 
-import jinja2
-from owslib.wps import WebProcessingService
-
 
 class BadRequest(Exception):
     pass
@@ -44,12 +41,13 @@ def solar_rad_retrieve(
 
 
 def encode(user_id):
-    """Encode a user ID (in practice: append some extra text to it) in a way
-    that could only be done by someone who knows a secret string. The string is
-    only known by ECMWF and the contractor. This allows the contractor have
-    confidence that the request has come from us.
+    """Encode a user ID in a way that could only be done by someone who knows a
+    secret string. The string is only known by ECMWF and the contractor. This
+    allows the contractor have confidence that the request has come from us.
     """
-    user_id = str(user_id)
+    # We hash the user ID first, just in case it contains anything that we shouldn't
+    # share with the contractor.
+    user_id = hashlib.md5(str(user_id).encode()).hexdigest()
     hash = hashlib.md5(
         (user_id + os.environ["CAMS_SOLAR_SECRET_STRING"]).encode()
     ).hexdigest()
@@ -69,6 +67,7 @@ def verify(encoded):
 def retrieve_by_wps(req, outfile, ntries, logger):
     """Execute a CAMS solar radiation data retrieval through the WPS API."""
     # Construct the XML to pass
+    import jinja2
     xml = jinja2.Template(template_xml()).render(req)
     logger.debug("request=" + repr(req))
     logger.debug("xml=" + xml)
@@ -122,6 +121,7 @@ def retrieve_by_wps(req, outfile, ntries, logger):
 def wps_execute(url, xml, outfile, logger):
     # Execute WPS. This can throw an immediate exception if the service is
     # down
+    from owslib.wps import WebProcessingService
     wps = WebProcessingService(url, skip_caps=True, timeout=3600)
     execution = wps.execute(None, [], request=bytes(xml, encoding="utf-8"))
 
