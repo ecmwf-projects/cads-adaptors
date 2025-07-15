@@ -298,9 +298,7 @@ class AbstractAsyncCacher(AbstractCacher):
                 )
             except Exception as e:
                 self._fatal_exception = self._fatal_exception or e
-                self.logger.error(
-                    f"Thread {ithread} raised {type(e).__name__}: {e}"
-                )
+                self.logger.error(f"Thread {ithread} raised {type(e).__name__}: {e}")
                 # This won't cancel running futures, but it's better than
                 # nothing
                 [f.cancel() for f in self._futures]
