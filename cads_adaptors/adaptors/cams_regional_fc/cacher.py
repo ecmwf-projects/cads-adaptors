@@ -276,8 +276,9 @@ class AbstractAsyncCacher(AbstractCacher):
             except BaseException as e:
                 self._fatal_exception = self._fatal_exception or e
                 if self._fatal_exception is e:
-                    self.logger.error("self._wait_for_threads raised "
-                                      f"{type(e).__name__}: {e}")
+                    self.logger.error(
+                        "self._wait_for_threads raised " f"{type(e).__name__}: {e}"
+                    )
 
         if self._fatal_exception:
             e = self._fatal_exception
@@ -297,8 +298,9 @@ class AbstractAsyncCacher(AbstractCacher):
                 )
             except Exception as e:
                 self._fatal_exception = self._fatal_exception or e
-                self.logger.error(f"Thread {ithread} raised "
-                                  f"{type(e).__name__}: {e}")
+                self.logger.error(
+                    f"Thread {ithread} raised {type(e).__name__}: {e}"
+                )
                 # This won't cancel running futures, but it's better than
                 # nothing
                 [f.cancel() for f in self._futures]
@@ -320,9 +322,11 @@ class AbstractAsyncCacher(AbstractCacher):
         """Asynchronously cache fields."""
         # Refuse puts if the object is in an error state
         if self._fatal_exception:
-            raise Exception("Cacher has raised "
-                            f"{type(self._fatal_exception).__name__}: "
-                            f"{self._fatal_exception}")
+            raise Exception(
+                "Cacher has raised "
+                f"{type(self._fatal_exception).__name__}: "
+                f"{self._fatal_exception}"
+            )
         # Start the copying thread if not done already
         with self._locks[0]:
             if not self._futures:
@@ -339,8 +343,7 @@ class AbstractAsyncCacher(AbstractCacher):
             # Signal to other threads that they should stop because this one
             # encountered an exception
             self._fatal_exception = self._fatal_exception or e
-            self.logger.error(f"{type(e).__name__} exception in copy thread: "
-                              f"{e}")
+            self.logger.error(f"{type(e).__name__} exception in copy thread: {e}")
             raise
 
     def _copier2(self, ithread):
@@ -410,7 +413,8 @@ class AbstractAsyncCacher(AbstractCacher):
         writable. The hypothesis is that this is due to multiple simultaneous
         os.makedirs calls combined with a makedirs bug that possibly only
         manifests on Lustre. Wrapping the calls in a lock is an attempt to
-        prevent it happening again."""
+        prevent it happening again.
+        """
         # The use of self._dirs_made is just to reduce how often the lock is
         # held and os.makedirs is called. It's possibly over-optimisation.
         if args[0] not in self._dirs_made:
