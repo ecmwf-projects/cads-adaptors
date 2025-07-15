@@ -24,16 +24,16 @@ def solar_rad_retrieve(
 
     # Set expert_mode depending on format
     req["expert_mode"] = {True: "true", False: "false"}.get(
-        req["format"] == "csv_expert"
+        req["data_format"] == "csv_expert"
     )
 
     # Set the MIME type from the format
-    if req["format"].startswith("csv"):
+    if req["data_format"].startswith("csv"):
         req["mimetype"] = "text/csv"
-    elif req["format"] == "netcdf":
+    elif req["data_format"] == "netcdf":
         req["mimetype"] = "application/x-netcdf"
     else:
-        raise BadRequest(f'Unrecognised format: "{req["format"]}"')
+        raise BadRequest(f'Unrecognised format: "{req["data_format"]}"')
 
     # We could use the URL API or the WPS API. Only WPS has the option for
     # NetCDF and it has better error handling.
@@ -272,7 +272,7 @@ def test_solar_rad_retrieve():
         "sky_type": sky_types[0],
         "time_reference": time_refs[0],
         "time_step": "PT15M",
-        "format": formats[0],
+        "data_format": formats[0],
     }
     solar_rad_retrieve(request, "a.dat", user_id=123, ntries=1)
 

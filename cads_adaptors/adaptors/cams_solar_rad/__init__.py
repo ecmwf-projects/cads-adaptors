@@ -28,7 +28,6 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
                     "date",
                     "time_step",
                     "time_reference",
-                    "format",
                 ],
                 "properties": {
                     "sky_type": {"type": "string"},
@@ -52,8 +51,8 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
                     "time_step": {"type": "string"},
                     "time_reference": {"type": "string"},
                     "format": {"type": "string"},
+                    "data_format": {"type": "string"},
                 },
-                "_defaults": {"format": "csv"},
             }
         )
 
@@ -61,11 +60,12 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         """Implemented in normalise_request, before the mapping is applied."""
         request = super().pre_mapping_modifications(request)
 
-        default_download_format = "as_source"
-        download_format = request.pop("download_format", default_download_format)
-        self.set_download_format(
-            download_format, default_download_format=default_download_format
-        )
+        # Rename format to data_format for backwards compatibility with old key
+        # name. This can't be done in the usual way (using remapping) because
+        # data_format is in the constraints and remapping isn't done until after
+        # the constraints are applied.
+        request.setdefault('data_format',
+                           request.pop('format', 'csv'))
 
         return request
 
@@ -127,6 +127,6 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
     def _result_filename(self, request):
         request_uid = self.config.get("request_uid", "no-request-uid")
         extension = {"csv": "csv", "csv_expert": "csv", "netcdf": "nc"}.get(
-            request["format"], "csv"
+            request["data_format"], "csv"
         )
         return f"result-{request_uid}.{extension}"
