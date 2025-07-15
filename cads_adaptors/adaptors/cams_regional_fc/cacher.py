@@ -245,8 +245,7 @@ class AbstractAsyncCacher(AbstractCacher):
         super().__init__(*args, logger=logger, **kwargs)
         self.nthreads = 10 if nthreads is None else nthreads
         self.timeout = 3600 if timeout is None else timeout
-        self._lock1 = threading.Lock()
-        self._lock2 = threading.Lock()
+        self._locks = [threading.Lock() for _ in range(3)]
         self._templates = {}
         self._futures = {}
         self._fatal_exception = None
@@ -316,7 +315,7 @@ class AbstractAsyncCacher(AbstractCacher):
         if self._fatal_exception:
             raise Exception(f"Cacher has raised {self._fatal_exception!r}")
         # Start the copying thread if not done already
-        with self._lock1:
+        with self._locks[0]:
             if not self._futures:
                 self._start_copy_threads()
         self._queue.put(req)
@@ -376,7 +375,7 @@ class AbstractAsyncCacher(AbstractCacher):
                 raise Exception("Stopping due to exception in another thread")
 
             closed = self._close_was_called
-            with self._lock2:
+            with self._locks[1]:
                 try:
                     req = self._queue.get(timeout=0.1)
                     self._processing_item[ithread] = True
@@ -394,6 +393,16 @@ class AbstractAsyncCacher(AbstractCacher):
         # Loop over grib messages in the data
         for fieldinfo, data in self._field_iter(req):
             self._write_1field_sync(data, fieldinfo)
+
+    def _makedirs(self, *args, **kwargs):
+        """There have been a couple of incidents (Jun 14 and Jul 14 2025) where
+        a directory has ended up with the wrong permissions and not been
+        writable. The hypothesis is that this is due to multiple simultaneous
+        os.makedirs calls combined with a makedirs bug that possibly only
+        manifests on Lustre. Wrapping the calls in a lock is an attempt to
+        prevent it happening again."""
+        with self.locks[2]:
+            os.makedirs(*args, **kwargs)
 
 
 class CacherS3(AbstractAsyncCacher):
@@ -479,7 +488,7 @@ class CacherDisk(AbstractAsyncCacher):
     def _write_1field_sync(self, data, fieldinfo):
         path = self.field2path(fieldinfo)
         self.logger.info(f"Writing {fieldinfo} to {path}")
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        self._makedirs(os.path.dirname(path), exist_ok=True)
         with AtomicWrite(path, "wb") as f:
             f.write(data)
 
@@ -501,7 +510,7 @@ class CacherS3AndDisk(CacherS3):
         if self.field2path:
             path = self.field2path(fieldinfo)
             self.logger.info(f"Writing {fieldinfo} to {path}")
-            os.makedirs(os.path.dirname(path), exist_ok=True)
+            self._makedirs(os.path.dirname(path), exist_ok=True)
             with AtomicWrite(path, "wb") as f:
                 f.write(data)
 
