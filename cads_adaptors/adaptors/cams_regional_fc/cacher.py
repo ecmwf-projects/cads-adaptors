@@ -281,9 +281,9 @@ class AbstractAsyncCacher(AbstractCacher):
                     )
 
         if self._fatal_exception:
-            e = self._fatal_exception
-            self.logger.error(f"Cacher failed with {type(e).__name__}: {e}")
-            raise e
+            ex = self._fatal_exception
+            self.logger.error(f"Cacher failed with {type(ex).__name__}: {ex}")
+            raise ex
 
     def _wait_for_threads(self):
         close_time = time.time()
