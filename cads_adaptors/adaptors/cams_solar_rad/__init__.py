@@ -3,10 +3,7 @@ from typing import Any, BinaryIO
 from cads_adaptors.adaptors.cams_solar_rad.functions import (
     BadRequest,
     NoData,
-    determine_result_filename,
-    get_numeric_user_id,
     solar_rad_retrieve,
-    to_scalars_values,
 )
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
 from cads_adaptors.exceptions import InvalidRequest
@@ -16,7 +13,10 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Schema required to ensure adaptor will not fall over with an uncaught exception
+        # Schema required to ensure adaptor will not fall over with an uncaught exception.
+        # This is here rather than in the config because it's fundamentally tied to the
+        # code. It defines the assumptions that the code can safely make about the
+        # request.
         self.schemas.append(
             {
                 "_draft": "7",
@@ -28,7 +28,6 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
                     "date",
                     "time_step",
                     "time_reference",
-                    "format",
                 ],
                 "properties": {
                     "sky_type": {"type": "string"},
@@ -52,8 +51,8 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
                     "time_step": {"type": "string"},
                     "time_reference": {"type": "string"},
                     "format": {"type": "string"},
+                    "data_format": {"type": "string"},
                 },
-                "_defaults": {"format": "csv"},
             }
         )
 
@@ -61,11 +60,11 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         """Implemented in normalise_request, before the mapping is applied."""
         request = super().pre_mapping_modifications(request)
 
-        default_download_format = "as_source"
-        download_format = request.pop("download_format", default_download_format)
-        self.set_download_format(
-            download_format, default_download_format=default_download_format
-        )
+        # Rename format to data_format for backwards compatibility with old key
+        # name. This can't be done in the usual way (using remapping) because
+        # data_format is in the constraints and remapping isn't done until after
+        # the constraints are applied.
+        request.setdefault("data_format", request.pop("format", "csv"))
 
         return request
 
@@ -73,38 +72,27 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         self.context.debug(f"Request is {request!r}")
 
         self.normalise_request(request)
-        try:
-            assert len(self.mapped_requests) == 1
-        except AssertionError:
-            if len(self.mapped_requests) == 0:
-                msg = "Error: no intersection with the constraints."
-            else:
-                msg = "Error: unexpected intersection with more than 1 constraint."
-            self.context.add_user_visible_log(
-                f"WARNING: More than one request was mapped: {self.mapped_requests}, "
-                f"returning the first one only:\n{self.mapped_requests[0]}"
+
+        # Intersecting the constraints should never result in >1 request
+        if len(self.mapped_requests) != 1:
+            msg = (
+                f"Request pre-processing resulted in {len(self.mapped_requests)} "
+                "requests"
             )
+            self.context.error(f"{msg}: {self.mapped_requests!r}")
             self.context.add_user_visible_error(msg)
             raise InvalidRequest(msg)
 
         mreq = self.mapped_requests[0]
         self.context.debug(f"Mapped request is {mreq!r}")
-        mreq, to_scalars_values_was_possible = to_scalars_values(mreq)
-        try:
-            assert to_scalars_values_was_possible
-        except AssertionError:
-            msg = "Error: some request dimensions do not have scalar values."
-            self.context.add_user_visible_error(msg)
-            raise InvalidRequest(msg)
 
-        numeric_user_id = get_numeric_user_id(self.config["user_uid"])
-        result_filename = determine_result_filename(self.config, mreq)
+        outfile = self._result_filename(mreq)
 
         try:
             solar_rad_retrieve(
                 mreq,
-                user_id=numeric_user_id,
-                outfile=result_filename,
+                user_id=self._user_id(mreq),
+                outfile=outfile,
                 logger=self.context,
             )
 
@@ -113,4 +101,31 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
             self.context.add_user_visible_error(msg)
             raise InvalidRequest(msg)
 
-        return open(result_filename, "rb")
+        return open(outfile, "rb")
+
+    def _user_id(self, mreq):
+        """Return the current user ID, unless the current user is Wekeo and they've
+        provided a user ID in the request, in which case return that. This means that Wekeo
+        users don't get considered as a single user by the backend provider, and so are
+        allowed separate individual quotas for the number of requests they can make per day.
+        """
+        req_user_id = mreq.get("_user_id")
+        while isinstance(req_user_id, (list, tuple)) and req_user_id:
+            req_user_id = req_user_id[0]
+        self.context.debug(
+            "Wekeo user IDs are " + repr(self.config.get("wekeo_user_ids"))
+        )
+        if req_user_id and self.config["user_uid"] in self.config.get(
+            "wekeo_user_ids", []
+        ):
+            self.context.info(f"Using WEKEO user ID for backend: {req_user_id}")
+            return str(req_user_id)
+        else:
+            return self.config["user_uid"]
+
+    def _result_filename(self, request):
+        request_uid = self.config.get("request_uid", "no-request-uid")
+        extension = {"csv": "csv", "csv_expert": "csv", "netcdf": "nc"}.get(
+            request["data_format"], "csv"
+        )
+        return f"result-{request_uid}.{extension}"
