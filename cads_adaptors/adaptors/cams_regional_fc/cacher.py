@@ -277,7 +277,7 @@ class AbstractAsyncCacher(AbstractCacher):
                 self._fatal_exception = self._fatal_exception or e
                 if self._fatal_exception is e:
                     self.logger.error(
-                        "self._wait_for_threads raised " f"{type(e).__name__}: {e}"
+                        f"self._wait_for_threads raised {type(e).__name__}: {e}"
                     )
 
         if self._fatal_exception:
