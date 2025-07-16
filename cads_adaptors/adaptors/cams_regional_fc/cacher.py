@@ -409,8 +409,8 @@ class AbstractAsyncCacher(AbstractCacher):
         """There have been a couple of incidents (Jun 14 and Jul 14 2025) where
         a directory has ended up with the wrong permissions and so not been
         writable. The hypothesis is that this is due to multiple simultaneous
-        os.makedirs calls combined with a makedirs bug that possibly only
-        manifests on Lustre. Wrapping the calls in a lock is an attempt to
+        os.makedirs calls combined with a makedirs race condition that possibly
+        only manifests on Lustre. Wrapping the calls in a lock is an attempt to
         prevent it happening again.
         """
         # The use of self._dirs_made is just to reduce how often the lock is
