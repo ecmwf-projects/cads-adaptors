@@ -18,7 +18,10 @@ def solar_rad_retrieve(
     request, outfile=None, user_id="0", ntries=10, logger=logging.getLogger(__name__)
 ):
     """Execute a CAMS solar radiation data retrieval."""
-    req = {"username": encode(user_id)}
+    # Hash the user ID just in case it contains anything private. Then encode it so
+    # the data provider can verify it's from us.
+    user_id_hash = hashlib.md5(str(user_id).encode()).hexdigest()
+    req = {"username": encode(user_id_hash)}
     logger.info(f'Encoded user ID is {req["username"]!r}')
     req.update(request)
 
@@ -46,9 +49,6 @@ def encode(user_id):
     secret string. The string is only known by ECMWF and the contractor. This
     allows the contractor have confidence that the request has come from us.
     """
-    # We hash the user ID first, just in case it contains anything that we shouldn't
-    # share with the contractor.
-    user_id = hashlib.md5(str(user_id).encode()).hexdigest()
     hash = hashlib.md5(
         (user_id + os.environ["CAMS_SOLAR_SECRET_STRING"]).encode()
     ).hexdigest()
@@ -59,7 +59,8 @@ def verify(encoded):
     """Given an encoded user ID encoded (created by encode(user_id)), verify
     that it is valid. This function is not used in the adaptor but is included
     here to demonstrate how the contractor can validate the string at their
-    end.
+    end. It's important that verify(encode(any_string)) always returns True, but
+    that verify(any_string) in general returns False.
     """
     user_id = encoded[:-32]
     return encode(user_id) == encoded
