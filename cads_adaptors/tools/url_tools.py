@@ -6,6 +6,8 @@ import zipfile
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional
 
+import cacholote
+import fsspec
 import jinja2
 import multiurl
 import requests
@@ -31,12 +33,12 @@ class RobustDownloader:
         self.retry_after = retry_after
         self.download_kwargs = download_kwargs
 
-    def cleanup(self) -> None:
-        path = Path(self.target)
-        path.unlink(missing_ok=True)
-        path.parent.mkdir(exist_ok=True, parents=True)
+    @property
+    def path(self) -> Path:
+        return Path(self.target)
 
     def _download(self, url: str) -> requests.Response:
+        self.path.parent.mkdir(exist_ok=True, parents=True)
         multiurl.download(
             url=url,
             target=self.target,
@@ -48,14 +50,24 @@ class RobustDownloader:
         )
         return requests.Response()  # mutliurl robust needs a response
 
-    def download(self, url: str) -> None:
-        self.cleanup()
+    def download(self, url: str) -> fsspec.spec.AbstractBufferedFile:
+        self.path.unlink(missing_ok=True)
         robust_download = multiurl.robust(
             self._download,
             maximum_tries=self.maximum_tries,
             retry_after=self.retry_after,
         )
         robust_download(url=url)
+        with fsspec.open(self.target) as f:
+            return f
+
+    def cached_download(self, url: str) -> None:
+        cached_download = cacholote.cacheable(self.download)
+        self.path.unlink(missing_ok=True)
+        with cacholote.config.set(return_cache_entry=False, io_delete_original=False):
+            f = cached_download(url)
+        if not self.path.exists():
+            f.fs.get(f.path, self.target)
 
 
 # copied from cdscommon/url2
@@ -88,6 +100,7 @@ def try_download(
     retry_after: float | tuple[float, float, float] = (1, 120, 1.3),
     # the default timeout value (3) has been determined empirically (it also included a safety margin)
     timeout: float = 3,
+    use_internal_cache: bool = False,
     **kwargs: Any,
 ) -> list[str]:
     kwargs.setdefault(
@@ -112,7 +125,8 @@ def try_download(
         )
         context.debug(f"Downloading {url} to {path}")
         try:
-            downloader.download(url)
+            with cacholote.config.set(use_cache=use_internal_cache):
+                downloader.cached_download(url)
         except (
             requests.ConnectionError,
             requests.ReadTimeout,
