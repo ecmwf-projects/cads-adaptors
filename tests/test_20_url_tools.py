@@ -103,7 +103,7 @@ def test_try_download_skips_404(
             f"{httpbin.url}/range/1",
         ],
         Context(),
-        maximum_tries=2,
+        maximum_retries=2,
         retry_after=0,
     )
     assert "Recovering from HTTP error" not in caplog.text
@@ -125,7 +125,7 @@ def test_try_download_raises_500(
                 f"{httpbin.url}/range/1",
             ],
             Context(),
-            maximum_tries=2,
+            maximum_retries=2,
             retry_after=0,
         )
     assert (
@@ -189,7 +189,7 @@ def test_try_download_robust_iter_content(
         url_tools.try_download(
             [f"{httpbin.url}/range/10"],
             context=Context(),
-            maximum_tries=maximum_tries,
+            maximum_retries=maximum_tries,
             retry_after=0,
         )
         assert os.path.getsize("range/10") == 10

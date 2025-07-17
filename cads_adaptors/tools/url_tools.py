@@ -22,12 +22,12 @@ class RobustDownloader:
     def __init__(
         self,
         target: str,
-        maximum_tries: int,
+        maximum_retries: int,
         retry_after: float | tuple[float, float, float],
         **download_kwargs: Any,
     ) -> None:
         self.target = target
-        self.maximum_tries = maximum_tries
+        self.maximum_retries = maximum_retries
         self.retry_after = retry_after
         self.download_kwargs = download_kwargs
 
@@ -40,7 +40,7 @@ class RobustDownloader:
         multiurl.download(
             url=url,
             target=self.target,
-            maximum_retries=self.maximum_tries,
+            maximum_retries=self.maximum_retries,
             retry_after=self.retry_after,
             stream=True,
             resume_transfers=True,
@@ -52,7 +52,7 @@ class RobustDownloader:
         self.cleanup()
         robust_download = multiurl.robust(
             self._download,
-            maximum_tries=self.maximum_tries,
+            maximum_tries=self.maximum_retries,
             retry_after=self.retry_after,
         )
         robust_download(url=url)
@@ -84,7 +84,7 @@ def try_download(
     context: Context,
     server_suggested_filename: bool = False,
     # TODO: Check with ECMWF these parameters before merging
-    maximum_tries: int = 10,
+    maximum_retries: int = 10,
     retry_after: float | tuple[float, float, float] = (1, 120, 1.3),
     # the default timeout value (3) has been determined empirically (it also included a safety margin)
     timeout: float = 3,
@@ -105,7 +105,7 @@ def try_download(
             path = os.path.join(os.path.dirname(path), multiurl.Downloader(url).title())
         downloader = RobustDownloader(
             path,
-            maximum_tries=maximum_tries,
+            maximum_retries=maximum_retries,
             retry_after=retry_after,
             timeout=timeout,
             **kwargs,
