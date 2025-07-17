@@ -122,7 +122,7 @@ def try_download(
                 isinstance(exc, requests.HTTPError)
                 and exc.response.status_code not in RETRIABLE
             ) or (
-                isinstance(exc, (requests.ConnectionError, requests.ReadTimeout))
+                isinstance(exc, requests.ConnectionError | requests.ReadTimeout)
                 and not fail_on_timeout_for_any_part
             ):
                 context.debug(f"Failed download for URL: {url}\nException: {exc}")
