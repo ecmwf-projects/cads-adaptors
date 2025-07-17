@@ -86,6 +86,13 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         mreq = self.mapped_requests[0]
         self.context.debug(f"Mapped request is {mreq!r}")
 
+        # Although the schema should have ensured that each value is a scalar,
+        # applying the constraints will have turned them back to one-element
+        # strings. Turn back into scalars.
+        for k, v in mreq.items():
+            if isinstance(v, list):
+                mreq[k] = v[0]
+
         outfile = self._result_filename(mreq)
 
         try:
@@ -126,6 +133,8 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
     def _result_filename(self, request):
         request_uid = self.config.get("request_uid", "no-request-uid")
         extension = {"csv": "csv", "csv_expert": "csv", "netcdf": "nc"}.get(
-            request["data_format"], "csv"
+            request["data_format"]
         )
+        if not extension:
+            raise Exception("Unrecognised format: " + repr(request["data_format"]))
         return f"result-{request_uid}.{extension}"
