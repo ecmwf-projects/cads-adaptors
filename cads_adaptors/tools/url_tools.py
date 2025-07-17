@@ -88,6 +88,7 @@ def try_download(
     retry_after: float | tuple[float, float, float] = (1, 120, 1.3),
     # the default timeout value (3) has been determined empirically (it also included a safety margin)
     timeout: float = 3,
+    fail_on_timeout_for_any_part: bool = True,
     **kwargs: Any,
 ) -> list[str]:
     kwargs.setdefault(
@@ -121,6 +122,9 @@ def try_download(
             if (
                 isinstance(exc, requests.HTTPError)
                 and exc.response.status_code not in RETRIABLE
+            ) or (
+                isinstance(exc, (requests.ConnectionError, requests.ReadTimeout))
+                and not fail_on_timeout_for_any_part
             ):
                 context.debug(f"Failed download for URL: {url}\nException: {exc}")
             else:
