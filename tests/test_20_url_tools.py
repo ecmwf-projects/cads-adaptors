@@ -103,7 +103,7 @@ def test_try_download_skips_404(
             f"{httpbin.url}/range/1",
         ],
         Context(),
-        maximum_tries=2,
+        maximum_retries=2,
         retry_after=0,
     )
     assert "Recovering from HTTP error" not in caplog.text
@@ -125,7 +125,7 @@ def test_try_download_raises_500(
                 f"{httpbin.url}/range/1",
             ],
             Context(),
-            maximum_tries=2,
+            maximum_retries=2,
             retry_after=0,
         )
     assert (
@@ -148,13 +148,12 @@ def test_try_download_raises_empty(
 
 
 @pytest.mark.parametrize(
-    "maximum_tries,raises",
+    "maximum_tries,fail_on_timeout_for_any_part,raises",
     [
-        (500, does_not_raise()),
-        (
-            1,
-            pytest.raises(UrlNoDataError, match="Incomplete request result."),
-        ),
+        (500, True, does_not_raise()),
+        (500, False, does_not_raise()),
+        (1, True, pytest.raises(UrlNoDataError, match="Incomplete request result.")),
+        (1, False, pytest.raises(UrlNoDataError, match="Request empty.")),
     ],
 )
 def test_try_download_robust_iter_content(
@@ -162,6 +161,7 @@ def test_try_download_robust_iter_content(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     maximum_tries: int,
+    fail_on_timeout_for_any_part: bool,
     raises: contextlib.nullcontext[Any],
 ) -> None:
     from multiurl.http import FullHTTPDownloader
@@ -189,8 +189,9 @@ def test_try_download_robust_iter_content(
         url_tools.try_download(
             [f"{httpbin.url}/range/10"],
             context=Context(),
-            maximum_tries=maximum_tries,
+            maximum_retries=maximum_tries,
             retry_after=0,
+            fail_on_timeout_for_any_part=fail_on_timeout_for_any_part,
         )
         assert os.path.getsize("range/10") == 10
 
