@@ -83,7 +83,6 @@ def try_download(
     urls: list[str],
     context: Context,
     server_suggested_filename: bool = False,
-    # TODO: Check with ECMWF these parameters before merging
     maximum_retries: int = 10,
     retry_after: float | tuple[float, float, float] = (1, 120, 1.3),
     # the default timeout value (3) has been determined empirically (it also included a safety margin)
