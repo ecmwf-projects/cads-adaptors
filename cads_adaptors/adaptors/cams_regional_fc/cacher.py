@@ -245,8 +245,8 @@ class AbstractAsyncCacher(AbstractCacher):
         super().__init__(*args, logger=logger, **kwargs)
         self.nthreads = 10 if nthreads is None else nthreads
         self.timeout = 3600 if timeout is None else timeout
-        self._lock1 = threading.Lock()
-        self._lock2 = threading.Lock()
+        self._locks = [threading.Lock() for _ in range(3)]
+        self._dirs_made = set()
         self._templates = {}
         self._futures = {}
         self._fatal_exception = None
@@ -269,14 +269,21 @@ class AbstractAsyncCacher(AbstractCacher):
 
         # This try-except will catch KeyboardInterrupts, which are only sent to
         # the main thread and would otherwise leave the other threads still
-        # running. It signals those to stop by setting
-        # self._fatal_exception.
+        # running. It signals those to stop by setting self._fatal_exception.
         if self._futures:
             try:
                 self._wait_for_threads()
             except BaseException as e:
                 self._fatal_exception = self._fatal_exception or e
-                raise
+                if self._fatal_exception is e:
+                    self.logger.error(
+                        f"self._wait_for_threads raised {type(e).__name__}: {e}"
+                    )
+
+        if self._fatal_exception:
+            ex = self._fatal_exception
+            self.logger.error(f"Cacher failed with {type(ex).__name__}: {ex}")
+            raise ex
 
     def _wait_for_threads(self):
         close_time = time.time()
@@ -291,11 +298,10 @@ class AbstractAsyncCacher(AbstractCacher):
                 )
             except Exception as e:
                 self._fatal_exception = self._fatal_exception or e
+                self.logger.error(f"Thread {ithread} raised {type(e).__name__}: {e}")
                 # This won't cancel running futures, but it's better than
                 # nothing
                 [f.cancel() for f in self._futures]
-                self.logger.debug(f"Thread {ithread} raised {e!r}")
-                raise
             else:
                 self.logger.debug(f"Thread {ithread} exited successfully")
 
@@ -314,9 +320,13 @@ class AbstractAsyncCacher(AbstractCacher):
         """Asynchronously cache fields."""
         # Refuse puts if the object is in an error state
         if self._fatal_exception:
-            raise Exception(f"Cacher has raised {self._fatal_exception!r}")
+            raise Exception(
+                "Cacher has raised "
+                f"{type(self._fatal_exception).__name__}: "
+                f"{self._fatal_exception}"
+            )
         # Start the copying thread if not done already
-        with self._lock1:
+        with self._locks[0]:
             if not self._futures:
                 self._start_copy_threads()
         self._queue.put(req)
@@ -331,7 +341,7 @@ class AbstractAsyncCacher(AbstractCacher):
             # Signal to other threads that they should stop because this one
             # encountered an exception
             self._fatal_exception = self._fatal_exception or e
-            self.logger.error("Exception in copy thread: " + repr(e))
+            self.logger.error(f"{type(e).__name__} exception in copy thread: {e}")
             raise
 
     def _copier2(self, ithread):
@@ -376,7 +386,7 @@ class AbstractAsyncCacher(AbstractCacher):
                 raise Exception("Stopping due to exception in another thread")
 
             closed = self._close_was_called
-            with self._lock2:
+            with self._locks[1]:
                 try:
                     req = self._queue.get(timeout=0.1)
                     self._processing_item[ithread] = True
@@ -394,6 +404,21 @@ class AbstractAsyncCacher(AbstractCacher):
         # Loop over grib messages in the data
         for fieldinfo, data in self._field_iter(req):
             self._write_1field_sync(data, fieldinfo)
+
+    def _makedirs(self, *args, **kwargs):
+        """There have been a couple of incidents (Jun 14 and Jul 14 2025) where
+        a directory has ended up with the wrong permissions and so not been
+        writable. The hypothesis is that this is due to multiple simultaneous
+        os.makedirs calls combined with a makedirs race condition that possibly
+        only manifests on Lustre. Wrapping the calls in a lock is an attempt to
+        prevent it happening again.
+        """
+        # The use of self._dirs_made is just to reduce how often the lock is
+        # held and os.makedirs is called. It's possibly over-optimisation.
+        if args[0] not in self._dirs_made:
+            with self._locks[2]:
+                os.makedirs(*args, **kwargs)
+                self._dirs_made.add(args[0])
 
 
 class CacherS3(AbstractAsyncCacher):
@@ -479,7 +504,7 @@ class CacherDisk(AbstractAsyncCacher):
     def _write_1field_sync(self, data, fieldinfo):
         path = self.field2path(fieldinfo)
         self.logger.info(f"Writing {fieldinfo} to {path}")
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        self._makedirs(os.path.dirname(path), exist_ok=True)
         with AtomicWrite(path, "wb") as f:
             f.write(data)
 
@@ -501,7 +526,7 @@ class CacherS3AndDisk(CacherS3):
         if self.field2path:
             path = self.field2path(fieldinfo)
             self.logger.info(f"Writing {fieldinfo} to {path}")
-            os.makedirs(os.path.dirname(path), exist_ok=True)
+            self._makedirs(os.path.dirname(path), exist_ok=True)
             with AtomicWrite(path, "wb") as f:
                 f.write(data)
 
