@@ -228,7 +228,7 @@ class MockerCadsobsApiClient:
         else:
             raise RuntimeError(f"Unknown dataset {dataset_name}")
 
-    def get_disabled_fields(self, dataset_name: str, dataset_source: str) -> []:
+    def get_disabled_fields(self, dataset_name: str, dataset_source: str) -> list[str]:
         """Get the list of fields that are disabled for the given dataset."""
         if (
             dataset_name
