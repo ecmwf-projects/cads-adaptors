@@ -119,11 +119,14 @@ def try_download(
         try:
             downloader.download(url)
         except (
+            # http
             requests.ConnectionError,
             requests.ReadTimeout,
             requests.HTTPError,
+            # ftp
             ftplib.error_perm,
             ftplib.error_temp,
+            TimeoutError,
         ) as exc:
             if (
                 (
