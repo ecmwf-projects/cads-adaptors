@@ -37,15 +37,17 @@ class RobustDownloader:
         path.parent.mkdir(exist_ok=True, parents=True)
 
     def _download(self, url: str) -> requests.Response:
-        multiurl.download(
-            url=url,
-            target=self.target,
-            maximum_retries=self.maximum_retries,
-            retry_after=self.retry_after,
-            stream=True,
-            resume_transfers=True,
-            **self.download_kwargs,
-        )
+        try:
+            multiurl.download(
+                url=url,
+                target=self.target,
+                maximum_retries=0,
+                stream=True,
+                resume_transfers=True,
+                **self.download_kwargs,
+            )
+        except requests.HTTPError as exc:
+            return exc.response
         return requests.Response()  # mutliurl robust needs a response
 
     def download(self, url: str) -> None:
@@ -55,7 +57,9 @@ class RobustDownloader:
             maximum_tries=self.maximum_retries,
             retry_after=self.retry_after,
         )
-        robust_download(url=url)
+        response = robust_download(url=url)
+        if response.status_code is not None:
+            response.raise_for_status()
 
 
 # copied from cdscommon/url2
