@@ -77,7 +77,10 @@ def try_download(
                         **kwargs,
                     )
                     break
-                except Exception as e:
+                except (
+                    requests.exceptions.ConnectionError,
+                    requests.exceptions.ReadTimeout,
+                ) as e:
                     downloaded_bytes = os.path.getsize(path)
                     context.add_stdout(
                         f"Attempt {i_retry+1} to download {url} failed "
