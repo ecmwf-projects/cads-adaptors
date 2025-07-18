@@ -1,3 +1,4 @@
+import ftplib
 import functools
 import os
 import tarfile
@@ -121,13 +122,19 @@ def try_download(
             requests.ConnectionError,
             requests.ReadTimeout,
             requests.HTTPError,
+            ftplib.error_perm,
+            ftplib.error_temp,
         ) as exc:
             if (
-                isinstance(exc, requests.HTTPError)
-                and exc.response.status_code not in RETRIABLE
-            ) or (
-                isinstance(exc, requests.ConnectionError | requests.ReadTimeout)
-                and not fail_on_timeout_for_any_part
+                (
+                    isinstance(exc, requests.HTTPError)
+                    and exc.response.status_code not in RETRIABLE
+                )
+                or (
+                    isinstance(exc, requests.ConnectionError | requests.ReadTimeout)
+                    and not fail_on_timeout_for_any_part
+                )
+                or isinstance(exc, ftplib.error_perm)
             ):
                 context.debug(f"Failed download for URL: {url}\nException: {exc}")
             else:
