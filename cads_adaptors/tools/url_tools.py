@@ -13,6 +13,8 @@ import jinja2
 import multiurl
 import requests
 import yaml
+from fsspec.callbacks import TqdmCallback
+from fsspec.spec import AbstractBufferedFile
 from multiurl.http import RETRIABLE
 from tqdm import tqdm
 
@@ -59,7 +61,7 @@ class RobustDownloader:
             return exc.response
         return requests.Response()  # mutliurl robust needs a response
 
-    def download(self, url: str) -> fsspec.spec.AbstractBufferedFile:
+    def download(self, url: str) -> AbstractBufferedFile:
         self.path.unlink(missing_ok=True)
         robust_download = multiurl.robust(
             self._download,
@@ -81,9 +83,7 @@ class RobustDownloader:
             f.fs.get(
                 f.path,
                 self.target,
-                callback=fsspec.callbacks.TqdmCallback(
-                    tqdm_kwargs=self.get_tqdm_kwargs(f.path)
-                ),
+                callback=TqdmCallback(tqdm_kwargs=self.get_tqdm_kwargs(f.path)),
             )
 
 
