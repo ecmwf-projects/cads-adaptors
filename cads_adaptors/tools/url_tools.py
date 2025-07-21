@@ -27,7 +27,7 @@ class RobustDownloader:
         target: str,
         maximum_retries: int,
         retry_after: float | tuple[float, float, float],
-        tqdm_kwargs: None | dict[str, Any] = None,
+        tqdm_kwargs: dict[str, Any] = {},
         **download_kwargs: Any,
     ) -> None:
         self.target = target
@@ -40,6 +40,9 @@ class RobustDownloader:
     def path(self) -> Path:
         return Path(self.target)
 
+    def get_tqdm_kwargs(self, desc: str) -> dict[str, Any]:
+        return {"desc": desc} | self.tqdm_kwargs
+
     def _download(self, url: str) -> requests.Response:
         self.path.parent.mkdir(exist_ok=True, parents=True)
         try:
@@ -49,7 +52,7 @@ class RobustDownloader:
                 maximum_retries=0,
                 stream=True,
                 resume_transfers=True,
-                progress_bar=functools.partial(tqdm, **(self.tqdm_kwargs or {})),
+                progress_bar=functools.partial(tqdm, **self.get_tqdm_kwargs(url)),
                 **self.download_kwargs,
             )
         except requests.HTTPError as exc:
@@ -78,7 +81,9 @@ class RobustDownloader:
             f.fs.get(
                 f.path,
                 self.target,
-                callback=fsspec.callbacks.TqdmCallback(tqdm_kwargs=self.tqdm_kwargs),
+                callback=fsspec.callbacks.TqdmCallback(
+                    tqdm_kwargs=self.get_tqdm_kwargs(f.path)
+                ),
             )
 
 
