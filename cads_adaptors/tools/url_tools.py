@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional
 
 import cacholote
-import fsspec.spec
+import fsspec
 import jinja2
 import multiurl
 import requests
@@ -27,11 +27,17 @@ class RobustDownloader:
         target: str,
         maximum_retries: int,
         retry_after: float | tuple[float, float, float],
+        tqdm_kwargs: None | dict[str, Any] = None,
         **download_kwargs: Any,
     ) -> None:
+        download_kwargs.setdefault(
+            "progress_bar",
+            functools.partial(tqdm, **tqdm_kwargs) if tqdm_kwargs is not None else None,
+        )
         self.target = target
         self.maximum_retries = maximum_retries
         self.retry_after = retry_after
+        self.tqdm_kwargs = tqdm_kwargs
         self.download_kwargs = download_kwargs
 
     @property
@@ -67,12 +73,13 @@ class RobustDownloader:
             return f
 
     def cached_download(self, url: str) -> None:
+        callback = fsspec.callbacks.TqdmCallback(tqdm_kwargs=self.tqdm_kwargs)
         cached_download = cacholote.cacheable(self.download)
         self.path.unlink(missing_ok=True)
         with cacholote.config.set(return_cache_entry=False, io_delete_original=False):
             f = cached_download(url)
         if not self.path.exists():
-            f.fs.get(f.path, self.target)
+            f.fs.get(f.path, self.target, callback=callback)
 
 
 # copied from cdscommon/url2
@@ -108,10 +115,6 @@ def try_download(
     use_internal_cache: bool = False,
     **kwargs: Any,
 ) -> list[str]:
-    kwargs.setdefault(
-        "progress_bar", functools.partial(tqdm, file=context, mininterval=5)
-    )
-
     # Ensure that URLs are unique to prevent downloading the same file multiple times
     urls = sorted(set(urls))
 
@@ -126,6 +129,7 @@ def try_download(
             maximum_retries=maximum_retries,
             retry_after=retry_after,
             timeout=timeout,
+            tqdm_kwargs={"file": context, "mininterval": 5},
             **kwargs,
         )
         context.debug(f"Downloading {url} to {path}")
