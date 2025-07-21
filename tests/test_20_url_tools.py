@@ -228,9 +228,8 @@ def test_try_download_use_internal_cache(
         (path,) = url_tools.try_download(
             [f"{httpbin.url}/uuid"],
             context=Context(),
-            maximum_tries=1,
-            retry_after=0,
             use_internal_cache=use_internal_cache,
         )
         uuids.append(Path(path).read_text())
-    assert uuids[0] == uuids[1] if use_internal_cache else uuids[0] != uuids[1]
+    uuid_1, uuid_2 = uuids
+    assert uuid_1 == uuid_2 if use_internal_cache else uuid_1 != uuid_2
