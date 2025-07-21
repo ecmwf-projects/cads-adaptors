@@ -1,3 +1,4 @@
+import io
 import logging
 import uuid
 from pathlib import Path
@@ -7,6 +8,7 @@ import cftime
 import h5netcdf
 import numpy
 import pandas
+import requests
 import xarray
 from fsspec.implementations.http import HTTPFileSystem
 
@@ -65,6 +67,15 @@ def _get_url_ncobj(fs: HTTPFileSystem, url: str) -> h5netcdf.File:
     return ncfile
 
 
+def _get_url_ncobj_memory(url: str) -> h5netcdf.File:
+    """Open an URL as a in-memory netCDF file object with h5netcdf."""
+    response = requests.get(url, stream=True)
+    response.raise_for_status()
+    content = response.content  # Download entire content
+    ncfile = h5netcdf.File(io.BytesIO(content), "r")
+    return ncfile
+
+
 def _get_output_dtype(ivar: str, ivarobj: h5netcdf.Variable) -> str:
     if ivar == "observed_variable":
         dtype = "S1"
@@ -81,7 +92,7 @@ def _get_char_sizes(fs: HTTPFileSystem, object_urls: list[str]) -> dict[str, int
     """
     char_sizes = {}
     for url in object_urls:
-        with _get_url_ncobj(fs, url) as incobj:
+        with _get_url_ncobj_memory(url) as incobj:
             for var, varobj in incobj.items():
                 if varobj.dtype.kind == "S":
                     char_size = varobj.shape[1]
@@ -104,7 +115,7 @@ def _filter_asset_and_save(
     cdm_lite_variables: list[str],
 ):
     """Get the filtered data from the asset and dump it to the output file."""
-    with _get_url_ncobj(fs, url) as incobj:
+    with _get_url_ncobj_memory(url) as incobj:
         mask = _get_mask(incobj, retrieve_args.params)
         if mask.any():
             number_of_groups = len(_ezclump(mask))
@@ -141,6 +152,7 @@ def _filter_asset_and_save(
                     download_all_chunk,
                     rename=vars_to_rename,
                 )
+                oncobj.flush()
         else:
             # Sometimes no data will be found as for example requested station may not
             # have the requested varaibles available.
