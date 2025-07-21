@@ -212,4 +212,4 @@ def test_try_download_missing_ftp(
 
     paths = url_tools.try_download([existing_url, missing_url], context=Context())
     assert paths == ["existing.txt"]
-    assert (tmp_path / "existing.txt").read_text() == "This is a test file"
+    assert (work_dir / "existing.txt").read_text() == "This is a test file"
