@@ -137,7 +137,10 @@ def try_download(
                     isinstance(exc, requests.ConnectionError | requests.ReadTimeout)
                     and not fail_on_timeout_for_any_part
                 )
-                or isinstance(exc, ftplib.error_perm)
+                or (
+                    isinstance(exc, ftplib.error_perm)
+                    and str(exc).startswith(("550", "553"))
+                )
             ):
                 context.debug(f"Failed download for URL: {url}\nException: {exc}")
             else:
