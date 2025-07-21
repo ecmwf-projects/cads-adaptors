@@ -213,3 +213,24 @@ def test_try_download_missing_ftp(
     paths = url_tools.try_download([existing_url, missing_url], context=Context())
     assert paths == ["existing.txt"]
     assert (work_dir / "existing.txt").read_text() == "This is a test file"
+
+
+@pytest.mark.parametrize("use_internal_cache", [True, False])
+def test_try_download_use_internal_cache(
+    httpbin: pytest_httpbin.serve.Server,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    use_internal_cache: bool,
+):
+    monkeypatch.chdir(tmp_path)
+    uuids = []
+    for _ in range(2):
+        (path,) = url_tools.try_download(
+            [f"{httpbin.url}/uuid"],
+            context=Context(),
+            maximum_tries=1,
+            retry_after=0,
+            use_internal_cache=use_internal_cache,
+        )
+        uuids.append(Path(path).read_text())
+    assert uuids[0] == uuids[1] if use_internal_cache else uuids[0] != uuids[1]
