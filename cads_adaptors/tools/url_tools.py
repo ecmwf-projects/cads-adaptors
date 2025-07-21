@@ -30,10 +30,6 @@ class RobustDownloader:
         tqdm_kwargs: None | dict[str, Any] = None,
         **download_kwargs: Any,
     ) -> None:
-        download_kwargs.setdefault(
-            "progress_bar",
-            functools.partial(tqdm, **tqdm_kwargs) if tqdm_kwargs is not None else None,
-        )
         self.target = target
         self.maximum_retries = maximum_retries
         self.retry_after = retry_after
@@ -53,6 +49,7 @@ class RobustDownloader:
                 maximum_retries=0,
                 stream=True,
                 resume_transfers=True,
+                progress_bar=functools.partial(tqdm, **(self.tqdm_kwargs or {})),
                 **self.download_kwargs,
             )
         except requests.HTTPError as exc:
@@ -73,13 +70,16 @@ class RobustDownloader:
             return f
 
     def cached_download(self, url: str) -> None:
-        callback = fsspec.callbacks.TqdmCallback(tqdm_kwargs=self.tqdm_kwargs)
         cached_download = cacholote.cacheable(self.download)
         self.path.unlink(missing_ok=True)
         with cacholote.config.set(return_cache_entry=False, io_delete_original=False):
             f = cached_download(url)
         if not self.path.exists():
-            f.fs.get(f.path, self.target, callback=callback)
+            f.fs.get(
+                f.path,
+                self.target,
+                callback=fsspec.callbacks.TqdmCallback(tqdm_kwargs=self.tqdm_kwargs),
+            )
 
 
 # copied from cdscommon/url2
