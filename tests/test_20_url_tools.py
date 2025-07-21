@@ -194,3 +194,22 @@ def test_try_download_robust_iter_content(
             fail_on_timeout_for_any_part=fail_on_timeout_for_any_part,
         )
         assert os.path.getsize("range/10") == 10
+
+
+def test_try_download_missing_ftp(
+    ftpserver: pytest_httpbin.serve.Server,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_dir = tmp_path / "work_dir"
+    work_dir.mkdir()
+    monkeypatch.chdir(work_dir)
+
+    test_file = tmp_path / "existing.txt"
+    test_file.write_text("This is a test file")
+    (existing_url,) = ftpserver.put_files(str(test_file), style="url")
+    missing_url = f"{ftpserver.get_login_data(style='url')}/missing.txt"
+
+    paths = url_tools.try_download([existing_url, missing_url], context=Context())
+    assert paths == ["existing.txt"]
+    assert (tmp_path / "existing.txt").read_text() == "This is a test file"
