@@ -49,6 +49,8 @@ def retrieve_data(
             _filter_asset_and_save(
                 fs, oncobj, retrieve_args, url, char_sizes, cdm_lite_variables
             )
+            # Explicitly clean the fsspec cache to ensure memory is not being wasted.
+            fs.clear_instance_cache()
         # Check if the resulting file is empty
         if len(oncobj.variables) == 0 or len(oncobj.variables["report_timestamp"]) == 0:
             message = "No data was found, try a different parameter combination."
