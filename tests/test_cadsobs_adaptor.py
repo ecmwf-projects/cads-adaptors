@@ -182,7 +182,7 @@ TEST_ADAPTOR_CONFIG_CUON = {
     },
 }
 
-API_URL = "https://object-store.os-api.cci2.ecmwf.int/"
+S3_URL = "https://object-store.os-api.cci2.ecmwf.int/"
 CUON_DISABLED_FIELDS = [
     "report_type",
     "report_duration",
@@ -215,13 +215,13 @@ class MockerCadsobsApiClient:
             == "insitu-observations-near-surface-temperature-us-climate-reference-network"
         ):
             return [
-                API_URL
+                S3_URL
                 + "cds2-obs-dev-insitu-observations-near-surface-temperature-us-cl/"
                 "insitu-observations-near-surface-temperature-us-climate-reference-network_1.0.0_uscrn_daily_200808_30.0_-150.0.nc"
             ]
         elif dataset_name == "insitu-comprehensive-upper-air-observation-network":
             return [
-                API_URL
+                S3_URL
                 + "cds2-obs-dev-insitu-comprehensive-upper-air-observation-network/"
                 "insitu-comprehensive-upper-air-observation-network_1.1.0_CUON_196507_-90.0_-180.0.nc"
             ]

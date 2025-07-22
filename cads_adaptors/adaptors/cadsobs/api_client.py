@@ -129,7 +129,7 @@ class CadsobsApiClient:
             self.context.warning(
                 f"Request failed when getting the list of disabled fields"
                 f"for {dataset_name=} and {dataset_source=}: {e}, "
-                f"possibly the API it outdated"
+                f"possibly the API is outdated"
             )
             response = []
         return response
