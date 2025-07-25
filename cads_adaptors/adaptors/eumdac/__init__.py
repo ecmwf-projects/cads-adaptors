@@ -1,5 +1,6 @@
 import copy
 import datetime
+from enum import Enum
 import os
 import shutil
 from typing import Any
@@ -8,6 +9,13 @@ import zipfile
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.general import ensure_list
+
+
+class TIME_OF_DAY(Enum):
+    START_OF_DAY = "00:00:00"
+    FIRST_SECOND_OF_DAY = "00:00:01"
+    NOON = "12:00:00"
+    END_OF_DAY = "23:59:59"
 
 
 class EUMDACAdaptor(AbstractCdsAdaptor):
@@ -38,11 +46,18 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         return self.token
 
     def str_to_date(self, date_str):
-        return datetime.datetime.strptime(date_str, "%Y-%m-%d")
+        return datetime.datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S")
 
     def merge_into_maximal_date_intervals(self, request):
         dates = copy.deepcopy(request["date"])
         request["date"] = []
+
+        # adjust the dates, so that we do not get more (or less) data than wanted
+        time_of_day_to_search_for = TIME_OF_DAY[
+            self.config.get("time_of_day_to_search_for", TIME_OF_DAY.NOON.name)
+        ]
+        dates = [date + "T" + time_of_day_to_search_for.value for date in dates]
+
         dates = sorted(ensure_list(dates))
         current_interval = (dates[0], dates[0])
         previous_date = dates[0]
@@ -231,17 +246,17 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         # extract the individual files zip archives, keep only the netcdf parts
         paths = []
         for product in downloaded_products:
-            self.context.add_stdout(f"Extracting downloaded product: {product}...")
+            self.context.debug(f"Extracting downloaded product: {product}...")
             if product.endswith(".zip"):
                 with zipfile.ZipFile(product, "r") as archive:
                     for file in archive.namelist():
                         if file.endswith(".nc"):
                             path = archive.extract(file)
                             paths.append(path)
-                            self.context.add_stdout(f" - {product}:{path}")
+                            self.context.debug(f" - {product}:{path}")
             elif product.endswith(".nc"):
                 paths.append(product)
-                self.context.add_stdout(f" - {product}:{product}")
+                self.context.debug(f" - {product}:{product}")
 
         if self.area is not None:
             paths = area_selector.area_selector_paths(
@@ -250,6 +265,6 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
                 self.context,
                 **self.config.get("post_processing_kwargs", {}),
             )
-        self.context.add_stdout(f"After area selection, these are the files: {paths}")
+        self.context.debug(f"After area selection, these are the files: {paths}")
 
         return paths
