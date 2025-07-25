@@ -179,7 +179,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         """Implemented in normalise_request, before the mapping is applied."""
         request = super().pre_mapping_modifications(request)
 
-        default_download_format = "as_source"
+        default_download_format = "zip"
         download_format = request.pop("download_format", default_download_format)
         self.set_download_format(
             download_format, default_download_format=default_download_format
