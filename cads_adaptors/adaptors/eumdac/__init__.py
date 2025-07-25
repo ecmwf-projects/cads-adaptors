@@ -3,6 +3,7 @@ import datetime
 import os
 import shutil
 from typing import Any
+import zipfile
 
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
 from cads_adaptors.exceptions import InvalidRequest
@@ -17,6 +18,7 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         self.connect_to_collection()
         self.eumdac_keys = self.selected_collection.search_options
 
+        self.area: list[Any] | None = None
         # schema should go here
 
     def authenticate(self):
@@ -168,6 +170,8 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
             download_format, default_download_format=default_download_format
         )
 
+        self.area = request.pop("area", None)
+
         return request
 
     def compute_result_size(self, request: dict[str, Any]):
@@ -200,6 +204,8 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
         return costs
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
+        from cads_adaptors.tools import area_selector, url_tools
+
         self.context.debug(f"Request is {request!r}")
 
         self.normalise_request(request)
@@ -222,4 +228,28 @@ class EUMDACAdaptor(AbstractCdsAdaptor):
             self.context.add_user_visible_error(msg)
             raise InvalidRequest(msg)
 
-        return downloaded_products
+        # extract the individual files zip archives, keep only the netcdf parts
+        paths = []
+        for product in downloaded_products:
+            self.context.add_stdout(f"Extracting downloaded product: {product}...")
+            if product.endswith(".zip"):
+                with zipfile.ZipFile(product, "r") as archive:
+                    for file in archive.namelist():
+                        if file.endswith(".nc"):
+                            path = archive.extract(file)
+                            paths.append(path)
+                            self.context.add_stdout(f" - {product}:{path}")
+            elif product.endswith(".nc"):
+                paths.append(product)
+                self.context.add_stdout(f" - {product}:{product}")
+
+        if self.area is not None:
+            paths = area_selector.area_selector_paths(
+                paths,
+                self.area,
+                self.context,
+                **self.config.get("post_processing_kwargs", {}),
+            )
+        self.context.add_stdout(f"After area selection, these are the files: {paths}")
+
+        return paths
