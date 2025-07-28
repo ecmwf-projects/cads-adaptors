@@ -22,3 +22,4 @@ dependencies:
 - pip:
   - git+https://github.com/ecmwf-projects/cacholote.git
   - git+https://github.com/ecmwf-projects/cads-mars-server
+  - pytest-httpbin
