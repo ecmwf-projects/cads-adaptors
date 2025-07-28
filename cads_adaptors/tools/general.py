@@ -108,3 +108,11 @@ def decrypt(
         raise
 
     return decrypted.decode()
+
+
+def strtobool(value: str) -> bool:
+    if value.lower() in ("y", "yes", "t", "true", "on", "1"):
+        return True
+    if value.lower() in ("n", "no", "f", "false", "off", "0"):
+        return False
+    raise ValueError(f"invalid truth value {value!r}")
