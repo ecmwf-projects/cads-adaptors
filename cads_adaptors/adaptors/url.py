@@ -30,7 +30,6 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         request = self.normalise_request(request)
         assert self.mapped_requests is not None  # Type-setting
-        print("DEBUG 2: ", self.mapped_requests)
 
         requests_urls = url_tools.requests_to_urls(
             self.mapped_requests,
@@ -39,7 +38,6 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # try to download URLs
         urls = [ru["url"] for ru in requests_urls]
-        print("DEBUG 3: ", urls)
         download_kwargs: dict[str, Any] = self.config.get("download_kwargs", {})
         # Handle legacy syntax for authentication
         if "auth" in self.config:
@@ -53,7 +51,6 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
             download_kwargs["auth"] = (username, password)
 
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
-        print("DEBUG 4: ", paths)
 
         if self.area is not None:
             paths = area_selector.area_selector_paths(

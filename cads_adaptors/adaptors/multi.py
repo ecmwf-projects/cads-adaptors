@@ -152,6 +152,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
             adaptor_desc.setdefault(
                 "intersect_constraints", self.config.get("intersect_constraints", False)
             )
+            # Preserve the context and constraints from the parent for each sub-adaptor
+            # This potentially applies licences, but this is not currently used in retrieval
+            # so not coding in case we take another approach in the future.
             this_adaptor = adaptor_tools.get_adaptor(
                 adaptor_desc | {"context": self.context, "constraints": self.constraints},
                 self.form,
@@ -203,7 +206,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
-            print(f"DEBUG 0: {adaptor_tag}, {adaptor.intersect_constraints_bool}")
             try:
                 this_result = adaptor.retrieve_list_of_results(req)
             except Exception as err:
