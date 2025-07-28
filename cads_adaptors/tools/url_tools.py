@@ -29,7 +29,7 @@ class RobustDownloader:
         target: str,
         maximum_retries: int,
         retry_after: float | tuple[float, float, float],
-        tqdm_kwargs: dict[str, Any] | None = None,
+        tqdm_kwargs: dict[str, Any],
         **download_kwargs: Any,
     ) -> None:
         self.target = target
@@ -43,7 +43,7 @@ class RobustDownloader:
         return Path(self.target)
 
     def get_tqdm_kwargs(self, desc: str) -> dict[str, Any]:
-        return {"desc": desc} | (self.tqdm_kwargs or {})
+        return {"desc": desc} | self.tqdm_kwargs
 
     def _download(self, url: str) -> requests.Response:
         self.path.parent.mkdir(exist_ok=True, parents=True)
@@ -92,7 +92,7 @@ def requests_to_urls(
     requests: dict[str, Any] | list[dict[str, Any]], patterns: List[str]
 ) -> Generator[Dict[str, Any], None, None]:
     """Given a list of requests and a list of URL patterns with Jinja2
-    formatting, yield the associated URLs to download.
+    formatting, yi©eld the associated URLs to download.
     """
     jinja_env = jinja2.Environment(undefined=jinja2.StrictUndefined)
     templates = [jinja_env.from_string(p) for p in patterns]
@@ -117,9 +117,15 @@ def try_download(
     # the default timeout value (3) has been determined empirically (it also included a safety margin)
     timeout: float = 3,
     fail_on_timeout_for_any_part: bool = True,
+    tqdm_kwargs: dict[str, Any] | None = None,
     use_internal_cache: bool = False,
     **kwargs: Any,
 ) -> list[str]:
+    # Default progress bar
+    tqdm_kwargs = tqdm_kwargs or {}
+    tqdm_kwargs.setdefault("context", context)
+    tqdm_kwargs.setdefault("mininterval", 5)
+
     # Ensure that URLs are unique to prevent downloading the same file multiple times
     urls = sorted(set(urls))
 
@@ -134,7 +140,7 @@ def try_download(
             maximum_retries=maximum_retries,
             retry_after=retry_after,
             timeout=timeout,
-            tqdm_kwargs={"file": context, "mininterval": 5},
+            tqdm_kwargs=tqdm_kwargs,
             **kwargs,
         )
         context.debug(f"Downloading {url} to {path}")
