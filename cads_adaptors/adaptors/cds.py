@@ -266,6 +266,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
+        print("DEBUG 1: ", self.intersect_constraints_bool)
         if self.intersect_constraints_bool:
             self.intersected_requests = self.intersect_constraints(working_request)
             if len(self.intersected_requests) == 0:

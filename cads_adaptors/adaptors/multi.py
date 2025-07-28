@@ -152,7 +152,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
             adaptor_desc.setdefault(
                 "intersect_constraints", self.config.get("intersect_constraints", False)
             )
-            print(f"DEBUG: {adaptor_tag}, {adaptor_desc['intersect_constraints']}")
             this_adaptor = adaptor_tools.get_adaptor(
                 adaptor_desc | {"context": self.context},
                 self.form,
@@ -204,6 +203,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
+            print(f"DEBUG 0: {adaptor_tag}, {adaptor.intersect_constraints_bool}")
             try:
                 this_result = adaptor.retrieve_list_of_results(req)
             except Exception as err:
