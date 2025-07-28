@@ -7,6 +7,29 @@ from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 
 
+def merge_requests(request_list: list[dict[str, Any]]) -> dict[str, Any]:
+    """Merge a list of dictionaries into a single dictionary with no repeated values."""
+    merged = {}
+    for request in request_list:
+        for key, value in request.items():
+            if key not in merged:
+                merged[key] = value
+            else:
+                # If the key already exists, merge the values
+                if isinstance(merged[key], (list, tuple)) or isinstance(value, (list, tuple)):
+                    update_values = [
+                        v for v in ensure_list(value) if v not in ensure_list(merged[key])
+                    ]
+                    merged[key] += update_values
+                else:
+                    try:
+                        merge_non_list_values = merged[key] != value
+                    except ValueError:  # To handle edge cases where values are not comparable
+                        merge_non_list_values = True
+                    if merge_non_list_values:
+                        merged[key] = [merged[key], value]
+    return merged
+
 class MultiAdaptor(AbstractCdsAdaptor):
     @property
     def extract_subrequest_kws(self) -> list[str]:
@@ -119,6 +142,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
+            adaptor_desc.setdefault("intersect_constraints", self.config.get("intersect_constraints", False))
             this_adaptor = adaptor_tools.get_adaptor(
                 adaptor_desc | {"context": self.context},
                 self.form,
@@ -157,16 +181,11 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         request = self.normalise_request(request)
-        # TODO: handle lists of requests, normalise_request has the power to implement_constraints
-        #  which produces a list of complete hypercube requests.
-        try:
-            assert len(self.mapped_requests) == 1
-        except AssertionError:
-            self.context.add_user_visible_log(
-                f"WARNING: More than one request was mapped: {self.mapped_requests}, "
-                f"returning the first one only:\n{self.mapped_requests[0]}"
-            )
-        self.mapped_request = self.mapped_requests[0]
+
+        # We merge our list of split requests back into a single request.
+        # If required the sub-adaptors will repeat intersect constraints.
+        # We do not want to create a very large number of sub-adaptors
+        self.mapped_request = merge_requests(self.mapped_requests)
 
         self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
 
