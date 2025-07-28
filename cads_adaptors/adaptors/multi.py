@@ -152,6 +152,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             adaptor_desc.setdefault(
                 "intersect_constraints", self.config.get("intersect_constraints", False)
             )
+            print(f"DEBUG: {adaptor_tag}, {adaptor_desc['intersect_constraints']}")
             this_adaptor = adaptor_tools.get_adaptor(
                 adaptor_desc | {"context": self.context},
                 self.form,
