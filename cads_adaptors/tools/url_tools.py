@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 from cads_adaptors.adaptors import Context
 from cads_adaptors.exceptions import InvalidRequest, UrlNoDataError
-from cads_adaptors.tools import hcube_tools
+from cads_adaptors.tools import general, hcube_tools
 
 
 class RobustDownloader:
@@ -118,13 +118,19 @@ def try_download(
     timeout: float = 3,
     fail_on_timeout_for_any_part: bool = True,
     tqdm_kwargs: dict[str, Any] | None = None,
-    use_internal_cache: bool = False,
+    use_internal_cache: bool | None = None,
     **kwargs: Any,
 ) -> list[str]:
     # Default progress bar
     tqdm_kwargs = tqdm_kwargs or {}
-    tqdm_kwargs.setdefault("context", context)
+    tqdm_kwargs.setdefault("file", context)
     tqdm_kwargs.setdefault("mininterval", 5)
+
+    # Default internal_cache
+    if use_internal_cache is None:
+        use_internal_cache = general.strtobool(
+            os.getenv("USE_INTERNAL_CACHE_FOR_URL_ADAPTOR", "false")
+        )
 
     # Ensure that URLs are unique to prevent downloading the same file multiple times
     urls = sorted(set(urls))
