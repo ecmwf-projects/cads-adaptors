@@ -36,10 +36,10 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
             self.mapped_requests,
             patterns=self.config["patterns"],
         )
-        print("DEBUG 3: ", requests_urls)
 
         # try to download URLs
         urls = [ru["url"] for ru in requests_urls]
+        print("DEBUG 3: ", urls)
         download_kwargs: dict[str, Any] = self.config.get("download_kwargs", {})
         # Handle legacy syntax for authentication
         if "auth" in self.config:
