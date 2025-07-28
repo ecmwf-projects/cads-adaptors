@@ -156,7 +156,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
             # This potentially applies licences, but this is not currently used in retrieval
             # so not coding in case we take another approach in the future.
             this_adaptor = adaptor_tools.get_adaptor(
-                adaptor_desc | {"context": self.context, "constraints": self.constraints},
+                adaptor_desc
+                | {"context": self.context, "constraints": self.constraints},
                 self.form,
             )
             this_values = adaptor_desc.get("values", {})
