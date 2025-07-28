@@ -71,6 +71,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return constraints.validate_constraints(self.form, request, self.constraints)
 
     def intersect_constraints(self, request: Request) -> list[Request]:
+        print("DEBUG 0: ", len(self.constraints), self.constraints[:1])
         return constraints.legacy_intersect_constraints(
             request, self.constraints, context=self.context
         )
