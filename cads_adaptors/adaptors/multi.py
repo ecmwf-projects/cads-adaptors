@@ -197,9 +197,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
         # We do not want to create a very large number of sub-adaptors
         self.mapped_request = merge_requests(self.mapped_requests)
 
-        self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
+        self.context.debug(f"MultiAdaptor, full_request: {request}")
 
-        sub_adaptors = self.split_adaptors(self.mapped_request)
+        sub_adaptors = self.split_adaptors(request)
 
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
