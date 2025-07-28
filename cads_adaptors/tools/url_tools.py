@@ -29,7 +29,7 @@ class RobustDownloader:
         target: str,
         maximum_retries: int,
         retry_after: float | tuple[float, float, float],
-        tqdm_kwargs: dict[str, Any] = {},
+        tqdm_kwargs: dict[str, Any] | None = None,
         **download_kwargs: Any,
     ) -> None:
         self.target = target
@@ -43,7 +43,7 @@ class RobustDownloader:
         return Path(self.target)
 
     def get_tqdm_kwargs(self, desc: str) -> dict[str, Any]:
-        return {"desc": desc} | self.tqdm_kwargs
+        return {"desc": desc} | (self.tqdm_kwargs or {})
 
     def _download(self, url: str) -> requests.Response:
         self.path.parent.mkdir(exist_ok=True, parents=True)
