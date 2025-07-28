@@ -266,7 +266,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
-        print("DEBUG 1: ", self.intersect_constraints_bool)
         if self.intersect_constraints_bool:
             self.intersected_requests = self.intersect_constraints(working_request)
             if len(self.intersected_requests) == 0:
@@ -275,6 +274,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 raise InvalidRequest(msg)
         else:
             self.intersected_requests = ensure_list(working_request)
+        print("DEBUG 1.1: ", working_request)
+        print("DEBUG 1.2: ", self.intersected_requests)
 
         # Implement a request-level tagging system
         try:
@@ -296,6 +297,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.mapped_requests = [
             self.apply_mapping(i_request) for i_request in self.intersected_requests
         ]
+        print("DEBUG 1.3: ", self.mapped_requests)
 
         # Implement embargo if specified
         if self.embargo is not None:
