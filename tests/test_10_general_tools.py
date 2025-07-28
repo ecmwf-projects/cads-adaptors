@@ -162,6 +162,8 @@ def test_decrypt_errors(monkeypatch: pytest.MonkeyPatch, ignore_errors: bool) ->
         ("false", False),
         ("off", False),
         ("0", False),
+        ("TrUe", True),
+        ("fAlSe", False),
     ],
 )
 def test_general_strtobool(value: str, expected: bool):
