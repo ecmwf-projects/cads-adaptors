@@ -16,19 +16,26 @@ def merge_requests(request_list: list[dict[str, Any]]) -> dict[str, Any]:
                 merged[key] = value
             else:
                 # If the key already exists, merge the values
-                if isinstance(merged[key], (list, tuple)) or isinstance(value, (list, tuple)):
+                if isinstance(merged[key], (list, tuple)) or isinstance(
+                    value, (list, tuple)
+                ):
                     update_values = [
-                        v for v in ensure_list(value) if v not in ensure_list(merged[key])
+                        v
+                        for v in ensure_list(value)
+                        if v not in ensure_list(merged[key])
                     ]
                     merged[key] += update_values
                 else:
                     try:
                         merge_non_list_values = merged[key] != value
-                    except ValueError:  # To handle edge cases where values are not comparable
+                    except (
+                        ValueError
+                    ):  # To handle edge cases where values are not comparable
                         merge_non_list_values = True
                     if merge_non_list_values:
                         merged[key] = [merged[key], value]
     return merged
+
 
 class MultiAdaptor(AbstractCdsAdaptor):
     @property
@@ -142,7 +149,9 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         sub_adaptors = {}
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
-            adaptor_desc.setdefault("intersect_constraints", self.config.get("intersect_constraints", False))
+            adaptor_desc.setdefault(
+                "intersect_constraints", self.config.get("intersect_constraints", False)
+            )
             this_adaptor = adaptor_tools.get_adaptor(
                 adaptor_desc | {"context": self.context},
                 self.form,
