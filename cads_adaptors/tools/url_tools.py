@@ -92,7 +92,7 @@ def requests_to_urls(
     requests: dict[str, Any] | list[dict[str, Any]], patterns: List[str]
 ) -> Generator[Dict[str, Any], None, None]:
     """Given a list of requests and a list of URL patterns with Jinja2
-    formatting, yi©eld the associated URLs to download.
+    formatting, yield the associated URLs to download.
     """
     jinja_env = jinja2.Environment(undefined=jinja2.StrictUndefined)
     templates = [jinja_env.from_string(p) for p in patterns]
