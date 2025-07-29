@@ -24,15 +24,13 @@ def merge_requests(request_list: list[dict[str, Any]]) -> dict[str, Any]:
                         for v in ensure_list(value)
                         if v not in ensure_list(merged[key])
                     ]
-                    merged[key] += update_values
+                    merged[key] = ensure_list(merged[key]) + update_values
                 else:
-                    try:
-                        merge_non_list_values = merged[key] != value
-                    except (
-                        ValueError
-                    ):  # To handle edge cases where values are not comparable
-                        merge_non_list_values = True
-                    if merge_non_list_values:
+                    merge_non_list_values = merged[key] != value
+                    if (
+                        not isinstance(merge_non_list_values, bool)
+                        or merge_non_list_values
+                    ):
                         merged[key] = [merged[key], value]
     return merged
 
