@@ -171,13 +171,13 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
 
             if len(this_request) > 0:
-                try:
-                    this_request = this_adaptor.normalise_request(this_request)
-                except Exception:
-                    self.context.warning(
-                        f"MultiAdaptor failed to normalise request.\n"
-                        f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
-                    )
+            #     try:
+            #         this_request = this_adaptor.normalise_request(this_request)
+            #     except Exception:
+            #         self.context.warning(
+            #             f"MultiAdaptor failed to normalise request.\n"
+            #             f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
+            #         )
                 sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
 
         return sub_adaptors
