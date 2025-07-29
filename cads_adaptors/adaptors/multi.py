@@ -186,7 +186,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
         request = super().pre_mapping_modifications(request)
 
         download_format = request.pop("download_format", "zip")
-        print(f"DEBUG 1.0: {download_format}, {request}")
         self.set_download_format(download_format)
 
         return request
