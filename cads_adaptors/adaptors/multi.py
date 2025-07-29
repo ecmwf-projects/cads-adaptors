@@ -186,17 +186,19 @@ class MultiAdaptor(AbstractCdsAdaptor):
         request = super().pre_mapping_modifications(request)
 
         download_format = request.pop("download_format", "zip")
+        print(f"DEBUG 1.0: {download_format}, {request}")
         self.set_download_format(download_format)
 
         return request
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         request = self.normalise_request(request)
+        self.normalised = False
 
         # We merge our list of split requests back into a single request.
         # If required the sub-adaptors will repeat intersect constraints.
         # We do not want to create a very large number of sub-adaptors
-        self.mapped_request = request  # merge_requests(self.mapped_requests)
+        self.mapped_request = merge_requests(self.mapped_requests)
 
         self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
 
