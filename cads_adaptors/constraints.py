@@ -635,6 +635,31 @@ def legacy_intersect_constraints(
                 'format': ['zip']
             }
 
+    Parameters
+    ----------
+    request : dict[str, Any]
+        The request to be constrained.
+    constraints : list[dict[str, Any]] | dict[str, Any] | None
+        The constraints to apply to the request.
+    context : adaptors.Context, optional
+        The context in which the request is being processed, by default adaptors.Context().
+    ignore_constraint_fields : list[str], optional
+        Fields in the constraints that should be ignored when applying the constraints.
+        This is useful when there are constraints which are applicable to the web-form,
+        but not to the request itself, such as "data_format". The default is to ignore
+        ["data_format"].
+        
+    Returns
+    -------
+    list[dict[str, list[Any]]]
+        A list of requests that intersect the given constraints.
+        Each request is a dictionary where keys are field names and values are lists of values.
+        If no valid requests can be generated, an exception is raised.
+
+    Raises
+    -------
+    exceptions.InvalidRequest
+        If the request does not produce a valid combination of values after applying the constraints.
     """
     if constraints is None or len(constraints) == 0:
         return [request]
