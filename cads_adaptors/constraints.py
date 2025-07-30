@@ -558,6 +558,7 @@ def legacy_intersect_constraints(
     request: dict[str, Any],
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
     context: adaptors.Context = adaptors.Context(),
+    ignore_constraint_fields: list[str] = ["data_format"],
 ) -> list[dict[str, list[Any]]]:
     """
     'Constrain' a request by intersecting it with the constraints.
@@ -676,7 +677,7 @@ def legacy_intersect_constraints(
         # This will be that request.
         output_request = {k: v for k, v in request.items() if k not in unwanted_fields}
 
-        for field in constraint:
+        for field in [_f for _f in constraint if _f not in ignore_constraint_fields]:
             # Constrain the requested values for this field to the permitted
             # ones (by intersecting it with the constraint).
             if field != "date":
