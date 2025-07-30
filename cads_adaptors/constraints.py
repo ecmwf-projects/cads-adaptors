@@ -558,7 +558,7 @@ def legacy_intersect_constraints(
     request: dict[str, Any],
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
     context: adaptors.Context = adaptors.Context(),
-    ignore_constraint_fields: list[str] = ["data_format"],
+    ignore_constraint_fields: list[str] | None = None,
 ) -> list[dict[str, list[Any]]]:
     """
     'Constrain' a request by intersecting it with the constraints.
@@ -663,6 +663,9 @@ def legacy_intersect_constraints(
     """
     if constraints is None or len(constraints) == 0:
         return [request]
+
+    ignore_constraint_fields = ignore_constraint_fields or []
+
     requests = []
     constraints = parse_constraints(constraints)
     constrained_fields = set(itertools.chain.from_iterable(constraints))

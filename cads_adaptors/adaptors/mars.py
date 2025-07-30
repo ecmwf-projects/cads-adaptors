@@ -171,6 +171,20 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         data_format = request.pop("format", "grib")
         data_format = request.pop("data_format", data_format)
 
+        # We are removing data_format from the request, so we need to
+        # ensure that it is not used in the constraints intersection.
+        self.config.setdefault("intersect_constraints_kwargs", {})
+        ignore_constraint_fields = ensure_list(
+            self.config["intersect_constraints_kwargs"].get(
+                "ignore_constraint_fields", []
+            )
+        )
+        if "data_format" not in ignore_constraint_fields:
+            ignore_constraint_fields.append("data_format")
+        self.config["intersect_constraints_kwargs"]["ignore_constraint_fields"] = (
+            ignore_constraint_fields
+        )
+
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             self.data_format = "netcdf"
