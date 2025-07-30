@@ -2,7 +2,11 @@ from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.exceptions import CdsConfigurationError, MultiAdaptorNoDataError
+from cads_adaptors.exceptions import (
+    CdsConfigurationError,
+    InvalidRequest,
+    MultiAdaptorNoDataError,
+)
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 
@@ -171,14 +175,18 @@ class MultiAdaptor(AbstractCdsAdaptor):
             )
 
             if len(this_request) > 0:
-                # try:
-                #     this_request = this_adaptor.normalise_request(this_request)
-                # except Exception:
-                #     self.context.warning(
-                #         f"MultiAdaptor failed to normalise request.\n"
-                #         f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
-                #     )
-                sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
+                try:
+                    this_request = this_adaptor.normalise_request(this_request)
+                except InvalidRequest:
+                    self.context.warning(
+                        f"MultiAdaptor failed to normalise request.\n"
+                        f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
+                    )
+                else:
+                    # Only append if request is normalised successfully, normalisation
+                    # is also applied in the sub-adaptor, executing here reduces
+                    # excessive logging.
+                    sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
 
         return sub_adaptors
 
@@ -192,7 +200,6 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         request = self.normalise_request(request)
-        self.normalised = False
 
         # We merge our list of split requests back into a single request.
         # If required the sub-adaptors will repeat intersect constraints.

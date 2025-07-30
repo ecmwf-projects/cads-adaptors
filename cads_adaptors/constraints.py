@@ -648,7 +648,7 @@ def legacy_intersect_constraints(
         This is useful when there are constraints which are applicable to the web-form,
         but not to the request itself, such as "data_format". The default is to ignore
         ["data_format"].
-        
+
     Returns
     -------
     list[dict[str, list[Any]]]
@@ -657,7 +657,7 @@ def legacy_intersect_constraints(
         If no valid requests can be generated, an exception is raised.
 
     Raises
-    -------
+    ------
     exceptions.InvalidRequest
         If the request does not produce a valid combination of values after applying the constraints.
     """
