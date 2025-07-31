@@ -189,7 +189,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
-        self.data_format = request.pop("data_format", "grib")
+
+        for req in self.mapped_requests:
+            data_format = req.pop("data_format")
+        self.data_format = data_format
 
         result = execute_mars(
             self.mapped_requests,
