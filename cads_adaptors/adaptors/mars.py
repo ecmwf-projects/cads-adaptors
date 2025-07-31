@@ -10,6 +10,7 @@ from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
+from cads_adaptors.tools.url_tools import RobustDownloader
 from cads_adaptors.tools.general import (
     ensure_list,
     split_requests_on_keys,
@@ -159,7 +160,7 @@ def execute_mars(
         # If the target is a URL, we need to get the size from the headers
         ot = target
         try:
-            target = download_file(target)
+            target = download_file(target, max_retries=10, timeout=10)
             context.info(f"Downloaded file from {ot} to {target} in {time.time() - _this_t0:.2f} seconds")
         except Exception as e:
             context.error(f"Failed to download file from {ot}: {e}")
