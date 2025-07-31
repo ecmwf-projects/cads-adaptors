@@ -107,8 +107,8 @@ class CadsobsApiClient:
             )
         except CadsObsConnectionError as e:
             self.context.warning(
-                f"Requess failed: {e}, possibly the API it outdated, "
-                f"falling back to the old payload format."
+                f"Request failed for payload {payload}: {e}, possibly the API it "
+                f"outdated, falling back to the old payload format."
             )
             payload = dict(
                 retrieve_args=dict(dataset=dataset_name, params=mapped_request),
@@ -118,3 +118,18 @@ class CadsobsApiClient:
                 "POST", "get_object_urls_and_check_size", payload=payload
             )
         return objects_to_retrieve
+
+    def get_disabled_fields(self, dataset_name: str, dataset_source: str) -> list[str]:
+        """Get the list of fields that are disabled for the given dataset."""
+        try:
+            response = self._send_request_and_capture_exceptions(
+                "GET", f"/{dataset_name}/{dataset_source}/disabled_fields"
+            )
+        except CadsObsConnectionError as e:
+            self.context.warning(
+                f"Request failed when getting the list of disabled fields"
+                f"for {dataset_name=} and {dataset_source=}: {e}, "
+                f"possibly the API is outdated"
+            )
+            response = []
+        return response
