@@ -70,9 +70,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def apply_constraints(self, request: Request) -> dict[str, Any]:
         return constraints.validate_constraints(self.form, request, self.constraints)
 
-    def intersect_constraints(self, request: Request, **kwargs) -> list[Request]:
+    def intersect_constraints(self, request: Request) -> list[Request]:
         return constraints.legacy_intersect_constraints(
-            request, self.constraints, context=self.context, **kwargs
+            request, self.constraints, context=self.context
         )
 
     def apply_mapping(self, request: Request) -> Request:
@@ -267,9 +267,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
         if self.intersect_constraints_bool:
-            self.intersected_requests = self.intersect_constraints(
-                working_request, **self.config.get("intersect_constraints_kwargs", {})
-            )
+            self.intersected_requests = self.intersect_constraints(working_request)
             if len(self.intersected_requests) == 0:
                 msg = "Error: no intersection with the constraints."
                 self.context.add_user_visible_error(message=msg)
