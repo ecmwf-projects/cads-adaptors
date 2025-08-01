@@ -191,7 +191,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         request = self.normalise_request(request)
 
         for req in self.mapped_requests:
-            data_format = req.pop("data_format")
+            data_format = req.pop("data_format") or data_format
         self.data_format = data_format
 
         result = execute_mars(
