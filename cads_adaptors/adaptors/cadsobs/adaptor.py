@@ -11,6 +11,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.download_format = "as_source"
+        self.mapped_request: Request = dict()
 
     def retrieve(self, request):
         try:
