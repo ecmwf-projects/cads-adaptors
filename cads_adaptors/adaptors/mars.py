@@ -167,8 +167,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         """Implemented in normalise_request, before the mapping is applied."""
         request = super().pre_mapping_modifications(request)
 
-        # TODO: Remove legacy syntax all together
-        data_format = request.get("format", "grib")
+        # Remove "format" from request if it exists
+        data_format = request.pop("format", "grib")
         data_format = request.get("data_format", data_format)
 
         # Account from some horribleness from the legacy system:
@@ -176,7 +176,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
-        request.setdefault("data_format", adaptor_tools.handle_data_format(data_format))
+        request.setdefault("data_format", data_format)
 
         default_download_format = "as_source"
         download_format = request.pop("download_format", default_download_format)
@@ -193,7 +193,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         data_format = request.get("data_format", "grib")
         for req in self.mapped_requests:
             data_format = req.pop("data_format") or data_format
-        self.data_format = data_format
+        self.data_format = adaptor_tools.handle_data_format(data_format)
 
         result = execute_mars(
             self.mapped_requests,
