@@ -8,6 +8,10 @@ from cads_adaptors.tools.general import ensure_list
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.mapped_request: Request = dict()
+
     @property
     def extract_subrequest_kws(self) -> list[str]:
         # extract keywords from a function signature

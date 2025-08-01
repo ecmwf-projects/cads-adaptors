@@ -37,7 +37,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # The following attributes are updated during the retireve method
         self.input_request: Request = dict()
-        self.mapped_request: Request = dict()
         self.download_format: str = "zip"
         self.receipt: bool = False
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
@@ -312,12 +311,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 # Add an uncacheable key to the request
                 random_key = str(randint(0, 2**128))
                 request["__part_of_request_under_embargo"] = random_key
-
-        # At this point, the self.mapped_requests could be used to create a requesthash
-
-        # For backwards compatibility, we set self.mapped_request to the first request, and assume
-        #  it is the only one. Adaptors should be updated to use self.mapped_requests instead.
-        self.mapped_request = self.mapped_requests[0]
 
         self.context.info(
             f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_requests}"
