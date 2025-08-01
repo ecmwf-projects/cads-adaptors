@@ -10,7 +10,6 @@ from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
-from cads_adaptors.tools.url_tools import RobustDownloader
 from cads_adaptors.tools.general import (
     ensure_list,
     split_requests_on_keys,
