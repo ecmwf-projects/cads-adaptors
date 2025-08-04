@@ -1,5 +1,6 @@
-import pytest
 import numpy as np
+import pytest
+
 from cads_adaptors.tools import hcube_tools
 
 
