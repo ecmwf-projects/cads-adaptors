@@ -7,7 +7,7 @@ import xarray as xr
 from cads_adaptors.tools import convertors, post_processors
 
 TEST_FILE_1 = (
-    "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/"
+    "https://sites.ecmwf.int/repository/earthkit-data/test-data/"
     "era5_temperature_france_2015_2016_2017_3deg.grib"
 )
 
