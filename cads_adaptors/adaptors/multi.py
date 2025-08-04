@@ -9,34 +9,7 @@ from cads_adaptors.exceptions import (
 )
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
-
-
-def merge_requests(request_list: list[dict[str, Any]]) -> dict[str, Any]:
-    """Merge a list of dictionaries into a single dictionary with no repeated values."""
-    merged = {}
-    for request in request_list:
-        for key, value in request.items():
-            if key not in merged:
-                merged[key] = value
-            else:
-                # If the key already exists, merge the values
-                if isinstance(merged[key], (list, tuple)) or isinstance(
-                    value, (list, tuple)
-                ):
-                    update_values = [
-                        v
-                        for v in ensure_list(value)
-                        if v not in ensure_list(merged[key])
-                    ]
-                    merged[key] = ensure_list(merged[key]) + update_values
-                else:
-                    merge_non_list_values = merged[key] != value
-                    if (
-                        not isinstance(merge_non_list_values, bool)
-                        or merge_non_list_values
-                    ):
-                        merged[key] = [merged[key], value]
-    return merged
+from cads_adaptors.tools.hcube_tools import merge_requests
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
@@ -104,7 +77,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         this_values: dict[str, Any],  # key: [values] for the adaptor component
         dont_split_keys: list[str] = ["area", "grid"],
         filter_keys: None | list[str] = None,
-        required_keys: list[str] = [],
+        required_keys: list[str] | None = None,
     ) -> Request:
         """
         Basic request splitter, splits based on whether the values are relevant to
@@ -199,12 +172,18 @@ class MultiAdaptor(AbstractCdsAdaptor):
         return request
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
+        # If running the request (on the worker), we disable the intersection of constraints
+        # in the parent request.
+        self.intersect_constraints_bool = False
         request = self.normalise_request(request)
 
         # We merge our list of split requests back into a single request.
         # If required the sub-adaptors will repeat intersect constraints.
         # We do not want to create a very large number of sub-adaptors
-        self.mapped_request = merge_requests(self.mapped_requests)
+        if len(self.mapped_requests) > 0:
+            self.mapped_request = merge_requests(self.mapped_requests)
+        else:
+            self.mapped_request = self.mapped_requests[0]
 
         self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
 
