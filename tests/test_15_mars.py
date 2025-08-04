@@ -4,9 +4,7 @@ import requests
 
 from cads_adaptors.adaptors import mars
 
-TEST_GRIB_FILE = (
-    "https://get.ecmwf.int/repository/test-data/cfgrib/era5-levels-members.grib"
-)
+TEST_GRIB_FILE = "https://sites.ecmwf.int/repository/earthkit-data/test-data/era5-levels-members.grib"
 
 
 def test_get_mars_servers():
