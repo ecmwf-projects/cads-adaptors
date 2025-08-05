@@ -29,6 +29,11 @@ class MarsNoDataError(InvalidRequest):
     """Raised when a MARS request returns no data."""
 
 
+class MarsConfigError(InvalidRequest):
+    """Raised when a MARS dataset is badly configured."""
+
+
+
 class MarsSystemError(SystemError):
     """Raised when a MARS request fails due to a system error."""
 

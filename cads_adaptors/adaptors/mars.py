@@ -189,12 +189,21 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
-
-        data_format = request.get("data_format", "grib")
-        for req in self.mapped_requests:
-            data_format = req.pop("data_format") or data_format
-        self.data_format = adaptor_tools.handle_data_format(data_format)
-
+        self.context.info(
+            f"Request after normalisation: {self.mapped_requests}",
+        )
+        data_formats = [req.pop('data_format', None) for req in self.mapped_requests]
+        data_formats = list(set(data_formats))
+        if len(data_formats) != 1:
+            raise MarsConfigError(
+                "Something has gone wrong in preparing your request, "
+                "please try to submit your request again. "
+                "If the problem persists, please contact user support."
+            )
+        self.data_format = data_formats[0]
+        self.context.info(
+            f"Request after data_format handling: {self.mapped_requests}",
+        )
         result = execute_mars(
             self.mapped_requests,
             context=self.context,
