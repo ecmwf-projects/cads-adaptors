@@ -4,8 +4,12 @@ import time
 from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
-from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
-from cads_adaptors.tools import adaptor_tools
+from cads_adaptors.exceptions import (
+    CdsConfigError,
+    MarsNoDataError,
+    MarsRuntimeError,
+    MarsSystemError,
+)
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import (
     ensure_list,
@@ -192,10 +196,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         self.context.info(
             f"Request after normalisation: {self.mapped_requests}",
         )
-        data_formats = [req.pop('data_format', None) for req in self.mapped_requests]
+        data_formats = [req.pop("data_format", None) for req in self.mapped_requests]
         data_formats = list(set(data_formats))
         if len(data_formats) != 1:
-            raise MarsConfigError(
+            raise CdsConfigError(
                 "Something has gone wrong in preparing your request, "
                 "please try to submit your request again. "
                 "If the problem persists, please contact user support."
