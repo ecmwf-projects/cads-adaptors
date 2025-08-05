@@ -171,6 +171,12 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         """Implemented in normalise_request, before the mapping is applied."""
         request = super().pre_mapping_modifications(request)
 
+        if "format" in request:
+            self.context.add_user_visible_error(
+                "The 'format' key for requests is deprecated, please use 'data_format' instead. "
+                "Use of 'format' is no longer part of our system testing, "
+                "therefore we cannot guarantee that it will work in the future."
+            )
         # Remove "format" from request if it exists
         data_format = request.pop("format", "grib")
         data_format = request.get("data_format", data_format)
@@ -193,9 +199,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
-        self.context.info(
-            f"Request after normalisation: {self.mapped_requests}",
-        )
+
         data_formats = [req.pop("data_format", None) for req in self.mapped_requests]
         data_formats = list(set(data_formats))
         if len(data_formats) != 1:
@@ -205,9 +209,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 "If the problem persists, please contact user support."
             )
         self.data_format = data_formats[0]
-        self.context.info(
-            f"Request after data_format handling: {self.mapped_requests}",
-        )
+
         result = execute_mars(
             self.mapped_requests,
             context=self.context,
