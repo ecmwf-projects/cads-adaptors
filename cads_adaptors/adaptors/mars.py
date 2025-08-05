@@ -174,8 +174,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         if "format" in request:
             self.context.add_user_visible_error(
                 "The 'format' key for requests is deprecated, please use 'data_format' instead. "
-                "Use of 'format' is no longer part of our system testing, "
-                "therefore we cannot guarantee that it will work in the future."
+                "Use of 'format' is no longer part of the system testing, "
+                "therefore it is not guaranteed to work."
             )
         # Remove "format" from request if it exists
         data_format = request.pop("format", "grib")
