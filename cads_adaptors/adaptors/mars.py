@@ -203,6 +203,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         data_formats = [req.pop("data_format", None) for req in self.mapped_requests]
         data_formats = list(set(data_formats))
         if len(data_formats) != 1:
+            # It should not be possible to reach here, if it is, there is a problem.
             raise CdsConfigError(
                 "Something has gone wrong in preparing your request, "
                 "please try to submit your request again. "
