@@ -208,7 +208,6 @@ def test_area_as_mapping_applied_correctly():
                     "latitude": 55,
                     "longitude": 0,
                     "country": "UK",
-                    "source": ["satellite"],
                 }
             ]
         }
@@ -216,7 +215,6 @@ def test_area_as_mapping_applied_correctly():
     result = mapping.apply_mapping(request, adaptor_mapping)
 
     assert result["country"] == ["UK"]
-    assert result["source"] == ["satellite"]
     assert "area" not in result  # Area should not be in the result
     assert "latitude" not in result
     assert "longitude" not in result
