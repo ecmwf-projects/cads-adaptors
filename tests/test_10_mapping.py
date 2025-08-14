@@ -258,16 +258,26 @@ def test_area_as_mapping_ignore_incorrect_elements():
     adaptor_mapping = {
         "options": {
             "area_as_mapping": [
-                {"latitude": 55,"longitude": 0,"country": "UK"},  # Correct element
-                {"latitude": 53,"longitude": -8,"country": "IE"},  # Correct element
-                {"longitude": 0,"country": "FR"},  # Incorrect element
-                {"latitude": 55,"longitude": 0,"country": "DE","another": "value"},  # Incorrect element
+                {"latitude": 55, "longitude": 0, "country": "UK"},  # Correct element
+                {"latitude": 53, "longitude": -8, "country": "IE"},  # Correct element
+                {"longitude": 0, "country": "FR"},  # Incorrect element, no latitude
+                {
+                    "latitude": 55,
+                    "longitude": 0,
+                    "country": "DE",
+                    "another": "value",
+                },  # Incorrect element, too many keys
             ]
         }
     }
     result = mapping.apply_mapping(request, adaptor_mapping)
-    assert sorted(result["country"]) == ["IE", "UK"]  # Only UK mapping is correct, the rest should be ignored
-    assert "another" not in result  # Should not include incorrect keys
+    assert sorted(result["country"]) == [
+        "IE",
+        "UK",
+    ]  # Only IE and UK mapping are correct
+    assert (
+        "another" not in result
+    )  # Should not include keys only found in incorrect elements
 
 
 def test_area_as_mapping_does_nothing_if_no_match():
