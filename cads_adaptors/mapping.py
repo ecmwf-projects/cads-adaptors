@@ -302,6 +302,14 @@ def apply_mapping(
                 for k, v in latlon_mapping.items()
                 if k not in ("latitude", "longitude")
             }
+            if len(remaining) != 1:
+                # Ignore incorrectly configured area_as_mapping elements
+                context.warning(
+                    f"Invalid area_as_mapping element: {latlon_mapping!r}, "
+                    "should contain exactly one additional key."
+                )
+                continue
+
             if _lat < area[0] and _lon > area[1] and _lat > area[2] and _lon < area[3]:
                 for _key, _value in remaining.items():
                     if _key not in mapped_area_values:

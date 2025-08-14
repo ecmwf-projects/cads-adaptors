@@ -253,6 +253,23 @@ def test_area_as_mapping_raises_if_not_list():
         mapping.apply_mapping(request, adaptor_mapping)
 
 
+def test_area_as_mapping_ignore_incorrect_elements():
+    request = {"area": [60, -10, 50, 10]}
+    adaptor_mapping = {
+        "options": {
+            "area_as_mapping": [
+                {"latitude": 55,"longitude": 0,"country": "UK"},  # Correct element
+                {"latitude": 53,"longitude": -8,"country": "IE"},  # Correct element
+                {"longitude": 0,"country": "FR"},  # Incorrect element
+                {"latitude": 55,"longitude": 0,"country": "DE","another": "value"},  # Incorrect element
+            ]
+        }
+    }
+    result = mapping.apply_mapping(request, adaptor_mapping)
+    assert sorted(result["country"]) == ["IE", "UK"]  # Only UK mapping is correct, the rest should be ignored
+    assert "another" not in result  # Should not include incorrect keys
+
+
 def test_area_as_mapping_does_nothing_if_no_match():
     request = {"area": [10, -10, 0, 10]}  # Area does not match the lat/lon in mapping
     adaptor_mapping = {
