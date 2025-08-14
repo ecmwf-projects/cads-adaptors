@@ -296,8 +296,14 @@ def apply_mapping(
                     "should contain 'latitude' and 'longitude' keys with float values."
                 )
                 continue
+
+            remaining = {
+                k: v
+                for k, v in latlon_mapping.items()
+                if k not in ("latitude", "longitude")
+            }
             if _lat < area[0] and _lon > area[1] and _lat > area[2] and _lon < area[3]:
-                for _key, _value in latlon_mapping.items():
+                for _key, _value in remaining.items():
                     if _key not in mapped_area_values:
                         mapped_area_values[_key] = ensure_list(_value)
                     else:
