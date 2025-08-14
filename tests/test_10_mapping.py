@@ -208,7 +208,6 @@ def test_area_as_mapping_applied_correctly():
                     "latitude": 55,
                     "longitude": 0,
                     "country": "UK",
-                    "source": ["satellite"],
                 }
             ]
         }
@@ -216,10 +215,9 @@ def test_area_as_mapping_applied_correctly():
     result = mapping.apply_mapping(request, adaptor_mapping)
 
     assert result["country"] == ["UK"]
-    assert result["source"] == ["satellite"]
-    assert result["latitude"] == [55]
-    assert result["longitude"] == [0]
     assert "area" not in result  # Area should not be in the result
+    assert "latitude" not in result
+    assert "longitude" not in result
 
 
 def test_area_as_mapping_merges_multiple_matches():
@@ -235,8 +233,6 @@ def test_area_as_mapping_merges_multiple_matches():
     result = mapping.apply_mapping(request, adaptor_mapping)
 
     assert sorted(result["tag"]) == ["A", "B"]
-    assert sorted(result["latitude"]) == [52, 55]
-    assert sorted(result["longitude"]) == [0, 5]
     assert "area" not in result  # Area should not be in the result
 
 
@@ -253,6 +249,33 @@ def test_area_as_mapping_raises_if_not_list():
     }
     with pytest.raises(exceptions.CdsConfigurationError):
         mapping.apply_mapping(request, adaptor_mapping)
+
+
+def test_area_as_mapping_ignore_incorrect_elements():
+    request = {"area": [60, -10, 50, 10]}
+    adaptor_mapping = {
+        "options": {
+            "area_as_mapping": [
+                {"latitude": 55, "longitude": 0, "country": "UK"},  # Correct element
+                {"latitude": 53, "longitude": -8, "country": "IE"},  # Correct element
+                {"longitude": 0, "country": "FR"},  # Incorrect element, no latitude
+                {
+                    "latitude": 55,
+                    "longitude": 0,
+                    "country": "DE",
+                    "another": "value",
+                },  # Incorrect element, too many keys
+            ]
+        }
+    }
+    result = mapping.apply_mapping(request, adaptor_mapping)
+    assert sorted(result["country"]) == [
+        "IE",
+        "UK",
+    ]  # Only IE and UK mapping are correct
+    assert (
+        "another" not in result
+    )  # Should not include keys only found in incorrect elements
 
 
 def test_area_as_mapping_does_nothing_if_no_match():
