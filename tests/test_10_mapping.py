@@ -218,6 +218,8 @@ def test_area_as_mapping_applied_correctly():
     assert result["country"] == ["UK"]
     assert result["source"] == ["satellite"]
     assert "area" not in result  # Area should not be in the result
+    assert "latitude" not in result
+    assert "longitude" not in result
 
 
 def test_area_as_mapping_merges_multiple_matches():
