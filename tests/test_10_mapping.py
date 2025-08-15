@@ -212,7 +212,7 @@ def test_area_as_mapping_applied_correctly():
             ]
         }
     }
-    result = mapping.apply_mapping(request, adaptor_mapping)
+    result = mapping.area_as_mapping(request, adaptor_mapping)
 
     assert result["country"] == ["UK"]
     assert "area" not in result  # Area should not be in the result
@@ -230,7 +230,7 @@ def test_area_as_mapping_merges_multiple_matches():
             ]
         }
     }
-    result = mapping.apply_mapping(request, adaptor_mapping)
+    result = mapping.area_as_mapping(request, adaptor_mapping)
 
     assert sorted(result["tag"]) == ["A", "B"]
     assert "area" not in result  # Area should not be in the result
@@ -248,7 +248,7 @@ def test_area_as_mapping_raises_if_not_list():
         }
     }
     with pytest.raises(exceptions.CdsConfigurationError):
-        mapping.apply_mapping(request, adaptor_mapping)
+        mapping.area_as_mapping(request, adaptor_mapping)
 
 
 def test_area_as_mapping_ignore_incorrect_elements():
@@ -268,7 +268,7 @@ def test_area_as_mapping_ignore_incorrect_elements():
             ]
         }
     }
-    result = mapping.apply_mapping(request, adaptor_mapping)
+    result = mapping.area_as_mapping(request, adaptor_mapping)
     assert sorted(result["country"]) == [
         "IE",
         "UK",
@@ -285,7 +285,7 @@ def test_area_as_mapping_does_nothing_if_no_match():
             "area_as_mapping": [{"latitude": 50, "longitude": 5, "country": "Nowhere"}]
         }
     }
-    result = mapping.apply_mapping(request, adaptor_mapping)
+    result = mapping.area_as_mapping(request, adaptor_mapping)
     assert "country" not in result
 
 
@@ -296,5 +296,5 @@ def test_area_as_mapping_merges_with_existing_keys():
             "area_as_mapping": [{"latitude": 55, "longitude": 0, "source": "satellite"}]
         }
     }
-    result = mapping.apply_mapping(request, adaptor_mapping)
+    result = mapping.area_as_mapping(request, adaptor_mapping)
     assert result["source"] == ["ground", "satellite"]

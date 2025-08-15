@@ -236,8 +236,9 @@ def expand_dates(r, request, date, year, month, day, date_format):
 
 
 def area_as_mapping(
-    options: dict[str, Any], request: dict[str, Any], context: Context
+    request: dict[str, Any], mapping: dict[str, Any], context: Context = Context()
 ) -> dict[str, Any]:
+    options = mapping.get("options", {})
     # Check there is area and area_mapping
     if "area" not in request or "area_as_mapping" not in options:
         return request
