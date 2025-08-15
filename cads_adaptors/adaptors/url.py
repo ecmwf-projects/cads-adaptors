@@ -22,6 +22,7 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         download_format = request.pop("download_format", download_format)
         self.set_download_format(download_format)
 
+        # TODO: Implement for all adaptors in normalise_request
         request = mapping.area_as_mapping(request, self.mapping, self.context)
 
         return request

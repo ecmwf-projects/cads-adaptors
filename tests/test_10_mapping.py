@@ -204,12 +204,7 @@ def test_area_as_mapping_applied_correctly():
     adaptor_mapping = {
         "options": {
             "area_as_mapping": [
-                {
-                    "latitude": 55,
-                    "longitude": 0,
-                    "country": "UK",
-                    "source": "satellite"
-                }
+                {"latitude": 55, "longitude": 0, "country": "UK", "source": "satellite"}
             ]
         }
     }
