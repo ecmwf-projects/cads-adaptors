@@ -1,6 +1,7 @@
 from typing import Any
 
 from cads_adaptors.adaptors import cds
+from cads_adaptors import mapping
 
 
 class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -20,8 +21,11 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         download_format = request.pop("format", default_download_format)
         download_format = request.pop("download_format", download_format)
         self.set_download_format(download_format)
-        if self.mapping.get("options", {}).get("area_as_mapping") is None:
-            self.area = request.pop("area", None)
+
+        request = mapping.area_as_mapping(
+            self.mapping.get("options", {}),
+            request, self.context
+        )
 
         return request
 
