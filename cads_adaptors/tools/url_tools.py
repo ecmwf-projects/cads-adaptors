@@ -7,16 +7,20 @@ import zipfile
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional
 
+import cacholote
+import fsspec
 import jinja2
 import multiurl
 import requests
 import yaml
+from fsspec.callbacks import TqdmCallback
+from fsspec.spec import AbstractBufferedFile
 from multiurl.http import RETRIABLE
 from tqdm import tqdm
 
 from cads_adaptors.adaptors import Context
 from cads_adaptors.exceptions import InvalidRequest, UrlNoDataError
-from cads_adaptors.tools import hcube_tools
+from cads_adaptors.tools import general, hcube_tools
 
 
 class RobustDownloader:
@@ -25,19 +29,24 @@ class RobustDownloader:
         target: str,
         maximum_retries: int,
         retry_after: float | tuple[float, float, float],
+        tqdm_kwargs: dict[str, Any],
         **download_kwargs: Any,
     ) -> None:
         self.target = target
         self.maximum_retries = maximum_retries
         self.retry_after = retry_after
+        self.tqdm_kwargs = tqdm_kwargs
         self.download_kwargs = download_kwargs
 
-    def cleanup(self) -> None:
-        path = Path(self.target)
-        path.unlink(missing_ok=True)
-        path.parent.mkdir(exist_ok=True, parents=True)
+    @property
+    def path(self) -> Path:
+        return Path(self.target)
+
+    def get_tqdm_kwargs(self, desc: str) -> dict[str, Any]:
+        return {"desc": desc} | self.tqdm_kwargs
 
     def _download(self, url: str) -> requests.Response:
+        self.path.parent.mkdir(exist_ok=True, parents=True)
         try:
             multiurl.download(
                 url=url,
@@ -45,14 +54,15 @@ class RobustDownloader:
                 maximum_retries=0,
                 stream=True,
                 resume_transfers=True,
+                progress_bar=functools.partial(tqdm, **self.get_tqdm_kwargs(url)),
                 **self.download_kwargs,
             )
         except requests.HTTPError as exc:
             return exc.response
         return requests.Response()  # mutliurl robust needs a response
 
-    def download(self, url: str) -> None:
-        self.cleanup()
+    def download(self, url: str) -> AbstractBufferedFile:
+        self.path.unlink(missing_ok=True)
         robust_download = multiurl.robust(
             self._download,
             maximum_tries=self.maximum_retries,
@@ -61,6 +71,20 @@ class RobustDownloader:
         response = robust_download(url=url)
         if response.status_code is not None:
             response.raise_for_status()
+        with fsspec.open(self.target) as f:
+            return f
+
+    def cached_download(self, url: str) -> None:
+        cached_download = cacholote.cacheable(self.download)
+        self.path.unlink(missing_ok=True)
+        with cacholote.config.set(return_cache_entry=False, io_delete_original=False):
+            f = cached_download(url)
+        if not self.path.exists():
+            f.fs.get(
+                f.path,
+                self.target,
+                callback=TqdmCallback(tqdm_kwargs=self.get_tqdm_kwargs(f.path)),
+            )
 
 
 # copied from cdscommon/url2
@@ -93,11 +117,20 @@ def try_download(
     # the default timeout value (3) has been determined empirically (it also included a safety margin)
     timeout: float = 3,
     fail_on_timeout_for_any_part: bool = True,
+    tqdm_kwargs: dict[str, Any] | None = None,
+    use_internal_cache: bool | None = None,
     **kwargs: Any,
 ) -> list[str]:
-    kwargs.setdefault(
-        "progress_bar", functools.partial(tqdm, file=context, mininterval=5)
-    )
+    # Default progress bar
+    tqdm_kwargs = tqdm_kwargs or {}
+    tqdm_kwargs.setdefault("file", context)
+    tqdm_kwargs.setdefault("mininterval", 5)
+
+    # Default internal_cache
+    if use_internal_cache is None:
+        use_internal_cache = general.strtobool(
+            os.getenv("USE_INTERNAL_CACHE_FOR_URL_ADAPTOR", "false")
+        )
 
     # Ensure that URLs are unique to prevent downloading the same file multiple times
     urls = sorted(set(urls))
@@ -113,11 +146,13 @@ def try_download(
             maximum_retries=maximum_retries,
             retry_after=retry_after,
             timeout=timeout,
+            tqdm_kwargs=tqdm_kwargs,
             **kwargs,
         )
         context.debug(f"Downloading {url} to {path}")
         try:
-            downloader.download(url)
+            with cacholote.config.set(use_cache=use_internal_cache):
+                downloader.cached_download(url)
         except (
             # http
             requests.ConnectionError,

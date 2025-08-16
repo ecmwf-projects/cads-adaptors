@@ -145,3 +145,26 @@ def test_decrypt_errors(monkeypatch: pytest.MonkeyPatch, ignore_errors: bool) ->
     monkeypatch.setenv("ADAPTOR_DECRYPTION_KEY", key)
     with contextlib.nullcontext() if ignore_errors else pytest.raises(InvalidToken):
         assert general.decrypt(token, ignore_errors=ignore_errors) == token
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("y", True),
+        ("yes", True),
+        ("t", True),
+        ("true", True),
+        ("on", True),
+        ("1", True),
+        ("n", False),
+        ("no", False),
+        ("f", False),
+        ("false", False),
+        ("off", False),
+        ("0", False),
+        ("TrUe", True),
+        ("fAlSe", False),
+    ],
+)
+def test_general_strtobool(value: str, expected: bool):
+    assert general.strtobool(value) is expected
