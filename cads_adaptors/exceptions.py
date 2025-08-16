@@ -21,6 +21,10 @@ class InvalidRequest(ValueError):
     """Raised when an invalid request is sent to the adaptor."""
 
 
+class CdsConfigError(InvalidRequest):
+    """Raised when a dataset is badly configured."""
+
+
 class MarsRuntimeError(RuntimeError):
     """Raised when a MARS request fails."""
 
