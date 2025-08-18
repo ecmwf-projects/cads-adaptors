@@ -49,10 +49,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         # dataset_source must be a string, asking for two sources is unsupported
         dataset_source = self.handle_sources_list(self.mapped_request["dataset_source"])
         self.mapped_request["dataset_source"] = dataset_source
-
-        # Revert this to see if it fixes problem
         self.mapped_request = self.adapt_parameters()
-
         # Get CDM lite variables as a dict with mandatory, optional and auxiliary
         cadsobs_client = CadsobsApiClient(obs_api_url, self.context)
         cdm_lite_variables_dict = cadsobs_client.get_cdm_lite_variables()
