@@ -121,6 +121,7 @@ TEST_REQUEST = {
         "02",
         "03",
     ],
+    "area": ["50", "-150", "30", "-100"],
 }
 
 TEST_REQUEST_CUON = {
@@ -283,6 +284,8 @@ def test_adaptor(tmp_path, monkeypatch):
         "year": [2007],
         "month": [11],
         "day": [1, 2, 3],
+        "latitude_coverage": ["30", "50"],
+        "longitude_coverage": ["-150", "-100"],
     }
 
 
@@ -311,10 +314,10 @@ def test_adaptor_estimate_costs(tmp_path, monkeypatch):
     )
     test_form = {}
     adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
-    costs_noarea = adaptor.estimate_costs(TEST_REQUEST)
-    request = TEST_REQUEST.copy()
-    request["area"] = ["50", "-10", "20", "10"]
-    costs = adaptor.estimate_costs(request)
+    test_request_noarea = TEST_REQUEST.copy()
+    test_request_noarea.pop("area")
+    costs_noarea = adaptor.estimate_costs(test_request_noarea)
+    costs = adaptor.estimate_costs(TEST_REQUEST)
     assert costs_noarea["number_of_fields"] > costs["number_of_fields"]
     assert costs_noarea["size"] > costs["size"]
 
