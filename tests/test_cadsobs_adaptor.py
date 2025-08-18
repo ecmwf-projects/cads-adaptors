@@ -1,4 +1,3 @@
-import time
 import zipfile
 from pathlib import Path
 from unittest.mock import Mock
@@ -115,14 +114,13 @@ TEST_REQUEST = {
     "time_aggregation": "daily",
     "format": "netCDF",
     "variable": ["maximum_air_temperature", "maximum_relative_humidity"],
-    "year": ["2007"],
+    "year": "2007",
     "month": ["11"],
     "day": [
         "01",
         "02",
         "03",
     ],
-    "_timestamp": str(time.time()),
 }
 
 TEST_REQUEST_CUON = {
@@ -274,6 +272,18 @@ def test_adaptor(tmp_path, monkeypatch):
     assert tempfile.stat().st_size > 0
     actual = h5netcdf.File(tempfile)
     assert actual.dimensions["index"].size > 0
+    # Check if the parameters have been properly mapped.
+    assert adaptor.mapped_request == {
+        "dataset_source": "uscrn_daily",
+        "format": "netCDF",
+        "variables": [
+            "daily_maximum_air_temperature",
+            "daily_maximum_relative_humidity",
+        ],
+        "year": [2007],
+        "month": [11],
+        "day": [1, 2, 3],
+    }
 
 
 def test_adaptor_cuon(tmp_path, monkeypatch):
