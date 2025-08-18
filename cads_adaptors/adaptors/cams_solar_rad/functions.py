@@ -22,7 +22,7 @@ def solar_rad_retrieve(
     # the data provider can verify it's from us.
     user_id_hash = hashlib.md5(str(user_id).encode()).hexdigest()
     req = {"username": encode(user_id_hash)}
-    logger.info(f'Encoded user ID is {req["username"]!r}')
+    logger.info(f"Encoded user ID is {req['username']!r}")
     req.update(request)
 
     # Set expert_mode depending on format

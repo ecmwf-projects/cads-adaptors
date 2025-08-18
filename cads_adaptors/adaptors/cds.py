@@ -375,7 +375,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         """Perform post-process steps on the retrieved data."""
         for i, pp_step in enumerate(self.pp_mapping(self.post_process_steps)):
             self.context.info(
-                f"Performing post-process step {i+1} of {len(self.post_process_steps)}: {pp_step}"
+                f"Performing post-process step {i + 1} of {len(self.post_process_steps)}: {pp_step}"
             )
             # TODO: pp_mapping should have ensured "method" is always present
 
@@ -475,7 +475,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 filesize = 0
 
             self.context.info(
-                f"Download object created. Filesize={filesize*1e-6} Mb, "
+                f"Download object created. Filesize={filesize * 1e-6} Mb, "
                 f"delta_time= {delta_time:.2f} seconds.",
                 delta_time=delta_time,
                 filesize=filesize,

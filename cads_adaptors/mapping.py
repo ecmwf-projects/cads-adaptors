@@ -105,7 +105,7 @@ def parse_date(date):
             output = int(date)
     except Exception:
         raise exceptions.InvalidRequest(
-            f'Invalid date string: "{date}". Should be ' "yyyymmdd or yyyy-mm-dd"
+            f'Invalid date string: "{date}". Should be yyyymmdd or yyyy-mm-dd'
         )
     return output
 
@@ -260,8 +260,7 @@ def area_as_mapping(
         area = [float(coord) for coord in area]
     except (ValueError, TypeError):
         raise exceptions.InvalidRequest(
-            f"Invalid area provided: {area!r}. "
-            "Should be a list of four numeric values."
+            f"Invalid area provided: {area!r}. Should be a list of four numeric values."
         )
 
     mapped_area_values: dict[str, list[str | int | float]] = {}

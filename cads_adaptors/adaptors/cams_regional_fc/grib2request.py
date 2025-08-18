@@ -48,7 +48,7 @@ def grib2request(msg):
     """Return the ADS API request dict that corresponds to the input grib message."""
     if not field_data:
         raise Exception(
-            "You must call the initialisation function before this " "function"
+            "You must call the initialisation function before this function"
         )
 
     request = {"level": codes_get(msg, "level", ktype=str)}
@@ -107,9 +107,7 @@ def grib2request(msg):
 if __name__ == "__main__":
     from eccodes import codes_grib_new_from_file
 
-    grib2request_init(
-        "/home/nal/cds/cds-forms-cams/" "cams-europe-air-quality-forecasts"
-    )
+    grib2request_init("/home/nal/cds/cds-forms-cams/cams-europe-air-quality-forecasts")
     # with open('/home/rd/nal/cds/regional/interp2cities/' +
     #          'one_param_one_day.grib') as f:
     with open("a.grib") as f:

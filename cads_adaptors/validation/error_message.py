@@ -224,7 +224,7 @@ class AdditionalProperties(ErrorMessageBase):
                 while keystring:
                     m = re.match(r" *(?P<k>'[^']+')(, *(?P<r>.+)| *)", keystring)
                     if not m:
-                        raise Exception("Unexpected message format: " f'"{keystring}"')
+                        raise Exception(f'Unexpected message format: "{keystring}"')
                     keys.append(m.group("k"))
                     keystring = m.group("r")
                 keys = sorted(keys)  # Order they appear in message is unstable
@@ -281,9 +281,7 @@ class Date(ErrorMessageBase):
 
     @classmethod
     def message(cls, error):
-        return (
-            f'"{error.instance}" is not a valid date. Expected format ' "is yyyy-mm-dd"
-        )
+        return f'"{error.instance}" is not a valid date. Expected format is yyyy-mm-dd'
 
 
 class BadFormat(ErrorMessageBase):
