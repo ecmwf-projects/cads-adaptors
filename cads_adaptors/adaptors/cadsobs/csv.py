@@ -36,9 +36,8 @@ def get_csv_header(
     retrieve_args: RetrieveArgs, cdm_lite_dataset: xarray.Dataset
 ) -> str:
     """Return the header of the CSV file."""
-    template = """
-########################################################################################
-# This file contains data retrieved from the CDS https://cds.climate.copernicus.eu/cdsapp#!/dataset/{dataset}
+    template = """########################################################################################
+# This file contains data retrieved from the CDS https://cds.climate.copernicus.eu/datasets/{dataset}
 # This is a C3S product under the following licences:
 {licence_list}
 # This is a CSV file following the CDS convention cdm-obs
@@ -51,15 +50,11 @@ def get_csv_header(
 {uncertainty_str}
 ########################################################################################
 """
-    if "latitude|station_configuration" in cdm_lite_dataset:
-        coord_table = "station_configuration"
-    else:
-        coord_table = "header_table"
     area = "{:.2f}/{:.2f}/{:.2f}/{:.2f}".format(
-        cdm_lite_dataset[f"latitude|{coord_table}"].min().compute().item(),
-        cdm_lite_dataset[f"latitude|{coord_table}"].max().compute().item(),
-        cdm_lite_dataset[f"longitude|{coord_table}"].min().compute().item(),
-        cdm_lite_dataset[f"longitude|{coord_table}"].max().compute().item(),
+        cdm_lite_dataset["latitude"].min().compute().item(),
+        cdm_lite_dataset["latitude"].max().compute().item(),
+        cdm_lite_dataset["longitude"].min().compute().item(),
+        cdm_lite_dataset["longitude"].max().compute().item(),
     )
     time_start = "{:%Y%m%d}".format(
         cdm_lite_dataset.report_timestamp[0].compute().dt.date

@@ -1,19 +1,90 @@
+import ftplib
 import functools
 import os
 import tarfile
 import urllib
 import zipfile
+from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional
 
+import cacholote
+import fsspec
 import jinja2
 import multiurl
 import requests
 import yaml
+from fsspec.callbacks import TqdmCallback
+from fsspec.spec import AbstractBufferedFile
+from multiurl.http import RETRIABLE
 from tqdm import tqdm
 
 from cads_adaptors.adaptors import Context
 from cads_adaptors.exceptions import InvalidRequest, UrlNoDataError
-from cads_adaptors.tools import hcube_tools
+from cads_adaptors.tools import general, hcube_tools
+
+
+class RobustDownloader:
+    def __init__(
+        self,
+        target: str,
+        maximum_retries: int,
+        retry_after: float | tuple[float, float, float],
+        tqdm_kwargs: dict[str, Any],
+        **download_kwargs: Any,
+    ) -> None:
+        self.target = target
+        self.maximum_retries = maximum_retries
+        self.retry_after = retry_after
+        self.tqdm_kwargs = tqdm_kwargs
+        self.download_kwargs = download_kwargs
+
+    @property
+    def path(self) -> Path:
+        return Path(self.target)
+
+    def get_tqdm_kwargs(self, desc: str) -> dict[str, Any]:
+        return {"desc": desc} | self.tqdm_kwargs
+
+    def _download(self, url: str) -> requests.Response:
+        self.path.parent.mkdir(exist_ok=True, parents=True)
+        try:
+            multiurl.download(
+                url=url,
+                target=self.target,
+                maximum_retries=0,
+                stream=True,
+                resume_transfers=True,
+                progress_bar=functools.partial(tqdm, **self.get_tqdm_kwargs(url)),
+                **self.download_kwargs,
+            )
+        except requests.HTTPError as exc:
+            return exc.response
+        return requests.Response()  # mutliurl robust needs a response
+
+    def download(self, url: str) -> AbstractBufferedFile:
+        self.path.unlink(missing_ok=True)
+        robust_download = multiurl.robust(
+            self._download,
+            maximum_tries=self.maximum_retries,
+            retry_after=self.retry_after,
+        )
+        response = robust_download(url=url)
+        if response.status_code is not None:
+            response.raise_for_status()
+        with fsspec.open(self.target) as f:
+            return f
+
+    def cached_download(self, url: str) -> None:
+        cached_download = cacholote.cacheable(self.download)
+        self.path.unlink(missing_ok=True)
+        with cacholote.config.set(return_cache_entry=False, io_delete_original=False):
+            f = cached_download(url)
+        if not self.path.exists():
+            f.fs.get(
+                f.path,
+                self.target,
+                callback=TqdmCallback(tqdm_kwargs=self.get_tqdm_kwargs(f.path)),
+            )
 
 
 # copied from cdscommon/url2
@@ -38,36 +109,76 @@ def requests_to_urls(
 
 
 def try_download(
-    urls: List[str], context: Context, server_suggested_filename=False, **kwargs
-) -> List[str]:
+    urls: list[str],
+    context: Context,
+    server_suggested_filename: bool = False,
+    maximum_retries: int = 10,
+    retry_after: float | tuple[float, float, float] = (1, 120, 1.3),
+    # the default timeout value (3) has been determined empirically (it also included a safety margin)
+    timeout: float = 3,
+    fail_on_timeout_for_any_part: bool = True,
+    tqdm_kwargs: dict[str, Any] | None = None,
+    use_internal_cache: bool | None = None,
+    **kwargs: Any,
+) -> list[str]:
+    # Default progress bar
+    tqdm_kwargs = tqdm_kwargs or {}
+    tqdm_kwargs.setdefault("file", context)
+    tqdm_kwargs.setdefault("mininterval", 5)
+
+    # Default internal_cache
+    if use_internal_cache is None:
+        use_internal_cache = general.strtobool(
+            os.getenv("USE_INTERNAL_CACHE_FOR_URL_ADAPTOR", "false")
+        )
+
     # Ensure that URLs are unique to prevent downloading the same file multiple times
     urls = sorted(set(urls))
 
     paths = []
     context.write_type = "stdout"
-    # set some default kwargs for establishing a connection
-    # the default timeout value (3) has been determined empirically (it also included a safety margin)
-    kwargs = {"timeout": 3, "maximum_retries": 1, "retry_after": 1, **kwargs}
     for url in urls:
         path = urllib.parse.urlparse(url).path.lstrip("/")
         if server_suggested_filename:
             path = os.path.join(os.path.dirname(path), multiurl.Downloader(url).title())
-
-        dir = os.path.dirname(path)
-        if dir:
-            os.makedirs(dir, exist_ok=True)
+        downloader = RobustDownloader(
+            path,
+            maximum_retries=maximum_retries,
+            retry_after=retry_after,
+            timeout=timeout,
+            tqdm_kwargs=tqdm_kwargs,
+            **kwargs,
+        )
+        context.debug(f"Downloading {url} to {path}")
         try:
-            context.debug(f"Downloading {url} to {path}")
-            multiurl.download(
-                url,
-                path,
-                progress_bar=functools.partial(tqdm, file=context, mininterval=5),
-                **kwargs,
-            )
-        except requests.exceptions.ConnectionError as e:
-            # The way "multiurl" uses "requests" at the moment,
-            # the read timeouts raise requests.exceptions.ConnectionError.
-            if kwargs.get("fail_on_timeout_for_any_part", True):
+            with cacholote.config.set(use_cache=use_internal_cache):
+                downloader.cached_download(url)
+        except (
+            # http
+            requests.ConnectionError,
+            requests.ReadTimeout,
+            requests.HTTPError,
+            # ftp
+            ftplib.error_perm,
+            ftplib.error_temp,
+            TimeoutError,
+        ) as exc:
+            if (
+                (
+                    isinstance(exc, requests.HTTPError)
+                    and exc.response.status_code not in RETRIABLE
+                )
+                or (
+                    isinstance(exc, requests.ConnectionError | requests.ReadTimeout)
+                    and not fail_on_timeout_for_any_part
+                )
+                or (
+                    isinstance(exc, ftplib.error_perm)
+                    and str(exc).startswith(("550", "553"))
+                )
+            ):
+                context.debug(f"Failed download for URL: {url}\nException: {exc}")
+            else:
                 context.add_user_visible_error(
                     "Your request has not found some of the data expected to be present.\n"
                     "This may be due to temporary connectivity issues with the source data.\n"
@@ -77,10 +188,6 @@ def try_download(
                     f"Incomplete request result. No data found from the following URL:"
                     f"\n{yaml.safe_dump(url, indent=2)} "
                 )
-            else:
-                context.debug(f"Failed download for URL: {url}\nException: {e}")
-        except Exception as e:
-            context.debug(f"Failed download for URL: {url}\nException: {e}")
         else:
             paths.append(path)
 

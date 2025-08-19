@@ -70,11 +70,13 @@ class CadsobsApiClient:
             detail = response.json()["detail"]
             message = detail["message"]
             traceback = detail["traceback"]
-        except self.requests.JSONDecodeError:
+        except (self.requests.JSONDecodeError, TypeError, KeyError):
             # When the exception is not handled well by the API server response.content
-            # will not be JSON parseable. Then we can get the traceback like this.
+            # will not be JSON parseable or it won't have the expected fields.
+            # Then we can get the traceback like this.
             message = response.reason
             traceback = response.content.decode("UTF-8")
+
         return message, traceback
 
     def get_service_definition(self, dataset: str) -> dict:
@@ -99,7 +101,35 @@ class CadsobsApiClient:
           Request parameters after being mapped by
         """
         payload = dict(dataset=dataset_name, params=mapped_request)
-        objects_to_retrieve = self._send_request_and_capture_exceptions(
-            "POST", "get_object_urls", payload=payload
-        )
+        try:
+            objects_to_retrieve = self._send_request_and_capture_exceptions(
+                "POST", "get_object_urls", payload=payload
+            )
+        except CadsObsConnectionError as e:
+            self.context.warning(
+                f"Request failed for payload {payload}: {e}, possibly the API it "
+                f"outdated, falling back to the old payload format."
+            )
+            payload = dict(
+                retrieve_args=dict(dataset=dataset_name, params=mapped_request),
+                config=dict(size_limit=10000000000),
+            )
+            objects_to_retrieve = self._send_request_and_capture_exceptions(
+                "POST", "get_object_urls_and_check_size", payload=payload
+            )
         return objects_to_retrieve
+
+    def get_disabled_fields(self, dataset_name: str, dataset_source: str) -> list[str]:
+        """Get the list of fields that are disabled for the given dataset."""
+        try:
+            response = self._send_request_and_capture_exceptions(
+                "GET", f"/{dataset_name}/{dataset_source}/disabled_fields"
+            )
+        except CadsObsConnectionError as e:
+            self.context.warning(
+                f"Request failed when getting the list of disabled fields"
+                f"for {dataset_name=} and {dataset_source=}: {e}, "
+                f"possibly the API is outdated"
+            )
+            response = []
+        return response

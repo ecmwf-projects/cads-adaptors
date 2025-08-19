@@ -10,9 +10,10 @@ channels:
 # DO NOT EDIT ABOVE THIS LINE, ADD DEPENDENCIES BELOW AS SHOWN IN THE EXAMPLE
 dependencies:
 - aiohttp
-- cdsapi
+- cdsapi>=0.7.6
 - cfgrib>=0.9.14.0
 - cftime
+- cryptography
 - dask
 - DateTimeRange
 - eumdac
@@ -20,7 +21,7 @@ dependencies:
 - h5netcdf
 - jinja2
 - jsonschema
-- multiurl=0.3.1
+- multiurl>=0.3.6
 - netcdf4
 - numpy
 - pandas

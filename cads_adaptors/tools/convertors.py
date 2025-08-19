@@ -1,5 +1,6 @@
 import itertools
 import os
+import time
 from typing import Any, Callable, NoReturn
 
 import cfgrib
@@ -46,10 +47,13 @@ def convert_format(
     result: Any,
     target_format: str,
     context: Context = Context(),
-    config: dict[str, Any] = {},
+    config: None | dict[str, Any] = None,
     target_dir: str = ".",
     **runtime_kwargs: dict[str, dict[str, Any]],
 ) -> list[str]:
+    if config is None:
+        config = {}
+
     target_format = adaptor_tools.handle_data_format(target_format)
     post_processing_kwargs = config.get("post_processing_kwargs", {})
     for k, v in runtime_kwargs.items():
@@ -175,7 +179,7 @@ def result_to_netcdf_files(
 def result_to_netcdf_legacy_files(
     result: Any,
     context: Context = Context(),
-    to_netcdf_legacy_kwargs: dict[str, Any] = {},
+    to_netcdf_legacy_kwargs: None | dict[str, Any] = None,
     target_dir: str = ".",
     **kwargs,
 ) -> list[str]:
@@ -184,6 +188,9 @@ def result_to_netcdf_legacy_files(
     Can only accept a grib file, or list/dict of grib files as input.
     Converts to netCDF3 only.
     """
+    if to_netcdf_legacy_kwargs is None:
+        to_netcdf_legacy_kwargs = {}
+
     command: str | list[str] = to_netcdf_legacy_kwargs.get(
         "command", ["grib_to_netcdf", "-S", "param"]
     )
@@ -315,7 +322,7 @@ def unknown_filetype_to_netcdf_files(
 def grib_to_netcdf_files(
     grib_file: str,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
-    post_open_datasets_kwargs: dict[str, Any] = {},
+    post_open_datasets_kwargs: None | dict[str, Any] = None,
     context: Context = Context(),
     **kwargs,
 ):
@@ -351,7 +358,7 @@ def xarray_dict_to_netcdf(
     datasets: dict[str, xr.Dataset],
     context: Context = Context(),
     compression_options: str | dict[str, Any] = "default",
-    to_netcdf_kwargs: dict[str, Any] = {},
+    to_netcdf_kwargs: None | dict[str, Any] = None,
     out_fname_prefix: str = "",
     target_dir: str = ".",
     **kwargs,
@@ -360,6 +367,8 @@ def xarray_dict_to_netcdf(
     Convert a dictionary of xarray datasets to netCDF files, where the key of the dictionary
     is used in the filename.
     """
+    if to_netcdf_kwargs is None:
+        to_netcdf_kwargs = {}
     # Untangle any nested kwargs (I don't think this is necessary anymore)
     to_netcdf_kwargs.update(kwargs.pop("to_netcdf_kwargs", {}))
 
@@ -375,6 +384,8 @@ def xarray_dict_to_netcdf(
 
     to_netcdf_kwargs.setdefault("engine", compression_options.pop("engine", "netcdf4"))
     out_nc_files = []
+    time0 = time.time()
+    total_filesize = 0
     for out_fname_base, dataset in datasets.items():
         to_netcdf_kwargs.update(
             {
@@ -385,6 +396,13 @@ def xarray_dict_to_netcdf(
         context.debug(f"Writing {out_fname} with kwargs:\n{to_netcdf_kwargs}")
         dataset.to_netcdf(out_fname, **to_netcdf_kwargs)
         out_nc_files.append(out_fname)
+        total_filesize += os.path.getsize(out_fname)
+    context.info(
+        f"Converted {len(datasets)} datasets to netCDF. "
+        f"Total filesize={total_filesize*1e-6:.2f} Mb, delta_time={time.time()-time0:.2f} seconds.",
+        delta_time=time.time() - time0,
+        filesize=total_filesize,
+    )
 
     return out_nc_files
 
@@ -497,13 +515,17 @@ def safely_expand_dims(dataset: xr.Dataset, expand_dims: list[str]) -> xr.Datase
 
 def post_open_datasets_modifications(
     datasets: dict[str, xr.Dataset],
-    rename: dict[str, str] = {},
-    expand_dims: list[str] = [],
+    rename: None | dict[str, str] = None,
+    expand_dims: None | list[str] = None,
 ) -> dict[str, Any]:
     """
     Apply post-opening modifications to the datasets, such as renaming variables
     and expanding dimensions.
     """
+    if rename is None:
+        rename = {}
+    if expand_dims is None:
+        expand_dims = []
     out_datasets = {}
     for out_fname_base, dataset in datasets.items():
         dataset = safely_rename_variable(dataset, rename)
@@ -519,14 +541,18 @@ def post_open_datasets_modifications(
 def open_netcdf_as_xarray_dictionary(
     netcdf_file: str,
     context: Context = Context(),
-    open_datasets_kwargs: list[dict[str, Any]] | dict[str, Any] = {},
-    post_open_datasets_kwargs: dict[str, Any] = {},
+    open_datasets_kwargs: None | list[dict[str, Any]] | dict[str, Any] = None,
+    post_open_datasets_kwargs: None | dict[str, Any] = None,
     **kwargs,
 ) -> dict[str, xr.Dataset]:
     """
     Open a netcdf file and return as a dictionary of xarray datasets,
     where the key will be used in any filenames created from the dataset.
     """
+    if open_datasets_kwargs is None:
+        open_datasets_kwargs = {}
+    if post_open_datasets_kwargs is None:
+        post_open_datasets_kwargs = {}
     fname, _ = os.path.splitext(os.path.basename(netcdf_file))
 
     if isinstance(open_datasets_kwargs, list):
@@ -646,7 +672,7 @@ def prepare_open_datasets_kwargs_grib(
 def open_grib_file_as_xarray_dictionary(
     grib_file: str,
     open_datasets_kwargs: None | dict[str, Any] | list[dict[str, Any]] = None,
-    post_open_datasets_kwargs: dict[str, Any] = {},
+    post_open_datasets_kwargs: None | dict[str, Any] = None,
     context: Context = Context(),
     **kwargs,
 ) -> dict[str, xr.Dataset]:
@@ -657,6 +683,9 @@ def open_grib_file_as_xarray_dictionary(
     fname, _ = os.path.splitext(os.path.basename(grib_file))
     if open_datasets_kwargs is None:
         open_datasets_kwargs = {}
+
+    if post_open_datasets_kwargs is None:
+        post_open_datasets_kwargs = {}
 
     # Do any automatic splitting of the open_datasets_kwargs,
     #  This will add kwargs to the open_datasets_kwargs

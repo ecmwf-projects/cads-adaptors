@@ -224,6 +224,23 @@ def test_area_selector_path_regular(ds, area, test_result):
         assert np.allclose(result_xr.longitude.values, test_result.longitude.values)
 
 
+@pytest.mark.parametrize("precompute", [True, False])
+def test_area_selector_precompute(precompute):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_file = os.path.join(temp_dir, TEMP_FILENAME)
+        TEST_DS_2.to_netcdf(test_file)
+        area = [80, -170, -80, 170]
+        test_result = TEST_DS_2.sel(latitude=slice(-80, 80), longitude=slice(-170, 170))
+        result = area_selector_path(
+            test_file, area=area, area_selector_kwargs={"precompute": precompute}
+        )
+        result_xr = xr.open_dataset(result[0])
+        assert isinstance(result_xr, xr.Dataset)
+        assert result_xr.dims == test_result.dims
+        assert np.allclose(result_xr.latitude.values, test_result.latitude.values)
+        assert np.allclose(result_xr.longitude.values, test_result.longitude.values)
+
+
 def test_area_selector_fully_oob():
     ds = TEST_DS_3
     area = [20, -40, 10, -30]
@@ -247,9 +264,7 @@ def test_area_selector_zero_length_dim():
             area_selector_path(test_file, area=[50.4, -10.6, 50.3, -10.5])
 
 
-TEST_DATA_BASE_URL = (
-    "https://get.ecmwf.int/repository/test-data/test-data/cads-adaptors/"
-)
+TEST_DATA_BASE_URL = "https://sites.ecmwf.int/repository/data-store-service/"
 
 
 @pytest.mark.parametrize(

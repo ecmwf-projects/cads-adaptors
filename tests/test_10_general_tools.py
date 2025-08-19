@@ -1,4 +1,7 @@
+import contextlib
+
 import pytest
+from cryptography.fernet import InvalidToken
 
 from cads_adaptors.tools import general
 
@@ -118,3 +121,50 @@ def test_general_ensure_list(input_item, expected_output):
 )
 def test_general_split_requests_on_keys(requests, split_on_keys, expected_output):
     assert general.split_requests_on_keys(requests, split_on_keys) == expected_output
+
+
+def test_decrypt(monkeypatch: pytest.MonkeyPatch) -> None:
+    key = "ZYG9zAgLeW1FPIwcoRifFpbXgv3oCVcVi5z4AUDB0aE="  # gitleaks:allow
+    token = (
+        "gAAAAABn3ABNABb1W2XKHyFKjNPS5HWS9ZQRlSIhh4xxUMxuLQ"
+        "yziwIrv7U1ahA7QcGxiZvPuPOsoRNSOolPjz8ciJeOtEeIaQ=="
+    )
+    monkeypatch.setenv("FOO_KEY", key)
+    assert general.decrypt(token, "FOO_KEY") == "foo"
+
+
+@pytest.mark.parametrize("ignore_errors", [True, False])
+def test_decrypt_errors(monkeypatch: pytest.MonkeyPatch, ignore_errors: bool) -> None:
+    key = "ZYG9zAgLeW1FPIwcoRifFpbXgv3oCVcVi5z4AUDB0aE="  # gitleaks:allow
+    token = "invalid_token"
+
+    monkeypatch.delenv("ADAPTOR_DECRYPTION_KEY", raising=False)
+    with contextlib.nullcontext() if ignore_errors else pytest.raises(KeyError):
+        assert general.decrypt(token, ignore_errors=ignore_errors) == token
+
+    monkeypatch.setenv("ADAPTOR_DECRYPTION_KEY", key)
+    with contextlib.nullcontext() if ignore_errors else pytest.raises(InvalidToken):
+        assert general.decrypt(token, ignore_errors=ignore_errors) == token
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("y", True),
+        ("yes", True),
+        ("t", True),
+        ("true", True),
+        ("on", True),
+        ("1", True),
+        ("n", False),
+        ("no", False),
+        ("f", False),
+        ("false", False),
+        ("off", False),
+        ("0", False),
+        ("TrUe", True),
+        ("fAlSe", False),
+    ],
+)
+def test_general_strtobool(value: str, expected: bool):
+    assert general.strtobool(value) is expected

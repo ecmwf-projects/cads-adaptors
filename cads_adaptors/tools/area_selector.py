@@ -1,8 +1,8 @@
 import os
+import time
 from copy import deepcopy
 from typing import Any, Callable, Type
 
-import dask
 import numpy as np
 import xarray as xr
 from earthkit.transforms import tools as eka_tools
@@ -229,12 +229,24 @@ def area_selector_path(
     context: Context = Context(),
     out_format: str | None = None,
     target_dir: str | None = None,
-    area_selector_kwargs: dict[str, Any] = {},
-    open_datasets_kwargs: list[dict[str, Any]] | dict[str, Any] = {},
+    area_selector_kwargs: None | dict[str, Any] = None,
+    open_datasets_kwargs: None | list[dict[str, Any]] | dict[str, Any] = None,
     **kwargs: dict[str, Any],
 ) -> list[str]:
     if isinstance(area, list):
         area = area_to_checked_dictionary(area)
+
+    # Initialise area_selector_kwargs if not provided
+    if area_selector_kwargs is None:
+        area_selector_kwargs = {}
+
+    # Initialise open_datasets_kwargs if not provided
+    if open_datasets_kwargs is None:
+        open_datasets_kwargs = {}
+
+    # Preserve the original area_selector_kwargs and extract precompute
+    _area_selector_kwargs = deepcopy(area_selector_kwargs)
+    precompute: bool = _area_selector_kwargs.pop("precompute", True)
 
     # Deduce input format from infile
     in_ext = infile.split(".")[-1]
@@ -270,7 +282,7 @@ def area_selector_path(
         ".".join(
             [fname_tag, "area-subset"]
             + [str(area[a]) for a in ["north", "west", "south", "east"]]
-        ): area_selector(ds, area=area, context=context, **area_selector_kwargs)
+        ): area_selector(ds, area=area, context=context, **_area_selector_kwargs)
         for fname_tag, ds in ds_dict.items()
     }
 
@@ -282,7 +294,9 @@ def area_selector_path(
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
             # Need to compute before writing to disk as dask loses too many jobs
-            ds_area.compute().to_netcdf(out_path)
+            if precompute:
+                ds_area = ds_area.compute()
+            ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
     else:
         context.add_user_visible_error(
@@ -292,7 +306,9 @@ def area_selector_path(
             out_path = os.path.join(target_dir, f"{fname_tag}.nc")
             for var in ds_area.variables:
                 ds_area[var].encoding.setdefault("_FillValue", None)
-            ds_area.compute().to_netcdf(out_path)
+            if precompute:
+                ds_area = ds_area.compute()
+            ds_area.to_netcdf(out_path)
             out_paths.append(out_path)
 
     return out_paths
@@ -304,17 +320,23 @@ def area_selector_paths(
     context: Context = Context(),
     **kwargs: Any,
 ) -> list[str]:
-    with dask.config.set(scheduler="threads"):
-        # We try to select the area for all paths, if any fail we return the original paths
-        out_paths = []
-        for path in paths:
-            try:
-                out_paths += area_selector_path(
-                    path, area=area, context=context, **kwargs
-                )
-            except (NotImplementedError, CdsFormatConversionError):
-                context.logger.debug(
-                    f"could not convert {path} to xarray; returning the original data"
-                )
-                out_paths.append(path)
+    time0 = time.time()
+    total_filesize = 0
+    # We try to select the area for all paths, if any fail we return the original paths
+    out_paths = []
+    for path in paths:
+        try:
+            out_paths += area_selector_path(path, area=area, context=context, **kwargs)
+            total_filesize += os.path.getsize(path)
+        except (NotImplementedError, CdsFormatConversionError):
+            context.logger.debug(
+                f"could not convert {path} to xarray; returning the original data"
+            )
+            out_paths.append(path)
+    context.info(
+        f"Area selection for {len(paths)} files complete"
+        f"Total filesize: {total_filesize}, subset time: {time.time() - time0:.2f} seconds",
+        delta_time=time.time() - time0,
+        filesize=total_filesize,
+    )
     return out_paths

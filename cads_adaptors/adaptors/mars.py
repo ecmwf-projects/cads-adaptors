@@ -1,12 +1,16 @@
 import os
 import pathlib
+import time
 from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
-from cads_adaptors.tools.general import ensure_list, split_requests_on_keys
+from cads_adaptors.tools.general import (
+    ensure_list,
+    split_requests_on_keys,
+)
 
 # This hard requirement of MARS requests should be moved to the proxy MARS client
 ALWAYS_SPLIT_ON: list[str] = [
@@ -85,10 +89,17 @@ def execute_mars(
         "host": os.getenv("HOSTNAME"),
     }
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
-
+    time0 = time.time()
     context.info(f"Request sent to proxy MARS client: {requests}")
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
+    delta_time = time.time() - time0
+    filesize = os.path.getsize(target)
+    context.info(
+        f"MARS Request complete. Filesize={filesize*1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
+        delta_time=delta_time,
+        filesize=filesize,
+    )
     context.debug(message=reply_message)
 
     if reply.error:
@@ -105,7 +116,7 @@ def execute_mars(
         error_message += f"Exception: {reply.error}\n"
         raise MarsRuntimeError(error_message)
 
-    if not os.path.getsize(target):
+    if not filesize:
         error_message = (
             "MARS returned no data, please check your selection."
             f"Request submitted to the MARS server:\n{requests}\n"
@@ -181,8 +192,6 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         return request
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
-        import dask
-
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
@@ -194,17 +203,16 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             target_dir=self.cache_tmp_path,
         )
 
-        with dask.config.set(scheduler="threads"):
-            results_dict = self.post_process(result)
+        results_dict = self.post_process(result)
 
-            # TODO?: Generalise format conversion to be a post-processor
-            paths = self.convert_format(
-                results_dict,
-                self.data_format,
-                context=self.context,
-                config=self.config,
-                target_dir=str(self.cache_tmp_path),
-            )
+        # TODO?: Generalise format conversion to be a post-processor
+        paths = self.convert_format(
+            results_dict,
+            self.data_format,
+            context=self.context,
+            config=self.config,
+            target_dir=str(self.cache_tmp_path),
+        )
 
         # A check to ensure that if there is more than one path, and download_format
         #  is as_source, we over-ride and zip up the files

@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+import os
 from collections import defaultdict
 from datetime import datetime
 from typing import Any
+
+from cryptography.fernet import Fernet, InvalidToken
 
 
 def ensure_list(input_item: Any) -> list:
@@ -79,3 +84,35 @@ def split_requests_on_keys(
         requests = out_requests
 
     return out_requests
+
+
+def decrypt(
+    token: str, key_name: str | None = None, ignore_errors: bool = False
+) -> str:
+    if key_name is None:
+        key_name = "ADAPTOR_DECRYPTION_KEY"
+
+    try:
+        key = os.environ[key_name]
+    except KeyError:
+        if ignore_errors:
+            return token
+        raise
+
+    fernet = Fernet(key.encode())
+    try:
+        decrypted = fernet.decrypt(token.encode())
+    except InvalidToken:
+        if ignore_errors:
+            return token
+        raise
+
+    return decrypted.decode()
+
+
+def strtobool(value: str) -> bool:
+    if value.lower() in ("y", "yes", "t", "true", "on", "1"):
+        return True
+    if value.lower() in ("n", "no", "f", "false", "off", "0"):
+        return False
+    raise ValueError(f"invalid truth value {value!r}")
