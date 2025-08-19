@@ -1,4 +1,3 @@
-import time
 import zipfile
 from pathlib import Path
 from unittest.mock import Mock
@@ -115,14 +114,14 @@ TEST_REQUEST = {
     "time_aggregation": "daily",
     "format": "netCDF",
     "variable": ["maximum_air_temperature", "maximum_relative_humidity"],
-    "year": ["2007"],
+    "year": "2007",
     "month": ["11"],
     "day": [
         "01",
         "02",
         "03",
     ],
-    "_timestamp": str(time.time()),
+    "area": ["50", "-150", "30", "-100"],
 }
 
 TEST_REQUEST_CUON = {
@@ -274,6 +273,20 @@ def test_adaptor(tmp_path, monkeypatch):
     assert tempfile.stat().st_size > 0
     actual = h5netcdf.File(tempfile)
     assert actual.dimensions["index"].size > 0
+    # Check if the parameters have been properly mapped.
+    assert adaptor.mapped_request == {
+        "dataset_source": "uscrn_daily",
+        "format": "netCDF",
+        "variables": [
+            "daily_maximum_air_temperature",
+            "daily_maximum_relative_humidity",
+        ],
+        "year": [2007],
+        "month": [11],
+        "day": [1, 2, 3],
+        "latitude_coverage": ["30", "50"],
+        "longitude_coverage": ["-150", "-100"],
+    }
 
 
 def test_adaptor_cuon(tmp_path, monkeypatch):
@@ -301,10 +314,10 @@ def test_adaptor_estimate_costs(tmp_path, monkeypatch):
     )
     test_form = {}
     adaptor = ObservationsAdaptor(test_form, **TEST_ADAPTOR_CONFIG)
-    costs_noarea = adaptor.estimate_costs(TEST_REQUEST)
-    request = TEST_REQUEST.copy()
-    request["area"] = ["50", "-10", "20", "10"]
-    costs = adaptor.estimate_costs(request)
+    test_request_noarea = TEST_REQUEST.copy()
+    test_request_noarea.pop("area")
+    costs_noarea = adaptor.estimate_costs(test_request_noarea)
+    costs = adaptor.estimate_costs(TEST_REQUEST)
     assert costs_noarea["number_of_fields"] > costs["number_of_fields"]
     assert costs_noarea["size"] > costs["size"]
 
