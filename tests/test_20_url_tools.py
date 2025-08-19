@@ -20,23 +20,23 @@ does_not_raise = contextlib.nullcontext
     (
         (
             [
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc"
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.nc"
             ],
             1,
         ),
         (
             [
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc",
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.grib",
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.nc",
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.grib",
             ],
             2,
         ),
         # Check duplicate URLs are not downloaded twice
         (
             [
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc",
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc",
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.grib",
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.nc",
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.nc",
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.grib",
             ],
             2,
         ),
@@ -48,25 +48,30 @@ def test_downloaders(tmp_path, monkeypatch, urls, expected_nfiles):
     assert len(paths) == expected_nfiles
 
 
-def test_download_with_server_suggested_filename(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "server_suggested_filename,expected",
+    [
+        (False, "response-headers"),
+        (True, "foo/test.txt"),
+    ],
+)
+def test_download_with_server_suggested_filename(
+    httpbin: pytest_httpbin.serve.Server,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    server_suggested_filename: bool,
+    expected: str,
+) -> None:
     monkeypatch.chdir(tmp_path)  # try_download generates files in the working dir
-    urls = ["https://gerb.oma.be/c3s/data/ceres-ebaf/tcdr/v4.2/toa_lw_all_mon/2000/07"]
-    paths_false = url_tools.try_download(
-        urls, context=Context(), server_suggested_filename=False
+    content_disposition = "attachment;filename=foo/test.txt"
+    url = f"{httpbin.url}/response-headers?Content-Disposition={content_disposition}"
+    (actual,) = url_tools.try_download(
+        [url],
+        context=Context(),
+        server_suggested_filename=server_suggested_filename,
     )
-    assert len(paths_false) == 1
-    assert os.path.basename(paths_false[0]) == "07"
-
-    paths_true = url_tools.try_download(
-        urls, context=Context(), server_suggested_filename=True
-    )
-    assert len(paths_true) == 1
-    assert (
-        os.path.basename(paths_true[0])
-        == "data_312a_Lot1_ceres-ebaf_tcdr_v4.2_toa_lw_all_mon_2000_07.nc"
-    )
-
-    assert os.path.dirname(paths_false[0]) == os.path.dirname(paths_true[0])
+    assert actual == expected
+    assert (tmp_path / actual).exists()
 
 
 @pytest.mark.parametrize(
@@ -213,3 +218,23 @@ def test_try_download_missing_ftp(
     paths = url_tools.try_download([existing_url, missing_url], context=Context())
     assert paths == ["existing.txt"]
     assert (work_dir / "existing.txt").read_text() == "This is a test file"
+
+
+@pytest.mark.parametrize("use_internal_cache", [True, False])
+def test_try_download_use_internal_cache(
+    httpbin: pytest_httpbin.serve.Server,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    use_internal_cache: bool,
+):
+    monkeypatch.chdir(tmp_path)
+    uuids = []
+    for _ in range(2):
+        (path,) = url_tools.try_download(
+            [f"{httpbin.url}/uuid"],
+            context=Context(),
+            use_internal_cache=use_internal_cache,
+        )
+        uuids.append(Path(path).read_text())
+    uuid_1, uuid_2 = uuids
+    assert uuid_1 == uuid_2 if use_internal_cache else uuid_1 != uuid_2

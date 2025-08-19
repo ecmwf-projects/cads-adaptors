@@ -6,9 +6,7 @@ import requests
 from cads_adaptors import AbstractAdaptor
 from cads_adaptors.adaptors import multi
 
-TEST_GRIB_FILE = (
-    "https://get.ecmwf.int/repository/test-data/cfgrib/era5-levels-members.grib"
-)
+TEST_GRIB_FILE = "https://sites.ecmwf.int/repository/earthkit-data/test-data/era5-levels-members.grib"
 
 FORM = {
     "level": ["500", "850"],
