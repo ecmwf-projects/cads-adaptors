@@ -264,9 +264,7 @@ def test_area_selector_zero_length_dim():
             area_selector_path(test_file, area=[50.4, -10.6, 50.3, -10.5])
 
 
-TEST_DATA_BASE_URL = (
-    "https://get.ecmwf.int/repository/test-data/test-data/cads-adaptors/"
-)
+TEST_DATA_BASE_URL = "https://sites.ecmwf.int/repository/data-store-service/"
 
 
 @pytest.mark.parametrize(

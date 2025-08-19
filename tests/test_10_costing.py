@@ -1482,3 +1482,46 @@ def test_costing_classes() -> None:
     assert costs["size"] == 48
     assert costs["precise_size"] == 40
     assert costs["cost_class"] == "medium"
+
+
+def test_estimate_costs_with_area_as_mapping() -> None:
+    from cads_adaptors import DummyCdsAdaptor
+
+    form = [
+        {
+            "name": "param",
+            "label": "Param",
+            "details": {"values": {"Z", "T"}},
+            "type": "StringListWidget",
+        },
+        {
+            "name": "city",
+            "label": "City",
+            "details": {"values": {"London", "Paris", "Berlin"}},
+            "type": "StringListWidget",
+        },
+    ]
+    adaptor = DummyCdsAdaptor(
+        form,
+        constraints=[{"param": {"Z", "T"}}],
+        costing={"max_costs": {"size": 10, "precise_size": 10}},
+        mapping={
+            "options": {
+                "area_as_mapping": [
+                    {"latitude": 51.51, "longitude": -0.13, "city": "London"},
+                    {"latitude": 48.86, "longitude": 2.35, "city": "Paris"},
+                    {"latitude": 52.52, "longitude": 13.41, "city": "Berlin"},
+                ]
+            }
+        },
+    )
+
+    # Test normal selection
+    request: dict[str, Any] = {"param": {"Z", "T"}, "city": {"London", "Paris"}}
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 4
+
+    # Test with area as mapping, area covers London and Paris
+    request = {"param": {"Z", "T"}, "area": [55, -1, 45, 5]}
+    costs = adaptor.estimate_costs(request)
+    assert costs["size"] == 4

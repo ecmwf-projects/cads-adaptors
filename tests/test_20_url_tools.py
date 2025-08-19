@@ -20,23 +20,23 @@ does_not_raise = contextlib.nullcontext
     (
         (
             [
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc"
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.nc"
             ],
             1,
         ),
         (
             [
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc",
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.grib",
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.nc",
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.grib",
             ],
             2,
         ),
         # Check duplicate URLs are not downloaded twice
         (
             [
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc",
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.nc",
-                "https://get.ecmwf.int/repository/test-data/earthkit-data/test-data/test_single.grib",
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.nc",
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.nc",
+                "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.grib",
             ],
             2,
         ),
