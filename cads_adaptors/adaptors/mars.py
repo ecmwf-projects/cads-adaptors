@@ -3,9 +3,6 @@ import pathlib
 import time
 from typing import Any, BinaryIO
 
-from cacholote.extra_encoders import InPlaceFile
-
-
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
 from cads_adaptors.tools import adaptor_tools
