@@ -1,5 +1,6 @@
 from typing import Any
 
+from cads_adaptors import mapping
 from cads_adaptors.adaptors import cds
 
 
@@ -21,7 +22,8 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         download_format = request.pop("download_format", download_format)
         self.set_download_format(download_format)
 
-        self.area = request.pop("area", None)
+        # TODO: Implement for all adaptors in normalise_request
+        request = mapping.area_as_mapping(request, self.mapping, self.context)
 
         return request
 

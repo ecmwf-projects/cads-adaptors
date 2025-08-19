@@ -391,10 +391,24 @@ def _get_code_mapping(
         attrs = incobj["observed_variable"].attrs
     else:
         raise CadsObsRuntimeError("Unsupported input type")
-    if inverse:
-        mapping = {c: v for v, c in zip(attrs["labels"], attrs["codes"])}
+    # Take into account that if there is only one value, these attrs are not iterable.
+    if isinstance(attrs["codes"], numpy.ndarray):
+        labels, codes = attrs["labels"], attrs["codes"]
     else:
-        mapping = {v: c for v, c in zip(attrs["labels"], attrs["codes"])}
+        labels = numpy.array(
+            [
+                attrs["labels"],
+            ]
+        )
+        codes = numpy.array(
+            [
+                attrs["codes"],
+            ]
+        )
+    if inverse:
+        mapping = {c: v for v, c in zip(labels, codes)}
+    else:
+        mapping = {v: c for v, c in zip(labels, codes)}
     return mapping
 
 

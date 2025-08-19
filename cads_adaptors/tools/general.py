@@ -3,12 +3,9 @@ from __future__ import annotations
 import os
 from collections import defaultdict
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from cryptography.fernet import Fernet, InvalidToken
-
-if TYPE_CHECKING:
-    import dask.config
 
 
 def ensure_list(input_item: Any) -> list:
@@ -111,12 +108,3 @@ def decrypt(
         raise
 
     return decrypted.decode()
-
-
-def set_postprocess_dask_config(**kwargs: Any) -> dask.config.set:
-    import dask.config
-
-    kwargs.setdefault(
-        "scheduler", os.getenv("WORKER_POSTPROCESS_SCHEDULER_TYPE", "threads")
-    )
-    return dask.config.set(**kwargs)

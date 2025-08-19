@@ -86,7 +86,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         )
 
     def apply_mapping(self, request: Request) -> Request:
-        return mapping.apply_mapping(request, self.mapping)
+        return mapping.apply_mapping(request, self.mapping, context=self.context)
 
     def get_cost_type_with_highest_cost_limit_ratio(
         self, costs: dict[str, int], limits: dict[str, int]
@@ -117,6 +117,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if "inputs" in request:
             request = request["inputs"]
         mapped_request = self.apply_mapping(request)
+        mapped_request = mapping.area_as_mapping(
+            mapped_request, self.mapping, context=self.context, block_debug=True
+        )
 
         # Must also map the weights
         # N.B. This is just a partial mapping, as not all apply_mapping steps are covered for the weights.
