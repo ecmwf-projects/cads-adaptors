@@ -48,25 +48,30 @@ def test_downloaders(tmp_path, monkeypatch, urls, expected_nfiles):
     assert len(paths) == expected_nfiles
 
 
-def test_download_with_server_suggested_filename(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "server_suggested_filename,expected",
+    [
+        (False, "response-headers"),
+        (True, "foo/test.txt"),
+    ],
+)
+def test_download_with_server_suggested_filename(
+    httpbin: pytest_httpbin.serve.Server,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    server_suggested_filename: bool,
+    expected: str,
+) -> None:
     monkeypatch.chdir(tmp_path)  # try_download generates files in the working dir
-    urls = ["https://gerb.oma.be/c3s/data/ceres-ebaf/tcdr/v4.2/toa_lw_all_mon/2000/07"]
-    paths_false = url_tools.try_download(
-        urls, context=Context(), server_suggested_filename=False
+    content_disposition = "attachment;filename=foo/test.txt"
+    url = f"{httpbin.url}/response-headers?Content-Disposition={content_disposition}"
+    (actual,) = url_tools.try_download(
+        [url],
+        context=Context(),
+        server_suggested_filename=server_suggested_filename,
     )
-    assert len(paths_false) == 1
-    assert os.path.basename(paths_false[0]) == "07"
-
-    paths_true = url_tools.try_download(
-        urls, context=Context(), server_suggested_filename=True
-    )
-    assert len(paths_true) == 1
-    assert (
-        os.path.basename(paths_true[0])
-        == "data_312a_Lot1_ceres-ebaf_tcdr_v4.2_toa_lw_all_mon_2000_07.nc"
-    )
-
-    assert os.path.dirname(paths_false[0]) == os.path.dirname(paths_true[0])
+    assert actual == expected
+    assert (tmp_path / actual).exists()
 
 
 @pytest.mark.parametrize(
