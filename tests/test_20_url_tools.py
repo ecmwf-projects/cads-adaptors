@@ -52,7 +52,7 @@ def test_downloaders(tmp_path, monkeypatch, urls, expected_nfiles):
     "server_suggested_filename,expected",
     [
         (False, "response-headers"),
-        (True, "test.txt"),
+        (True, "foo/test.txt"),
     ],
 )
 def test_download_with_server_suggested_filename(
@@ -63,7 +63,7 @@ def test_download_with_server_suggested_filename(
     expected: str,
 ) -> None:
     monkeypatch.chdir(tmp_path)  # try_download generates files in the working dir
-    content_disposition = "attachment;filename=test.txt"
+    content_disposition = "attachment;filename=foo/test.txt"
     url = f"{httpbin.url}/response-headers?Content-Disposition={content_disposition}"
     (actual,) = url_tools.try_download(
         [url],
