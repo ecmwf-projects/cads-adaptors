@@ -108,7 +108,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             request = request["inputs"]
         mapped_request = self.apply_mapping(request)
         mapped_request = mapping.area_as_mapping(
-            mapped_request, self.mapping, context=self.context
+            mapped_request, self.mapping, context=self.context, block_debug=True
         )
 
         # Must also map the weights

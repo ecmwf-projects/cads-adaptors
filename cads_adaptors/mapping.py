@@ -236,7 +236,10 @@ def expand_dates(r, request, date, year, month, day, date_format):
 
 
 def area_as_mapping(
-    request: dict[str, Any], mapping: dict[str, Any], context: Context = Context()
+    request: dict[str, Any],
+    mapping: dict[str, Any],
+    context: Context = Context(),
+    block_debug: bool = False,
 ) -> dict[str, Any]:
     options = mapping.get("options", {})
     # Check there is area and area_mapping
@@ -250,7 +253,8 @@ def area_as_mapping(
     # Extract area mapping information from options
     area_mapping: list[dict[str, Any]] = options["area_as_mapping"]
 
-    context.debug(f"Mapping area {area!r} using area_as_mapping: {area_mapping!r}")
+    if not block_debug:
+        context.debug(f"Mapping area {area!r} using area_as_mapping: {area_mapping!r}")
     if not isinstance(area_mapping, list):
         raise exceptions.CdsConfigurationError(
             "Invalid area_as_mapping option, should be a list"
