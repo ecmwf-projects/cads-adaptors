@@ -253,8 +253,10 @@ def _get_param_name_in_data(retrieved_dataset: h5netcdf.File, param_name: str) -
             coord = param_name.split("_")[0]
             if f"{coord}|header_table" in retrieved_dataset.variables:
                 param_name_in_data = f"{coord}|header_table"
-            else:
+            elif f"{coord}|station_configuration" in retrieved_dataset.variables:
                 param_name_in_data = f"{coord}|station_configuration"
+            else:
+                param_name_in_data = coord
         case _:
             raise CadsObsRuntimeError(f"Unknown parameter name {param_name}")
     return param_name_in_data
