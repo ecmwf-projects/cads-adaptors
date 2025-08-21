@@ -73,7 +73,7 @@ class InsituDatabaseCdsAdaptor(AbstractCdsAdaptor):
 
         fmt = _q["format"]
         fmt = fmt[0] if isinstance(fmt, list) else fmt
-        self.context.logger.debug(f'~~~~~~~ format requested: {fmt},  {_q["format"]}')
+        self.context.logger.debug(f"~~~~~~~ format requested: {fmt},  {_q['format']}")
 
         engine = insitu_utils.sql_engine(api_url, source, self.config)
 

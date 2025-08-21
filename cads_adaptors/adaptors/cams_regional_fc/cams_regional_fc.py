@@ -319,7 +319,7 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
         )
         sub_request_uid = response.request_id
         context.info(
-            f"Sub-request {sub_request_uid} has been launched (via the " "CDSAPI)."
+            f"Sub-request {sub_request_uid} has been launched (via the CDSAPI)."
         )
         # Download the result
         exc = None
@@ -329,7 +329,7 @@ def retrieve_subrequest(backend, requests, req_group, config, context):
                 break
             except Exception as e:
                 context.error(
-                    f"Attempt {i_retry+1} to download the result of sub-request "
+                    f"Attempt {i_retry + 1} to download the result of sub-request "
                     f"{sub_request_uid} failed: {e!r}"
                 )
                 exc = e

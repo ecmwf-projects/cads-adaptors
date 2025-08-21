@@ -38,9 +38,9 @@ class MemSafeQueue(queue.Queue):
             self.stats["queue"]["max"] = max(self.stats["queue"]["max"], self.qsize())
 
         self.logger.debug(
-            f'MemSafeQueue: Queue nbytes={self.nbytes}, '
-            f'in-mem size={self.stats["mem"]["current"]}, '
-            f'total size={self.qsize()}'
+            f"MemSafeQueue: Queue nbytes={self.nbytes}, "
+            f"in-mem size={self.stats['mem']['current']}, "
+            f"total size={self.qsize()}"
         )
 
         # Keep the item in memory or write to file and replace with the path?
@@ -85,9 +85,9 @@ class MemSafeQueue(queue.Queue):
                 self.nbytes -= size
                 self.stats["mem"]["current"] -= 1
             self.logger.debug(
-                f'MemSafeQueue: Queue nbytes={self.nbytes}, '
-                f'in-mem size={self.stats["mem"]["current"]}, '
-                f'total size={self.qsize()}'
+                f"MemSafeQueue: Queue nbytes={self.nbytes}, "
+                f"in-mem size={self.stats['mem']['current']}, "
+                f"total size={self.qsize()}"
             )
 
         return item

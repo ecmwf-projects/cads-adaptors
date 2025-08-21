@@ -100,9 +100,9 @@ def result_to_grib_files(
         # Ensure all values are of the same type
         # (This may not be necessary, but it implies something is wrong)
         _result_type = list(set([type(r) for r in result.values()]))
-        assert (
-            len(_result_type) == 1
-        ), f"Result object contains mixed types: {_result_type}"
+        assert len(_result_type) == 1, (
+            f"Result object contains mixed types: {_result_type}"
+        )
         result_type = _result_type[0]
 
         if result_type is str:
@@ -152,9 +152,9 @@ def result_to_netcdf_files(
 
         # Ensure objects are same type (This may not be necessary, but it implies something is wrong)
         _result_type = list(set([type(r) for r in result.values()]))
-        assert (
-            len(_result_type) == 1
-        ), f"Result object contains mixed types: {_result_type}"
+        assert len(_result_type) == 1, (
+            f"Result object contains mixed types: {_result_type}"
+        )
         result_type = _result_type[0]
 
         if result_type is str:
@@ -203,9 +203,9 @@ def result_to_netcdf_legacy_files(
 
     # Check result is a single grib_file or a list/dict of grib_files
     if isinstance(result, str):
-        assert (
-            result.endswith(".grib") or result.endswith(".grib2")
-        ), f"The 'netcdf_legacy' format can only accept a grib files as input. File received: {result}"
+        assert result.endswith(".grib") or result.endswith(".grib2"), (
+            f"The 'netcdf_legacy' format can only accept a grib files as input. File received: {result}"
+        )
         fname, _ = os.path.splitext(os.path.basename(result))
         result = {fname: result}
 
@@ -217,7 +217,9 @@ def result_to_netcdf_legacy_files(
             len(result_types) == 1
             and result_type is str
             and (result[0].endswith(".grib") or result[0].endswith(".grib2"))
-        ), f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {result_types}"
+        ), (
+            f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {result_types}"
+        )
 
         result = {
             os.path.splitext(os.path.basename(result))[0]: result for result in result
@@ -231,7 +233,9 @@ def result_to_netcdf_legacy_files(
             len(result_types) == 1
             and result_type is str
             and (result[0].endswith(".grib") or result[0].endswith(".grib2"))
-        ), f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {result_types}"
+        ), (
+            f"The 'netcdf_legacy' format can only accept grib files as input. Types received: {result_types}"
+        )
 
     else:
         add_user_log_and_raise_error(
@@ -399,7 +403,7 @@ def xarray_dict_to_netcdf(
         total_filesize += os.path.getsize(out_fname)
     context.info(
         f"Converted {len(datasets)} datasets to netCDF. "
-        f"Total filesize={total_filesize*1e-6:.2f} Mb, delta_time={time.time()-time0:.2f} seconds.",
+        f"Total filesize={total_filesize * 1e-6:.2f} Mb, delta_time={time.time() - time0:.2f} seconds.",
         delta_time=time.time() - time0,
         filesize=total_filesize,
     )
@@ -556,13 +560,13 @@ def open_netcdf_as_xarray_dictionary(
     fname, _ = os.path.splitext(os.path.basename(netcdf_file))
 
     if isinstance(open_datasets_kwargs, list):
-        assert (
-            len(open_datasets_kwargs) == 1
-        ), "Only one set of open_datasets_kwargs allowed for netCDF"
+        assert len(open_datasets_kwargs) == 1, (
+            "Only one set of open_datasets_kwargs allowed for netCDF"
+        )
         open_datasets_kwargs = open_datasets_kwargs[0]
-        assert isinstance(
-            open_datasets_kwargs, dict
-        ), "open_datasets_kwargs must be a single dictionary for netCDF"
+        assert isinstance(open_datasets_kwargs, dict), (
+            "open_datasets_kwargs must be a single dictionary for netCDF"
+        )
     # This is to maintain some consistency with the grib file opening
     open_datasets_kwargs = {
         "chunks": DEFAULT_CHUNKS,
