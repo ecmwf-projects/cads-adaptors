@@ -100,7 +100,7 @@ def execute_mars(
     delta_time = time.time() - time0
     filesize = os.path.getsize(target)
     context.info(
-        f"MARS Request complete. Filesize={filesize*1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
+        f"MARS Request complete. Filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
         delta_time=delta_time,
         filesize=filesize,
     )

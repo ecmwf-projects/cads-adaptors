@@ -6,6 +6,7 @@ CADS data retrieve utilities to be used by adaptors.
 :caption: 'Contents:'
 :maxdepth: 2
 
+README.md
 API Reference <_api/cads_adaptors/index>
 ```
 

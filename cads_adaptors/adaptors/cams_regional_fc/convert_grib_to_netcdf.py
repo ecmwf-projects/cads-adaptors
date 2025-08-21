@@ -42,9 +42,9 @@ def convert_grib_to_netcdf(requests, gribfile, ncfile, regfc_defns):
             )
         ]
     )
-    assert len(set(envelope["vtimes"])) == len(
-        envelope["vtimes"]
-    ), "Input request validity times are not unique!"
+    assert len(set(envelope["vtimes"])) == len(envelope["vtimes"]), (
+        "Input request validity times are not unique!"
+    )
 
     envelope["levels"] = sorted([float(x) for x in envelope["request"]["level"]])
 

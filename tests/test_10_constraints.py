@@ -239,9 +239,7 @@ def test_parse_selection() -> None:
         try:
             assert parsed_selections[i] == constraints.parse_selection(selections[i])
         except AssertionError:
-            print(
-                f"Iteration number {i} of " f"{test_parse_selection.__name__}() failed!"
-            )
+            print(f"Iteration number {i} of {test_parse_selection.__name__}() failed!")
             raise AssertionError
 
 

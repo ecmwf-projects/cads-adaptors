@@ -105,7 +105,7 @@ def iterate_over_days(query):
     elif "time" in query:
         ts, te = [dateutil.parser.parse(_) for _ in query["time"].split("/")]
         while ts <= te:
-            out.update({"time": f'{ts.strftime("%Y-%m-%d")}/{ts.strftime("%Y-%m-%d")}'})
+            out.update({"time": f"{ts.strftime('%Y-%m-%d')}/{ts.strftime('%Y-%m-%d')}"})
             ts += datetime.timedelta(days=1)
             yield out
 

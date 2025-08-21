@@ -90,6 +90,6 @@ def get_validator(schema):
             if cls is None:
                 raise Exception(f"Invalid draft in schema: {draft}")
         else:
-            raise Exception('You should set "$schema" or "_draft" in your ' "schema")
+            raise Exception('You should set "$schema" or "_draft" in your schema')
 
     return cls(schema, format_checker=js.FormatChecker())

@@ -471,7 +471,7 @@ class CacherS3(AbstractAsyncCacher):
                 break
             except Exception as exc:
                 self.logger.error(
-                    "Failed to upload to S3 bucket (attempt " f"#{attempt}): {exc!r}"
+                    f"Failed to upload to S3 bucket (attempt #{attempt}): {exc!r}"
                 )
                 status = f"process ended in error: {exc!r}"
                 if attempt >= 5:

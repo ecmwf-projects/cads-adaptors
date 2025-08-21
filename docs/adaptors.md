@@ -7,6 +7,7 @@ Long-term implicit adaptor code:
 ```python
 import abc
 
+
 class AbstractAdaptor(abc.ABC):
     def __init__(self, form, **config):
         self.form = form
@@ -35,11 +36,13 @@ class AbstractAdaptor(abc.ABC):
 
 class AbstractCdsAdaptor(CADSAdaptor):
     # implement CDS defaults
-
+    def retrieve(self, request):
+        ...
 ```
 
 ```python
 from cads_adaptors import adaptor_cds
+
 
 class MyAdaptor(adaptor_cds.CdsAdaptor):
     def retrieve(self, request, metadata):
@@ -63,5 +66,4 @@ class MyAdaptor(adaptor_cds.CdsAdaptor):
                 data = cads.translate(data, format)
 
         return data
-
 ```

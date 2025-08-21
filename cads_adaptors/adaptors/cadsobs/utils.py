@@ -178,7 +178,7 @@ def handle_coordinate_renaming(vars_in_cdm_lite: list[str]) -> tuple[dict, list[
                         # latitude/longitude.
                         if other in vars_in_cdm_lite:
                             logger.info(
-                                f"Both {varname} and {other} exist," f"keeping them."
+                                f"Both {varname} and {other} exist,keeping them."
                             )
                         else:
                             vars_to_rename[varname] = varname_notable
