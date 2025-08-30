@@ -51,7 +51,7 @@ def get_mars_server_list(config) -> list[str]:
         )
     return mars_servers
 
-def download_file(url, timeout=30, chunk_size=8192, max_retries=3):
+def download_file(url, timeout=30, chunk_size=8192, max_retries=3, context=None):
     import requests
 
     local_filename = url.split('/')[-1]
@@ -80,10 +80,11 @@ def download_file(url, timeout=30, chunk_size=8192, max_retries=3):
 
         except requests.exceptions.Timeout:
             attempt += 1
-            print(f"Timeout occurred, retrying (attempt {attempt}/{max_retries})...")
+            context.add_user_visible_error(f"Timeout occurred, retrying (attempt {attempt}/{max_retries})...")
             # On next attempt, resume from where we left off
 
         except Exception as e:
+            context.add_user_visible_error(f"Error occurred while downloading file: {e}")
             raise RuntimeError(f"Failed to download file: {e}")
 
     raise RuntimeError("Max retries exceeded while downloading file.")
@@ -138,11 +139,12 @@ def execute_mars(
         cluster.execute(requests, env, target)
     else:
         context.add_user_visible_log(f'Requesting data from cads-mars-server on shared MARS cephfs ')
-        reply = cluster.execute(requests, env)
+        reply = cluster.add_user_visible_log(requests, env)
         context.info(f'Request submitted {config.get("request_uid")} cached {reply.data is not None}')
         while reply.data is None:
             reply_message = str(reply.message)
             context.add_stdout(message=reply_message)
+            context.add_user_visible_log(message=reply_message)
             if reply.data is None:
                 time.sleep(1)
             reply = cluster.execute(requests, env)
@@ -150,16 +152,16 @@ def execute_mars(
     reply_message = str(reply.message)
     delta_time = time.time() - time0
     # Check if the file exists
-        
+    context.add_user_visible_log(f"Starting download for target: {target}")
     if target.startswith("http"):
         _this_t0 = time.time()
         # If the target is a URL, we need to get the size from the headers
         ot = target
         try:
-            target = download_file(target, max_retries=10, timeout=10)
-            context.info(f"Downloaded file from {ot} to {target} in {time.time() - _this_t0:.2f} seconds")
+            target = download_file(target, max_retries=10, timeout=10, context=context)
+            context.add_user_visible_log(f"Downloaded file from {ot} to {target} in {time.time() - _this_t0:.2f} seconds")
         except Exception as e:
-            context.error(f"Failed to download file from {ot}: {e}")
+            context.add_user_visible_error(f"Failed to download file from {ot}: {e}")
             raise MarsRuntimeError(f"Failed to download file from {ot}: {e}")
     filesize = os.path.getsize(target)
         
