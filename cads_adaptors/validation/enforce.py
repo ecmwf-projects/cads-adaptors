@@ -122,7 +122,7 @@ def check_key_is_string(item, path=None, text_path=None):
         parent, index = path[-1]
         if isinstance(parent, dict) and not isinstance(index, str):
             raise cads_adaptors.exceptions.InvalidRequest(
-                [f"{text_path}: dict key is not of type " "string"]
+                [f"{text_path}: dict key is not of type string"]
             )
 
 
