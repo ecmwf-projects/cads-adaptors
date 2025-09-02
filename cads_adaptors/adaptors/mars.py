@@ -187,7 +187,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
-        request.setdefault("data_format", data_format)
+        request["data_format"] = data_format
         print(request)
 
         default_download_format = "as_source"
