@@ -202,6 +202,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
+        # Invoke handle_data_format again as intersect_constraints may turn "data_format" into a list
         data_formats = [
             handle_data_format(req.pop("data_format", None)) for req in self.mapped_requests
         ]
