@@ -10,6 +10,7 @@ from cads_adaptors.exceptions import (
     MarsRuntimeError,
     MarsSystemError,
 )
+from cads_adaptors.tools.adaptor_tools import handle_data_format
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import (
     ensure_list,
@@ -179,14 +180,15 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             )
         # Remove "format" from request if it exists
         data_format = request.pop("format", "grib")
-        data_format = request.get("data_format", data_format)
+        data_format = handle_data_format(request.get("data_format", data_format))
 
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             data_format = "netcdf"
             request.setdefault("download_format", "zip")
 
-        request.setdefault("data_format", data_format)
+        # Enforce value of data_format to normalized value
+        request["data_format"] = data_format
 
         default_download_format = "as_source"
         download_format = request.pop("download_format", default_download_format)
