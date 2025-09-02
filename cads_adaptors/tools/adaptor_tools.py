@@ -4,7 +4,6 @@ from cads_adaptors.adaptors import AbstractAdaptor
 
 
 def handle_data_format(data_format: Any) -> str:
-    print(f"Handling data_format: {data_format!r}")
     if isinstance(data_format, (list, tuple, set)):
         data_format = list(data_format)
         assert len(data_format) == 1, "Only one value of data_format is allowed"
@@ -14,7 +13,6 @@ def handle_data_format(data_format: Any) -> str:
         data_format = "netcdf"
     elif data_format in ["grib", "grib2", "grb", "grb2"]:
         data_format = "grib"
-    print(f"Final data_format: {data_format!r}")
     return data_format
 
 
