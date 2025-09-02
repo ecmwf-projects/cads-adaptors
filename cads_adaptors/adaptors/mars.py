@@ -139,7 +139,7 @@ def execute_mars(
         cluster.execute(requests, env, target)
     else:
         context.add_user_visible_log(f'Requesting data from cads-mars-server on shared MARS cephfs ')
-        reply = cluster.add_user_visible_log(requests, env)
+        reply = cluster.execute(requests, env)
         context.info(f'Request submitted {config.get("request_uid")} cached {reply.data is not None}')
         while reply.data is None:
             reply_message = str(reply.message)
