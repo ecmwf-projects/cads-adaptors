@@ -204,7 +204,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # Invoke handle_data_format again as intersect_constraints may turn "data_format" into a list
         data_formats = [
-            handle_data_format(req.pop("data_format", None)) for req in self.mapped_requests
+            handle_data_format(req.pop("data_format", None))
+            for req in self.mapped_requests
         ]
         data_formats = list(set(data_formats))
         if len(data_formats) != 1 or data_formats[0] is None:
