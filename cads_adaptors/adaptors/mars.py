@@ -201,7 +201,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
-
+        print(request)
         data_formats = [req.pop("data_format", None) for req in self.mapped_requests]
         data_formats = list(set(data_formats))
         if len(data_formats) != 1 or data_formats[0] is None:
