@@ -180,10 +180,12 @@ class MultiAdaptor(AbstractCdsAdaptor):
         # We merge our list of split requests back into a single request.
         # If required the sub-adaptors will repeat intersect constraints.
         # We do not want to create a very large number of sub-adaptors
+        print(self.mapped_requests)
         if len(self.mapped_requests) > 0:
             self.mapped_request = merge_requests(self.mapped_requests)
         else:
             self.mapped_request = self.mapped_requests[0]
+        print(self.mapped_request)
 
         self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
 
@@ -192,7 +194,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
-            print(adaptor_tag, req)
+
             this_result = adaptor.retrieve_list_of_results(req)
             print(this_result)
             # try:
