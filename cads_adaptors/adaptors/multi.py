@@ -143,7 +143,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.extract_subrequest(
                 request, this_values, **extract_subrequest_kwargs
             )
-            self.context.debug(
+            self.context.info(
                 f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
@@ -180,12 +180,10 @@ class MultiAdaptor(AbstractCdsAdaptor):
         # We merge our list of split requests back into a single request.
         # If required the sub-adaptors will repeat intersect constraints.
         # We do not want to create a very large number of sub-adaptors
-        print(self.mapped_requests)
         if len(self.mapped_requests) > 0:
             self.mapped_request = merge_requests(self.mapped_requests)
         else:
             self.mapped_request = self.mapped_requests[0]
-        print(self.mapped_request)
 
         self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
 
