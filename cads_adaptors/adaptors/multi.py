@@ -192,15 +192,12 @@ class MultiAdaptor(AbstractCdsAdaptor):
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
-
-            this_result = adaptor.retrieve_list_of_results(req)
-            print(this_result)
-            # try:
-            #     this_result = adaptor.retrieve_list_of_results(req)
-            # except Exception as err:
-            #     exception_logs[adaptor_tag] = f"{err}"
-            # else:
-            #     paths.extend(this_result)
+            try:
+                this_result = adaptor.retrieve_list_of_results(req)
+            except Exception as err:
+                exception_logs[adaptor_tag] = f"{err}"
+            else:
+                paths.extend(this_result)
 
         if len(paths) == 0:
             raise MultiAdaptorNoDataError(
