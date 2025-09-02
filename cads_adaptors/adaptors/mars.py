@@ -188,6 +188,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             request.setdefault("download_format", "zip")
 
         request.setdefault("data_format", data_format)
+        print(request)
 
         default_download_format = "as_source"
         download_format = request.pop("download_format", default_download_format)

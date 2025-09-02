@@ -14,7 +14,7 @@ def handle_data_format(data_format: Any) -> str:
         data_format = "netcdf"
     elif data_format in ["grib", "grib2", "grb", "grb2"]:
         data_format = "grib"
-
+    print(f"Final data_format: {data_format!r}")
     return data_format
 
 
