@@ -10,12 +10,12 @@ from cads_adaptors.exceptions import (
     MarsRuntimeError,
     MarsSystemError,
 )
+from cads_adaptors.tools.adaptor_tools import handle_data_format
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import (
     ensure_list,
     split_requests_on_keys,
 )
-from cads_adaptors.tools.adaptor_tools import handle_data_format
 
 # This hard requirement of MARS requests should be moved to the proxy MARS client
 ALWAYS_SPLIT_ON: list[str] = [
