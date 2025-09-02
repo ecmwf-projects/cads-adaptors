@@ -14,6 +14,7 @@ from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import (
     ensure_list,
     split_requests_on_keys,
+    handle_data_format
 )
 
 # This hard requirement of MARS requests should be moved to the proxy MARS client
@@ -179,7 +180,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             )
         # Remove "format" from request if it exists
         data_format = request.pop("format", "grib")
-        data_format = request.get("data_format", data_format)
+        data_format = handle_data_format(request.get("data_format", data_format))
 
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
