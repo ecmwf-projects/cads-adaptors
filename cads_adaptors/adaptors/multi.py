@@ -143,7 +143,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
             this_request = self.extract_subrequest(
                 request, this_values, **extract_subrequest_kwargs
             )
-            self.context.info(
+            self.context.debug(
                 f"MultiAdaptor, {adaptor_tag}, this_request: {this_request}"
             )
 
@@ -185,7 +185,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         else:
             self.mapped_request = self.mapped_requests[0]
 
-        self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
+        self.context.info(f"MultiAdaptor, full_request: {self.mapped_request}")
 
         sub_adaptors = self.split_adaptors(self.mapped_request)
 
@@ -205,7 +205,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 f"{exception_logs}"
             )
 
-        self.context.debug(f"MultiAdaptor, result paths:\n{paths}")
+        self.context.info(f"MultiAdaptor, result paths:\n{paths}")
 
         return paths
 
