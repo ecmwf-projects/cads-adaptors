@@ -733,7 +733,7 @@ TEST_CASES: list[dict[str, Any]] = [
             {"a": 1, "b": 2, "c": 3, "d": 4},
             {"type": "object", "minProperties": 2, "maxProperties": 3},
             pytest.raises(InvalidRequest),
-            ("request: {'a': 1, 'b': 2, 'c': 3, 'd': 4} has too many " "keys",),
+            ("request: {'a': 1, 'b': 2, 'c': 3, 'd': 4} has too many keys",),
         ),
     },
     {
@@ -1013,7 +1013,7 @@ TEST_CASES: list[dict[str, Any]] = [
                 },
             },
             pytest.raises(InvalidRequest),
-            ("request['a']: '-123.4' is not a valid positive numeric " "string",),
+            ("request['a']: '-123.4' is not a valid positive numeric string",),
         ),
     },
     {
@@ -1487,7 +1487,7 @@ TEST_CASES: list[dict[str, Any]] = [
             {"area": "-300/4/50/6"},
             MARS_STYLE_SCHEMA,
             pytest.raises(InvalidRequest),
-            ("request['area'][0]: -300.0 is less than the " "minimum of -90.0",),
+            ("request['area'][0]: -300.0 is less than the minimum of -90.0",),
         ),
     },
     {

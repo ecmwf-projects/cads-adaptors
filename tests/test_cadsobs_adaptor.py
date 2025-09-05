@@ -181,7 +181,7 @@ TEST_ADAPTOR_CONFIG_CUON = {
     },
 }
 
-S3_URL = "https://object-store.os-api.cci2.ecmwf.int/"
+S3_URL = "https://sites.ecmwf.int/repository/data-store-service/"
 CUON_DISABLED_FIELDS = [
     "report_type",
     "report_duration",
@@ -215,14 +215,13 @@ class MockerCadsobsApiClient:
         ):
             return [
                 S3_URL
-                + "cds2-obs-dev-insitu-observations-near-surface-temperature-us-cl/"
-                "insitu-observations-near-surface-temperature-us-climate-reference-network_1.0.0_uscrn_daily_200808_30.0_-150.0.nc"
+                + "insitu-observations-near-surface-temperature-us-climate-reference-network"
+                + "_1.0.0_uscrn_daily_200808_30.0_-150.0.nc"
             ]
         elif dataset_name == "insitu-comprehensive-upper-air-observation-network":
             return [
                 S3_URL
-                + "cds2-obs-dev-insitu-comprehensive-upper-air-observation-network/"
-                "insitu-comprehensive-upper-air-observation-network_1.1.0_CUON_196507_-90.0_-180.0.nc"
+                + "insitu-comprehensive-upper-air-observation-network_1.1.0_CUON_196507_-90.0_-180.0.nc"
             ]
         else:
             raise RuntimeError(f"Unknown dataset {dataset_name}")

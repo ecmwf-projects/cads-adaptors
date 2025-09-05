@@ -237,9 +237,9 @@ def apply_constraints_in_old_cds_fashion(
             if selected_widget_name in constraint:
                 constraint_is_intersected = False
                 if selected_widget_type == "DateRangeWidget":
-                    assert (
-                        len(selected_widget_options) == 1
-                    ), "More than one selected date range!"
+                    assert len(selected_widget_options) == 1, (
+                        "More than one selected date range!"
+                    )
                     selected_range = gen_time_range_from_string(
                         next(iter(selected_widget_options))
                     )
