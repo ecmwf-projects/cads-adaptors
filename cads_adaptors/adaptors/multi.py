@@ -123,7 +123,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.tools import adaptor_tools
 
         sub_adaptors = {}
-        for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
+        for adaptor_tag, _adaptor_desc in self.config["adaptors"].items():
+            adaptor_desc = _adaptor_desc.copy()
             adaptor_desc.setdefault(
                 "intersect_constraints", self.config.get("intersect_constraints", False)
             )
