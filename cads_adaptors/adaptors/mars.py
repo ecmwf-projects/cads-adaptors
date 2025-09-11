@@ -4,8 +4,13 @@ import time
 from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
-from cads_adaptors.exceptions import MarsNoDataError, MarsRuntimeError, MarsSystemError
-from cads_adaptors.tools import adaptor_tools
+from cads_adaptors.exceptions import (
+    CdsConfigError,
+    MarsNoDataError,
+    MarsRuntimeError,
+    MarsSystemError,
+)
+from cads_adaptors.tools.adaptor_tools import handle_data_format
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import (
     ensure_list,
@@ -96,7 +101,7 @@ def execute_mars(
     delta_time = time.time() - time0
     filesize = os.path.getsize(target)
     context.info(
-        f"MARS Request complete. Filesize={filesize*1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
+        f"MARS Request complete. Filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
         delta_time=delta_time,
         filesize=filesize,
     )
@@ -167,14 +172,23 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         """Implemented in normalise_request, before the mapping is applied."""
         request = super().pre_mapping_modifications(request)
 
-        # TODO: Remove legacy syntax all together
+        if "format" in request:
+            self.context.add_user_visible_error(
+                "The 'format' key for requests is deprecated, please use 'data_format' instead. "
+                "Use of 'format' is no longer part of the system testing, "
+                "therefore it is not guaranteed to work."
+            )
+        # Remove "format" from request if it exists
         data_format = request.pop("format", "grib")
-        data_format = request.pop("data_format", data_format)
+        data_format = handle_data_format(request.get("data_format", data_format))
 
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
-            self.data_format = "netcdf"
+            data_format = "netcdf"
             request.setdefault("download_format", "zip")
+
+        # Enforce value of data_format to normalized value
+        request["data_format"] = data_format
 
         default_download_format = "as_source"
         download_format = request.pop("download_format", default_download_format)
@@ -182,18 +196,22 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             download_format, default_download_format=default_download_format
         )
 
-        # Apply any mapping
-        mapped_formats = self.apply_mapping({"data_format": data_format})
-        # TODO: Add this extra mapping to apply_mapping?
-        self.data_format = adaptor_tools.handle_data_format(
-            mapped_formats["data_format"]
-        )
-
         return request
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
+
+        data_formats = [req.pop("data_format", None) for req in self.mapped_requests]
+        data_formats = list(set(data_formats))
+        if len(data_formats) != 1 or data_formats[0] is None:
+            # It should not be possible to reach here, if it is, there is a problem.
+            raise CdsConfigError(
+                "Something has gone wrong in preparing your request, "
+                "please try to submit your request again. "
+                "If the problem persists, please contact user support."
+            )
+        self.data_format = data_formats[0]
 
         result = execute_mars(
             self.mapped_requests,

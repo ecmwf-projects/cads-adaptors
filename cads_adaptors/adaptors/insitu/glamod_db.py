@@ -21,7 +21,7 @@ class InsituGlamodCdsAdaptor(AbstractCdsAdaptor):
         domain = "land" if "land" in resource else "marine"
         self.context.logger.debug(f"request:::::::{resource} {request}")
         request = mapping.apply_mapping(request, self.mapping, context=self.context)
-        self.context.logger.debug(f'request{"~" * 10}{resource} {request}')
+        self.context.logger.debug(f"request{'~' * 10}{resource} {request}")
 
         url = self.config["urls"]["requests"]
 
