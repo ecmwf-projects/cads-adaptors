@@ -18,6 +18,7 @@ dependencies = [
   # Only mandatory dependencies required by the broker and retrieve-api images
   "cryptography",
   "DateTimeRange",
+  "eumdac",
   "python-dateutil",
   "structlog",
   "jsonschema"
@@ -41,7 +42,6 @@ complete = [
   "dask",
   "ecmwflibs",
   "earthkit-transforms>=0.3.3",
-  "eumdac",
   "fsspec",
   "h5netcdf",
   "jinja2",
