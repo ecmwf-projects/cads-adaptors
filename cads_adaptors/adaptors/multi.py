@@ -129,8 +129,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 "intersect_constraints", self.config.get("intersect_constraints", False)
             )
             # Preserve the context and constraints from the parent for each sub-adaptor
-            # This potentially applies licences, but this is not currently used in retrieval
-            # so not coding in case we take another approach in the future.
+            # This would apply to the licences attribute. As licences are not currently used in retrieval
+            # not coding in case another approach is taken in the future.
             this_adaptor = adaptor_tools.get_adaptor(
                 adaptor_desc
                 | {"context": self.context, "constraints": self.constraints},
