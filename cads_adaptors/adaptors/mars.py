@@ -103,7 +103,7 @@ def execute_mars(
     target_fname: str = "data.grib",
     target_dir: str = "",
 ) -> str:
-    is_pipe = False
+    is_pipe = os.getenv("MARS_API_USE_PIPE", "0") == "1"
     if is_pipe:
         from cads_mars_server import client_pipe as mars_client
     else:
