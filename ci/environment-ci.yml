@@ -19,7 +19,7 @@ dependencies:
 - types-pyyaml
 - types-requests
 - pytest-localftpserver
-- pyftplib
+- pyftpdlib
 - pip:
   - git+https://github.com/ecmwf-projects/cacholote.git
   - git+https://github.com/ecmwf-projects/cads-mars-server
