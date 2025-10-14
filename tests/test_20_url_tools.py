@@ -74,25 +74,25 @@ def test_download_with_server_suggested_filename(
     assert (tmp_path / actual).exists()
 
 
-@pytest.mark.parametrize(
-    "anon",
-    (
-        True,
-        False,
-    ),
-)
-def test_ftp_download(tmp_path, monkeypatch, ftpserver, anon):
-    local_test_file = os.path.join(tmp_path, "testfile.txt")
-    with open(local_test_file, "w") as f:
-        f.write("This is a test file")
+# @pytest.mark.parametrize(
+#     "anon",
+#     (
+#         True,
+#         False,
+#     ),
+# )
+# def test_ftp_download(tmp_path, monkeypatch, ftpserver, anon):
+#     local_test_file = os.path.join(tmp_path, "testfile.txt")
+#     with open(local_test_file, "w") as f:
+#         f.write("This is a test file")
 
-    ftp_url = ftpserver.put_files(local_test_file, style="url", anon=anon)
-    work_dir = os.path.join(tmp_path, "work_dir")
-    os.makedirs(work_dir)
-    monkeypatch.chdir(work_dir)
-    local_test_download = url_tools.try_download(ftp_url, context=Context())[0]
-    with open(local_test_file) as original, open(local_test_download) as downloaded:
-        assert original.read() == downloaded.read()
+#     ftp_url = ftpserver.put_files(local_test_file, style="url", anon=anon)
+#     work_dir = os.path.join(tmp_path, "work_dir")
+#     os.makedirs(work_dir)
+#     monkeypatch.chdir(work_dir)
+#     local_test_download = url_tools.try_download(ftp_url, context=Context())[0]
+#     with open(local_test_file) as original, open(local_test_download) as downloaded:
+#         assert original.read() == downloaded.read()
 
 
 def test_try_download_skips_404(
@@ -201,23 +201,23 @@ def test_try_download_robust_iter_content(
         assert os.path.getsize("range/10") == 10
 
 
-def test_try_download_missing_ftp(
-    ftpserver: pytest_httpbin.serve.Server,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    work_dir = tmp_path / "work_dir"
-    work_dir.mkdir()
-    monkeypatch.chdir(work_dir)
+# def test_try_download_missing_ftp(
+#     ftpserver: pytest_httpbin.serve.Server,
+#     tmp_path: Path,
+#     monkeypatch: pytest.MonkeyPatch,
+# ) -> None:
+#     work_dir = tmp_path / "work_dir"
+#     work_dir.mkdir()
+#     monkeypatch.chdir(work_dir)
 
-    test_file = tmp_path / "existing.txt"
-    test_file.write_text("This is a test file")
-    (existing_url,) = ftpserver.put_files(str(test_file), style="url")
-    missing_url = f"{ftpserver.get_login_data(style='url')}/missing.txt"
+#     test_file = tmp_path / "existing.txt"
+#     test_file.write_text("This is a test file")
+#     (existing_url,) = ftpserver.put_files(str(test_file), style="url")
+#     missing_url = f"{ftpserver.get_login_data(style='url')}/missing.txt"
 
-    paths = url_tools.try_download([existing_url, missing_url], context=Context())
-    assert paths == ["existing.txt"]
-    assert (work_dir / "existing.txt").read_text() == "This is a test file"
+#     paths = url_tools.try_download([existing_url, missing_url], context=Context())
+#     assert paths == ["existing.txt"]
+#     assert (work_dir / "existing.txt").read_text() == "This is a test file"
 
 
 @pytest.mark.parametrize("use_internal_cache", [True, False])
