@@ -61,7 +61,7 @@ complete = [
 ]
 tests = [
   "pytest",
-  "pytest-cov",
+  "pytest-cov"
 ]
 
 [tool.coverage.run]
