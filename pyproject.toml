@@ -40,7 +40,7 @@ complete = [
   "cftime",
   "dask",
   "ecmwflibs",
-  "earthkit-transforms>=0.3.3",
+  "earthkit-transforms>=0.5.2",
   "fsspec",
   "h5netcdf",
   "jinja2",
@@ -61,8 +61,7 @@ complete = [
 ]
 tests = [
   "pytest",
-  "pytest-cov",
-  "pytest-localftpserver"
+  "pytest-cov"
 ]
 
 [tool.coverage.run]
