@@ -1,6 +1,6 @@
 # cads-adaptors
 
-DSS data retrieve utilities to be used by adaptors
+DSS data retrieve utilities to be used by adaptors.
 
 ## Quick Start
 
