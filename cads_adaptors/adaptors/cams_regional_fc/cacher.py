@@ -509,7 +509,8 @@ class CacherDisk(AbstractAsyncCacher):
         self.logger.info(f"Writing {fieldinfo} to {path}")
         self._makedirs(os.path.dirname(path), exist_ok=True)
         with AtomicWrite(path, "wb") as f:
-            if (self.perms is not None): os.chmod(f.name, self.perms)
+            if self.perms is not None:
+                os.chmod(f.name, self.perms)
             f.write(data)
 
 
@@ -533,7 +534,8 @@ class CacherS3AndDisk(CacherS3):
             self.logger.info(f"Writing {fieldinfo} to {path}")
             self._makedirs(os.path.dirname(path), exist_ok=True)
             with AtomicWrite(path, "wb") as f:
-                if (self.perms is not None): os.chmod(f.name, self.perms)
+                if self.perms is not None:
+                    os.chmod(f.name, self.perms)
                 f.write(data)
 
         # Write to the S3 bucket
