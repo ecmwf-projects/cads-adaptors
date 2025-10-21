@@ -497,15 +497,19 @@ class CacherS3(AbstractAsyncCacher):
 
 
 class CacherDisk(AbstractAsyncCacher):
-    def __init__(self, *args, field2path=None, **kwargs):
+    """Cacher which writes the fields to local disk."""
+
+    def __init__(self, *args, field2path=None, perms=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.field2path = field2path
+        self.perms = perms
 
     def _write_1field_sync(self, data, fieldinfo):
         path = self.field2path(fieldinfo)
         self.logger.info(f"Writing {fieldinfo} to {path}")
         self._makedirs(os.path.dirname(path), exist_ok=True)
         with AtomicWrite(path, "wb") as f:
+            if (self.perms is not None): os.chmod(f.name, self.perms)
             f.write(data)
 
 
@@ -516,18 +520,20 @@ class CacherS3AndDisk(CacherS3):
     higher priority.
     """
 
-    def __init__(self, *args, field2path=None, **kwargs):
+    def __init__(self, *args, field2path=None, perms=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.field2path = field2path
+        self.perms = perms
         self.s3_errors = []
 
-    def _write_1fiels_sync(self, data, fieldinfo):
+    def _write_1field_sync(self, data, fieldinfo):
         # Write to a local path?
         if self.field2path:
             path = self.field2path(fieldinfo)
             self.logger.info(f"Writing {fieldinfo} to {path}")
             self._makedirs(os.path.dirname(path), exist_ok=True)
             with AtomicWrite(path, "wb") as f:
+                if (self.perms is not None): os.chmod(f.name, self.perms)
                 f.write(data)
 
         # Write to the S3 bucket
