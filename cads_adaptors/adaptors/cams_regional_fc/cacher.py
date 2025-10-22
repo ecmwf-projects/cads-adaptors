@@ -506,7 +506,7 @@ class CacherDiskMixin:
         self.umask = umask
 
     def _write_1field_sync(self, data, fieldinfo):
-        """Write field to disk"""
+        """Write field to disk."""
         path = self.field2path(fieldinfo)
         self.logger.info(f"Writing {fieldinfo} to {path}")
 
