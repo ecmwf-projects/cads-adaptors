@@ -15,6 +15,7 @@ from cds_common.atomic_write import AtomicWrite
 from cds_common.hcube_tools import count_fields, hcube_intdiff, hcubes_intdiff2
 from cds_common.message_iterators import grib_bytes_iterator
 from cds_common.url2.caching import NotInCache
+from cds_common.umask import Umask
 from eccodes import codes_get_message
 
 from . import DEFAULT_NO_CACHE_KEY
@@ -33,7 +34,7 @@ class AbstractCacher:
         logger=None,
         no_put=False,
         permanent_fields=None,
-        no_cache_key=None,
+        no_cache_key=None
     ):
         self.integration_server = integration_server
         self.logger = logging.getLogger(__name__) if logger is None else logger
@@ -496,47 +497,55 @@ class CacherS3(AbstractAsyncCacher):
         self.client.delete_object(Bucket=self._bucket, Key=remote_path)
 
 
-class CacherDisk(AbstractAsyncCacher):
-    """Cacher which writes the fields to local disk."""
+class CacherDiskMixin:
+    """Mix-in class which adds functionality to write the fields to local disk.
+    """
 
-    def __init__(self, *args, field2path=None, perms=None, **kwargs):
+    def __init__(self, *args, field2path=None, umask=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.field2path = field2path
-        self.perms = perms
+        self.umask = umask
 
     def _write_1field_sync(self, data, fieldinfo):
+        """Write field to disk"""
+
         path = self.field2path(fieldinfo)
         self.logger.info(f"Writing {fieldinfo} to {path}")
-        self._makedirs(os.path.dirname(path), exist_ok=True)
-        with AtomicWrite(path, "wb") as f:
-            if self.perms is not None:
-                os.chmod(f.name, self.perms)
+
+        # os.makedirs takes a permission argument but only uses it for the final
+        # leaf directory, not any others that it creates above, so temporarily
+        # set the umask to get the right permissions for all.
+        with Umask(self.umask):
+            self._makedirs(os.path.dirname(path), exist_ok=True)
+
+        with AtomicWrite(path, "wb", perms=0o666 & ~self.umask) as f:
             f.write(data)
 
 
-class CacherS3AndDisk(CacherS3):
+class CacherDisk(CacherDiskMixin, AbstractAsyncCacher):
+    """Cacher which writes the fields to local disk. All functionality is
+       inherited from the two base classes."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class CacherS3AndDisk(CacherDiskMixin, CacherS3):
     """Sub-class of CacherS3 to cache not only to an S3 bucket but to a local
     file as well. Failures to write to the S3 bucket are logged but considered
     non-fatal so as not to disrupt the caching to file, which is considered
     higher priority.
     """
 
-    def __init__(self, *args, field2path=None, perms=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.field2path = field2path
-        self.perms = perms
         self.s3_errors = []
 
     def _write_1field_sync(self, data, fieldinfo):
+
         # Write to a local path?
         if self.field2path:
-            path = self.field2path(fieldinfo)
-            self.logger.info(f"Writing {fieldinfo} to {path}")
-            self._makedirs(os.path.dirname(path), exist_ok=True)
-            with AtomicWrite(path, "wb") as f:
-                if self.perms is not None:
-                    os.chmod(f.name, self.perms)
-                f.write(data)
+            CacherDiskMixin._write_1field_sync(data, fieldinfo)
 
         # Write to the S3 bucket
         try:
@@ -545,6 +554,7 @@ class CacherS3AndDisk(CacherS3):
             self._log_s3_error("S3 write", e)
 
     def _log_s3_error(self, prelude, exc):
-        txt = f"{prelude} failed with:\n" + "".join(traceback.format_exception(exc))
+        txt = f"{prelude} failed with:\n" + "".join(
+            traceback.format_exception(exc))
         self.s3_errors.append(txt)
         self.logger.error(txt)
