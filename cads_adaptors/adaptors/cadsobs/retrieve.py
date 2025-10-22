@@ -3,14 +3,14 @@ from pathlib import Path
 import fsspec
 
 from cads_adaptors import Context
+from cads_adaptors.adaptors.cadsobs.char_utils import get_char_sizes
 from cads_adaptors.adaptors.cadsobs.csv import to_csv, to_zip
+from cads_adaptors.adaptors.cadsobs.filter import filter_asset_and_save
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs, RetrieveParams
 from cads_adaptors.adaptors.cadsobs.utils import (
     add_attributes,
     get_output_path,
 )
-from cads_adaptors.adaptors.cadsobs.char_utils import get_char_sizes
-from cads_adaptors.adaptors.cadsobs.filter import filter_asset_and_save
 from cads_adaptors.exceptions import CadsObsRuntimeError
 
 

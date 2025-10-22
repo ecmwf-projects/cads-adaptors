@@ -6,16 +6,25 @@ import numpy
 import pandas
 from fsspec.implementations.http import HTTPFileSystem
 
-from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs, RetrieveParams
-from cads_adaptors.adaptors.cadsobs.utils import ezclump, \
-    get_vars_in_cdm_lite, handle_coordinate_renaming, \
-    get_param_name_in_data, \
-    get_output_dtype, get_url_ncobj
+from cads_adaptors.adaptors.cadsobs.char_utils import (
+    concat_str_array,
+    dump_char_variable,
+    handle_string_dims,
+)
 from cads_adaptors.adaptors.cadsobs.codes import get_code_mapping
-from cads_adaptors.adaptors.cadsobs.char_utils import handle_string_dims, \
-    concat_str_array, dump_char_variable
-from cads_adaptors.adaptors.cadsobs.constants import MAX_NUMBER_OF_GROUPS, \
-    TIME_UNITS_REFERENCE_DATE
+from cads_adaptors.adaptors.cadsobs.constants import (
+    MAX_NUMBER_OF_GROUPS,
+    TIME_UNITS_REFERENCE_DATE,
+)
+from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs, RetrieveParams
+from cads_adaptors.adaptors.cadsobs.utils import (
+    ezclump,
+    get_output_dtype,
+    get_param_name_in_data,
+    get_url_ncobj,
+    get_vars_in_cdm_lite,
+    handle_coordinate_renaming,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +102,7 @@ def _get_mask(incobj: h5netcdf.File, retrieve_params: RetrieveParams) -> numpy.n
 def _apply_extra_filters(
     incobj: h5netcdf.File,
     masks_combined: numpy.ndarray,
-    retrieve_params: RetrieveParams
+    retrieve_params: RetrieveParams,
 ) -> numpy.ndarray:
     """Apply the mask for requested extra filters if any.
 
@@ -118,7 +127,11 @@ def _apply_extra_filters(
     return masks_combined
 
 
-def _filter_variables(incobj: h5netcdf.File, masks_combined: numpy.ndarray, retrieve_params: RetrieveParams) -> numpy.ndarray:
+def _filter_variables(
+    incobj: h5netcdf.File,
+    masks_combined: numpy.ndarray,
+    retrieve_params: RetrieveParams,
+) -> numpy.ndarray:
     """Apply the mask for the requested variables."""
     variables_asked = retrieve_params.variables
     if variables_asked is None:
@@ -132,7 +145,11 @@ def _filter_variables(incobj: h5netcdf.File, masks_combined: numpy.ndarray, retr
     return masks_combined
 
 
-def _filter_time_and_space(incobj: h5netcdf.File, masks_combined: numpy.ndarray, retrieve_params: RetrieveParams) -> numpy.ndarray:
+def _filter_time_and_space(
+    incobj: h5netcdf.File,
+    masks_combined: numpy.ndarray,
+    retrieve_params: RetrieveParams,
+) -> numpy.ndarray:
     """Apply the mask for the time and space bounds requested."""
     time_and_space = ["time_coverage", "longitude_coverage", "latitude_coverage"]
     retrieve_params_dict = retrieve_params.model_dump()
@@ -163,7 +180,7 @@ def _filter_time_and_space(incobj: h5netcdf.File, masks_combined: numpy.ndarray,
 def _filter_stations(
     incobj: h5netcdf.File,
     masks_combined: numpy.ndarray,
-    retrieve_params: RetrieveParams
+    retrieve_params: RetrieveParams,
 ) -> numpy.ndarray:
     """Apply the mask for the requested station ids."""
     if retrieve_params.stations is None:
@@ -249,5 +266,3 @@ def _filter_and_save_var(
 
 def _between(index, start, end):
     return (index >= start) & (index < end)
-
-

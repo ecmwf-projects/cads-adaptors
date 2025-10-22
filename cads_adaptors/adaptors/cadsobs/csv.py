@@ -5,7 +5,6 @@ from pathlib import Path
 import xarray
 
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs
-from cads_adaptors.adaptors.cadsobs.utils import get_output_path
 from cads_adaptors.tools.general import ensure_list
 
 logger = logging.getLogger(__name__)

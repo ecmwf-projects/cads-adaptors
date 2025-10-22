@@ -70,14 +70,13 @@ def handle_coordinate_renaming(vars_in_cdm_lite: list[str]) -> tuple[dict, list[
     for varname in vars_in_cdm_lite.copy():
         if "|" in varname:
             vars_to_rename, vars_in_cdm_lite = _rename_coordinate(
-                varname, vars_in_cdm_lite, vars_to_rename)
+                varname, vars_in_cdm_lite, vars_to_rename
+            )
     return vars_to_rename, vars_in_cdm_lite
 
 
 def _rename_coordinate(
-    varname: str,
-    vars_in_cdm_lite: list[str],
-    vars_to_rename: dict[str, str]
+    varname: str, vars_in_cdm_lite: list[str], vars_to_rename: dict[str, str]
 ) -> tuple[dict, list[str]]:
     """Rename spatial coordinates with | in their name."""
     varname_notable, table_name = varname.split("|")
@@ -97,9 +96,7 @@ def _rename_coordinate(
                 # if latitude|observations exists does not exist, rename to
                 # latitude/longitude.
                 if other in vars_in_cdm_lite:
-                    logger.info(
-                        f"Both {varname} and {other} exist,keeping them."
-                    )
+                    logger.info(f"Both {varname} and {other} exist,keeping them.")
                 else:
                     vars_to_rename[varname] = varname_notable
             else:
