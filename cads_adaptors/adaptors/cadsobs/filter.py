@@ -10,8 +10,8 @@ from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs, RetrieveParams
 from cads_adaptors.adaptors.cadsobs.utils import ezclump, \
     get_vars_in_cdm_lite, handle_coordinate_renaming, \
     get_param_name_in_data, \
-    get_output_dtype
-from cads_adaptors.adaptors.cadsobs.codes import _get_code_mapping
+    get_output_dtype, get_url_ncobj
+from cads_adaptors.adaptors.cadsobs.codes import get_code_mapping
 from cads_adaptors.adaptors.cadsobs.char_utils import handle_string_dims, \
     concat_str_array, dump_char_variable
 from cads_adaptors.adaptors.cadsobs.constants import MAX_NUMBER_OF_GROUPS, \
@@ -29,7 +29,7 @@ def filter_asset_and_save(
     cdm_lite_variables: list[str],
 ):
     """Get the filtered data from the asset and dump it to the output file."""
-    with (fs, url) as incobj:
+    with get_url_ncobj(fs, url) as incobj:
         mask = _get_mask(incobj, retrieve_args.params)
         if mask.any():
             number_of_groups = len(ezclump(mask))
@@ -80,25 +80,29 @@ def _get_mask(incobj: h5netcdf.File, retrieve_params: RetrieveParams) -> numpy.n
         shape=(incobj.dimensions["observation_id"].size,), dtype="bool"
     )
     # Filter stations if provided
-    if retrieve_params.stations is not None:
-        masks_combined = _filter_stations(incobj, masks_combined, retrieve_params)
+    masks_combined = _filter_stations(incobj, masks_combined, retrieve_params)
     # Filter time and space
     masks_combined = _filter_time_and_space(incobj, masks_combined, retrieve_params)
     # Decode variables
-    if retrieve_params.variables is not None:
-        masks_combined = _filter_variables(incobj, masks_combined, retrieve_params)
+    masks_combined = _filter_variables(incobj, masks_combined, retrieve_params)
     # Extra filters
-    if retrieve_params.extra_filters is not None:
-        masks_combined = _apply_extra_filters(incobj, masks_combined, retrieve_params)
+    masks_combined = _apply_extra_filters(incobj, masks_combined, retrieve_params)
     return masks_combined
 
 
-def _apply_extra_filters(incobj, masks_combined: numpy.ndarray, retrieve_params: RetrieveParams) -> numpy.ndarray:
+def _apply_extra_filters(
+    incobj: h5netcdf.File,
+    masks_combined: numpy.ndarray,
+    retrieve_params: RetrieveParams
+) -> numpy.ndarray:
     """Apply the mask for requested extra filters if any.
 
     We use the extra_filters field in the request. The filter support single values
     (text or numeric) and also lists calling "isin".
     """
+    # We need this here for mypy not to complain
+    if retrieve_params.extra_filters is None:
+        return masks_combined
     for field, filter_values in retrieve_params.extra_filters.items():
         if field not in incobj.variables:
             raise RuntimeError(f"{field=} in extra filters not found.")
@@ -117,8 +121,10 @@ def _apply_extra_filters(incobj, masks_combined: numpy.ndarray, retrieve_params:
 def _filter_variables(incobj: h5netcdf.File, masks_combined: numpy.ndarray, retrieve_params: RetrieveParams) -> numpy.ndarray:
     """Apply the mask for the requested variables."""
     variables_asked = retrieve_params.variables
+    if variables_asked is None:
+        return masks_combined
     #  Map to codes
-    var2code = _get_code_mapping(incobj)
+    var2code = get_code_mapping(incobj)
     codes_asked = [var2code[v] for v in variables_asked if v in var2code]
     variables_file = incobj.variables["observed_variable"][:]
     variable_mask = numpy.isin(variables_file, codes_asked)
@@ -160,6 +166,8 @@ def _filter_stations(
     retrieve_params: RetrieveParams
 ) -> numpy.ndarray:
     """Apply the mask for the requested station ids."""
+    if retrieve_params.stations is None:
+        return masks_combined
     stations_asked = [s.encode("utf-8") for s in retrieve_params.stations]
     stationvar = incobj.variables["primary_station_id"]
     stations_in_partition = concat_str_array(stationvar[:])
@@ -243,10 +251,3 @@ def _between(index, start, end):
     return (index >= start) & (index < end)
 
 
-def _get_url_ncobj(fs: HTTPFileSystem, url: str) -> h5netcdf.File:
-    """Open an URL as a netCDF file object with h5netcdf."""
-    fobj = fs.open(url)
-    logger.debug(f"Reading data from {url}.")
-    # xarray won't read bytes object directly with netCDF4
-    ncfile = h5netcdf.File(fobj, "r")
-    return ncfile

@@ -4,8 +4,8 @@ import h5netcdf
 import numpy
 from fsspec.implementations.http import HTTPFileSystem
 
-from cads_adaptors.adaptors.cadsobs.codes import _get_code_mapping
-from cads_adaptors.adaptors.cadsobs.filter import _get_url_ncobj
+from cads_adaptors.adaptors.cadsobs.codes import get_code_mapping
+from cads_adaptors.adaptors.cadsobs.utils import get_url_ncobj
 
 
 def handle_string_dims(
@@ -33,7 +33,7 @@ def get_char_sizes(fs: HTTPFileSystem, object_urls: list[str]) -> dict[str, int]
     """
     char_sizes = {}
     for url in object_urls:
-        with _get_url_ncobj(fs, url) as incobj:
+        with get_url_ncobj(fs, url) as incobj:
             for var, varobj in incobj.items():
                 if varobj.dtype.kind == "S":
                     char_size = varobj.shape[1]
@@ -76,7 +76,7 @@ def dump_char_variable(
             data = ivarobj[:][mask]
         else:
             data = ivarobj[mask]
-        code2var = _get_code_mapping(incobj, inverse=True)
+        code2var = get_code_mapping(incobj, inverse=True)
         codes_in_data, inverse = numpy.unique(data, return_inverse=True)
         variables_in_data = numpy.array(
             [code2var[c].encode("utf-8") for c in codes_in_data]

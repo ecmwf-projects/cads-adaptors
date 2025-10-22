@@ -5,7 +5,7 @@ import xarray
 from cads_adaptors.exceptions import CadsObsRuntimeError
 
 
-def _get_code_mapping(
+def get_code_mapping(
     incobj: h5netcdf.File | xarray.Dataset, inverse: bool = False
 ) -> dict:
     import h5netcdf

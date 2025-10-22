@@ -3,6 +3,7 @@ import uuid
 from pathlib import Path
 
 import h5netcdf
+from fsspec.implementations.http import HTTPFileSystem
 
 from cads_adaptors.adaptors.cadsobs.constants import SPATIAL_COORDINATES
 from cads_adaptors.adaptors.cadsobs.models import (
@@ -65,7 +66,7 @@ def handle_coordinate_renaming(vars_in_cdm_lite: list[str]) -> tuple[dict, list[
     In case both latitude|station_configuration and latitude|header_table are available,
     we won't rename them as we don't know hot to combine them.
     """
-    vars_to_rename = dict()
+    vars_to_rename: dict[str, str] = dict()
     for varname in vars_in_cdm_lite.copy():
         if "|" in varname:
             vars_to_rename, vars_in_cdm_lite = _rename_coordinate(
@@ -171,3 +172,10 @@ def ezclump(mask) -> list[slice]:
     return r
 
 
+def get_url_ncobj(fs: HTTPFileSystem, url: str) -> h5netcdf.File:
+    """Open an URL as a netCDF file object with h5netcdf."""
+    fobj = fs.open(url)
+    logger.debug(f"Reading data from {url}.")
+    # xarray won't read bytes object directly with netCDF4
+    ncfile = h5netcdf.File(fobj, "r")
+    return ncfile
