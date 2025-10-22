@@ -14,8 +14,8 @@ import jinja2
 from cds_common.atomic_write import AtomicWrite
 from cds_common.hcube_tools import count_fields, hcube_intdiff, hcubes_intdiff2
 from cds_common.message_iterators import grib_bytes_iterator
-from cds_common.url2.caching import NotInCache
 from cds_common.umask import Umask
+from cds_common.url2.caching import NotInCache
 from eccodes import codes_get_message
 
 from . import DEFAULT_NO_CACHE_KEY
@@ -34,7 +34,7 @@ class AbstractCacher:
         logger=None,
         no_put=False,
         permanent_fields=None,
-        no_cache_key=None
+        no_cache_key=None,
     ):
         self.integration_server = integration_server
         self.logger = logging.getLogger(__name__) if logger is None else logger
@@ -498,8 +498,7 @@ class CacherS3(AbstractAsyncCacher):
 
 
 class CacherDiskMixin:
-    """Mix-in class which adds functionality to write the fields to local disk.
-    """
+    """Mix-in class which adds functionality to write the fields to local disk."""
 
     def __init__(self, *args, field2path=None, umask=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -508,7 +507,6 @@ class CacherDiskMixin:
 
     def _write_1field_sync(self, data, fieldinfo):
         """Write field to disk"""
-
         path = self.field2path(fieldinfo)
         self.logger.info(f"Writing {fieldinfo} to {path}")
 
@@ -524,7 +522,8 @@ class CacherDiskMixin:
 
 class CacherDisk(CacherDiskMixin, AbstractAsyncCacher):
     """Cacher which writes the fields to local disk. All functionality is
-       inherited from the two base classes."""
+    inherited from the two base classes.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -542,7 +541,6 @@ class CacherS3AndDisk(CacherDiskMixin, CacherS3):
         self.s3_errors = []
 
     def _write_1field_sync(self, data, fieldinfo):
-
         # Write to a local path?
         if self.field2path:
             CacherDiskMixin._write_1field_sync(data, fieldinfo)
@@ -554,7 +552,6 @@ class CacherS3AndDisk(CacherDiskMixin, CacherS3):
             self._log_s3_error("S3 write", e)
 
     def _log_s3_error(self, prelude, exc):
-        txt = f"{prelude} failed with:\n" + "".join(
-            traceback.format_exception(exc))
+        txt = f"{prelude} failed with:\n" + "".join(traceback.format_exception(exc))
         self.s3_errors.append(txt)
         self.logger.error(txt)
