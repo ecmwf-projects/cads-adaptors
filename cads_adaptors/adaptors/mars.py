@@ -17,6 +17,8 @@ from cads_adaptors.tools.general import (
     split_requests_on_keys,
 )
 
+LOG_FULL_MARS_REPLY = True
+
 # This hard requirement of MARS requests should be moved to the proxy MARS client
 ALWAYS_SPLIT_ON: list[str] = [
     "class",
@@ -99,13 +101,20 @@ def execute_mars(
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
     delta_time = time.time() - time0
-    filesize = os.path.getsize(target)
-    context.info(
-        f"MARS Request complete. Filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
-        delta_time=delta_time,
-        filesize=filesize,
-    )
-    context.debug(message=reply_message)
+    if os.path.exists(target):
+        filesize = os.path.getsize(target)
+        context.info(
+            f"MARS Request complete. Filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
+            delta_time=delta_time,
+            filesize=filesize,
+        )
+    else:
+        filesize = 0
+    
+    if LOG_FULL_MARS_REPLY:
+        context.info(message=reply_message)
+    else:
+        context.debug(message=reply_message)
 
     if reply.error:
         error_lines = "\n".join(
