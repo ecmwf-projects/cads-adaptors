@@ -33,6 +33,7 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
                     "sky_type": {"type": "string"},
                     "location": {
                         "type": "object",
+                        "required": ["latitude", "longitude"],
                         "properties": {
                             "latitude": {
                                 "maximum": 90.0,
