@@ -289,3 +289,52 @@ def test_area_as_mapping_merges_with_existing_keys():
     }
     result = mapping.area_as_mapping(request, adaptor_mapping)
     assert result["source"] == ["ground", "satellite"]
+
+
+def test_make_bbox_centered_in_point():
+    lat, lon = 1.0, 2.0
+    size = 2.0
+    bbox = mapping.make_bbox_centered_in_point(lat, lon, size)
+    expected_bbox = (0.0, 1.0, 2.0, 3.0)
+    assert bbox == expected_bbox
+
+
+@pytest.mark.parametrize(
+    "input_request, feature_type, features, expected_result",
+    [
+        (
+            {"variable": "variable1"},
+            "featureType",
+            [{"id": "feature1"}, {"id": "feature2"}],
+            {"variable": "variable1", "features": {"featureType": ["feature1", "feature2"]}},
+        ),
+        (
+            {"variable": "variable1", "features": {}},
+            "featureType",
+            [{"id": "feature1"}, {"id": "feature2"}],
+            {"variable": "variable1", "features": {"featureType": ["feature1", "feature2"]}},
+        ),
+        (
+            {"variable": "variable1", "features": {}},
+            "featureType",
+            [{}],
+            {"variable": "variable1", "features": {"featureType": [None]}},
+        ),
+        (
+            {"variable": "variable1", "features": {"featureType": ["existing_feature"]}},
+            "featureType",
+            [{"id": "feature1"}],
+            {"variable": "variable1", "features": {"featureType": ["existing_feature", "feature1"]}},
+        ),
+        (
+            {"variable": "variable1", "features": {"featureType": "existing_feature"}},
+            "featureType",
+            [{"id": "feature1"}],
+            {"variable": "variable1", "features": {"featureType": ["existing_feature", "feature1"]}},
+        ),
+    ],
+    ids=["no_pre_existing_features", "pre_existing_empty_features", "feature_without_id", "pre_existing_features_as_list", "pre_existing_features_as_string"],
+)
+def test_add_features_id_to_request(input_request, feature_type, features, expected_result):
+    result = mapping.add_features_id_to_request(input_request, feature_type, features)
+    assert result == expected_result
