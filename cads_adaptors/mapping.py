@@ -2,7 +2,13 @@
 
 import copy
 import datetime
+import os
 from typing import Any
+
+import json
+import owslib.util
+import owslib.wfs
+import owslib.wms
 
 from cads_adaptors import Context, exceptions
 from cads_adaptors.tools.general import ensure_list
@@ -23,6 +29,8 @@ DATE_KEYWORD_CONFIGS = [
         "format_keyword": "hdate_format",
     },
 ]
+
+Request = dict[str, Any]
 
 
 def julian_to_ymd(jdate):
@@ -303,6 +311,219 @@ def area_as_mapping(
             out_request[key] = values
 
     return out_request
+
+
+def make_bbox_centered_in_point(point_lat: float, point_lon: float, size: float = 1.0) -> tuple[float, float, float, float]:
+    """
+    Create a bounding box centered on a point with a given size.
+
+    Parameters
+    ----------
+    point_lat : float
+        Latitude of the center point.
+    point_lon : float
+        Longitude of the center point.
+    size : float
+        Size of the bounding box (length of one side).
+
+    Returns
+    -------
+    tuple
+        A tuple representing the bounding box in the format (min_lat, min_lon, max_lat, max_lon).
+    """
+    half_size = size / 2.0
+    bbox = (point_lat - half_size, point_lon - half_size, point_lat + half_size, point_lon + half_size)
+    return bbox
+
+
+def get_features_at_point(
+    feature_type: str,
+    point: tuple[float, float],
+    spatial_reference_system: str = "EPSG:4326",
+    context: Context = Context()
+) -> list[dict[str, Any]]:
+    """
+    Get features of a given type at a specific point.
+    
+    Parameters
+    ----------
+    feature_type : str
+        The type of feature to retrieve.
+    point : tuple
+        A tuple representing the point in the format (latitude, longitude).
+    spatial_reference_system : str
+        The spatial reference system of the point. Defaults to "EPSG:4326".
+    context : Context
+        The context for logging and error handling.
+    
+    Returns
+    -------
+    list
+        A list of features at the specified point.
+    """
+    try:
+        wms = owslib.wms.WebMapService(
+            os.environ.get("GEOSERVER_URL"),
+            version=os.environ.get("GEOSERVER_WMS_VERSION"),
+            auth=owslib.util.Authentication(verify=False),
+        )
+    except Exception as e:
+        context.error(f"Error connecting to WMS service: {e}")
+        return []
+    bbox = make_bbox_centered_in_point(point_lat=point[0], point_lon=point[1])
+    feature_collection = wms.getfeatureinfo(
+        layers=[feature_type],
+        srs=spatial_reference_system,
+        bbox=bbox,
+        size=(101, 101),
+        query_layers=[feature_type],
+        info_format='application/json',
+        xy=(50, 50)
+    )
+    features = feature_collection["features"]
+    return features
+
+
+def get_features_in_area(
+    feature_type: str,
+    area: tuple[float, float, float, float],
+    spatial_reference_system: str = "EPSG:4326",
+    context: Context = Context()
+) -> list[dict[str, Any]]:
+    """
+    Get features of a given type within a specified area.
+    
+    Parameters
+    ----------
+    feature_type : str
+        The type of feature to retrieve.
+    area : tuple
+        A tuple representing the bounding box in the format (min_lat, min_lon, max_lat, max_lon).
+    spatial_reference_system : str
+        The spatial reference system of the area. Defaults to "EPSG:4326".
+    context : Context
+        The context for logging and error handling.
+
+    Returns
+    -------
+    list
+        A list of features within the specified area.
+    """
+    try:
+        wfs = owslib.wfs.WebFeatureService(
+            os.environ.get("GEOSERVER_URL"),
+            version=os.environ.get("GEOSERVER_WFS_VERSION"),
+            auth=owslib.util.Authentication(verify=False),
+        )
+    except Exception as e:
+        context.error(f"Error connecting to WFS service: {e}")
+        return []
+    response = wfs.getfeature(
+        typename=[feature_type],
+        bbox=area,
+        srsname=spatial_reference_system,
+        outputFormat="application/json",
+    )
+    feature_collection = json.loads(response.getvalue())
+    features = feature_collection["features"]
+    return features
+
+
+def add_features_id_to_request(
+    request: Request,
+    feature_type: str,
+    features: list[dict[str, Any]],
+    context: Context = Context(),
+    block_debug: bool = False
+) -> Request:
+    """
+    Add retrieved features id to the request.
+    
+    Parameters
+    ----------
+    request : Request
+        The original request.
+    feature_type : str
+        The type of feature being added.
+    features : list
+        The list of features to add to the request.
+    context : Context
+        The context for logging and error handling.
+    block_debug : bool
+        If True, suppress debug messages.
+    
+    Returns
+    -------
+    Request
+        The updated request with features added.
+    """
+    if not block_debug:
+        context.debug(f"Adding {len(features)} features of type {feature_type} to request.")
+    if "features" not in request:
+        request["features"] = {}
+    features_id = [feature.get("id") for feature in features]
+    if feature_type not in request["features"]:
+        request["features"][feature_type] = features_id
+    else:
+        if isinstance(request["features"][feature_type], list):
+            request["features"][feature_type].extend(features_id)
+        else:
+            request["features"][feature_type] = [request["features"][feature_type]] + features_id
+    return request
+
+
+def get_features_in_request(
+    request: Request,
+    feature_type: str,
+    context: Context = Context(),
+    block_debug: bool = False
+) -> Request:
+    """
+    Get geographical features based on location or area specified in the request.
+    
+    Parameters
+    ----------
+    request : Request
+        The request containing location or area information.
+    feature_type : str
+        The type of feature to retrieve.
+    context : Context
+        The context for logging and error handling.
+    block_debug : bool
+        If True, suppress debug messages.
+    
+    Returns
+    -------
+    Request
+
+    """
+    if location := request.get("location"):
+        if not block_debug:
+            context.debug(f"Getting features {feature_type} for location: {location!r}")
+        try:
+            location_latitude = float(location["latitude"])
+            location_longitude = float(location["longitude"])
+        except (TypeError, KeyError, ValueError):
+            context.error(f"Invalid location provided: {location!r}. Should be a dict with 'longitude' and 'latitude' keys.")
+            return request
+        features = get_features_at_point(
+            feature_type=feature_type,
+            point=(location_latitude, location_longitude),
+            context=context
+        )
+    elif area := request.get("area"):
+        if not block_debug:
+            context.debug(f"Getting features {feature_type} for area: {area!r}")
+        if not isinstance(area, (list, tuple)) or len(area) != 4:
+            context.error(f"Invalid area provided: {area!r}. Should be a list or tuple of four numeric values.")
+            return request
+        features = get_features_in_area(
+            feature_type=feature_type,
+            area=tuple(area),
+            context=context
+        )
+    request = add_features_id_to_request(request, feature_type, features, context, block_debug)
+    return request
 
 
 def apply_mapping(
