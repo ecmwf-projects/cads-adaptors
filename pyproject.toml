@@ -47,6 +47,7 @@ complete = [
   "multiurl>=0.3.6",
   "netcdf4",
   "numpy",
+  "owslib",
   "pandas",
   "pydantic",
   "python-dateutil",
