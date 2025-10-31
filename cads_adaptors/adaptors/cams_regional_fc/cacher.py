@@ -14,6 +14,7 @@ import jinja2
 from cds_common.atomic_write import AtomicWrite
 from cds_common.hcube_tools import count_fields, hcube_intdiff, hcubes_intdiff2
 from cds_common.message_iterators import grib_bytes_iterator
+from cds_common.umask import Umask
 from cds_common.url2.caching import NotInCache
 from eccodes import codes_get_message
 
@@ -496,43 +497,57 @@ class CacherS3(AbstractAsyncCacher):
         self.client.delete_object(Bucket=self._bucket, Key=remote_path)
 
 
-class CacherDisk(AbstractAsyncCacher):
-    def __init__(self, *args, field2path=None, **kwargs):
+class CacherDiskMixin:
+    """Mix-in class which adds functionality to write the fields to local disk."""
+
+    def __init__(self, *args, field2path=None, umask=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.field2path = field2path
+        self.umask = umask
 
     def _write_1field_sync(self, data, fieldinfo):
+        """Write field to disk."""
         path = self.field2path(fieldinfo)
         self.logger.info(f"Writing {fieldinfo} to {path}")
-        self._makedirs(os.path.dirname(path), exist_ok=True)
-        with AtomicWrite(path, "wb") as f:
+
+        # os.makedirs takes a permission argument but only uses it for the final
+        # leaf directory, not any others that it creates above, so temporarily
+        # set the umask to get the right permissions for all.
+        with Umask(self.umask):
+            self._makedirs(os.path.dirname(path), exist_ok=True)
+
+        with AtomicWrite(path, "wb", perms=0o666 & ~self.umask) as f:
             f.write(data)
 
 
-class CacherS3AndDisk(CacherS3):
+class CacherDisk(CacherDiskMixin, AbstractAsyncCacher):
+    """Cacher which writes the fields to local disk. All functionality is
+    inherited from the two base classes.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class CacherS3AndDisk(CacherDiskMixin, CacherS3):
     """Sub-class of CacherS3 to cache not only to an S3 bucket but to a local
     file as well. Failures to write to the S3 bucket are logged but considered
     non-fatal so as not to disrupt the caching to file, which is considered
     higher priority.
     """
 
-    def __init__(self, *args, field2path=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.field2path = field2path
         self.s3_errors = []
 
-    def _write_1fiels_sync(self, data, fieldinfo):
+    def _write_1field_sync(self, data, fieldinfo):
         # Write to a local path?
         if self.field2path:
-            path = self.field2path(fieldinfo)
-            self.logger.info(f"Writing {fieldinfo} to {path}")
-            self._makedirs(os.path.dirname(path), exist_ok=True)
-            with AtomicWrite(path, "wb") as f:
-                f.write(data)
+            CacherDiskMixin._write_1field_sync(self, data, fieldinfo)
 
         # Write to the S3 bucket
         try:
-            super()._write_fields_sync(data, fieldinfo)
+            CacherS3._write_1field_sync(self, data, fieldinfo)
         except Exception as e:
             self._log_s3_error("S3 write", e)
 
