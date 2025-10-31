@@ -2,10 +2,10 @@
 
 import copy
 import datetime
+import json
 import os
 from typing import Any
 
-import json
 import owslib.util
 import owslib.wfs
 import owslib.wms
@@ -313,7 +313,9 @@ def area_as_mapping(
     return out_request
 
 
-def make_bbox_centered_in_point(point_lat: float, point_lon: float, size: float = 1.0) -> tuple[float, float, float, float]:
+def make_bbox_centered_in_point(
+    point_lat: float, point_lon: float, size: float = 1.0
+) -> tuple[float, float, float, float]:
     """
     Create a bounding box centered on a point with a given size.
 
@@ -332,7 +334,12 @@ def make_bbox_centered_in_point(point_lat: float, point_lon: float, size: float 
         A tuple representing the bounding box in the format (min_lat, min_lon, max_lat, max_lon).
     """
     half_size = size / 2.0
-    bbox = (point_lat - half_size, point_lon - half_size, point_lat + half_size, point_lon + half_size)
+    bbox = (
+        point_lat - half_size,
+        point_lon - half_size,
+        point_lat + half_size,
+        point_lon + half_size,
+    )
     return bbox
 
 
@@ -340,11 +347,11 @@ def get_features_at_point(
     feature_type: str,
     point: tuple[float, float],
     spatial_reference_system: str = "EPSG:4326",
-    context: Context = Context()
+    context: Context = Context(),
 ) -> list[dict[str, Any]]:
     """
     Get features of a given type at a specific point.
-    
+
     Parameters
     ----------
     feature_type : str
@@ -355,7 +362,7 @@ def get_features_at_point(
         The spatial reference system of the point. Defaults to "EPSG:4326".
     context : Context
         The context for logging and error handling.
-    
+
     Returns
     -------
     list
@@ -377,8 +384,8 @@ def get_features_at_point(
         bbox=bbox,
         size=(101, 101),
         query_layers=[feature_type],
-        info_format='application/json',
-        xy=(50, 50)
+        info_format="application/json",
+        xy=(50, 50),
     )
     features = feature_collection["features"]
     return features
@@ -388,11 +395,11 @@ def get_features_in_area(
     feature_type: str,
     area: tuple[float, float, float, float],
     spatial_reference_system: str = "EPSG:4326",
-    context: Context = Context()
+    context: Context = Context(),
 ) -> list[dict[str, Any]]:
     """
     Get features of a given type within a specified area.
-    
+
     Parameters
     ----------
     feature_type : str
@@ -434,11 +441,11 @@ def add_features_id_to_request(
     feature_type: str,
     features: list[dict[str, Any]],
     context: Context = Context(),
-    block_debug: bool = False
+    block_debug: bool = False,
 ) -> Request:
     """
     Add retrieved features id to the request.
-    
+
     Parameters
     ----------
     request : Request
@@ -451,14 +458,16 @@ def add_features_id_to_request(
         The context for logging and error handling.
     block_debug : bool
         If True, suppress debug messages.
-    
+
     Returns
     -------
     Request
         The updated request with features added.
     """
     if not block_debug:
-        context.debug(f"Adding {len(features)} features of type {feature_type} to request.")
+        context.debug(
+            f"Adding {len(features)} features of type {feature_type} to request."
+        )
     if "features" not in request:
         request["features"] = {}
     features_id = [feature.get("id") for feature in features]
@@ -468,7 +477,9 @@ def add_features_id_to_request(
         if isinstance(request["features"][feature_type], list):
             request["features"][feature_type].extend(features_id)
         else:
-            request["features"][feature_type] = [request["features"][feature_type]] + features_id
+            request["features"][feature_type] = [
+                request["features"][feature_type]
+            ] + features_id
     return request
 
 
@@ -476,11 +487,11 @@ def get_features_in_request(
     request: Request,
     feature_type: str,
     context: Context = Context(),
-    block_debug: bool = False
+    block_debug: bool = False,
 ) -> Request:
     """
     Get geographical features based on location or area specified in the request.
-    
+
     Parameters
     ----------
     request : Request
@@ -491,7 +502,7 @@ def get_features_in_request(
         The context for logging and error handling.
     block_debug : bool
         If True, suppress debug messages.
-    
+
     Returns
     -------
     Request
@@ -504,25 +515,29 @@ def get_features_in_request(
             location_latitude = float(location["latitude"])
             location_longitude = float(location["longitude"])
         except (TypeError, KeyError, ValueError):
-            context.error(f"Invalid location provided: {location!r}. Should be a dict with 'longitude' and 'latitude' keys.")
+            context.error(
+                f"Invalid location provided: {location!r}. Should be a dict with 'longitude' and 'latitude' keys."
+            )
             return request
         features = get_features_at_point(
             feature_type=feature_type,
             point=(location_latitude, location_longitude),
-            context=context
+            context=context,
         )
     elif area := request.get("area"):
         if not block_debug:
             context.debug(f"Getting features {feature_type} for area: {area!r}")
         if not isinstance(area, (list, tuple)) or len(area) != 4:
-            context.error(f"Invalid area provided: {area!r}. Should be a list or tuple of four numeric values.")
+            context.error(
+                f"Invalid area provided: {area!r}. Should be a list or tuple of four numeric values."
+            )
             return request
         features = get_features_in_area(
-            feature_type=feature_type,
-            area=tuple(area),
-            context=context
+            feature_type=feature_type, area=tuple(area), context=context
         )
-    request = add_features_id_to_request(request, feature_type, features, context, block_debug)
+    request = add_features_id_to_request(
+        request, feature_type, features, context, block_debug
+    )
     return request
 
 

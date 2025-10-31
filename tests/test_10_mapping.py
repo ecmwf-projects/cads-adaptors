@@ -306,13 +306,19 @@ def test_make_bbox_centered_in_point():
             {"variable": "variable1"},
             "featureType",
             [{"id": "feature1"}, {"id": "feature2"}],
-            {"variable": "variable1", "features": {"featureType": ["feature1", "feature2"]}},
+            {
+                "variable": "variable1",
+                "features": {"featureType": ["feature1", "feature2"]},
+            },
         ),
         (
             {"variable": "variable1", "features": {}},
             "featureType",
             [{"id": "feature1"}, {"id": "feature2"}],
-            {"variable": "variable1", "features": {"featureType": ["feature1", "feature2"]}},
+            {
+                "variable": "variable1",
+                "features": {"featureType": ["feature1", "feature2"]},
+            },
         ),
         (
             {"variable": "variable1", "features": {}},
@@ -321,20 +327,37 @@ def test_make_bbox_centered_in_point():
             {"variable": "variable1", "features": {"featureType": [None]}},
         ),
         (
-            {"variable": "variable1", "features": {"featureType": ["existing_feature"]}},
+            {
+                "variable": "variable1",
+                "features": {"featureType": ["existing_feature"]},
+            },
             "featureType",
             [{"id": "feature1"}],
-            {"variable": "variable1", "features": {"featureType": ["existing_feature", "feature1"]}},
+            {
+                "variable": "variable1",
+                "features": {"featureType": ["existing_feature", "feature1"]},
+            },
         ),
         (
             {"variable": "variable1", "features": {"featureType": "existing_feature"}},
             "featureType",
             [{"id": "feature1"}],
-            {"variable": "variable1", "features": {"featureType": ["existing_feature", "feature1"]}},
+            {
+                "variable": "variable1",
+                "features": {"featureType": ["existing_feature", "feature1"]},
+            },
         ),
     ],
-    ids=["no_pre_existing_features", "pre_existing_empty_features", "feature_without_id", "pre_existing_features_as_list", "pre_existing_features_as_string"],
+    ids=[
+        "no_pre_existing_features",
+        "pre_existing_empty_features",
+        "feature_without_id",
+        "pre_existing_features_as_list",
+        "pre_existing_features_as_string",
+    ],
 )
-def test_add_features_id_to_request(input_request, feature_type, features, expected_result):
+def test_add_features_id_to_request(
+    input_request, feature_type, features, expected_result
+):
     result = mapping.add_features_id_to_request(input_request, feature_type, features)
     assert result == expected_result
