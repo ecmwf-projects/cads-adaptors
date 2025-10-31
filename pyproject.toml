@@ -18,6 +18,7 @@ dependencies = [
   # Only mandatory dependencies required by the broker and retrieve-api images
   "cryptography",
   "DateTimeRange",
+  "owslib",
   "python-dateutil",
   "structlog",
   "jsonschema"
@@ -47,7 +48,6 @@ complete = [
   "multiurl>=0.3.6",
   "netcdf4",
   "numpy",
-  "owslib",
   "pandas",
   "pydantic",
   "python-dateutil",
