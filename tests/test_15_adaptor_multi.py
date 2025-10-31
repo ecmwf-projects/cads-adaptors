@@ -324,3 +324,21 @@ def test_convert_format(tmp_path, monkeypatch):
     _, out_ext = os.path.splitext(converted_files[0])
     assert out_ext == ".nc"
     assert "/test_subdir/" in converted_files[0]
+
+
+def test_intersect_constraints_handling():
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
+    sub_adaptors = multi_adaptor.split_adaptors(
+        REQUEST,
+    )
+    for _adaptor_tag, [adaptor, _req] in sub_adaptors.items():
+        assert adaptor.intersect_constraints_bool is False
+
+    multi_adaptor = multi.MultiAdaptor(
+        FORM, **ADAPTOR_CONFIG, intersect_constraints=True
+    )
+    sub_adaptors = multi_adaptor.split_adaptors(
+        REQUEST,
+    )
+    for _, [adaptor, _] in sub_adaptors.items():
+        assert adaptor.intersect_constraints_bool is True
