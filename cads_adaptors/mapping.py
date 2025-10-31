@@ -516,7 +516,8 @@ def get_features_in_request(
             location_longitude = float(location["longitude"])
         except (TypeError, KeyError, ValueError):
             context.error(
-                f"Invalid location provided: {location!r}. Should be a dict with 'longitude' and 'latitude' keys."
+                f"Invalid location provided: {location!r}. "
+                "Should be a dict with 'longitude' and 'latitude' keys."
             )
             return request
         features = get_features_at_point(
