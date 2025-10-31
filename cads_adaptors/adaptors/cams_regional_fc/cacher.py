@@ -543,11 +543,11 @@ class CacherS3AndDisk(CacherDiskMixin, CacherS3):
     def _write_1field_sync(self, data, fieldinfo):
         # Write to a local path?
         if self.field2path:
-            CacherDiskMixin._write_1field_sync(data, fieldinfo)
+            CacherDiskMixin._write_1field_sync(self, data, fieldinfo)
 
         # Write to the S3 bucket
         try:
-            super()._write_fields_sync(data, fieldinfo)
+            CacherS3._write_1field_sync(self, data, fieldinfo)
         except Exception as e:
             self._log_s3_error("S3 write", e)
 
