@@ -1,8 +1,6 @@
 from cads_adaptors import UrlCdsAdaptor
 from cads_adaptors.adaptors import Context
 
-# from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
-
 
 def test_url_pre_mapping_modifications():
     adaptor = UrlCdsAdaptor(
