@@ -1,15 +1,6 @@
-import logging
-import pathlib
-from datetime import datetime, timedelta
-from typing import Any, Type
-
-import numpy as np
-import pandas as pd
-import pytest
-import xarray as xr
-
 from cads_adaptors import UrlCdsAdaptor
 from cads_adaptors.adaptors import Context
+
 # from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
 
 
