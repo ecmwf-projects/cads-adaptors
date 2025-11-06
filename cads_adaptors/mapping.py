@@ -345,7 +345,7 @@ def make_bbox_centered_in_point(
 
 def get_features_at_point(
     point: tuple[float, float],
-    feature_type: str,
+    layer: str,
     spatial_reference_system: str = "EPSG:4326",
     context: Context = Context(),
 ) -> list[dict[str, Any]]:
@@ -356,8 +356,8 @@ def get_features_at_point(
     ----------
     point : tuple
         A tuple representing the point in the format (latitude, longitude).
-    feature_type : str
-        The type of feature to retrieve.
+    layer : str
+        The layer to query.
     spatial_reference_system : str
         The spatial reference system of the point. Defaults to "EPSG:4326".
     context : Context
@@ -380,11 +380,11 @@ def get_features_at_point(
     bbox = make_bbox_centered_in_point(point_lat=point[0], point_lon=point[1])
     try:
         response = wms.getfeatureinfo(
-            layers=[feature_type],
+            layers=[layer],
             srs=spatial_reference_system,
             bbox=bbox,
             size=(101, 101),
-            query_layers=[feature_type],
+            query_layers=[layer],
             info_format="application/json",
             xy=(50, 50),
         )
@@ -398,7 +398,7 @@ def get_features_at_point(
 
 def get_features_in_area(
     area: tuple[float, float, float, float],
-    feature_type: str,
+    layer: str,
     spatial_reference_system: str = "EPSG:4326",
     context: Context = Context(),
 ) -> list[dict[str, Any]]:
@@ -409,8 +409,8 @@ def get_features_in_area(
     ----------
     area : tuple
         A tuple representing the bounding box in the format (min_lat, min_lon, max_lat, max_lon).
-    feature_type : str
-        The type of feature to retrieve.
+    layer : str
+        The layer to query.
     spatial_reference_system : str
         The spatial reference system of the area. Defaults to "EPSG:4326".
     context : Context
@@ -432,7 +432,7 @@ def get_features_in_area(
         return []
     try:
         response = wfs.getfeature(
-            typename=[feature_type],
+            typename=[layer],
             bbox=area,
             srsname=spatial_reference_system,
             outputFormat="application/json",
@@ -447,7 +447,7 @@ def get_features_in_area(
 
 def add_features_id_to_request(
     request: Request,
-    feature_type: str,
+    layer: str,
     features: list[dict[str, Any]],
     context: Context = Context(),
     block_debug: bool = False,
@@ -459,8 +459,8 @@ def add_features_id_to_request(
     ----------
     request : Request
         The original request.
-    feature_type : str
-        The type of feature being added.
+    layer : str
+        The layer being added.
     features : list
         The list of features to add to the request.
     context : Context
@@ -475,26 +475,26 @@ def add_features_id_to_request(
     """
     if not block_debug:
         context.debug(
-            f"Adding {len(features)} features of type {feature_type} to request."
+            f"Adding {len(features)} features from layer {layer} to request."
         )
     if "features" not in request:
         request["features"] = {}
     features_id = [feature.get("id") for feature in features]
-    if feature_type not in request["features"]:
-        request["features"][feature_type] = features_id
+    if layer not in request["features"]:
+        request["features"][layer] = features_id
     else:
-        if isinstance(request["features"][feature_type], list):
-            request["features"][feature_type].extend(features_id)
+        if isinstance(request["features"][layer], list):
+            request["features"][layer].extend(features_id)
         else:
-            request["features"][feature_type] = [
-                request["features"][feature_type]
+            request["features"][layer] = [
+                request["features"][layer]
             ] + features_id
     return request
 
 
 def get_features_in_request(
     request: Request,
-    feature_type: str,
+    layer: str,
     context: Context = Context(),
     block_debug: bool = False,
 ) -> Request:
@@ -505,8 +505,8 @@ def get_features_in_request(
     ----------
     request : Request
         The request containing location or area information.
-    feature_type : str
-        The type of feature to retrieve.
+    layer : str
+        The layer to retrieve.
     context : Context
         The context for logging and error handling.
     block_debug : bool
@@ -519,7 +519,7 @@ def get_features_in_request(
     """
     if location := request.get("location"):
         if not block_debug:
-            context.debug(f"Getting features {feature_type} for location: {location!r}")
+            context.debug(f"Getting features from layer {layer} for location: {location!r}")
         try:
             location_latitude = float(location["latitude"])
             location_longitude = float(location["longitude"])
@@ -531,23 +531,23 @@ def get_features_in_request(
             return request
         features = get_features_at_point(
             point=(location_latitude, location_longitude),
-            feature_type=feature_type,
+            layer=layer,
             context=context,
         )
 
     elif area := request.get("area"):
         if not block_debug:
-            context.debug(f"Getting features {feature_type} for area: {area!r}")
+            context.debug(f"Getting features {layer} for area: {area!r}")
         if not isinstance(area, (list, tuple)) or len(area) != 4:
             context.error(
                 f"Invalid area provided: {area!r}. Should be a list or tuple of four numeric values."
             )
             return request
         features = get_features_in_area(
-            area=tuple(area), feature_type=feature_type, context=context
+            area=tuple(area), layer=layer, context=context
         )
     request = add_features_id_to_request(
-        request, feature_type, features, context, block_debug
+        request, layer, features, context, block_debug
     )
     return request
 
