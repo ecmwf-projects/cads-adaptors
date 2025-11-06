@@ -445,59 +445,12 @@ def get_features_in_area(
     return features
 
 
-def add_features_id_to_request(
-    request: Request,
-    layer: str,
-    features: list[dict[str, Any]],
-    context: Context = Context(),
-    block_debug: bool = False,
-) -> Request:
-    """
-    Add retrieved features id to the request.
-
-    Parameters
-    ----------
-    request : Request
-        The original request.
-    layer : str
-        The layer being added.
-    features : list
-        The list of features to add to the request.
-    context : Context
-        The context for logging and error handling.
-    block_debug : bool
-        If True, suppress debug messages.
-
-    Returns
-    -------
-    Request
-        The updated request with features added.
-    """
-    if not block_debug:
-        context.debug(
-            f"Adding {len(features)} features from layer {layer} to request."
-        )
-    if "features" not in request:
-        request["features"] = {}
-    features_id = [feature.get("id") for feature in features]
-    if layer not in request["features"]:
-        request["features"][layer] = features_id
-    else:
-        if isinstance(request["features"][layer], list):
-            request["features"][layer].extend(features_id)
-        else:
-            request["features"][layer] = [
-                request["features"][layer]
-            ] + features_id
-    return request
-
-
 def get_features_in_request(
     request: Request,
     layer: str,
     context: Context = Context(),
     block_debug: bool = False,
-) -> Request:
+) -> list[dict[str, Any]]:
     """
     Get geographical features based on location or area specified in the request.
 
@@ -514,8 +467,8 @@ def get_features_in_request(
 
     Returns
     -------
-    Request
-
+    list
+        A list of GEOJSON features.
     """
     if location := request.get("location"):
         if not block_debug:
@@ -534,7 +487,6 @@ def get_features_in_request(
             layer=layer,
             context=context,
         )
-
     elif area := request.get("area"):
         if not block_debug:
             context.debug(f"Getting features {layer} for area: {area!r}")
@@ -546,10 +498,7 @@ def get_features_in_request(
         features = get_features_in_area(
             area=tuple(area), layer=layer, context=context
         )
-    request = add_features_id_to_request(
-        request, layer, features, context, block_debug
-    )
-    return request
+    return features
 
 
 def apply_mapping(
