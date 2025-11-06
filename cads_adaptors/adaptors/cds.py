@@ -8,7 +8,7 @@ from typing import Any, BinaryIO
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
-from cads_adaptors.exceptions import CdsConfigurationError, InvalidRequest
+from cads_adaptors.exceptions import CdsConfigurationError, GeoServerError, InvalidRequest
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.hcube_tools import hcubes_intdiff2
 from cads_adaptors.validation import enforce
@@ -65,6 +65,16 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return self.make_download_object(result)
 
     def check_validity(self, request: Request) -> None:
+        layer: str = self.config.get("layer")
+        if layer is not None:
+            try:
+                features_in_request = mapping.get_features_in_request(
+                    request=request, layer=layer, max_features=1, context=self.context
+                )
+            except GeoServerError:
+                return
+            if not features_in_request:
+                raise InvalidRequest(f"No features found in request for layer {layer}")
         return
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
