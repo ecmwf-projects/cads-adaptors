@@ -399,7 +399,9 @@ def get_features_at_point(
         )
     except Exception as e:
         context.error(f"Error retrieving features from WMS service: {e}")
-        raise exceptions.GeoServerError("Could not retrieve features from WMS service") from e
+        raise exceptions.GeoServerError(
+            "Could not retrieve features from WMS service"
+        ) from e
     feature_collection = json.loads(response.read())
     features = feature_collection["features"]
     return features
@@ -457,7 +459,9 @@ def get_features_in_area(
         )
     except Exception as e:
         context.error(f"Error retrieving features from WFS service: {e}")
-        raise exceptions.GeoServerError("Could not retrieve features from WFS service") from e
+        raise exceptions.GeoServerError(
+            "Could not retrieve features from WFS service"
+        ) from e
     feature_collection = json.loads(response.getvalue())
     features = feature_collection["features"]
     return features
@@ -493,7 +497,9 @@ def get_features_in_request(
     """
     if location := request.get("location"):
         if not block_debug:
-            context.debug(f"Getting features from layer {layer} for location: {location!r}")
+            context.debug(
+                f"Getting features from layer {layer} for location: {location!r}"
+            )
         try:
             location_latitude = float(location["latitude"])
             location_longitude = float(location["longitude"])
@@ -518,10 +524,7 @@ def get_features_in_request(
             )
             return []
         features = get_features_in_area(
-            area=tuple(area), 
-            layer=layer, 
-            max_features=max_features, 
-            context=context
+            area=tuple(area), layer=layer, max_features=max_features, context=context
         )
     return features
 

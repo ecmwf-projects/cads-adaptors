@@ -297,4 +297,3 @@ def test_make_bbox_centered_in_point():
     bbox = mapping.make_bbox_centered_in_point(lat, lon, size)
     expected_bbox = (0.0, 1.0, 2.0, 3.0)
     assert bbox == expected_bbox
-

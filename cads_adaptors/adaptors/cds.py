@@ -8,7 +8,11 @@ from typing import Any, BinaryIO
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
-from cads_adaptors.exceptions import CdsConfigurationError, GeoServerError, InvalidRequest
+from cads_adaptors.exceptions import (
+    CdsConfigurationError,
+    GeoServerError,
+    InvalidRequest,
+)
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.hcube_tools import hcubes_intdiff2
 from cads_adaptors.validation import enforce
