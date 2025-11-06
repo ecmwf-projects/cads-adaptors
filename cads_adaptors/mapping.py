@@ -344,8 +344,8 @@ def make_bbox_centered_in_point(
 
 
 def get_features_at_point(
-    feature_type: str,
     point: tuple[float, float],
+    feature_type: str,
     spatial_reference_system: str = "EPSG:4326",
     context: Context = Context(),
 ) -> list[dict[str, Any]]:
@@ -354,10 +354,10 @@ def get_features_at_point(
 
     Parameters
     ----------
-    feature_type : str
-        The type of feature to retrieve.
     point : tuple
         A tuple representing the point in the format (latitude, longitude).
+    feature_type : str
+        The type of feature to retrieve.
     spatial_reference_system : str
         The spatial reference system of the point. Defaults to "EPSG:4326".
     context : Context
@@ -378,22 +378,27 @@ def get_features_at_point(
         context.error(f"Error connecting to WMS service: {e}")
         return []
     bbox = make_bbox_centered_in_point(point_lat=point[0], point_lon=point[1])
-    feature_collection = wms.getfeatureinfo(
-        layers=[feature_type],
-        srs=spatial_reference_system,
-        bbox=bbox,
-        size=(101, 101),
-        query_layers=[feature_type],
-        info_format="application/json",
-        xy=(50, 50),
-    )
+    try:
+        response = wms.getfeatureinfo(
+            layers=[feature_type],
+            srs=spatial_reference_system,
+            bbox=bbox,
+            size=(101, 101),
+            query_layers=[feature_type],
+            info_format="application/json",
+            xy=(50, 50),
+        )
+    except KeyError as e:
+        context.error(f"Error retrieving features from WMS service: {e}")
+        return []
+    feature_collection = json.loads(response.read())
     features = feature_collection["features"]
     return features
 
 
 def get_features_in_area(
-    feature_type: str,
     area: tuple[float, float, float, float],
+    feature_type: str,
     spatial_reference_system: str = "EPSG:4326",
     context: Context = Context(),
 ) -> list[dict[str, Any]]:
@@ -402,10 +407,10 @@ def get_features_in_area(
 
     Parameters
     ----------
-    feature_type : str
-        The type of feature to retrieve.
     area : tuple
         A tuple representing the bounding box in the format (min_lat, min_lon, max_lat, max_lon).
+    feature_type : str
+        The type of feature to retrieve.
     spatial_reference_system : str
         The spatial reference system of the area. Defaults to "EPSG:4326".
     context : Context
@@ -425,12 +430,16 @@ def get_features_in_area(
     except Exception as e:
         context.error(f"Error connecting to WFS service: {e}")
         return []
-    response = wfs.getfeature(
-        typename=[feature_type],
-        bbox=area,
-        srsname=spatial_reference_system,
-        outputFormat="application/json",
-    )
+    try:
+        response = wfs.getfeature(
+            typename=[feature_type],
+            bbox=area,
+            srsname=spatial_reference_system,
+            outputFormat="application/json",
+        )
+    except KeyError as e:
+        context.error(f"Error retrieving features from WFS service: {e}")
+        return []
     feature_collection = json.loads(response.getvalue())
     features = feature_collection["features"]
     return features
@@ -521,10 +530,11 @@ def get_features_in_request(
             )
             return request
         features = get_features_at_point(
-            feature_type=feature_type,
             point=(location_latitude, location_longitude),
+            feature_type=feature_type,
             context=context,
         )
+
     elif area := request.get("area"):
         if not block_debug:
             context.debug(f"Getting features {feature_type} for area: {area!r}")
@@ -534,7 +544,7 @@ def get_features_in_request(
             )
             return request
         features = get_features_in_area(
-            feature_type=feature_type, area=tuple(area), context=context
+            area=tuple(area), feature_type=feature_type, context=context
         )
     request = add_features_id_to_request(
         request, feature_type, features, context, block_debug
