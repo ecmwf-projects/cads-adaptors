@@ -37,4 +37,3 @@ dependencies:
 - pip:
   - rooki
   - earthkit-transforms>=0.5.2
-  - earthkit-data<=0.16.7
