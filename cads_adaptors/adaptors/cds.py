@@ -69,7 +69,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return self.make_download_object(result)
 
     def check_validity(self, request: Request) -> None:
-        layer: str = self.config.get("layer")
+        layer: str = self.config.get("geoserver-layer")
         if layer is not None:
             try:
                 features_in_request = mapping.get_features_in_request(
