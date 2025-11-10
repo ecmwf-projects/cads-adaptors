@@ -99,12 +99,16 @@ def execute_mars(
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
     delta_time = time.time() - time0
-    filesize = os.path.getsize(target)
-    context.info(
-        f"MARS Request complete. Filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
-        delta_time=delta_time,
-        filesize=filesize,
-    )
+    if os.path.exists(target):
+        filesize = os.path.getsize(target)
+        context.info(
+            f"MARS Request complete. Filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
+            delta_time=delta_time,
+            filesize=filesize,
+        )
+    else:
+        filesize = 0
+
     context.debug(message=reply_message)
 
     if reply.error:
