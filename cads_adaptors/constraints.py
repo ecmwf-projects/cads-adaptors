@@ -4,6 +4,7 @@ import copy
 import itertools
 import re
 from typing import Any
+from qubed import Qube
 
 from datetimerange import DateTimeRange
 
@@ -103,7 +104,11 @@ def apply_constraints(
     :return: a dictionary containing all values that should be left
     active for selection, in JSON format
     """
-    constraint_keys = get_keys(constraints)
+    
+    if isinstance(constraints, Qube):
+        constraint_keys = constraints.axes().keys()
+    else:
+        constraint_keys = get_keys(constraints)
     always_valid = get_always_valid_params(form, constraint_keys)
 
     form = copy.deepcopy(form)
@@ -112,9 +117,14 @@ def apply_constraints(
         if key not in constraint_keys:
             form.pop(key, None)
             selection.pop(key, None)
-    result = apply_constraints_in_old_cds_fashion(
-        form, selection, constraints, widget_types=widget_types
-    )
+    if isinstance(constraints, Qube):
+        result = apply_constraints_in_old_cds_fashion_qubed(
+            form, selection, constraints, widget_types=widget_types
+        )
+    else:
+        result = apply_constraints_in_old_cds_fashion(
+            form, selection, constraints, widget_types=widget_types
+        )
     result.update(format_to_json(always_valid))
 
     return result
@@ -195,6 +205,43 @@ def get_clean_selection(selection: dict[str, set[Any]]):
     for k in NOT_INTERESTING_SELECTION:
         clean_selection.pop(k, None)
     return clean_selection
+
+
+def apply_constraints_in_old_cds_fashion_qubed(
+    form: dict[str, set[Any]],
+    selection: dict[str, set[Any]],
+    constraints: Qube,
+    widget_types: dict[str, str] = dict(),
+) -> dict[str, list[Any]]:
+    # NOTE: form and constraints are both stored in the Qube now
+
+    daterange_widgets = [k for k, v in widget_types.items() if v == "DateRangeWidget"]
+    selected_daterange_widgets = [k for k in daterange_widgets if k in list(selection)]
+    is_daterange_selection_empty = [
+        selection[k] == {""} for k in selected_daterange_widgets
+    ]
+
+    if len(selection) == 0 or (
+        len(daterange_widgets) > 0
+        and len(daterange_widgets) == len(selected_daterange_widgets)
+        and all(is_daterange_selection_empty)
+    ):
+        return format_to_json(form)
+
+    clean_selection = get_clean_selection(selection)
+    for key in clean_selection.keys():
+        clean_selection[key] = list(clean_selection[key])
+
+    constrained_qube = constraints.select(clean_selection)
+
+    constrained_qube_axes = constrained_qube.axes()
+
+    # NOTE: need to also return all values on the current key that we can still select
+    original_qube_axes = constraints.axes()
+    sel_axes = selection.keys()
+    for ax in sel_axes:
+        constrained_qube_axes[ax] = original_qube_axes[ax]
+    return format_to_json(constrained_qube_axes)
 
 
 def apply_constraints_in_old_cds_fashion(

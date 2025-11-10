@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from qubed import Qube
 
 from cads_adaptors import constraints, exceptions
 
@@ -78,8 +79,32 @@ def test_apply_constraints() -> None:
         {"level": {"500"}, "param": {"Z"}},
         {"level": {"850"}, "param": {"T"}},
     ]
+    print("LOOK HERE")
+    print(constraints.apply_constraints(form, {"level": {"500"}}, raw_constraints))
 
     assert constraints.apply_constraints(form, {"level": {"500"}}, raw_constraints)[
+        "number"
+    ] == ["1"]
+
+
+def test_apply_constraints_qubed() -> None:
+    form = {"level": {"500", "850"}, "param": {"Z", "T"}, "number": {"1"}}
+
+    raw_constraints = [
+        {"level": {"500"}, "param": {"Z"}, "number": {"1"}},
+        {"level": {"850"}, "param": {"T"}, "number": {"1"}},
+    ]
+    constraints_qube = Qube.empty()
+
+    for constraint in raw_constraints:
+        for key in constraint.keys():
+            constraint[key] = list(constraint[key])
+        constraints_qube = constraints_qube | Qube.from_datacube(constraint)
+
+    print("LOOK HERE")
+    print(constraints.apply_constraints(form, {"level": {"500"}}, constraints_qube))
+
+    assert constraints.apply_constraints(form, {"level": {"500"}}, constraints_qube)[
         "number"
     ] == ["1"]
 
