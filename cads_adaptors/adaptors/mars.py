@@ -102,12 +102,17 @@ def execute_mars(
     if os.path.exists(target):
         filesize = os.path.getsize(target)
         context.info(
-            f"MARS Request complete. Filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
+            f"The MARS Request produced a target "
+            f"(filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds).",
             delta_time=delta_time,
             filesize=filesize,
         )
     else:
         filesize = 0
+        context.info(
+            f"The MARS request produced no target (delta_time= {delta_time:.2f} seconds).",
+            delta_time=delta_time,
+        )
 
     context.debug(message=reply_message)
 
