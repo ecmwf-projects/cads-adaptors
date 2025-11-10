@@ -5,6 +5,16 @@ from qubed import Qube
 
 from cads_adaptors import constraints, exceptions
 
+def get_constraints_qube(raw_constraints):
+    constraints_qube = Qube.empty()
+
+    for constraint in raw_constraints:
+        for key in constraint.keys():
+            constraint[key] = list(constraint[key])
+        constraints_qube = constraints_qube | Qube.from_datacube(constraint)
+    return constraints_qube
+
+
 
 def test_get_possible_values() -> None:
     form = {
@@ -79,8 +89,6 @@ def test_apply_constraints() -> None:
         {"level": {"500"}, "param": {"Z"}},
         {"level": {"850"}, "param": {"T"}},
     ]
-    print("LOOK HERE")
-    print(constraints.apply_constraints(form, {"level": {"500"}}, raw_constraints))
 
     assert constraints.apply_constraints(form, {"level": {"500"}}, raw_constraints)[
         "number"
@@ -94,15 +102,8 @@ def test_apply_constraints_qubed() -> None:
         {"level": {"500"}, "param": {"Z"}, "number": {"1"}},
         {"level": {"850"}, "param": {"T"}, "number": {"1"}},
     ]
-    constraints_qube = Qube.empty()
 
-    for constraint in raw_constraints:
-        for key in constraint.keys():
-            constraint[key] = list(constraint[key])
-        constraints_qube = constraints_qube | Qube.from_datacube(constraint)
-
-    print("LOOK HERE")
-    print(constraints.apply_constraints(form, {"level": {"500"}}, constraints_qube))
+    constraints_qube = get_constraints_qube(raw_constraints)
 
     assert constraints.apply_constraints(form, {"level": {"500"}}, constraints_qube)[
         "number"
@@ -125,6 +126,26 @@ def test_apply_constraints_errors(selections: dict[str, set[Any]]) -> None:
     ]
     with pytest.raises(exceptions.ParameterError, match="invalid param 'foo'"):
         constraints.apply_constraints(form, selections, raw_constraints)
+
+
+@pytest.mark.parametrize(
+    "selections",
+    (
+        {"foo": {"500"}},
+        {"foo": {"500"}, "level": {"500"}},
+    ),
+)
+def test_apply_constraints_errors_qubed(selections: dict[str, set[Any]]) -> None:
+    form = {"level": {"500", "850"}, "param": {"Z", "T"}, "number": {"1"}}
+
+    raw_constraints = [
+        {"level": {"500"}, "param": {"Z"}, "number": {"1"}},
+        {"level": {"850"}, "param": {"T"}, "number": {"1"}},
+    ]
+
+    constraints_qube = get_constraints_qube(raw_constraints)
+    with pytest.raises(exceptions.ParameterError, match="invalid param 'foo'"):
+        constraints.apply_constraints(form, selections, constraints_qube)
 
 
 def test_parse_constraints() -> None:

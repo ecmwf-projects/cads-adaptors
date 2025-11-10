@@ -221,6 +221,7 @@ def apply_constraints_in_old_cds_fashion_qubed(
         selection[k] == {""} for k in selected_daterange_widgets
     ]
 
+    # NOTE TODO: use constraints qube here instead of form?
     if len(selection) == 0 or (
         len(daterange_widgets) > 0
         and len(daterange_widgets) == len(selected_daterange_widgets)
@@ -232,15 +233,46 @@ def apply_constraints_in_old_cds_fashion_qubed(
     for key in clean_selection.keys():
         clean_selection[key] = list(clean_selection[key])
 
+    original_qube_axes = constraints.axes()
+
+    # TODO: handle widgets, mostly, if we have a DateRange widget,
+    # we need to transform the value to right format to intersect in Qube
+    for selected_widget_name, selected_widget_options in clean_selection.items():
+        selected_widget_type = widget_types.get(
+            selected_widget_name, "UNKNOWN_WIDGET_TYPE"
+        )
+        if selected_widget_name in original_qube_axes.keys():
+            if selected_widget_type == "DateRangeWidget":
+                assert len(selected_widget_options) == 1, (
+                    "More than one selected date range!"
+                )
+                selected_range = gen_time_range_from_string(
+                    next(iter(selected_widget_options))
+                )
+                valid_ranges = [
+                    gen_time_range_from_string(valid_range)
+                    for valid_range in original_qube_axes[selected_widget_name]
+                ]
+                if temporal_intersection_between(selected_range, valid_ranges):
+                    # TODO: deal in qubed
+                    pass
+
+
     constrained_qube = constraints.select(clean_selection)
 
     constrained_qube_axes = constrained_qube.axes()
 
     # NOTE: need to also return all values on the current key that we can still select
-    original_qube_axes = constraints.axes()
+    # original_qube_axes = constraints.axes()
     sel_axes = selection.keys()
     for ax in sel_axes:
-        constrained_qube_axes[ax] = original_qube_axes[ax]
+        if ax in original_qube_axes.keys():
+            constrained_qube_axes[ax] = original_qube_axes[ax]
+        else:
+            raise exceptions.ParameterError(
+                    f"invalid param '{ax}'"
+                )
+    
     return format_to_json(constrained_qube_axes)
 
 
