@@ -1,9 +1,10 @@
 from datetime import datetime
 
 import jsonschema as js
+format_checker = js.FormatChecker()
 
 
-@js.FormatChecker.cls_checks("numeric string")
+@format_checker.checks("numeric string")
 def numeric_checker(item):
     """Register jsonschema format checker for format='numeric string'."""
     try:
@@ -15,7 +16,7 @@ def numeric_checker(item):
         return True
 
 
-@js.FormatChecker.cls_checks("positive numeric string")
+@format_checker.checks("positive numeric string")
 def positive_numeric_checker(item):
     """Register jsonschema format checker for format='positive numeric string'."""
     try:
@@ -25,13 +26,13 @@ def positive_numeric_checker(item):
         return False
 
 
-@js.FormatChecker.cls_checks("date or date range")
+@format_checker.checks("date or date range")
 def date_or_date_range_checker(item):
     """Register jsonschema format checker for format='date or date range'."""
     return date_or_date_range(item)
 
 
-@js.FormatChecker.cls_checks("date range")
+@format_checker.checks("date range")
 def date_range_checker(item):
     """Register jsonschema format checker for format='date range'."""
     return date_or_date_range(item) and "/" in item
@@ -92,4 +93,4 @@ def get_validator(schema):
         else:
             raise Exception('You should set "$schema" or "_draft" in your schema')
 
-    return cls(schema, format_checker=js.FormatChecker())
+    return cls(schema, format_checker=format_checker)
