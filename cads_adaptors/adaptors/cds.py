@@ -3,6 +3,7 @@ import os
 import pathlib
 import time
 from copy import deepcopy
+from math import floor, ceil
 from random import randint
 from typing import Any, BinaryIO
 
@@ -264,6 +265,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         for schema in schemas:
             request = enforce.enforce(request, schema, self.context.logger)
 
+        # Perform area snapping, if required
+        request = self.snap_area(request)
+
         # Pre-mapping modifications
         working_request = self.pre_mapping_modifications(deepcopy(request))
 
@@ -333,6 +337,91 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         self.normalised = True
         return request
+
+    def snap_area(self, request: dict[str, Any]) -> Request:
+        """Optionally snap the corners of any requested area inwards to the
+           nearest points of a grid provided in the config. This is useful for
+           maintaining consistency of output between GRIB fields which have been
+           pre-interpolated to a regular grid and those which remain on a
+           Gaussian grid, since MARS treats sub-areas differently for these two
+           grid types."""
+
+        request = deepcopy(request)
+
+        if "area" not in request or "snap_area" not in self.config:
+            return request
+
+        # Extract details of grid to snap to, plus any other options
+        try:
+            dlon = float(self.config["snap_area"]["grid"]["delta_lon"])
+            dlat = float(self.config["snap_area"]["grid"]["delta_lat"])
+            if dlon <= 0 or dlat <= 0:
+                raise Exception("delta_lon and delta_lat must be positive")
+            lon0 = float(self.config["snap_area"]["grid"].get("lon0", 0))
+            lat0 = float(self.config["snap_area"]["grid"].get("lat0", 0))
+            round_ndp = int(self.config["snap_area"].get("round_ndigits", 9))
+        except Exception as e:
+            raise CdsConfigurationError("Invalid snap area: "+
+                                        f"{self.config.get('snap_area')}: {e!r}")
+
+        # Ensure the area is four-element list of numeric strings
+        request = self.enforce_sane_area(request)
+        area = request["area"]
+
+        # This is made safe by self.enforce_sane_area
+        north, west, south, east = [float(l) for l in request["area"]]
+
+        # Enforce numerical order: N > S and W+360 > E >= W
+        south, north = sorted([south, north])
+        if east != west:
+            while east <= west:
+                east += 360
+            while east > west + 360:
+                east -= 360
+
+        # Snap area to grid points points inside area
+        north = floor(round((north - lat0) / dlat, round_ndp)) * dlat + lat0
+        west = ceil(round((west - lon0) / dlon, round_ndp)) * dlon + lon0
+        south = ceil(round((south - lat0) / dlat, round_ndp)) * dlat + lat0
+        east = floor(round((east - lon0) / dlon, round_ndp)) * dlon + lon0
+
+        if north < south or east < west:
+            raise InvalidRequest("request area contains no grid points")
+
+        # Shift longitudes back into their original numerical ranges / orders. It's
+        # not really the job of this function to be "fixing" those
+        west -= floor((west - area[1] + 180)/360)*360
+        east -= floor((east - area[3] + 180)/360)*360
+        south, north = (south, north) if (area[0] > area[2]) else (north, south)
+
+        # Convert back to string after rounding to cope with floating point
+        # errors that generate values like 10.05000000000001
+        request["area"] = [str(round(l, round_ndp)) for l in [north, west, south, east]]
+        return request
+
+    def enforce_sane_area(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Ensure that area key, if present, is a list of four strings which
+           represent valid numbers."""
+
+        lat = {'type': 'number', '_splitOn': '/', 'minimum': -90., 'maximum': 90.}
+        lon = {'type': 'number', '_splitOn': '/'}
+
+        schema = {
+            '_draft': '7',
+            'type': 'object',                       # A dict...
+            'properties': {
+                'area': {                           # ...perhaps having area keys
+                    'type': 'array',                # ...which are lists
+                    'minItems': 4,                  # ...of 4 items
+                    'maxItems': 4,
+                    # Note that if draft 2020-12 is used, "items" should be
+                    # renamed "prefixItems"
+                    'items': [lat, lon, lat, lon],  # ...of numeric strings
+                }
+            }
+        }
+
+        return enforce.enforce(request, schema, self.context.logger)
 
     def set_download_format(self, download_format, default_download_format="zip"):
         """Check that requested download format is supported by the adaptor, and if not set to default."""
