@@ -104,7 +104,6 @@ def apply_constraints(
     :return: a dictionary containing all values that should be left
     active for selection, in JSON format
     """
-
     if isinstance(constraints, Qube):
         constraint_keys = constraints.axes().keys()
     else:
