@@ -3,7 +3,7 @@ import os
 import pathlib
 import time
 from copy import deepcopy
-from math import floor, ceil
+from math import ceil, floor
 from random import randint
 from typing import Any, BinaryIO
 
@@ -340,12 +340,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def snap_area(self, request: dict[str, Any]) -> Request:
         """Optionally snap the corners of any requested area inwards to the
-           nearest points of a grid provided in the config. This is useful for
-           maintaining consistency of output between GRIB fields which have been
-           pre-interpolated to a regular grid and those which remain on a
-           Gaussian grid, since MARS treats sub-areas differently for these two
-           grid types."""
-
+        nearest points of a grid provided in the config. This is useful for
+        maintaining consistency of output between GRIB fields which have been
+        pre-interpolated to a regular grid and those which remain on a
+        Gaussian grid, since MARS treats sub-areas differently for these two
+        grid types.
+        """
         request = deepcopy(request)
 
         if "area" not in request or "snap_area" not in self.config:
@@ -361,15 +361,16 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             lat0 = float(self.config["snap_area"]["grid"].get("lat0", 0))
             round_ndp = int(self.config["snap_area"].get("round_ndigits", 9))
         except Exception as e:
-            raise CdsConfigurationError("Invalid snap area: "+
-                                        f"{self.config.get('snap_area')}: {e!r}")
+            raise CdsConfigurationError(
+                f"Invalid snap area: {self.config.get('snap_area')}: {e!r}"
+            )
 
         # Ensure the area is four-element list of numeric strings
         request = self.enforce_sane_area(request)
         area = request["area"]
 
         # This is made safe by self.enforce_sane_area
-        north, west, south, east = [float(l) for l in request["area"]]
+        north, west, south, east = [float(ll) for ll in request["area"]]
 
         # Enforce numerical order: N > S and W+360 > E >= W
         south, north = sorted([south, north])
@@ -390,35 +391,37 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         # Shift longitudes back into their original numerical ranges / orders. It's
         # not really the job of this function to be "fixing" those
-        west -= floor((west - area[1] + 180)/360)*360
-        east -= floor((east - area[3] + 180)/360)*360
+        west -= floor((west - area[1] + 180) / 360) * 360
+        east -= floor((east - area[3] + 180) / 360) * 360
         south, north = (south, north) if (area[0] > area[2]) else (north, south)
 
         # Convert back to string after rounding to cope with floating point
         # errors that generate values like 10.05000000000001
-        request["area"] = [str(round(l, round_ndp)) for l in [north, west, south, east]]
+        request["area"] = [
+            str(round(ll, round_ndp)) for ll in [north, west, south, east]
+        ]
         return request
 
     def enforce_sane_area(self, request: dict[str, Any]) -> dict[str, Any]:
         """Ensure that area key, if present, is a list of four strings which
-           represent valid numbers."""
-
-        lat = {'type': 'number', '_splitOn': '/', 'minimum': -90., 'maximum': 90.}
-        lon = {'type': 'number', '_splitOn': '/'}
+        represent valid numbers.
+        """
+        lat = {"type": "number", "_splitOn": "/", "minimum": -90.0, "maximum": 90.0}
+        lon = {"type": "number", "_splitOn": "/"}
 
         schema = {
-            '_draft': '7',
-            'type': 'object',                       # A dict...
-            'properties': {
-                'area': {                           # ...perhaps having area keys
-                    'type': 'array',                # ...which are lists
-                    'minItems': 4,                  # ...of 4 items
-                    'maxItems': 4,
+            "_draft": "7",
+            "type": "object",  # A dict...
+            "properties": {
+                "area": {  # ...perhaps having area keys
+                    "type": "array",  # ...which are lists
+                    "minItems": 4,  # ...of 4 items
+                    "maxItems": 4,
                     # Note that if draft 2020-12 is used, "items" should be
                     # renamed "prefixItems"
-                    'items': [lat, lon, lat, lon],  # ...of numeric strings
+                    "items": [lat, lon, lat, lon],  # ...of numeric strings
                 }
-            }
+            },
         }
 
         return enforce.enforce(request, schema, self.context.logger)
