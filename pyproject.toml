@@ -57,7 +57,8 @@ complete = [
   "tabulate",
   "tqdm",
   "xarray",
-  "zarr"
+  "zarr",
+  "qubed",
 ]
 tests = [
   "pytest",

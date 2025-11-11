@@ -4,9 +4,9 @@ import copy
 import itertools
 import re
 from typing import Any
-from qubed import Qube
 
 from datetimerange import DateTimeRange
+from qubed import Qube
 
 from . import adaptors, exceptions, translators
 
@@ -104,7 +104,7 @@ def apply_constraints(
     :return: a dictionary containing all values that should be left
     active for selection, in JSON format
     """
-    
+
     if isinstance(constraints, Qube):
         constraint_keys = constraints.axes().keys()
     else:
@@ -257,7 +257,6 @@ def apply_constraints_in_old_cds_fashion_qubed(
                     # TODO: deal in qubed
                     pass
 
-
     constrained_qube = constraints.select(clean_selection)
 
     constrained_qube_axes = constrained_qube.axes()
@@ -269,10 +268,8 @@ def apply_constraints_in_old_cds_fashion_qubed(
         if ax in original_qube_axes.keys():
             constrained_qube_axes[ax] = original_qube_axes[ax]
         else:
-            raise exceptions.ParameterError(
-                    f"invalid param '{ax}'"
-                )
-    
+            raise exceptions.ParameterError(f"invalid param '{ax}'")
+
     return format_to_json(constrained_qube_axes)
 
 

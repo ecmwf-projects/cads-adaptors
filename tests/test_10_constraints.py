@@ -5,6 +5,7 @@ from qubed import Qube
 
 from cads_adaptors import constraints, exceptions
 
+
 def get_constraints_qube(raw_constraints):
     constraints_qube = Qube.empty()
 
@@ -13,7 +14,6 @@ def get_constraints_qube(raw_constraints):
             constraint[key] = list(constraint[key])
         constraints_qube = constraints_qube | Qube.from_datacube(constraint)
     return constraints_qube
-
 
 
 def test_get_possible_values() -> None:
