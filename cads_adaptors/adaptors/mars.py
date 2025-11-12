@@ -143,37 +143,39 @@ def execute_mars(
     return target
 
 
-def minimal_mars_schema(allow_duplicate_values_keys=None,
-                        remove_duplicate_values=False,
-                        extra_key_chars=None,
-                        extra_value_chars=None):
+def minimal_mars_schema(
+    allow_duplicate_values_keys=None,
+    remove_duplicate_values=False,
+    extra_key_chars=None,
+    extra_value_chars=None,
+):
     """A minimal schema required for the adaptor code to work and a syntactically
     valid MARS request to be formed. In future this should perhaps be made less
     minimal in order to do a bit more tidying up of the request. Value splitting on
     slashes could also be done in order to detect duplicate values when in
-    slash-separated form."""
-
+    slash-separated form.
+    """
     # Negative look-ahead assertion used to reject any string containing a
     # newline, equal sign or comma in a key or value. These have special meaning
     # to MARS and can result in a syntactically invalid request, or can be used
     # to hack MARS.
-    neg_assertion = r'(?!.*[\n=,].*$)'
+    neg_assertion = r"(?!.*[\n=,].*$)"
 
     # Regular expressions for valid keys and values. Valid keys contain one or
     # more consecutive [a-zA-Z0-9_] characters. Valid values contain one or more
     # printable, non-whitespace characters (! to ~). Both can be bounded by any
     # amount of whitespace as this would not cause a MARS failure.
-    extra_key_chars = extra_key_chars or ''
-    extra_value_chars = extra_value_chars or ''
-    key_regex = rf'^{neg_assertion}[ \t]*[\w{extra_key_chars}]+[ \t]*$'
-    value_regex = rf'^{neg_assertion}[ \t]*[!-~{extra_value_chars}]+[ \t]*$'
+    extra_key_chars = extra_key_chars or ""
+    extra_value_chars = extra_value_chars or ""
+    key_regex = rf"^{neg_assertion}[ \t]*[\w{extra_key_chars}]+[ \t]*$"
+    value_regex = rf"^{neg_assertion}[ \t]*[!-~{extra_value_chars}]+[ \t]*$"
 
     # These are the only keys permitted to have duplicate values. Duplicate
     # values for field-selection keys sometimes leads to MARS rejecting the
     # request but other times can result in duplicate output fields which can
     # cause downstream problems. Manuel advises not to rely on specific MARS
     # behaviour when given duplicate values so we reject them in advance.
-    postproc_keys = (['grid', 'area'] + (allow_duplicate_values_keys or []))
+    postproc_keys = ["grid", "area"] + (allow_duplicate_values_keys or [])
 
     # Form a regex that matches any key that will not be interpreted as one of
     # postproc_keys by MARS. i.e. a case-insensitive regex that matches anything
@@ -181,46 +183,46 @@ def minimal_mars_schema(allow_duplicate_values_keys=None,
     # lead characters match lead characters of one of postproc_keys. This
     # complexity is required because MARS will interpret all of the following as
     # area: "ArEa", "areaXYZ", "are", "arefoo".
-    same_lead_chars = ['('.join(list(k)) + ''.join([')?'] * (len(k)-1))
-                       for k in postproc_keys]
-    not_postproc_key = r'(?i)^(?!\s*(' + '|'.join(same_lead_chars) + '))'
+    same_lead_chars = [
+        "(".join(list(k)) + "".join([")?"] * (len(k) - 1)) for k in postproc_keys
+    ]
+    not_postproc_key = r"(?i)^(?!\s*(" + "|".join(same_lead_chars) + "))"
 
     # Minimal schema
-    schema={
-        '_draft': '7',
-        'allOf': [                            # All following schemas must match.
-
+    schema = {
+        "_draft": "7",
+        "allOf": [  # All following schemas must match.
             # Basic requirements for all keys
-            {'type': 'object',                 # Item is a dict
-             'minProperties': 1,               # ...with at least 1 key
-             'patternProperties': {
-                 key_regex: {                  # ...with names matching this
-                     'type': 'array',          # ...must hold lists
-                     'minItems': 1,            # ...of at least 1 item
-                     'items': {
-                         'type': 'string',     # ...which are strings
-                         'pattern': value_regex,  # ...matching this regex
-                         '_onErrorShowPattern': False  # (error msg control)
-                     }
-                 }
-             },
-             'additionalProperties': False,    # ...with no non-matching keys
-             '_onErrorShowPattern': False      # (error msg control)
+            {
+                "type": "object",  # Item is a dict
+                "minProperties": 1,  # ...with at least 1 key
+                "patternProperties": {
+                    key_regex: {  # ...with names matching this
+                        "type": "array",  # ...must hold lists
+                        "minItems": 1,  # ...of at least 1 item
+                        "items": {
+                            "type": "string",  # ...which are strings
+                            "pattern": value_regex,  # ...matching this regex
+                            "_onErrorShowPattern": False,  # (error msg control)
+                        },
+                    }
+                },
+                "additionalProperties": False,  # ...with no non-matching keys
+                "_onErrorShowPattern": False,  # (error msg control)
             },
-            
             # Additional requirement for some keys
-            {'type': 'object',                    # Item is a dict
-             'patternProperties': {               # ... in which non
-                 not_postproc_key: {              #     post-processing keys
-                     'type': 'array',
-                     'uniqueItems': True,         # ...containing duplicates
-                                                  # .. are rejected or have
-                                                  #    duplicates removed
-                     '_noRemoveDuplicates': not remove_duplicate_values
-                 }
-             }}
-            
-        ]
+            {
+                "type": "object",  # Item is a dict
+                "patternProperties": {
+                    not_postproc_key: {  # ...in which non post-processing keys
+                        "type": "array",
+                        "uniqueItems": True,  # ...containing duplicates
+                        # ... are rejected or have duplicates removed
+                        "_noRemoveDuplicates": not remove_duplicate_values,
+                    }
+                },
+            },
+        ],
     }
 
     return schema
@@ -239,7 +241,6 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
-
     def __init__(self, *args, schema_options=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.data_format: str | None = None
