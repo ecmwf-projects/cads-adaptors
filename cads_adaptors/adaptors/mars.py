@@ -1,6 +1,7 @@
 import os
 import pathlib
 import time
+from copy import deepcopy
 from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
@@ -16,6 +17,7 @@ from cads_adaptors.tools.general import (
     ensure_list,
     split_requests_on_keys,
 )
+from cads_adaptors.tools.snap_area import snap_area
 
 # This hard requirement of MARS requests should be moved to the proxy MARS client
 ALWAYS_SPLIT_ON: list[str] = [
@@ -204,6 +206,46 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         self.set_download_format(
             download_format, default_download_format=default_download_format
         )
+
+        # Perform actions necessary to simulate pre-interpolation of fields to
+        # a regular grid
+        if self.config.get("simulate_preinterpolation"):
+            request = self.simulate_preinterpolation(request)
+
+        return request
+
+    def simulate_preinterpolation(self, request: dict[str, Any]) -> Request:
+        """Return a copy of the request suitably altered to simulate pre-
+        interpolation of the data to a regular grid. This is useful for
+        maintaining consistency of output between GRIB fields which have been
+        pre-interpolated and those which remain on a Gaussian grid, since MARS
+        treats sub-areas differently for these two grid types if the grid
+        keyword is not present.
+        """
+
+        request = deepcopy(request)
+        keys = {k.lower().strip(): k for k in request.keys()}
+
+        # Do nothing if the grid keyword is present, because then MARS will
+        # always interpolate from the SW point for both regular and irregular
+        # grids
+        if "grid" not in keys:
+            cfg = self.config["simulate_preinterpolation"]
+
+            # Set the grid to the notional pre-interpolation grid resolution
+            try:
+                request["grid"] = [str(cfg["grid"]["delta_lon"]),
+                                   str(cfg["grid"]["delta_lat"])]
+            except Exception:
+                raise CdsConfigError(
+                    "Missing details in simulate_preinterpolation config"
+                ) from None
+
+            # If area is present then snap the corners inwards to the nearest
+            # points on the notional pre-interpolation grid point
+            if "area" in keys:
+                rr = self.enforce_sane_area(request)
+                request["area"] = [str(ll) for ll in snap_area(rr[keys["area"]], cfg)]
 
         return request
 
