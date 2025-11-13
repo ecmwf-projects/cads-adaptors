@@ -45,40 +45,44 @@ def test_bad_areas():
         dict(a=1, b=2, c=3, d=4, e=5),
     ):
         check_invalid_area(
-            area, config,
+            area,
+            config,
             r"request\['area'\]: .+: list has too few items. Should have exactly 4",
         )
 
     # Too many items
     for area in ("1/2/3/4/5", [1, 2, 3, 4, 5]):
         check_invalid_area(
-            area, config,
+            area,
+            config,
             r"request\['area'\]: .+: list has too many items. Should have exactly 4",
         )
 
     # Invalid number
     for area in ("1/2/3/a", [1, 2, 3, "a"]):
         check_invalid_area(
-            area, config,
+            area,
+            config,
             r"request\['area'\]\[3\]: 'a' is not a valid number",
         )
 
     # Lat > 90
     check_invalid_area(
-        "100/-10/-90/10", config,
+        "100/-10/-90/10",
+        config,
         r"request\['area'\]\[0\]: 100.0 is greater than the maximum of 90.0",
     )
 
     # Lat < -90
     check_invalid_area(
-        "90/-10/-91/10", config,
+        "90/-10/-91/10",
+        config,
         r"request\['area'\]\[2\]: -91.0 is less than the minimum of -90.0",
     )
 
 
 def test_global_areas():
     """Check global areas stay global."""
-
     config = {KEYNAME: {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}}
 
     # Global areas with N-S, E-W mixed up
@@ -177,29 +181,43 @@ def test_snapping():
     config = {KEYNAME: {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}}
 
     # All round down
-    check_snap("10.123/-20.345/-30.456/40.789", config, ["10.1", "-20.3", "-30.4", "40.7"])
+    check_snap(
+        "10.123/-20.345/-30.456/40.789", config, ["10.1", "-20.3", "-30.4", "40.7"]
+    )
 
     # N/W round up, E/W round down
-    check_snap("-10.123/20.345/-30.456/40.789", config, ["-10.2", "20.4", "-30.4", "40.7"])
+    check_snap(
+        "-10.123/20.345/-30.456/40.789", config, ["-10.2", "20.4", "-30.4", "40.7"]
+    )
 
     # N/W round down, E/W round up
-    check_snap("80.123/-120.345/30.456/-40.789", config, ["80.1", "-120.3", "30.5", "-40.8"])
+    check_snap(
+        "80.123/-120.345/30.456/-40.789", config, ["80.1", "-120.3", "30.5", "-40.8"]
+    )
 
 
 def test_snapping_with_offset():
     """Test general snapping with an offset grid."""
     config = {
         KEYNAME: {
-            "grid": {"delta_lon": "0.1", "delta_lat": "0.2",
-                     "lon0": "0.05", "lat0": 0.1}
+            "grid": {
+                "delta_lon": "0.1",
+                "delta_lat": "0.2",
+                "lon0": "0.05",
+                "lat0": 0.1,
+            }
         }
     }
 
     # All round down
-    check_snap("10.123/-20.345/-30.456/40.789", config, ["10.1", "-20.25", "-30.3", "40.75"])
+    check_snap(
+        "10.123/-20.345/-30.456/40.789", config, ["10.1", "-20.25", "-30.3", "40.75"]
+    )
 
     # N/W round up, E/W round down
-    check_snap("-10.123/20.345/-30.456/40.789", config, ["-10.3", "20.35", "-30.3", "40.75"])
+    check_snap(
+        "-10.123/20.345/-30.456/40.789", config, ["-10.3", "20.35", "-30.3", "40.75"]
+    )
 
     # N/W round down, E/W round up
     check_snap(
@@ -208,35 +226,34 @@ def test_snapping_with_offset():
 
 
 def test_case_insensitive():
-    """Test case insensitivity of area keyword"""
+    """Test case insensitivity of area keyword."""
     config = {KEYNAME: {"grid": {"delta_lon": 0.2, "delta_lat": 0.1}}}
-    adp = MarsCdsAdaptor(
-        form=None, context=Context(logger=logger), **deepcopy(config)
-    )
+    adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
 
     for key in ["area", "AREA", " AreA "]:
-        req_in={key: [10.123, -20.345, -30.456, 40.789]}
+        req_in = {key: [10.123, -20.345, -30.456, 40.789]}
         req_out = adp.simulate_preinterpolation(req_in)
-        assert req_out == {key: ["10.1", "-20.2", "-30.4", "40.6"],
-                           "grid": ["0.2", "0.1"]}, req_out
+        assert req_out == {
+            key: ["10.1", "-20.2", "-30.4", "40.6"],
+            "grid": ["0.2", "0.1"],
+        }, req_out
 
 
 def test_grid_suppresses_snap():
-    """Test presence of the grid keyword suppresses snapping"""
-
+    """Test presence of the grid keyword suppresses snapping."""
     config = {KEYNAME: {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}}
-    adp = MarsCdsAdaptor(
-        form=None, context=Context(logger=logger), **deepcopy(config)
-    )
+    adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
     area = "10.123/-20.345/-30.456/40.789"
 
     # Check area snaps without grid present
     req_in = {"area": area}
     req_out = adp.simulate_preinterpolation(req_in)
-    assert req_out == {"area": ["10.1", "-20.3", "-30.4", "40.7"],
-                       "grid": ["0.1", "0.1"]}
+    assert req_out == {
+        "area": ["10.1", "-20.3", "-30.4", "40.7"],
+        "grid": ["0.1", "0.1"],
+    }
 
-    # Check it doesn't snap if grid is present, and doesn't override a user-provided 
+    # Check it doesn't snap if grid is present, and doesn't override a user-provided
     # grid either
     for key in ["grid", "GRID", "  GriD  "]:
         req_in = {"area": area, key: "2/2"}
@@ -245,34 +262,28 @@ def test_grid_suppresses_snap():
 
 
 def check_invalid_area(area, config, regex):
-    """Check the input area fails the schema check"""
+    """Check the input area fails the schema check."""
+    adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
 
-    adp = MarsCdsAdaptor(
-        form=None, context=Context(logger=logger), **deepcopy(config)
-    )
-
-    req_in={"area": area}
+    req_in = {"area": area}
 
     with pytest.raises(InvalidRequest) as einfo:
         adp.simulate_preinterpolation(req_in)
 
     if not re.search(regex, einfo.value.args[0]):
-        raise Exception(f"Exception message {einfo.value.args[0]!r} does not match "
-                        f"regex: {regex!r}")
+        raise Exception(
+            f"Exception message {einfo.value.args[0]!r} does not match regex: {regex!r}"
+        )
 
 
 def check_snap(area_in, config, area_out):
-    """Check the input area snaps as expected"""
+    """Check the input area snaps as expected."""
+    adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
 
-    adp = MarsCdsAdaptor(
-        form=None, context=Context(logger=logger), **deepcopy(config)
-    )
-
-    req_in={"area": area_in}
+    req_in = {"area": area_in}
     req_out = adp.simulate_preinterpolation(req_in)
     pre_grid = config[KEYNAME]["grid"]
-    assert (
-        req_out == {"area": area_out, "grid": [str(pre_grid["delta_lon"]),
-                                               str(pre_grid["delta_lat"])]}
-    ), req_out
-    
+    assert req_out == {
+        "area": area_out,
+        "grid": [str(pre_grid["delta_lon"]), str(pre_grid["delta_lat"])],
+    }, req_out

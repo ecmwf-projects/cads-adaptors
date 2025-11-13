@@ -222,7 +222,6 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         treats sub-areas differently for these two grid types if the grid
         keyword is not present.
         """
-
         request = deepcopy(request)
         keys = {k.lower().strip(): k for k in request.keys()}
 
@@ -234,8 +233,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
             # Set the grid to the notional pre-interpolation grid resolution
             try:
-                request["grid"] = [str(cfg["grid"]["delta_lon"]),
-                                   str(cfg["grid"]["delta_lat"])]
+                request["grid"] = [
+                    str(cfg["grid"]["delta_lon"]),
+                    str(cfg["grid"]["delta_lat"]),
+                ]
             except Exception:
                 raise CdsConfigError(
                     "Missing details in simulate_preinterpolation config"
@@ -245,8 +246,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             # points on the notional pre-interpolation grid point
             if "area" in keys:
                 rr = self.enforce_sane_area(request)
-                request[keys["area"]] = [str(ll) for ll in
-                                         snap_area(rr[keys["area"]], cfg)]
+                request[keys["area"]] = [
+                    str(ll) for ll in snap_area(rr[keys["area"]], cfg)
+                ]
 
         return request
 

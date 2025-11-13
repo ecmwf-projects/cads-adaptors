@@ -334,14 +334,15 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.normalised = True
         return request
 
-    def enforce_sane_area(self, request: dict[str, Any], area_key=None) -> dict[str, Any]:
+    def enforce_sane_area(
+        self, request: dict[str, Any], area_key=None
+    ) -> dict[str, Any]:
         """Ensure that area key, if present, is a list of four strings which
         represent valid numbers.
         """
-
         if not area_key:
             # Allow for varying case and whitespace in area keyword string
-            keys = [k for k in request if k.lower().strip() == 'area']
+            keys = [k for k in request if k.lower().strip() == "area"]
             if len(keys) == 1:
                 area_key = keys[0]
             elif len(keys) > 1:
