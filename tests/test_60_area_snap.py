@@ -213,7 +213,7 @@ def test_case_insensitive():
         form=None, context=Context(logger=logger), **deepcopy(config)
     )
 
-    for key in ["area"]:
+    for key in ["area", "AREA", " AreA "]:
         req_in={key: [10.123, -20.345, -30.456, 40.789]}
         req_out = adp.simulate_preinterpolation(req_in)
         assert req_out == {key: ["10.1", "-20.2", "-30.4", "40.6"],
