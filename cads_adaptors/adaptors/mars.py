@@ -245,7 +245,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             # points on the notional pre-interpolation grid point
             if "area" in keys:
                 rr = self.enforce_sane_area(request)
-                request["area"] = [str(ll) for ll in snap_area(rr[keys["area"]], cfg)]
+                request[keys["area"]] = [str(ll) for ll in
+                                         snap_area(rr[keys["area"]], cfg)]
 
         return request
 

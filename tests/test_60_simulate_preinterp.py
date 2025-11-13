@@ -20,6 +20,7 @@ def test_no_area():
     req = adp.simulate_preinterpolation({})
     assert req == {"grid": ["0.1", "0.2"]}
 
+
 def test_bad_config():
     """Check invalid config raises appropriate exception."""
     config = {KEYNAME: {"random_key": "random_value"}}
@@ -244,6 +245,7 @@ def test_grid_suppresses_snap():
 
 
 def check_invalid_area(area, config, regex):
+    """Check the input area fails the schema check"""
 
     adp = MarsCdsAdaptor(
         form=None, context=Context(logger=logger), **deepcopy(config)
@@ -260,6 +262,7 @@ def check_invalid_area(area, config, regex):
 
 
 def check_snap(area_in, config, area_out):
+    """Check the input area snaps as expected"""
 
     adp = MarsCdsAdaptor(
         form=None, context=Context(logger=logger), **deepcopy(config)
