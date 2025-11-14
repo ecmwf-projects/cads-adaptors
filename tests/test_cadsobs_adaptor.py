@@ -3,10 +3,12 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import h5netcdf
+import numpy as np
 import pytest
 
 from cads_adaptors import Context, ObservationsAdaptor
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
+from cads_adaptors.adaptors.cadsobs.char_utils import concat_str_array
 from cads_adaptors.exceptions import CadsObsConnectionError, InvalidRequest
 
 # get numbered vars programatically, as they are to many to add by hand to
@@ -113,7 +115,11 @@ CDM_LITE_VARIABLES: dict[str, list[str] | dict] = {
 TEST_REQUEST = {
     "time_aggregation": "daily",
     "format": "netCDF",
-    "variable": ["maximum_air_temperature", "maximum_relative_humidity"],
+    "variable": [
+        "maximum_air_temperature",
+        "maximum_relative_humidity",
+        "soil_temperature",
+    ],
     "year": "2007",
     "month": ["11"],
     "day": [
@@ -131,6 +137,7 @@ TEST_REQUEST_CUON = {
     "month": ["07"],
     "day": ["01", "02"],
     "data_format": "netcdf",
+    "extra_filters": {"z_coordinate": [85000, 70000]},
 }
 
 
@@ -270,8 +277,16 @@ def test_adaptor(tmp_path, monkeypatch):
     with tempfile.open("wb") as tmpf:
         tmpf.write(result.read())
     assert tempfile.stat().st_size > 0
-    actual = h5netcdf.File(tempfile)
-    assert actual.dimensions["index"].size > 0
+    with h5netcdf.File(tempfile) as actual:
+        assert actual.dimensions["index"].size > 0
+        # Check if all the variables are there
+        actual_variables = concat_str_array(actual.variables["observed_variable"][:])
+        expected_variables = [
+            b"daily_maximum_air_temperature",
+            b"daily_maximum_relative_humidity",
+            b"soil_temperature",
+        ]
+        assert np.array_equal(np.unique(actual_variables), expected_variables)
     # Check if the parameters have been properly mapped.
     assert adaptor.mapped_request == {
         "dataset_source": "uscrn_daily",
@@ -279,6 +294,7 @@ def test_adaptor(tmp_path, monkeypatch):
         "variables": [
             "daily_maximum_air_temperature",
             "daily_maximum_relative_humidity",
+            "soil_temperature",
         ],
         "year": [2007],
         "month": [11],
@@ -286,6 +302,18 @@ def test_adaptor(tmp_path, monkeypatch):
         "latitude_coverage": ["30", "50"],
         "longitude_coverage": ["-150", "-100"],
     }
+    # Test extra filter
+    test_request_extr_filter = TEST_REQUEST.copy()
+    test_request_extr_filter["extra_filters"] = {"processing_level": 1}
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
+    result = adaptor.retrieve(test_request_extr_filter)
+    tempfile = Path(tmp_path, "test_adaptor.nc")
+    with tempfile.open("wb") as tmpf:
+        tmpf.write(result.read())
+    with h5netcdf.File(tempfile) as actual:
+        actual_variables = concat_str_array(actual.variables["observed_variable"][:])
+        # Filtering processing level 1 leaves only the soil_temperature available
+        assert np.unique(actual_variables) == [b"soil_temperature"]
 
 
 def test_adaptor_cuon(tmp_path, monkeypatch):
@@ -303,6 +331,8 @@ def test_adaptor_cuon(tmp_path, monkeypatch):
     assert tempfile.stat().st_size > 0
     actual = h5netcdf.File(tempfile)
     assert actual.dimensions["index"].size > 0
+    actual_levels = actual.variables["z_coordinate"][:]
+    assert np.array_equal(np.unique(actual_levels), [70000, 85000])
     assert not any([f in actual for f in CUON_DISABLED_FIELDS])
 
 
