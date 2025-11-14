@@ -7,7 +7,6 @@ def snap_area(area, cfg):
     """Return the input area after snapping the corners inwards to the nearest
     points of a grid whose details are provided in cfg.
     """
-
     area = [float(ll) for ll in area]
     north, west, south, east = area
 
@@ -29,9 +28,7 @@ def snap_area(area, cfg):
         lat0 = float(cfg["grid"].get("lat0", 0))
         round_ndp = int(cfg.get("round_ndigits", 9))
     except Exception as e:
-        raise CdsConfigError(
-            f"Invalid snap area: {cfg}: {e!r}"
-        )
+        raise CdsConfigError(f"Invalid snap area: {cfg}: {e!r}")
 
     # Snap to grid points points inside area
     north = floor(round((north - lat0) / dlat, round_ndp)) * dlat + lat0
