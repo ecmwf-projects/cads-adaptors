@@ -334,6 +334,42 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.normalised = True
         return request
 
+    def enforce_sane_area(
+        self, request: dict[str, Any], area_key=None
+    ) -> dict[str, Any]:
+        """Ensure that area key, if present, is a list of four strings which
+        represent valid numbers.
+        """
+        if not area_key:
+            # Allow for varying case and whitespace in area keyword string
+            keys = [k for k in request if k.lower().strip() == "area"]
+            if len(keys) == 1:
+                area_key = keys[0]
+            elif len(keys) > 1:
+                raise InvalidRequest("More than one area key in request")
+            else:
+                area_key = "area"
+
+        lat = {"type": "number", "_splitOn": "/", "minimum": -90.0, "maximum": 90.0}
+        lon = {"type": "number", "_splitOn": "/"}
+
+        schema = {
+            "_draft": "7",
+            "type": "object",  # A dict...
+            "properties": {
+                area_key: {  # ...perhaps having an area key
+                    "type": "array",  # ...which is a list
+                    "minItems": 4,  # ...of 4 items
+                    "maxItems": 4,
+                    # Note that if draft 2020-12 is used, "items" should be
+                    # renamed "prefixItems"
+                    "items": [lat, lon, lat, lon],  # ...of numeric strings
+                }
+            },
+        }
+
+        return enforce.enforce(request, schema, self.context.logger)
+
     def set_download_format(self, download_format, default_download_format="zip"):
         """Check that requested download format is supported by the adaptor, and if not set to default."""
         # Apply any mapping
