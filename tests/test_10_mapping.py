@@ -289,3 +289,11 @@ def test_area_as_mapping_merges_with_existing_keys():
     }
     result = mapping.area_as_mapping(request, adaptor_mapping)
     assert result["source"] == ["ground", "satellite"]
+
+
+def test_make_bbox_centered_in_point():
+    lat, lon = 1.0, 2.0
+    size = 2.0
+    bbox = mapping.make_bbox_centered_in_point(lat, lon, size)
+    expected_bbox = (0.0, 1.0, 2.0, 3.0)
+    assert bbox == expected_bbox
