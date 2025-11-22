@@ -35,12 +35,13 @@ complete = [
   "boto3",
   "cacholote",
   "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
+  "cds-common@git+ssh://git@github.com/ecmwf/cds-common.git@1.0.0",
   "cdsapi>=0.7.6",
   "cfgrib>=0.9.14.0",
   "cftime",
   "dask",
-  "ecmwflibs",
-  "earthkit-transforms>=0.3.3",
+  "eccodes",
+  "earthkit-transforms>=0.5.2",
   "fsspec",
   "h5netcdf",
   "jinja2",
@@ -62,8 +63,7 @@ complete = [
 ]
 tests = [
   "pytest",
-  "pytest-cov",
-  "pytest-localftpserver"
+  "pytest-cov"
 ]
 
 [tool.coverage.run]

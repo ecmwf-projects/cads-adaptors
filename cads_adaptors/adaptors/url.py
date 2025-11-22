@@ -25,6 +25,9 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
         # TODO: Implement for all adaptors in normalise_request
         request = mapping.area_as_mapping(request, self.mapping, self.context)
 
+        # If area still in request it is to be used by the area selector post-processor
+        self.area = request.pop("area", None)
+
         return request
 
     def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:

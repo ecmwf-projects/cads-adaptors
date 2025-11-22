@@ -6,6 +6,7 @@
 import sys
 from copy import deepcopy
 from itertools import chain, product
+from typing import Any
 
 if sys.version_info.major >= 3 and sys.version_info.minor >= 6:
     odict = dict
@@ -13,6 +14,7 @@ else:
     from collections import OrderedDict as odict
 
 from .date_tools import compress_dates_list, expand_dates_list
+from .general import ensure_list
 
 
 def same_fields(reqs1, reqs2, date_field="date"):
@@ -618,3 +620,35 @@ def unfactorise(hcubes, date_field="date"):
 
 def _ensure_list(x):
     return x if isinstance(x, (list, tuple)) else [x]
+
+
+def merge_requests(request_list: list[dict[str, Any]]) -> dict[str, Any]:
+    """Merge a list of dictionaries into a single dictionary with no repeated values.
+
+    We are not concerned with producing a sparse request, this is just
+    to produce a single dictionary for all key: values.
+    """
+    merged = {}
+    for request in request_list:
+        for key, value in request.items():
+            if key not in merged:
+                merged[key] = value
+            else:
+                # If the key already exists, merge the values
+                if isinstance(merged[key], (list, tuple)) or isinstance(
+                    value, (list, tuple)
+                ):
+                    update_values = [
+                        v
+                        for v in ensure_list(value)
+                        if v not in ensure_list(merged[key])
+                    ]
+                    merged[key] = ensure_list(merged[key]) + update_values
+                else:
+                    merge_non_list_values = merged[key] != value
+                    if (
+                        not isinstance(merge_non_list_values, bool)
+                        or merge_non_list_values
+                    ):
+                        merged[key] = [merged[key], value]
+    return merged

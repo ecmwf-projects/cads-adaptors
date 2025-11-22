@@ -36,4 +36,4 @@ dependencies:
 - zarr
 - pip:
   - rooki
-  - earthkit-transforms>=0.3.3
+  - earthkit-transforms>=0.5.2
