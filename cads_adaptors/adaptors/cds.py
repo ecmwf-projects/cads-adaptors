@@ -43,7 +43,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.input_request: Request = dict()
         self.mapped_request: Request = dict()
         self.download_format: str = "zip"
-        self.receipt: bool = False
+        self.receipt: bool = config.pop("receipt", False)
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
         self.intersect_constraints_bool: bool = config.get(
             "intersect_constraints", False

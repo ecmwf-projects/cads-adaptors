@@ -99,12 +99,21 @@ def execute_mars(
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
     delta_time = time.time() - time0
-    filesize = os.path.getsize(target)
-    context.info(
-        f"MARS Request complete. Filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
-        delta_time=delta_time,
-        filesize=filesize,
-    )
+    if os.path.exists(target):
+        filesize = os.path.getsize(target)
+        context.info(
+            f"The MARS Request produced a target "
+            f"(filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds).",
+            delta_time=delta_time,
+            filesize=filesize,
+        )
+    else:
+        filesize = 0
+        context.info(
+            f"The MARS request produced no target (delta_time= {delta_time:.2f} seconds).",
+            delta_time=delta_time,
+        )
+
     context.debug(message=reply_message)
 
     if reply.error:
@@ -202,7 +211,11 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
-        data_formats = [req.pop("data_format", None) for req in self.mapped_requests]
+        # Invoke handle_data_format again as intersect_constraints may turn "data_format" into a list
+        data_formats = [
+            handle_data_format(req.pop("data_format", None))
+            for req in self.mapped_requests
+        ]
         data_formats = list(set(data_formats))
         if len(data_formats) != 1 or data_formats[0] is None:
             # It should not be possible to reach here, if it is, there is a problem.
