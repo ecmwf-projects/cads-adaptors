@@ -415,7 +415,7 @@ def get_features_in_area(
     context: Context = Context(),
 ) -> list[dict[str, Any]]:
     """
-    Get features of a given type within a specified area.
+    Get features of a given type which intersect the specified area.
 
     Parameters
     ----------
@@ -433,7 +433,7 @@ def get_features_in_area(
     Returns
     -------
     list
-        A list of features within the specified area.
+        A list of features which intersect the specified area.
 
     Raises
     ------
