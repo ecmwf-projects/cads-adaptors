@@ -314,7 +314,7 @@ def test_get_features_at_point(monkeypatch: pytest.MonkeyPatch) -> None:
     class MockResponse:
         def read(self) -> dict[str, Any]:
             return json.dumps(mock_response).encode()
-        
+
     class MockWMS:
         def getfeatureinfo(self, **kwargs: Any) -> MockResponse:
             assert kwargs["layers"] == [layer]
@@ -348,17 +348,21 @@ def test_get_features_at_point_wms_connection_error(
         mapping.get_features_at_point(point, layer)
 
 
-def test_get_features_at_point_getfeatureinfo_error(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_features_at_point_getfeatureinfo_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     point = (10.0, 20.0)
     layer = "test_layer"
-    
+
     class MockWMS:
         def getfeatureinfo(self, **kwargs: Any) -> None:
             raise Exception()
-    
+
     monkeypatch.setattr("owslib.wms.WebMapService", lambda *args, **kwargs: MockWMS())
-    
-    with pytest.raises(exceptions.GeoServerError, match="Could not retrieve features from WMS service"):
+
+    with pytest.raises(
+        exceptions.GeoServerError, match="Could not retrieve features from WMS service"
+    ):
         mapping.get_features_at_point(point, layer)
 
 
@@ -385,7 +389,9 @@ def test_get_features_in_area(monkeypatch: pytest.MonkeyPatch) -> None:
             assert kwargs["maxfeatures"] == max_features
             return MockResponse()
 
-    monkeypatch.setattr("owslib.wfs.WebFeatureService", lambda *args, **kwargs: MockWFS())
+    monkeypatch.setattr(
+        "owslib.wfs.WebFeatureService", lambda *args, **kwargs: MockWFS()
+    )
     result = mapping.get_features_in_area(
         area, layer, spatial_reference_system, max_features
     )
@@ -412,14 +418,18 @@ def test_get_features_in_area_wfs_connection_error(
 def test_get_features_in_area_getfeature_error(monkeypatch: pytest.MonkeyPatch) -> None:
     area = (40, -10.0, 50.0, 10.0)
     layer = "test_layer"
-    
+
     class MockWFS:
         def getfeature(self, **kwargs: Any) -> None:
             raise Exception()
-    
-    monkeypatch.setattr("owslib.wfs.WebFeatureService", lambda *args, **kwargs: MockWFS())
-    
-    with pytest.raises(exceptions.GeoServerError, match="Could not retrieve features from WFS service"):
+
+    monkeypatch.setattr(
+        "owslib.wfs.WebFeatureService", lambda *args, **kwargs: MockWFS()
+    )
+
+    with pytest.raises(
+        exceptions.GeoServerError, match="Could not retrieve features from WFS service"
+    ):
         mapping.get_features_in_area(area, layer)
 
 
@@ -440,7 +450,7 @@ def test_get_features_in_request_location(monkeypatch: pytest.MonkeyPatch) -> No
     class MockResponse:
         def read(self) -> dict[str, Any]:
             return json.dumps(mock_response).encode()
-        
+
     class MockWMS:
         def getfeatureinfo(self, **kwargs: Any) -> MockResponse:
             return MockResponse()
@@ -477,12 +487,14 @@ def test_get_features_in_request_area(monkeypatch: pytest.MonkeyPatch) -> None:
     class MockResponse:
         def getvalue(self) -> dict[str, Any]:
             return json.dumps(mock_response).encode()
-        
+
     class MockWFS:
         def getfeature(self, **kwargs: Any) -> MockResponse:
             return MockResponse()
-        
-    monkeypatch.setattr("owslib.wfs.WebFeatureService", lambda *args, **kwargs: MockWFS())
+
+    monkeypatch.setattr(
+        "owslib.wfs.WebFeatureService", lambda *args, **kwargs: MockWFS()
+    )
     result = mapping.get_features_in_request(request, layer)
     assert result == mock_features
 
@@ -510,5 +522,3 @@ def test_get_features_in_request_no_location_or_area() -> None:
     result = mapping.get_features_in_request(request, layer)
     expected = []
     assert result == expected
-
-

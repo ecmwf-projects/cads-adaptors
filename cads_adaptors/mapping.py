@@ -528,7 +528,9 @@ def get_features_in_request(
         )
     else:
         if not block_debug:
-            context.debug("No location or area provided in request, no features retrieved.")
+            context.debug(
+                "No location or area provided in request, no features retrieved."
+            )
         features = []
     return features
 
