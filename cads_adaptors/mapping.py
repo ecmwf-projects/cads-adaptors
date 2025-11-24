@@ -526,6 +526,10 @@ def get_features_in_request(
         features = get_features_in_area(
             area=tuple(area), layer=layer, max_features=max_features, context=context
         )
+    else:
+        if not block_debug:
+            context.debug("No location or area provided in request, no features retrieved.")
+        features = []
     return features
 
 
