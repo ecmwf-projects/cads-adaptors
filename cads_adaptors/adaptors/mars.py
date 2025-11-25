@@ -248,11 +248,10 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             if area_key:
                 area_orig = request[area_key]
                 rr = self.enforce_sane_area(request)
-                request[area_key] = [
-                    str(ll) for ll in snap_area(rr[area_key], cfg)
-                ]
-                self.context.info(f'Area snapped from {area_orig!r} to '
-                                  f'{request[area_key]!r}')
+                request[area_key] = [str(ll) for ll in snap_area(rr[area_key], cfg)]
+                self.context.info(
+                    f"Area snapped from {area_orig!r} to {request[area_key]!r}"
+                )
 
         return request
 
