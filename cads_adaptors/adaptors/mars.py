@@ -244,11 +244,15 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
             # If area is present then snap the corners inwards to the nearest
             # points on the notional pre-interpolation grid point
-            if "area" in keys:
+            area_key = keys.get("area")
+            if area_key:
+                area_orig = request[area_key]
                 rr = self.enforce_sane_area(request)
-                request[keys["area"]] = [
-                    str(ll) for ll in snap_area(rr[keys["area"]], cfg)
+                request[area_key] = [
+                    str(ll) for ll in snap_area(rr[area_key], cfg)
                 ]
+                self.context.info(f'Area snapped from {area_orig!r} to '
+                                  f'{request[area_key]!r}')
 
         return request
 
