@@ -312,7 +312,7 @@ def test_get_features_at_point(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_response = {"features": mock_features}
 
     class MockResponse:
-        def read(self) -> dict[str, Any]:
+        def read(self) -> bytes:
             return json.dumps(mock_response).encode()
 
     class MockWMS:
@@ -378,7 +378,7 @@ def test_get_features_in_area(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_response = {"features": mock_features}
 
     class MockResponse:
-        def getvalue(self) -> dict[str, Any]:
+        def getvalue(self) -> bytes:
             return json.dumps(mock_response).encode()
 
     class MockWFS:
@@ -448,7 +448,7 @@ def test_get_features_in_request_location(monkeypatch: pytest.MonkeyPatch) -> No
     mock_response = {"features": mock_features}
 
     class MockResponse:
-        def read(self) -> dict[str, Any]:
+        def read(self) -> bytes:
             return json.dumps(mock_response).encode()
 
     class MockWMS:
@@ -469,7 +469,7 @@ def test_get_features_in_request_location_invalid() -> None:
     }
     layer = "test_layer"
     result = mapping.get_features_in_request(request, layer)
-    expected = []
+    expected: list[str] = []
     assert result == expected
 
 
@@ -485,7 +485,7 @@ def test_get_features_in_request_area(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_response = {"features": mock_features}
 
     class MockResponse:
-        def getvalue(self) -> dict[str, Any]:
+        def getvalue(self) -> bytes:
             return json.dumps(mock_response).encode()
 
     class MockWFS:
@@ -500,12 +500,12 @@ def test_get_features_in_request_area(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_get_features_in_request_area_invalid() -> None:
-    request = {
+    request: dict[str, Any] = {
         "area": "wrong_area_type",
     }
     layer = "test_layer"
     result = mapping.get_features_in_request(request, layer)
-    expected = []
+    expected: list[str] = []
     assert result == expected
 
     request = {
@@ -517,8 +517,8 @@ def test_get_features_in_request_area_invalid() -> None:
 
 
 def test_get_features_in_request_no_location_or_area() -> None:
-    request = {}
+    request: dict[str, Any] = {}
     layer = "test_layer"
     result = mapping.get_features_in_request(request, layer)
-    expected = []
+    expected: list[str] = []
     assert result == expected
