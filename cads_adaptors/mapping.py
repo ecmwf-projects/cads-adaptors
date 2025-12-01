@@ -2,7 +2,13 @@
 
 import copy
 import datetime
+import json
+import os
 from typing import Any
+
+import owslib.util
+import owslib.wfs
+import owslib.wms
 
 from cads_adaptors import Context, exceptions
 from cads_adaptors.tools.general import ensure_list
@@ -23,6 +29,8 @@ DATE_KEYWORD_CONFIGS = [
         "format_keyword": "hdate_format",
     },
 ]
+
+Request = dict[str, Any]
 
 
 def julian_to_ymd(jdate):
@@ -303,6 +311,228 @@ def area_as_mapping(
             out_request[key] = values
 
     return out_request
+
+
+def make_bbox_centered_in_point(
+    point_lat: float, point_lon: float, size: float = 1.0
+) -> tuple[float, float, float, float]:
+    """
+    Create a bounding box centered on a point with a given size.
+
+    Parameters
+    ----------
+    point_lat : float
+        Latitude of the center point.
+    point_lon : float
+        Longitude of the center point.
+    size : float
+        Size of the bounding box (length of one side).
+
+    Returns
+    -------
+    tuple
+        A tuple representing the bounding box in the format (min_lat, min_lon, max_lat, max_lon).
+    """
+    half_size = size / 2.0
+    bbox = (
+        point_lat - half_size,
+        point_lon - half_size,
+        point_lat + half_size,
+        point_lon + half_size,
+    )
+    return bbox
+
+
+def get_features_at_point(
+    point: tuple[float, float],
+    layer: str,
+    spatial_reference_system: str = "EPSG:4326",
+    max_features: int = 100,
+    context: Context = Context(),
+) -> list[dict[str, Any]]:
+    """
+    Get features of a given type at a specific point.
+
+    Parameters
+    ----------
+    point : tuple
+        A tuple representing the point in the format (latitude, longitude).
+    layer : str
+        The layer to query.
+    spatial_reference_system : str
+        The spatial reference system of the point. Defaults to "EPSG:4326".
+    max_features : int
+        Maximum number of features to retrieve. Defaults to 100.
+    context : Context
+        The context for logging and error handling.
+
+    Returns
+    -------
+    list
+        A list of features at the specified point.
+
+    Raises
+    ------
+    exceptions.GeoServerError
+        If there is an error connecting to or retrieving features from the WFS service.
+    """
+    try:
+        wms = owslib.wms.WebMapService(
+            os.environ.get("GEOSERVER_URL"),
+            version=os.environ.get("GEOSERVER_WMS_VERSION"),
+            auth=owslib.util.Authentication(verify=False),
+        )
+    except Exception as e:
+        context.error(f"Error connecting to WMS service: {e}")
+        raise exceptions.GeoServerError("Could not connect to WMS service") from e
+    bbox = make_bbox_centered_in_point(point_lat=point[0], point_lon=point[1])
+    try:
+        response = wms.getfeatureinfo(
+            layers=[layer],
+            srs=spatial_reference_system,
+            bbox=bbox,
+            size=(101, 101),
+            query_layers=[layer],
+            info_format="application/json",
+            xy=(50, 50),
+            feature_count=max_features,
+        )
+    except Exception as e:
+        context.error(f"Error retrieving features from WMS service: {e}")
+        raise exceptions.GeoServerError(
+            "Could not retrieve features from WMS service"
+        ) from e
+    feature_collection = json.loads(response.read())
+    features = feature_collection["features"]
+    return features
+
+
+def get_features_in_area(
+    area: tuple[float, float, float, float],
+    layer: str,
+    spatial_reference_system: str = "EPSG:4326",
+    max_features: int = 100,
+    context: Context = Context(),
+) -> list[dict[str, Any]]:
+    """
+    Get features of a given type which intersect the specified area.
+
+    Parameters
+    ----------
+    area : tuple
+        A tuple representing the bounding box in the format (min_lat, min_lon, max_lat, max_lon).
+    layer : str
+        The layer to query.
+    spatial_reference_system : str
+        The spatial reference system of the area. Defaults to "EPSG:4326".
+    max_features : int
+        Maximum number of features to retrieve. Defaults to 100.
+    context : Context
+        The context for logging and error handling.
+
+    Returns
+    -------
+    list
+        A list of features which intersect the specified area.
+
+    Raises
+    ------
+    exceptions.GeoServerError
+        If there is an error connecting to or retrieving data from the WFS service.
+    """
+    try:
+        wfs = owslib.wfs.WebFeatureService(
+            os.environ.get("GEOSERVER_URL"),
+            version=os.environ.get("GEOSERVER_WFS_VERSION"),
+            auth=owslib.util.Authentication(verify=False),
+        )
+    except Exception as e:
+        context.error(f"Error connecting to WFS service: {e}")
+        raise exceptions.GeoServerError("Could not connect to WFS service") from e
+    try:
+        response = wfs.getfeature(
+            typename=[layer],
+            bbox=area,
+            srsname=spatial_reference_system,
+            outputFormat="application/json",
+            maxfeatures=max_features,
+        )
+    except Exception as e:
+        context.error(f"Error retrieving features from WFS service: {e}")
+        raise exceptions.GeoServerError(
+            "Could not retrieve features from WFS service"
+        ) from e
+    feature_collection = json.loads(response.getvalue())
+    features = feature_collection["features"]
+    return features
+
+
+def get_features_in_request(
+    request: Request,
+    layer: str,
+    max_features: int = 100,
+    context: Context = Context(),
+    block_debug: bool = False,
+) -> list[dict[str, Any]]:
+    """
+    Get geographical features based on location or area specified in the request.
+
+    Parameters
+    ----------
+    request : Request
+        The request containing location or area information.
+    layer : str
+        The layer to retrieve.
+    max_features : int
+        Maximum number of features to retrieve. Defaults to 100.
+    context : Context
+        The context for logging and error handling.
+    block_debug : bool
+        If True, suppress debug messages.
+
+    Returns
+    -------
+    list
+        A list of GEOJSON features.
+    """
+    if location := request.get("location"):
+        if not block_debug:
+            context.debug(
+                f"Getting features from layer {layer} for location: {location!r}"
+            )
+        try:
+            location_latitude = float(location["latitude"])
+            location_longitude = float(location["longitude"])
+        except (TypeError, KeyError, ValueError):
+            context.error(
+                f"Invalid location provided: {location!r}. "
+                "Should be a dict with 'longitude' and 'latitude' keys."
+            )
+            return []
+        features = get_features_at_point(
+            point=(location_latitude, location_longitude),
+            layer=layer,
+            max_features=max_features,
+            context=context,
+        )
+    elif area := request.get("area"):
+        if not block_debug:
+            context.debug(f"Getting features {layer} for area: {area!r}")
+        if not isinstance(area, (list, tuple)) or len(area) != 4:
+            context.error(
+                f"Invalid area provided: {area!r}. Should be a list or tuple of four numeric values."
+            )
+            return []
+        features = get_features_in_area(
+            area=tuple(area), layer=layer, max_features=max_features, context=context
+        )
+    else:
+        if not block_debug:
+            context.debug(
+                "No location or area provided in request, no features retrieved."
+            )
+        features = []
+    return features
 
 
 def apply_mapping(
