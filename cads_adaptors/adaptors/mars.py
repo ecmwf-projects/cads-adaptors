@@ -103,6 +103,13 @@ def execute_mars(
     target_fname: str = "data.grib",
     target_dir: str = "",
 ) -> str:
+    
+    context.add_user_visible_log(
+        f'Requesting data from cads-mars-server on shared MARS cephfs \n'
+        f'Target directory: {target_dir}, target filename: {target_fname}'
+        f'Current directory: {os.getcwd()}'
+    )
+
     is_pipe = os.getenv("MARS_API_USE_PIPE", "0") == "1"
     if is_pipe:
         from cads_mars_server import client_pipe as mars_client
