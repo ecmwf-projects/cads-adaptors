@@ -104,7 +104,7 @@ def execute_mars(
     target_dir: str = "",
 ) -> str:
     
-    context.add_user_visible_log(
+    context.info(
         f'Requesting data from cads-mars-server on shared MARS cephfs \n'
         f'Target directory: {target_dir}, target filename: {target_fname}'
         f'Current directory: {os.getcwd()}'
