@@ -18,6 +18,7 @@ dependencies:
 - types-python-dateutil
 - types-pyyaml
 - types-requests
+- qubed
 - pip:
   - git+https://github.com/ecmwf-projects/cacholote.git
   - git+https://github.com/ecmwf-projects/cads-mars-server
