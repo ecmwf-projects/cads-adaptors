@@ -331,14 +331,14 @@ def make_bbox_centered_in_point(
     Returns
     -------
     tuple
-        A tuple representing the bounding box in the format (min_lat, min_lon, max_lat, max_lon).
+        A tuple representing the bounding box in the format (min_lon, min_lat, max_lon, max_lat).
     """
     half_size = size / 2.0
     bbox = (
-        point_lat - half_size,
         point_lon - half_size,
-        point_lat + half_size,
+        point_lat - half_size,
         point_lon + half_size,
+        point_lat + half_size,
     )
     return bbox
 
@@ -420,7 +420,7 @@ def get_features_in_area(
     Parameters
     ----------
     area : tuple
-        A tuple representing the bounding box in the format (min_lat, min_lon, max_lat, max_lon).
+        A tuple representing the bounding box in the format (max_lat, min_lon, min_lat, max_lon).
     layer : str
         The layer to query.
     spatial_reference_system : str
@@ -441,6 +441,8 @@ def get_features_in_area(
         If there is an error connecting to or retrieving data from the WFS service.
     """
     try:
+        print(os.environ.get("GEOSERVER_URL"))
+        print(os.environ.get("GEOSERVER_WFS_VERSION"))
         wfs = owslib.wfs.WebFeatureService(
             os.environ.get("GEOSERVER_URL"),
             version=os.environ.get("GEOSERVER_WFS_VERSION"),
@@ -450,9 +452,10 @@ def get_features_in_area(
         context.error(f"Error connecting to WFS service: {e}")
         raise exceptions.GeoServerError("Could not connect to WFS service") from e
     try:
+        bbox = (area[1], area[2], area[3], area[0])
         response = wfs.getfeature(
             typename=[layer],
-            bbox=area,
+            bbox=bbox,
             srsname=spatial_reference_system,
             outputFormat="application/json",
             maxfeatures=max_features,
@@ -516,6 +519,7 @@ def get_features_in_request(
             context=context,
         )
     elif area := request.get("area"):
+        print(area)
         if not block_debug:
             context.debug(f"Getting features {layer} for area: {area!r}")
         if not isinstance(area, (list, tuple)) or len(area) != 4:
@@ -526,6 +530,7 @@ def get_features_in_request(
         features = get_features_in_area(
             area=tuple(area), layer=layer, max_features=max_features, context=context
         )
+        print(features)
     else:
         if not block_debug:
             context.debug(
