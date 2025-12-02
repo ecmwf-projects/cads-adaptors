@@ -21,6 +21,7 @@ NAME_DICT = {
 }
 DEFAULT_AREA = [90, -180, -90, 180]
 DEFAULT_MAXIMUM_AREA_EXTENT = {"latitude": 1, "longitude": 1}
+DEFAULT_SPATIAL_RESOLUTION = {"latitude": 0.25, "longitude": 0.25}
 
 
 class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -120,6 +121,22 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
                 return
         raise InvalidRequest(
             f"Invalid {data_format=}. Available options: {available_options}"
+        )
+
+    def area_weight(self, request: Request, **kwargs) -> int:
+        # If area not defined, then assume point request with weight 1
+        if "area" not in request:
+            return 1
+
+        # The area weight is calculated as the number of points, assuming a grid regular in lat/lon
+        max_lat, min_lon, min_lat, max_lon = request["area"]
+        # Spatial resolution passed in via the costing_kwargs
+        resolution = kwargs.get("spatial_resolution", DEFAULT_SPATIAL_RESOLUTION)
+        return int(
+            (float(max_lat) - float(min_lat))
+            / float(resolution.get("latitude", 0.25))
+            * (float(max_lon) - float(min_lon))
+            / float(resolution.get("longitude", 0.25))
         )
 
     def pre_mapping_modifications(self, request: Request) -> Request:
