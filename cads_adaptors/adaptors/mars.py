@@ -97,12 +97,15 @@ def execute_mars(
     time0 = time.time()
     context.info(f"Request(s) sent to proxy MARS client: {requests}")
     #reply = cluster.execute(requests, env, target)
+
     reply = mars_client(
         mars_servers,
         requests,
         env,
         target=str(target),
+        logger=context,
     )
+    
     delta_time = time.time() - time0
     reply_message = str('\n'.join(reply['message']))
     if os.path.exists(target):
