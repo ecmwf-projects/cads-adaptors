@@ -125,12 +125,12 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def area_weight(self, request: Request, **kwargs) -> int:
         # If area not defined, then assume point request with weight 1
-        if "area" not in request:
+        if "area" not in request or kwargs.get("dont_weight_by_area", False):
             return 1
 
         # The area weight is calculated as the number of points, assuming a grid regular in lat/lon
         max_lat, min_lon, min_lat, max_lon = request["area"]
-        # Spatial resolution passed in via the costing_kwargs
+        # Spatial resolution passed in via the costing_kwargs, this could be set to match source chunking
         resolution = kwargs.get("spatial_resolution", DEFAULT_SPATIAL_RESOLUTION)
         return int(
             (float(max_lat) - float(min_lat))
