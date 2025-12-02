@@ -218,7 +218,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
                     suffix=".csv",
                     dir=self.cache_tmp_path,
                 )
-                ds.to_pandas().to_csv(path)
+                ds.to_dataframe().to_csv(path)
             case data_format:
                 raise NotImplementedError(f"Invalid {data_format=}.")
 
