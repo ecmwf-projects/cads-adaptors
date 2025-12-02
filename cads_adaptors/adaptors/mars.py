@@ -106,7 +106,7 @@ def execute_mars(
     
     context.info(
         f'Requesting data from cads-mars-server on shared MARS cephfs \n'
-        f'Target directory: {target_dir}, target filename: {target_fname}'
+        f'Target directory: {target_dir}, target filename: {target_fname} \n'
         f'Current directory: {os.getcwd()}'
     )
 
