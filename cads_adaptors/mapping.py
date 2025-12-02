@@ -473,7 +473,6 @@ def get_features_in_request(
     layer: str,
     max_features: int = 100,
     context: Context = Context(),
-    block_debug: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Get geographical features based on location or area specified in the request.
@@ -488,8 +487,6 @@ def get_features_in_request(
         Maximum number of features to retrieve. Defaults to 100.
     context : Context
         The context for logging and error handling.
-    block_debug : bool
-        If True, suppress debug messages.
 
     Returns
     -------
@@ -497,10 +494,6 @@ def get_features_in_request(
         A list of GEOJSON features.
     """
     if location := request.get("location"):
-        if not block_debug:
-            context.debug(
-                f"Getting features from layer {layer} for location: {location!r}"
-            )
         try:
             location_latitude = float(location["latitude"])
             location_longitude = float(location["longitude"])
@@ -517,8 +510,6 @@ def get_features_in_request(
             context=context,
         )
     elif area := request.get("area"):
-        if not block_debug:
-            context.debug(f"Getting features {layer} for area: {area!r}")
         if not isinstance(area, (list, tuple)) or len(area) != 4:
             context.error(
                 f"Invalid area provided: {area!r}. Should be a list or tuple of four numeric values."
