@@ -65,7 +65,7 @@ def execute_mars(
     target_fname: str = "data.grib",
     target_dir: str | pathlib.Path = "",
 ) -> str:
-    from cads_mars_server import client as mars_client
+    from cads_mars_server.ws_client import mars_via_ws_sync as mars_client
 
     requests = ensure_list(request)
     # Implement embargo if it is set in the config
@@ -81,7 +81,7 @@ def execute_mars(
 
     mars_servers = get_mars_server_list(config)
 
-    cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
+    #cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
 
     # Add required fields to the env dictionary:
     env = {
@@ -95,10 +95,16 @@ def execute_mars(
     }
     env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
     time0 = time.time()
-    context.info(f"Request sent to proxy MARS client: {requests}")
-    reply = cluster.execute(requests, env, target)
-    reply_message = str(reply.message)
+    context.info(f"Request(s) sent to proxy MARS client: {requests}")
+    #reply = cluster.execute(requests, env, target)
+    reply = mars_client(
+        mars_servers,
+        requests,
+        env,
+        target=str(target),
+    )
     delta_time = time.time() - time0
+    reply_message = str('\n'.join(reply['message']))
     if os.path.exists(target):
         filesize = os.path.getsize(target)
         context.info(
@@ -116,7 +122,7 @@ def execute_mars(
 
     context.debug(message=reply_message)
 
-    if reply.error:
+    if reply['returncode'] != 0:
         error_lines = "\n".join(
             [message for message in reply_message.split("\n") if "ERROR" in message]
         )
@@ -127,7 +133,7 @@ def execute_mars(
         )
         context.add_user_visible_error(message=error_message)
 
-        error_message += f"Exception: {reply.error}\n"
+        error_message += f"Return code: {reply['returncode']}\n"
         raise MarsRuntimeError(error_message)
 
     if not filesize:
