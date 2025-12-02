@@ -74,12 +74,17 @@ def execute_mars(
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
 
+    # Ensure target_dir is writable by anybody (as MARS server may run under different user)
+    if target_dir:
+        os.chmod(target_dir, 0o777)
+
     target = str(pathlib.Path(target_dir) / target_fname)
 
     split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
     requests = split_requests_on_keys(requests, split_on_keys, context, mapping)
 
     mars_servers = get_mars_server_list(config)
+
 
     #cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
 
