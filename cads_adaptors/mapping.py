@@ -380,7 +380,7 @@ def get_features_at_point(
         wms = owslib.wms.WebMapService(
             os.environ.get("GEOSERVER_URL"),
             version=os.environ.get("GEOSERVER_WMS_VERSION"),
-            auth=owslib.util.Authentication(verify=False),
+            auth=owslib.util.Authentication(),
         )
     except Exception as e:
         context.error(f"Error connecting to WMS service: {e}")
@@ -441,12 +441,10 @@ def get_features_in_area(
         If there is an error connecting to or retrieving data from the WFS service.
     """
     try:
-        print(os.environ.get("GEOSERVER_URL"))
-        print(os.environ.get("GEOSERVER_WFS_VERSION"))
         wfs = owslib.wfs.WebFeatureService(
             os.environ.get("GEOSERVER_URL"),
             version=os.environ.get("GEOSERVER_WFS_VERSION"),
-            auth=owslib.util.Authentication(verify=False),
+            auth=owslib.util.Authentication(),
         )
     except Exception as e:
         context.error(f"Error connecting to WFS service: {e}")
@@ -519,7 +517,6 @@ def get_features_in_request(
             context=context,
         )
     elif area := request.get("area"):
-        print(area)
         if not block_debug:
             context.debug(f"Getting features {layer} for area: {area!r}")
         if not isinstance(area, (list, tuple)) or len(area) != 4:
@@ -530,7 +527,6 @@ def get_features_in_request(
         features = get_features_in_area(
             area=tuple(area), layer=layer, max_features=max_features, context=context
         )
-        print(features)
     else:
         if not block_debug:
             context.debug(
