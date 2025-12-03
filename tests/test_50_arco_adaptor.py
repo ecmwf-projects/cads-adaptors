@@ -155,6 +155,56 @@ def test_arco_normalise_request(
 
 
 @pytest.mark.parametrize(
+    "this_request,costing_kwargs,expected_weight",
+    [
+        (
+            {
+                "data_format": ["nc"],
+                "location": {
+                    "longitude": 1,
+                    "latitude": "2",
+                },
+                "date": 1990,
+                "variable": ("foo", "bar"),
+            },
+            dict(),
+            1,
+        ),
+        (
+            {
+                "data_format": ["nc"],
+                "area": [1, 1, 0, 2],
+                "date": 1990,
+                "variable": ("foo", "bar"),
+            },
+            dict(),
+            16,
+        ),
+        (
+            {
+                "data_format": ["nc"],
+                "area": [1, 1, 0, 2],
+                "date": 1990,
+                "variable": ("foo", "bar"),
+            },
+            {
+                "spatial_resolution": {"latitude": 0.5, "longitude": 0.5},
+            },
+            4,
+        ),
+    ],
+)
+def test_arco_area_weight(
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    this_request: dict[str, Any],
+    costing_kwargs: dict[str, Any],
+    expected_weight: int,
+) -> None:
+    weight = arco_adaptor.area_weight(this_request, **costing_kwargs)
+    assert weight == expected_weight
+
+
+@pytest.mark.parametrize(
     "in_date,out_date",
     (
         (

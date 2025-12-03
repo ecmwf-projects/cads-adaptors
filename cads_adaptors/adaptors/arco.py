@@ -21,6 +21,7 @@ NAME_DICT = {
 }
 DEFAULT_AREA = [90, -180, -90, 180]
 DEFAULT_MAXIMUM_AREA_EXTENT = {"latitude": 1, "longitude": 1}
+DEFAULT_SPATIAL_RESOLUTION = {"latitude": 0.25, "longitude": 0.25}
 
 
 class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -122,6 +123,22 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             f"Invalid {data_format=}. Available options: {available_options}"
         )
 
+    def area_weight(self, request: Request, **kwargs) -> int:
+        # If area not defined, then assume point request with weight 1
+        if "area" not in request or kwargs.get("dont_weight_by_area", False):
+            return 1
+
+        # The area weight is calculated as the number of points, assuming a grid regular in lat/lon
+        max_lat, min_lon, min_lat, max_lon = request["area"]
+        # Spatial resolution passed in via the costing_kwargs, this could be set to match source chunking
+        resolution = kwargs.get("spatial_resolution", DEFAULT_SPATIAL_RESOLUTION)
+        return int(
+            (float(max_lat) - float(min_lat))
+            / float(resolution.get("latitude", 0.25))
+            * (float(max_lon) - float(min_lon))
+            / float(resolution.get("longitude", 0.25))
+        )
+
     def pre_mapping_modifications(self, request: Request) -> Request:
         request = super().pre_mapping_modifications(request)
 
@@ -218,7 +235,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
                     suffix=".csv",
                     dir=self.cache_tmp_path,
                 )
-                ds.to_pandas().to_csv(path)
+                ds.to_dataframe().to_csv(path)
             case data_format:
                 raise NotImplementedError(f"Invalid {data_format=}.")
 

@@ -109,6 +109,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 highest_cost = {"type": limit_id, "cost": cost, "limit": limit}
         return highest_cost["type"]
 
+    def area_weight(self, request: Request, **kwargs) -> int:
+        return 1
+
     def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         cost_threshold = kwargs.get("cost_threshold", "max_costs")
         costing_config: dict[str, Any] = self.config.get("costing", dict())
@@ -153,7 +156,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 mapped_request,
                 self.constraints,
                 **costing_kwargs,
-            )
+            ) * self.area_weight(mapped_request, **costing_kwargs)
+
         # size is a fast and rough estimate of the number of fields
         costs[DEFAULT_COST_TYPE] = costing.estimate_number_of_fields(
             self.form,
@@ -164,7 +168,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 "weighted_keys": mapped_weighted_keys,
                 "weighted_values": mapped_weighted_values,
             },
-        )
+        ) * self.area_weight(mapped_request, **costing_kwargs)
+
         # Safety net for integration tests:
         costs["number_of_fields"] = costs[DEFAULT_COST_TYPE]
 
