@@ -175,7 +175,10 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         (request,) = self.mapped_requests
 
         try:
-            ds = xr.open_dataset(self.config["url"], engine="zarr")
+            ds = xr.open_dataset(
+                self.config["url"], engine="zarr",
+                **self.config.get("open_dataset_kwargs", {}),
+            )
         except Exception:
             self.context.add_user_visible_error(
                 "Cannot access the ARCO Data Lake.\n"
