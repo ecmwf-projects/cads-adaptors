@@ -174,14 +174,15 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         self.normalise_request(request)  # Needed to populate self.mapped_requests
         (request,) = self.mapped_requests
 
-        open_zarr_kwargs = decrypt_recursive(
+        open_dataset_kwargs = decrypt_recursive(
             self.config.get("open_zarr_kwargs", {}), ignore_errors=True
         )
+        open_dataset_kwargs.setdefault("engine", "zarr")
 
         try:
-            ds = xr.open_zarr(
+            ds = xr.open_dataset(
                 self.config["url"],
-                **open_zarr_kwargs,
+                **open_dataset_kwargs,
             )
         except Exception:
             self.context.add_user_visible_error(
