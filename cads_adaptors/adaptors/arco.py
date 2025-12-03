@@ -175,7 +175,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         (request,) = self.mapped_requests
 
         open_dataset_kwargs = decrypt_recursive(
-            self.config.get("open_zarr_kwargs", {}), ignore_errors=True
+            self.config.get("open_dataset_kwargs", {}), ignore_errors=True
         )
         open_dataset_kwargs.setdefault("engine", "zarr")
 
