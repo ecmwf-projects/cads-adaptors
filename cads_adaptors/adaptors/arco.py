@@ -7,7 +7,7 @@ from dateutil.parser import parse as dtparse
 
 from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
-from cads_adaptors.tools.general import ensure_list, decrypt_recursive
+from cads_adaptors.tools.general import decrypt_recursive, ensure_list
 
 LAT_NAME = "latitude"
 LON_NAME = "longitude"

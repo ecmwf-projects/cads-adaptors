@@ -579,8 +579,7 @@ def test_connection_problems(
 
 
 def test_arco_open_zarr_kwargs(
-    arco_adaptor: ArcoDataLakeCdsAdaptor,
-    monkeypatch: pytest.MonkeyPatch
+    arco_adaptor: ArcoDataLakeCdsAdaptor, monkeypatch: pytest.MonkeyPatch
 ):
     request = {
         "variable": "FOO",
@@ -591,13 +590,13 @@ def test_arco_open_zarr_kwargs(
 
     # Check that adding valid open_zarr_kwargs works
     monkeypatch.setitem(
-        arco_adaptor.config, "open_zarr_kwargs", {"consolidated": True, "chunks": "auto"}
+        arco_adaptor.config,
+        "open_zarr_kwargs",
+        {"consolidated": True, "chunks": "auto"},
     )
     arco_adaptor.retrieve(request)
 
     # Check that invalid open_zarr_kwargs raises error
-    monkeypatch.setitem(
-        arco_adaptor.config, "open_zarr_kwargs", {"dsadsa": True}
-    )
+    monkeypatch.setitem(arco_adaptor.config, "open_zarr_kwargs", {"dsadsa": True})
     with pytest.raises(TypeError):
         arco_adaptor.retrieve(request)

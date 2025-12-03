@@ -110,10 +110,7 @@ def decrypt(
     return decrypted.decode()
 
 
-def decrypt_recursive(
-    data: Any,
-    **kwargs
-) -> Any:
+def decrypt_recursive(data: Any, **kwargs) -> Any:
     # Recursively decrypt strings in data structures
     if isinstance(data, dict):
         decrypted_data = {}
