@@ -578,7 +578,7 @@ def test_connection_problems(
     )
 
 
-def test_arco_open_zarr_kwargs(
+def test_arco_open_dataset_kwargs(
     arco_adaptor: ArcoDataLakeCdsAdaptor, monkeypatch: pytest.MonkeyPatch
 ):
     request = {
@@ -588,7 +588,7 @@ def test_arco_open_zarr_kwargs(
         "data_format": "netcdf",
     }
 
-    # Check that adding valid open_zarr_kwargs works
+    # Check that adding valid open_dataset_kwargs works
     monkeypatch.setitem(
         arco_adaptor.config,
         "open_dataset_kwargs",
