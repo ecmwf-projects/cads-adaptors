@@ -111,6 +111,7 @@ def decrypt(
 
 
 def decrypt_recursive(data: Any, **kwargs) -> Any:
+    decrypted_data = data
     # Recursively decrypt strings in data structures
     if isinstance(data, dict):
         decrypted_data = {}
@@ -122,8 +123,6 @@ def decrypt_recursive(data: Any, **kwargs) -> Any:
             decrypted_data.append(decrypt_recursive(item, **kwargs))
     elif isinstance(data, str):
         decrypted_data = decrypt(token=data, **kwargs)
-    else:
-        decrypted_data = data
     return decrypted_data
 
 
