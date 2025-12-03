@@ -175,9 +175,9 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         (request,) = self.mapped_requests
 
         try:
-            ds = xr.open_dataset(
-                self.config["url"], engine="zarr",
-                **self.config.get("open_dataset_kwargs", {}),
+            ds = xr.open_zarr(
+                self.config["url"],
+                **self.config.get("open_zarr_kwargs", {}),
             )
         except Exception:
             self.context.add_user_visible_error(
