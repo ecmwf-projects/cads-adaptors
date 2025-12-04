@@ -78,7 +78,14 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             except GeoServerError:
                 return
             if not features_in_request:
-                raise InvalidRequest(f"No features found in request for layer {layer}")
+                if request.get("location") is not None:
+                    raise InvalidRequest(
+                        "No features found in request for 'location' selection"
+                    )
+                elif request.get("area") is not None:
+                    raise InvalidRequest(
+                        "No features found in request for 'area' selection"
+                    )
         return
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:

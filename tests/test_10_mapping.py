@@ -296,7 +296,7 @@ def test_make_bbox_centered_in_point():
     lat, lon = 1.0, 2.0
     size = 2.0
     bbox = mapping.make_bbox_centered_in_point(lat, lon, size)
-    expected_bbox = (0.0, 1.0, 2.0, 3.0)
+    expected_bbox = (1.0, 0.0, 3.0, 2.0)
     assert bbox == expected_bbox
 
 
@@ -319,7 +319,7 @@ def test_get_features_at_point(monkeypatch: pytest.MonkeyPatch) -> None:
         def getfeatureinfo(self, **kwargs: Any) -> MockResponse:
             assert kwargs["layers"] == [layer]
             assert kwargs["srs"] == spatial_reference_system
-            assert kwargs["bbox"] == (9.5, 19.5, 10.5, 20.5)
+            assert kwargs["bbox"] == (19.5, 9.5, 20.5, 10.5)
             assert kwargs["query_layers"] == [layer]
             assert kwargs["feature_count"] == 10
             return MockResponse()
@@ -384,7 +384,7 @@ def test_get_features_in_area(monkeypatch: pytest.MonkeyPatch) -> None:
     class MockWFS:
         def getfeature(self, **kwargs: Any) -> MockResponse:
             assert kwargs["typename"] == [layer]
-            assert kwargs["bbox"] == area
+            assert kwargs["bbox"] == (area[1], area[2], area[3], area[0])
             assert kwargs["srsname"] == spatial_reference_system
             assert kwargs["maxfeatures"] == max_features
             return MockResponse()
