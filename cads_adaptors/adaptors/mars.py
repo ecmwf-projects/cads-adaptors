@@ -209,6 +209,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
         # Perform actions necessary to simulate pre-interpolation of fields to
         # a regular grid
+        self.context.info(f'xxx config={self.config!r}')
         if self.config.get("simulate_preinterpolation"):
             request = self.simulate_preinterpolation(request)
 
@@ -224,6 +225,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         """
         request = deepcopy(request)
         keys = {k.lower().strip(): k for k in request.keys()}
+
+        self.context.info(f'xxx keys={keys!r}')
 
         # Do nothing if the grid keyword is present, because then MARS will
         # always interpolate from the SW point for both regular and irregular
@@ -252,6 +255,8 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 self.context.info(
                     f"Area snapped from {area_orig!r} to {request[area_key]!r}"
                 )
+
+            self.context.info(f'xxx request={request!r}')
 
         return request
 
