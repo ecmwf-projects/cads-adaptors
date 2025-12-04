@@ -14,11 +14,11 @@ def simulate_preinterpolation(request, cfg, context):
     keyword is not present.
     """
     request = deepcopy(request)
-    keys = {k.lower().strip(): k for k in request.keys()}
 
     # Do nothing if the grid keyword is present, because then MARS will always
     # interpolate from the SW point for both regular and irregular grids
-    if "grid" not in keys:
+    grid_key = get_mars_key(request, "grid")
+    if not grid_key:
 
         # Set the grid to the notional pre-interpolation grid resolution
         try:
@@ -33,10 +33,9 @@ def simulate_preinterpolation(request, cfg, context):
 
         # If area is present then snap the corners inwards to the nearest
         # points on the notional pre-interpolation grid point
-        area_key = keys.get("area")
+        area_key = get_mars_key("area")
         if area_key:
-            area_orig = request[area_key]
-            rr = enforce_sane_area(request)
+            rr = enforce_sane_area(request, context, area_key=area_key)
             request[area_key] = [str(ll) for ll in snap_area(rr[area_key], cfg)]
 
         context.info(
@@ -46,19 +45,27 @@ def simulate_preinterpolation(request, cfg, context):
     return request
 
 
+def get_mars_key(request, key):
+    """If the request dict contains precisely one key that will be interpreted
+    by MARS as the named key, return it. If it contains more than one, raise
+    InvalidRequest. If it contains none, return None."""
+    key = key.lower().strip()
+    keys = [k for k in request.keys() if k.lower().strip().startswith(key)]
+    if len(keys) > 1:
+        raise InvalidRequest(f"Request contains more than one {key} key: " +
+                             ", ".join(keys))
+    elif keys:
+        return keys[0]
+    else:
+        return None
+
+
 def enforce_sane_area(request, context, area_key=None):
     """Return a copy of the request having ensured that the area key, if
     present, is a list of four strings which represent valid numbers.
     """
     if not area_key:
-        # Allow for varying case and whitespace in area keyword string
-        keys = [k for k in request if k.lower().strip() == "area"]
-        if len(keys) == 1:
-            area_key = keys[0]
-        elif len(keys) > 1:
-            raise InvalidRequest("More than one area key in request")
-        else:
-            area_key = "area"
+        area_key = get_mars_key(request, "area") or "area"
 
     lat = {"type": "number", "_splitOn": "/", "minimum": -90.0, "maximum": 90.0}
     lon = {"type": "number", "_splitOn": "/"}
