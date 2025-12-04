@@ -247,10 +247,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         The returned request needs to be compatible with the web-portal, it is currently what is used
         on the "Your requests" page, hence it should not be modified to much from the user's request.
         """
-        self.context.info(f'xxx This is normalise_request {type(self)!r}')
         if self.normalised:
             return request
-        self.context.info('xxx This is normalise_request2')
 
         # Make a copy of the original request for debugging purposes
         self.input_request = deepcopy(request)
@@ -263,11 +261,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # Apply first dataset schemas, then adaptor schema
         if adaptor_schema := self.adaptor_schema:
             schemas = schemas + [adaptor_schema]
-        self.context.info('xxx This is normalise_request3')
         for schema in schemas:
             request = enforce.enforce(request, schema, self.context.logger)
-
-        self.context.info('xxx This is normalise_request4')
 
         # Pre-mapping modifications
         working_request = self.pre_mapping_modifications(deepcopy(request))

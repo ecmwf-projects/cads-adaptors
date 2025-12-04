@@ -180,7 +180,6 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
         """Implemented in normalise_request, before the mapping is applied."""
-        self.context.info('xxx This is pre_mapping_mods')
         request = super().pre_mapping_modifications(request)
 
         if "format" in request:

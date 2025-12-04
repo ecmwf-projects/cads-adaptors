@@ -16,8 +16,6 @@ def simulate_preinterpolation(request, cfg, context):
     request = deepcopy(request)
     keys = {k.lower().strip(): k for k in request.keys()}
 
-    context.info(f'xxx keys={keys!r}')
-
     # Do nothing if the grid keyword is present, because then MARS will always
     # interpolate from the SW point for both regular and irregular grids
     if "grid" not in keys:
@@ -40,11 +38,10 @@ def simulate_preinterpolation(request, cfg, context):
             area_orig = request[area_key]
             rr = enforce_sane_area(request)
             request[area_key] = [str(ll) for ll in snap_area(rr[area_key], cfg)]
-            context.info(
-                f"Area snapped from {area_orig!r} to {request[area_key]!r}"
-            )
 
-        context.info(f'xxx request={request!r}')
+        context.info(
+            f"Simulation of preinterpolation modified request to {request!r}"
+        )
 
     return request
 
