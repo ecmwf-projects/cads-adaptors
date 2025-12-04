@@ -19,7 +19,6 @@ def simulate_preinterpolation(request, cfg, context):
     # interpolate from the SW point for both regular and irregular grids
     grid_key = get_mars_key(request, "grid")
     if not grid_key:
-
         # Set the grid to the notional pre-interpolation grid resolution
         try:
             request["grid"] = [
@@ -38,9 +37,7 @@ def simulate_preinterpolation(request, cfg, context):
             rr = enforce_sane_area(request, context, area_key=area_key)
             request[area_key] = [str(ll) for ll in snap_area(rr[area_key], cfg)]
 
-        context.info(
-            f"Simulation of preinterpolation modified request to {request!r}"
-        )
+        context.info(f"Simulation of preinterpolation modified request to {request!r}")
 
     return request
 
@@ -48,12 +45,14 @@ def simulate_preinterpolation(request, cfg, context):
 def get_mars_key(request, key):
     """If the request dict contains precisely one key that will be interpreted
     by MARS as the named key, return it. If it contains more than one, raise
-    InvalidRequest. If it contains none, return None."""
+    InvalidRequest. If it contains none, return None.
+    """
     key = key.lower().strip()
     keys = [k for k in request.keys() if k.lower().strip().startswith(key)]
     if len(keys) > 1:
-        raise InvalidRequest(f"Request contains more than one {key} key: " +
-                             ", ".join(keys))
+        raise InvalidRequest(
+            f"Request contains more than one {key} key: " + ", ".join(keys)
+        )
     elif keys:
         return keys[0]
     else:

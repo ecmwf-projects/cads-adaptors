@@ -7,6 +7,7 @@ from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.simulate_preinterpolation import simulate_preinterpolation
 
+
 class MultiAdaptor(AbstractCdsAdaptor):
     @property
     def extract_subrequest_kws(self) -> list[str]:
