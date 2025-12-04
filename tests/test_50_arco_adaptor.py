@@ -576,3 +576,27 @@ def test_connection_problems(
         "Cannot access the ARCO Data Lake"
         in arco_adaptor.context.user_visible_errors[-1]  # type: ignore[attr-defined]
     )
+
+
+def test_arco_open_dataset_kwargs(
+    arco_adaptor: ArcoDataLakeCdsAdaptor, monkeypatch: pytest.MonkeyPatch
+):
+    request = {
+        "variable": "FOO",
+        "location": {"latitude": 0, "longitude": 0},
+        "date": "2000",
+        "data_format": "netcdf",
+    }
+
+    # Check that adding valid open_dataset_kwargs works
+    monkeypatch.setitem(
+        arco_adaptor.config,
+        "open_dataset_kwargs",
+        {"consolidated": True, "chunks": "auto"},
+    )
+    arco_adaptor.retrieve(request)
+
+    # Check that invalid open_dataset_kwargs raises error
+    monkeypatch.setitem(arco_adaptor.config, "open_dataset_kwargs", {"dsadsa": True})
+    with pytest.raises(TypeError):
+        arco_adaptor.retrieve(request)
