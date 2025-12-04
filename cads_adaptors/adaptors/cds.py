@@ -247,8 +247,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         The returned request needs to be compatible with the web-portal, it is currently what is used
         on the "Your requests" page, hence it should not be modified to much from the user's request.
         """
+        self.context.info('xxx This is normalise_request')
         if self.normalised:
             return request
+        self.context.info('xxx This is normalise_request2')
 
         # Make a copy of the original request for debugging purposes
         self.input_request = deepcopy(request)
