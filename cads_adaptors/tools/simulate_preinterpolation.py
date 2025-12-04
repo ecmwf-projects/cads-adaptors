@@ -33,7 +33,7 @@ def simulate_preinterpolation(request, cfg, context):
 
         # If area is present then snap the corners inwards to the nearest
         # points on the notional pre-interpolation grid point
-        area_key = get_mars_key("area")
+        area_key = get_mars_key(request, "area")
         if area_key:
             rr = enforce_sane_area(request, context, area_key=area_key)
             request[area_key] = [str(ll) for ll in snap_area(rr[area_key], cfg)]
