@@ -600,3 +600,51 @@ def test_arco_open_dataset_kwargs(
     monkeypatch.setitem(arco_adaptor.config, "open_dataset_kwargs", {"dsadsa": True})
     with pytest.raises(TypeError):
         arco_adaptor.retrieve(request)
+
+
+def test_arco_to_netcdf_kwargs(
+    arco_adaptor: ArcoDataLakeCdsAdaptor, monkeypatch: pytest.MonkeyPatch
+):
+    request = {
+        "variable": "FOO",
+        "location": {"latitude": 0, "longitude": 0},
+        "date": "2000",
+        "data_format": "netcdf",
+    }
+
+    # Check that adding valid to_netcdf_kwargs works
+    monkeypatch.setitem(
+        arco_adaptor.config,
+        "to_netcdf_kwargs",
+        {"format": "NETCDF4", "encoding": {"foo": {"zlib": True}}},
+    )
+    arco_adaptor.retrieve(request)
+
+    # Check that invalid to_netcdf_kwargs raises error
+    monkeypatch.setitem(arco_adaptor.config, "to_netcdf_kwargs", {"dsadsa": True})
+    with pytest.raises(TypeError):
+        arco_adaptor.retrieve(request)
+
+
+def test_arco_to_csv_kwargs(
+    arco_adaptor: ArcoDataLakeCdsAdaptor, monkeypatch: pytest.MonkeyPatch
+):
+    request = {
+        "variable": "FOO",
+        "location": {"latitude": 0, "longitude": 0},
+        "date": "2000",
+        "data_format": "csv",
+    }
+
+    # Check that adding valid to_csv_kwargs works
+    monkeypatch.setitem(
+        arco_adaptor.config,
+        "to_csv_kwargs",
+        {"index": False, "float_format": "%.2f"},
+    )
+    arco_adaptor.retrieve(request)
+
+    # Check that invalid to_csv_kwargs raises error
+    monkeypatch.setitem(arco_adaptor.config, "to_csv_kwargs", {"dsadsa": True})
+    with pytest.raises(TypeError):
+        arco_adaptor.retrieve(request)
