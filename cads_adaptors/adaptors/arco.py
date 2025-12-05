@@ -231,19 +231,21 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
 
         match request["data_format"]:
             case "netcdf":
+                to_netcdf_kwargs = self.config.get("to_netcdf_kwargs", {})
                 _, path = tempfile.mkstemp(
                     prefix=self.config.get("collection-id", "arco-data"),
                     suffix=".nc",
                     dir=self.cache_tmp_path,
                 )
-                ds.to_netcdf(path)
+                ds.to_netcdf(path, **to_netcdf_kwargs)
             case "csv":
+                to_csv_kwargs = self.config.get("to_csv_kwargs", {})
                 _, path = tempfile.mkstemp(
                     prefix=self.config.get("collection-id", "arco-data"),
                     suffix=".csv",
                     dir=self.cache_tmp_path,
                 )
-                ds.to_dataframe().to_csv(path)
+                ds.to_dataframe().to_csv(path, **to_csv_kwargs)
             case data_format:
                 raise NotImplementedError(f"Invalid {data_format=}.")
 
