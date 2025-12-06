@@ -7,31 +7,34 @@ import pytest
 from cads_adaptors.adaptors import Context
 from cads_adaptors.adaptors.mars import MarsCdsAdaptor
 from cads_adaptors.exceptions import CdsConfigError, InvalidRequest
+from cads_adaptors.tools.simulate_preinterpolation import simulate_preinterpolation
 
 logger = logging.getLogger(__name__)
-
-KEYNAME = "simulate_preinterpolation"
 
 
 def test_no_area():
     """Test grid is added if no area supplied."""
-    config = {KEYNAME: {"grid": {"delta_lon": 0.1, "delta_lat": 0.2}}}
-    adp = MarsCdsAdaptor(form=None, **config)
-    req = adp.simulate_preinterpolation({})
+    config = {"grid": {"delta_lon": 0.1, "delta_lat": 0.2}}
+    req = simulate_preinterpolation({}, config, Context())
     assert req == {"grid": ["0.1", "0.2"]}
 
 
-def test_bad_config():
-    """Check invalid config raises appropriate exception."""
-    config = {KEYNAME: {"random_key": "random_value"}}
-    adp = MarsCdsAdaptor(form=None, **config)
+def test_within_adaptor():
+    """Test calling from adaptor object."""
+    config = {"simulate_preinterpolation": {}}
+    adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
+    assert adp.normalise_request({"area": ["1/2/3/4"]}) == {"area": ["1/2/3/4"]}
+
+    # Unrecognised keys should raise a CdsConfigError
+    config = {"simulate_preinterpolation": {"random_key": "random_value"}}
+    adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
     with pytest.raises(CdsConfigError):
-        adp.normalise_request({"area": []})
+        adp.normalise_request({"area": ["1/2/3/4"]})
 
 
 def test_bad_areas():
     """Check exceptions and error messages for invalid areas."""
-    config = {KEYNAME: {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}}
+    config = {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}
 
     # Too few items
     for area in (
@@ -83,7 +86,7 @@ def test_bad_areas():
 
 def test_global_areas():
     """Check global areas stay global."""
-    config = {KEYNAME: {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}}
+    config = {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}
 
     # Global areas with N-S, E-W mixed up
     check_snap(" 90/-180/-90/ 180", config, ["90.0", "-180.0", "-90.0", "180.0"])
@@ -111,7 +114,7 @@ def test_global_areas():
 
 def test_zero_width():
     """Check zero-width areas stay zero-width."""
-    config = {KEYNAME: {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}}
+    config = {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}
 
     check_snap("90/0/-90/0", config, ["90.0", "0.0", "-90.0", "0.0"])
     check_snap("90/10/-90/10", config, ["90.0", "10.0", "-90.0", "10.0"])
@@ -120,7 +123,7 @@ def test_zero_width():
 
 def test_zero_area():
     """Test zero-width & zero-height areas."""
-    config = {KEYNAME: {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}}
+    config = {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}
 
     # Zero-area aligned with the grid should work
     check_snap("1/2/1/2", config, ["1.0", "2.0", "1.0", "2.0"])
@@ -136,9 +139,7 @@ def test_zero_area():
 def test_zero_area_with_offset():
     """Test zero-width & zero-height areas with an offset grid."""
     config = {
-        KEYNAME: {
-            "grid": {"delta_lon": 0.1, "delta_lat": 0.1, "lon0": 0.05, "lat0": 0.05}
-        }
+        "grid": {"delta_lon": 0.1, "delta_lat": 0.1, "lon0": 0.05, "lat0": 0.05}
     }
 
     # Zero-area aligned with the grid should work
@@ -154,7 +155,7 @@ def test_zero_area_with_offset():
 
 def test_no_change():
     """Test area & grid combinations that should result in no snap."""
-    config = {KEYNAME: {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}}
+    config = {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}
 
     check_snap("0.1/0.2/0.3/0.4", config, ["0.1", "0.2", "0.3", "0.4"])
     check_snap("-0.1/-0.2/-0.3/-0.4", config, ["-0.1", "-0.2", "-0.3", "-0.4"])
@@ -164,9 +165,7 @@ def test_no_change():
 def test_no_change_with_offset():
     """Test area & offset-grid combinations that should result in no snap."""
     config = {
-        KEYNAME: {
-            "grid": {"delta_lon": 0.1, "delta_lat": 0.1, "lon0": 0.05, "lat0": 0.05}
-        }
+        "grid": {"delta_lon": 0.1, "delta_lat": 0.1, "lon0": 0.05, "lat0": 0.05}
     }
 
     check_snap("0.15/0.25/0.35/0.45", config, ["0.15", "0.25", "0.35", "0.45"])
@@ -178,7 +177,7 @@ def test_no_change_with_offset():
 
 def test_snapping():
     """Test general snapping."""
-    config = {KEYNAME: {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}}
+    config = {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}
 
     # All round down
     check_snap(
@@ -199,13 +198,11 @@ def test_snapping():
 def test_snapping_with_offset():
     """Test general snapping with an offset grid."""
     config = {
-        KEYNAME: {
-            "grid": {
-                "delta_lon": "0.1",
-                "delta_lat": "0.2",
-                "lon0": "0.05",
-                "lat0": 0.1,
-            }
+        "grid": {
+            "delta_lon": "0.1",
+            "delta_lat": "0.2",
+            "lon0": "0.05",
+            "lat0": 0.1,
         }
     }
 
@@ -227,12 +224,11 @@ def test_snapping_with_offset():
 
 def test_case_insensitive():
     """Test case insensitivity of area keyword."""
-    config = {KEYNAME: {"grid": {"delta_lon": 0.2, "delta_lat": 0.1}}}
-    adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
+    config = {"grid": {"delta_lon": 0.2, "delta_lat": 0.1}}
 
     for key in ["area", "AREA", " AreA "]:
         req_in = {key: [10.123, -20.345, -30.456, 40.789]}
-        req_out = adp.simulate_preinterpolation(req_in)
+        req_out = simulate_preinterpolation(req_in, config, Context())
         assert req_out == {
             key: ["10.1", "-20.2", "-30.4", "40.6"],
             "grid": ["0.2", "0.1"],
@@ -241,13 +237,12 @@ def test_case_insensitive():
 
 def test_grid_suppresses_snap():
     """Test presence of the grid keyword suppresses snapping."""
-    config = {KEYNAME: {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}}
-    adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
+    config = {"grid": {"delta_lon": 0.1, "delta_lat": 0.1}}
     area = "10.123/-20.345/-30.456/40.789"
 
     # Check area snaps without grid present
     req_in = {"area": area}
-    req_out = adp.simulate_preinterpolation(req_in)
+    req_out = simulate_preinterpolation(req_in, config, Context())
     assert req_out == {
         "area": ["10.1", "-20.3", "-30.4", "40.7"],
         "grid": ["0.1", "0.1"],
@@ -257,18 +252,17 @@ def test_grid_suppresses_snap():
     # grid either
     for key in ["grid", "GRID", "  GriD  "]:
         req_in = {"area": area, key: "2/2"}
-        req_out = adp.simulate_preinterpolation(deepcopy(req_in))
+        req_out = simulate_preinterpolation(deepcopy(req_in), config, Context())
         assert req_out == {"area": area, key: "2/2"}, req_out
 
 
 def check_invalid_area(area, config, regex):
     """Check the input area fails the schema check."""
-    adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
 
     req_in = {"area": area}
 
     with pytest.raises(InvalidRequest) as einfo:
-        adp.simulate_preinterpolation(req_in)
+        simulate_preinterpolation(req_in, config, Context())
 
     if not re.search(regex, einfo.value.args[0]):
         raise Exception(
@@ -278,11 +272,10 @@ def check_invalid_area(area, config, regex):
 
 def check_snap(area_in, config, area_out):
     """Check the input area snaps as expected."""
-    adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
 
     req_in = {"area": area_in}
-    req_out = adp.simulate_preinterpolation(req_in)
-    pre_grid = config[KEYNAME]["grid"]
+    req_out = simulate_preinterpolation(req_in, config, Context())
+    pre_grid = config["grid"]
     assert req_out == {
         "area": area_out,
         "grid": [str(pre_grid["delta_lon"]), str(pre_grid["delta_lat"])],
