@@ -168,3 +168,40 @@ def test_decrypt_errors(monkeypatch: pytest.MonkeyPatch, ignore_errors: bool) ->
 )
 def test_general_strtobool(value: str, expected: bool):
     assert general.strtobool(value) is expected
+
+
+def test_decrypt_recursive(monkeypatch: pytest.MonkeyPatch):
+    key = "ZYG9zAgLeW1FPIwcoRifFpbXgv3oCVcVi5z4AUDB0aE="  # gitleaks:allow
+    monkeypatch.setenv("ADAPTOR_DECRYPTION_KEY", key)
+
+    # Encrypted token for the string "foo"
+    encrypted_foo = (
+        "gAAAAABn3ABNABb1W2XKHyFKjNPS5HWS9ZQRlSIhh4xxUMxuLQ"
+        "yziwIrv7U1ahA7QcGxiZvPuPOsoRNSOolPjz8ciJeOtEeIaQ=="
+    )
+
+    # 1. Simple string
+    assert general.decrypt_recursive(encrypted_foo, ignore_errors=True) == "foo"
+
+    # 2. Nested list of strings
+    nested_list = [encrypted_foo, [encrypted_foo, "plain"]]
+    expected_list = ["foo", ["foo", "plain"]]
+    assert general.decrypt_recursive(nested_list, ignore_errors=True) == expected_list
+
+    # 3. Nested dictionary with strings
+    nested_dict = {"a": encrypted_foo, "b": {"c": encrypted_foo, "d": "plain"}}
+    expected_dict = {"a": "foo", "b": {"c": "foo", "d": "plain"}}
+    assert general.decrypt_recursive(nested_dict, ignore_errors=True) == expected_dict
+
+    # 4. Mix of dicts, lists, and non-string values
+    mixed = {
+        "list": [encrypted_foo, 123, {"key": encrypted_foo}],
+        "string": encrypted_foo,
+        "int": 456,
+    }
+    expected_mixed = {
+        "list": ["foo", 123, {"key": "foo"}],
+        "string": "foo",
+        "int": 456,
+    }
+    assert general.decrypt_recursive(mixed, ignore_errors=True) == expected_mixed

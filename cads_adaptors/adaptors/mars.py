@@ -16,6 +16,7 @@ from cads_adaptors.tools.general import (
     ensure_list,
     split_requests_on_keys,
 )
+from cads_adaptors.tools.simulate_preinterpolation import simulate_preinterpolation
 
 # This hard requirement of MARS requests should be moved to the proxy MARS client
 ALWAYS_SPLIT_ON: list[str] = [
@@ -204,6 +205,11 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         self.set_download_format(
             download_format, default_download_format=default_download_format
         )
+
+        # Perform actions necessary to simulate pre-interpolation of fields to
+        # a regular grid?
+        if cfg := self.config.get("simulate_preinterpolation"):
+            request = simulate_preinterpolation(request, cfg, self.context)
 
         return request
 

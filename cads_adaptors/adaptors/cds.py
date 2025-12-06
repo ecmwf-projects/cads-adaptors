@@ -8,7 +8,11 @@ from typing import Any, BinaryIO
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
-from cads_adaptors.exceptions import CdsConfigurationError, InvalidRequest
+from cads_adaptors.exceptions import (
+    CdsConfigurationError,
+    GeoServerError,
+    InvalidRequest,
+)
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.hcube_tools import hcubes_intdiff2
 from cads_adaptors.validation import enforce
@@ -65,6 +69,23 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return self.make_download_object(result)
 
     def check_validity(self, request: Request) -> None:
+        layer = self.config.get("geoserver-layer")
+        if layer is not None:
+            try:
+                features_in_request = mapping.get_features_in_request(
+                    request=request, layer=layer, max_features=1, context=self.context
+                )
+            except GeoServerError:
+                return
+            if not features_in_request:
+                if request.get("location") is not None:
+                    raise InvalidRequest(
+                        "No features found in request for 'location' selection"
+                    )
+                elif request.get("area") is not None:
+                    raise InvalidRequest(
+                        "No features found in request for 'area' selection"
+                    )
         return
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
@@ -94,6 +115,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 highest_cost_limit_ratio = cost_limit_ratio
                 highest_cost = {"type": limit_id, "cost": cost, "limit": limit}
         return highest_cost["type"]
+
+    def area_weight(self, request: Request, **kwargs) -> int:
+        return 1
 
     def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         cost_threshold = kwargs.get("cost_threshold", "max_costs")
@@ -139,7 +163,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 mapped_request,
                 self.constraints,
                 **costing_kwargs,
-            )
+            ) * self.area_weight(mapped_request, **costing_kwargs)
+
         # size is a fast and rough estimate of the number of fields
         costs[DEFAULT_COST_TYPE] = costing.estimate_number_of_fields(
             self.form,
@@ -150,7 +175,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 "weighted_keys": mapped_weighted_keys,
                 "weighted_values": mapped_weighted_values,
             },
-        )
+        ) * self.area_weight(mapped_request, **costing_kwargs)
+
         # Safety net for integration tests:
         costs["number_of_fields"] = costs[DEFAULT_COST_TYPE]
 
