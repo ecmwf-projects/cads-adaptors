@@ -138,9 +138,7 @@ def test_zero_area():
 
 def test_zero_area_with_offset():
     """Test zero-width & zero-height areas with an offset grid."""
-    config = {
-        "grid": {"delta_lon": 0.1, "delta_lat": 0.1, "lon0": 0.05, "lat0": 0.05}
-    }
+    config = {"grid": {"delta_lon": 0.1, "delta_lat": 0.1, "lon0": 0.05, "lat0": 0.05}}
 
     # Zero-area aligned with the grid should work
     check_snap("1.05/2.05/1.05/2.05", config, ["1.05", "2.05", "1.05", "2.05"])
@@ -164,9 +162,7 @@ def test_no_change():
 
 def test_no_change_with_offset():
     """Test area & offset-grid combinations that should result in no snap."""
-    config = {
-        "grid": {"delta_lon": 0.1, "delta_lat": 0.1, "lon0": 0.05, "lat0": 0.05}
-    }
+    config = {"grid": {"delta_lon": 0.1, "delta_lat": 0.1, "lon0": 0.05, "lat0": 0.05}}
 
     check_snap("0.15/0.25/0.35/0.45", config, ["0.15", "0.25", "0.35", "0.45"])
     check_snap("-0.15/-0.25/-0.35/-0.45", config, ["-0.15", "-0.25", "-0.35", "-0.45"])
@@ -258,7 +254,6 @@ def test_grid_suppresses_snap():
 
 def check_invalid_area(area, config, regex):
     """Check the input area fails the schema check."""
-
     req_in = {"area": area}
 
     with pytest.raises(InvalidRequest) as einfo:
@@ -272,7 +267,6 @@ def check_invalid_area(area, config, regex):
 
 def check_snap(area_in, config, area_out):
     """Check the input area snaps as expected."""
-
     req_in = {"area": area_in}
     req_out = simulate_preinterpolation(req_in, config, Context())
     pre_grid = config["grid"]
