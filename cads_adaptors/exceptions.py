@@ -71,3 +71,7 @@ class CdsConfigurationError(ValueError):
 
 class ArcoDataLakeNoDataError(InvalidRequest):
     """Raised when a ARCO Data Lake request returns no data."""
+
+
+class GeoServerError(RuntimeError):
+    """Raised when a GeoServer request fails."""

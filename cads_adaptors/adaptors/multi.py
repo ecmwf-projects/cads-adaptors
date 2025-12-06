@@ -2,9 +2,14 @@ from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
-from cads_adaptors.exceptions import CdsConfigurationError, MultiAdaptorNoDataError
+from cads_adaptors.exceptions import (
+    CdsConfigurationError,
+    InvalidRequest,
+    MultiAdaptorNoDataError,
+)
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools.hcube_tools import merge_requests
 from cads_adaptors.tools.simulate_preinterpolation import simulate_preinterpolation
 
 
@@ -73,7 +78,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
         this_values: dict[str, Any],  # key: [values] for the adaptor component
         dont_split_keys: list[str] = ["area", "grid"],
         filter_keys: None | list[str] = None,
-        required_keys: list[str] = [],
+        required_keys: list[str] | None = None,
     ) -> Request:
         """
         Basic request splitter, splits based on whether the values are relevant to
@@ -119,9 +124,17 @@ class MultiAdaptor(AbstractCdsAdaptor):
         from cads_adaptors.tools import adaptor_tools
 
         sub_adaptors = {}
-        for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
+        for adaptor_tag, _adaptor_desc in self.config["adaptors"].items():
+            adaptor_desc = _adaptor_desc.copy()
+            adaptor_desc.setdefault(
+                "intersect_constraints", self.config.get("intersect_constraints", False)
+            )
+            # Preserve the context and constraints from the parent for each sub-adaptor
+            # This would apply to the licences attribute. As licences are not currently used in retrieval
+            # not coding in case another approach is taken in the future.
             this_adaptor = adaptor_tools.get_adaptor(
-                adaptor_desc | {"context": self.context},
+                adaptor_desc
+                | {"context": self.context, "constraints": self.constraints},
                 self.form,
             )
             this_values = adaptor_desc.get("values", {})
@@ -139,12 +152,16 @@ class MultiAdaptor(AbstractCdsAdaptor):
             if len(this_request) > 0:
                 try:
                     this_request = this_adaptor.normalise_request(this_request)
-                except Exception:
+                except InvalidRequest:
                     self.context.warning(
                         f"MultiAdaptor failed to normalise request.\n"
                         f"adaptor_tag: {adaptor_tag}\nthis_request: {this_request}"
                     )
-                sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
+                else:
+                    # Only append if request is normalised successfully, normalisation
+                    # is also applied in the sub-adaptor, executing here reduces
+                    # excessive logging.
+                    sub_adaptors[adaptor_tag] = (this_adaptor, this_request)
 
         return sub_adaptors
 
@@ -157,19 +174,20 @@ class MultiAdaptor(AbstractCdsAdaptor):
         return request
 
     def retrieve_list_of_results(self, request: Request) -> list[str]:
+        # If running the request (on the worker), we disable the intersection of constraints
+        # in the parent request.
+        self.intersect_constraints_bool = False
         request = self.normalise_request(request)
-        # TODO: handle lists of requests, normalise_request has the power to implement_constraints
-        #  which produces a list of complete hypercube requests.
-        try:
-            assert len(self.mapped_requests) == 1
-        except AssertionError:
-            self.context.add_user_visible_log(
-                f"WARNING: More than one request was mapped: {self.mapped_requests}, "
-                f"returning the first one only:\n{self.mapped_requests[0]}"
-            )
-        self.mapped_request = self.mapped_requests[0]
 
-        self.context.debug(f"MultiAdaptor, full_request: {self.mapped_request}")
+        # We merge our list of split requests back into a single request.
+        # If required the sub-adaptors will repeat intersect constraints.
+        # We do not want to create a very large number of sub-adaptors
+        if len(self.mapped_requests) > 0:
+            self.mapped_request = merge_requests(self.mapped_requests)
+        else:
+            self.mapped_request = self.mapped_requests[0]
+
+        self.context.info(f"MultiAdaptor, full_request: {self.mapped_request}")
 
         sub_adaptors = self.split_adaptors(self.mapped_request)
 
@@ -189,7 +207,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
                 f"{exception_logs}"
             )
 
-        self.context.debug(f"MultiAdaptor, result paths:\n{paths}")
+        self.context.info(f"MultiAdaptor, result paths:\n{paths}")
 
         return paths
 
