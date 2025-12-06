@@ -10,6 +10,7 @@ from cads_adaptors.exceptions import (
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.hcube_tools import merge_requests
+from cads_adaptors.tools.simulate_preinterpolation import simulate_preinterpolation
 
 
 class MultiAdaptor(AbstractCdsAdaptor):
@@ -235,6 +236,11 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         self.set_download_format(
             download_format, default_download_format=default_download_format
         )
+
+        # Perform actions necessary to simulate pre-interpolation of fields to
+        # a regular grid?
+        if cfg := self.config.get("simulate_preinterpolation"):
+            request = simulate_preinterpolation(request, cfg, self.context)
 
         # Apply any mapping
         mapped_formats = self.apply_mapping({"data_format": data_format})
