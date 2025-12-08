@@ -132,12 +132,15 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         max_lat, min_lon, min_lat, max_lon = request["area"]
         # Spatial resolution passed in via the costing_kwargs, this could be set to match source chunking
         resolution = kwargs.get("spatial_resolution", DEFAULT_SPATIAL_RESOLUTION)
-        return max(0, int(
-            (float(max_lat) - float(min_lat))
-            / float(resolution.get("latitude", 0.25))
-            * (float(max_lon) - float(min_lon))
-            / float(resolution.get("longitude", 0.25))
-        ))
+        return max(
+            0,
+            int(
+                (float(max_lat) - float(min_lat))
+                / float(resolution.get("latitude", 0.25))
+                * (float(max_lon) - float(min_lon))
+                / float(resolution.get("longitude", 0.25))
+            ),
+        )
 
     def pre_mapping_modifications(self, request: Request) -> Request:
         request = super().pre_mapping_modifications(request)
