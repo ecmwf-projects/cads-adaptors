@@ -71,83 +71,167 @@ def test_get_form_state() -> None:
     }
 
 
-def is_a_match(d1:dict[str,list[Any]], d2:dict[str,list[Any]]):
+def is_a_match(d1: dict[str, list[Any]], d2: dict[str, list[Any]]):
     return d1.keys() == d2.keys() and all(set(d1[k]) == set(d2[k]) for k in d1.keys())
+
 
 def test_apply_constraints_in_old_cds_fashion() -> None:
     form = {
         "param": {"lA", "lB", "lC", "D", "E"},
-        "level": {"500", "850"}, 
-        "number": {"1", "2", "3"}
+        "level": {"500", "850"},
+        "number": {"1", "2", "3"},
     }
 
     raw_constraints = [
-        {"param": {"lA", "lB"}, "level": {"500"}, "number": {"1","2"}},
+        {"param": {"lA", "lB"}, "level": {"500"}, "number": {"1", "2"}},
         {"param": {"lC"}, "level": {"850"}, "number": {"1"}},
         {"param": {"D"}, "number": {"3"}},
-        {"param": {"E"}, "number": {"1", "3"}}
+        {"param": {"E"}, "number": {"1", "3"}},
     ]
 
     expected_answers_to_queries = [
-        ({"level": {"500"}}, 
-         {"param": ["lA", "lB", "D", "E"], "level": ["500", "850"], "number": ["1","2","3"]}),
-        ({"level": {"850"}}, 
-         {"param": ["lC", "D", "E"], "level": ["500", "850"], "number": ["1","3"]}),
-        ({"number": {"1"}},
-         {"param": ["lA", "lB", "lC", "E"], "level": ["500", "850"], "number": ["1","2","3"]}),
-        ({"param": {"lC"}},
-         {"param": ["lA","lB","lC", "D", "E"], "level": ["850"], "number": ["1"]}),
-        ({"param": {"E"}},
-         {"param": ["lA","lB","lC", "D", "E"], "level": [], "number": ["1", "3"]}),
-        ({"param": {"lA","E"}},
-         {"param": ["lA","lB","lC", "D", "E"], "level": ["500"], "number": ["1", "2", "3"]}),
-        ({"param": {"lA", "E"}, "number": {"3"}},
-         {"param": ["D", "E"], "level": [], "number": ["1","2","3"]}),
-        ({"param": {"lA", "E"}, "level": {"500"}},
-         {"param": ["lA","lB", "D", "E"], "level": ["500"], "number": ["1", "2", "3"]}),
-        ({"param": {"lA", "E"}, "level": {"500"}, "number": {"3"}},
-         {"param": ["D", "E"], "level": [], "number": ["1", "2", "3"]}),
+        (
+            {"level": {"500"}},
+            {
+                "param": ["lA", "lB", "D", "E"],
+                "level": ["500", "850"],
+                "number": ["1", "2", "3"],
+            },
+        ),
+        (
+            {"level": {"850"}},
+            {"param": ["lC", "D", "E"], "level": ["500", "850"], "number": ["1", "3"]},
+        ),
+        (
+            {"number": {"1"}},
+            {
+                "param": ["lA", "lB", "lC", "E"],
+                "level": ["500", "850"],
+                "number": ["1", "2", "3"],
+            },
+        ),
+        (
+            {"param": {"lC"}},
+            {"param": ["lA", "lB", "lC", "D", "E"], "level": ["850"], "number": ["1"]},
+        ),
+        (
+            {"param": {"E"}},
+            {"param": ["lA", "lB", "lC", "D", "E"], "level": [], "number": ["1", "3"]},
+        ),
+        (
+            {"param": {"lA", "E"}},
+            {
+                "param": ["lA", "lB", "lC", "D", "E"],
+                "level": ["500"],
+                "number": ["1", "2", "3"],
+            },
+        ),
+        (
+            {"param": {"lA", "E"}, "number": {"3"}},
+            {"param": ["D", "E"], "level": [], "number": ["1", "2", "3"]},
+        ),
+        (
+            {"param": {"lA", "E"}, "level": {"500"}},
+            {
+                "param": ["lA", "lB", "D", "E"],
+                "level": ["500"],
+                "number": ["1", "2", "3"],
+            },
+        ),
+        (
+            {"param": {"lA", "E"}, "level": {"500"}, "number": {"3"}},
+            {"param": ["D", "E"], "level": [], "number": ["1", "2", "3"]},
+        ),
     ]
 
-    for query,expected_answer in expected_answers_to_queries:
-        answer = constraints.apply_constraints_in_old_cds_fashion(form, query, raw_constraints)
-        assert is_a_match(answer,expected_answer)
+    for query, expected_answer in expected_answers_to_queries:
+        answer = constraints.apply_constraints_in_old_cds_fashion(
+            form, query, raw_constraints
+        )
+        assert is_a_match(answer, expected_answer)
 
 
 def test_apply_constraints_in_old_cds_fashion_for_dateranges() -> None:
     form = {
         "param": {"lA", "lB", "lC", "D", "E"},
-        "level": {"500", "850"}, 
-        "date": {"2000-01-01/2025-12-01"}
+        "level": {"500", "850"},
+        "date": {"2000-01-01/2025-12-01"},
     }
 
     raw_constraints = [
-        {"param": {"lA", "lB"}, "level": {"500"}, "date": {"2000-01-01/2020-01-01","2023-01-01/2023-07-01"}},
+        {
+            "param": {"lA", "lB"},
+            "level": {"500"},
+            "date": {"2000-01-01/2020-01-01", "2023-01-01/2023-07-01"},
+        },
         {"param": {"lC"}, "level": {"850"}, "date": {"2023-07-01/2024-12-31"}},
         {"param": {"D"}, "date": {"2000-01-01/2024-12-31"}},
-        {"param": {"E"}, "date": {"2000-01-01/2025-12-01"}}
+        {"param": {"E"}, "date": {"2000-01-01/2025-12-01"}},
     ]
 
     expected_answers_to_queries = [
-        ({"level": {"500"}}, 
-         {"param": ["lA", "lB", "D", "E"], "level": ["500", "850"], "date": ["2000-01-01/2020-01-01","2023-01-01/2023-07-01","2000-01-01/2024-12-31","2000-01-01/2025-12-01"]}),
-        ({"date": {"2010-01-01/2011-12-31"}},
-         {"param": ["lA", "lB", "D", "E"], "level": ["500"], "date": ["2000-01-01/2025-12-01"]}),
-        ({"date": {"2021-01-01/2022-01-01"}},
-         {"param": ["D", "E"], "level": [], "date": ["2000-01-01/2025-12-01"]}),
-        ({"date": {"2023-07-01"}},
-         {"param": ["lA", "lB", "lC", "D", "E"], "level": ["500", "850"], "date": ["2000-01-01/2025-12-01"]}),
-        ({"level": {"850"}, "date": {"2023-07-01"}},
-         {"param": ["lC", "D", "E"], "level": ["500", "850"], "date": ["2000-01-01/2024-12-31", "2000-01-01/2025-12-01", "2023-07-01/2024-12-31"]}),
-        ({"param": {"lA"}, "date": {"2019-07-01"}},
-         {"param": ["lA", "lB", "D", "E"], "level": ["500"], "date": ["2000-01-01/2020-01-01", "2023-01-01/2023-07-01"]}),
+        (
+            {"level": {"500"}},
+            {
+                "param": ["lA", "lB", "D", "E"],
+                "level": ["500", "850"],
+                "date": [
+                    "2000-01-01/2020-01-01",
+                    "2023-01-01/2023-07-01",
+                    "2000-01-01/2024-12-31",
+                    "2000-01-01/2025-12-01",
+                ],
+            },
+        ),
+        (
+            {"date": {"2010-01-01/2011-12-31"}},
+            {
+                "param": ["lA", "lB", "D", "E"],
+                "level": ["500"],
+                "date": ["2000-01-01/2025-12-01"],
+            },
+        ),
+        (
+            {"date": {"2021-01-01/2022-01-01"}},
+            {"param": ["D", "E"], "level": [], "date": ["2000-01-01/2025-12-01"]},
+        ),
+        (
+            {"date": {"2023-07-01"}},
+            {
+                "param": ["lA", "lB", "lC", "D", "E"],
+                "level": ["500", "850"],
+                "date": ["2000-01-01/2025-12-01"],
+            },
+        ),
+        (
+            {"level": {"850"}, "date": {"2023-07-01"}},
+            {
+                "param": ["lC", "D", "E"],
+                "level": ["500", "850"],
+                "date": [
+                    "2000-01-01/2024-12-31",
+                    "2000-01-01/2025-12-01",
+                    "2023-07-01/2024-12-31",
+                ],
+            },
+        ),
+        (
+            {"param": {"lA"}, "date": {"2019-07-01"}},
+            {
+                "param": ["lA", "lB", "D", "E"],
+                "level": ["500"],
+                "date": ["2000-01-01/2020-01-01", "2023-01-01/2023-07-01"],
+            },
+        ),
     ]
 
     widget_types = {"date": "DateRangeWidget"}
 
-    for query,expected_answer in expected_answers_to_queries:
-        answer = constraints.apply_constraints_in_old_cds_fashion(form, query, raw_constraints, widget_types)
-        assert is_a_match(answer,expected_answer)
+    for query, expected_answer in expected_answers_to_queries:
+        answer = constraints.apply_constraints_in_old_cds_fashion(
+            form, query, raw_constraints, widget_types
+        )
+        assert is_a_match(answer, expected_answer)
 
 
 def test_apply_constraints() -> None:
