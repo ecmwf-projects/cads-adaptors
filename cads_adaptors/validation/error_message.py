@@ -194,7 +194,7 @@ class AdditionalProperties(ErrorMessageBase):
 
         # Property is forbidden because the name doesn't match a regex?
         m = re.match(
-            r"^'(.*)' does not match any of the regexes:(.*)",
+            r"^['\"](.*)['\"] does not match any of the regexes:(.*)",
             error.message,
             flags=re.DOTALL,
         )

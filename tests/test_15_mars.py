@@ -1,14 +1,29 @@
 import logging
 import os
-
 import pytest
+import re
 import requests
+import string as mstring
 
-from cads_adaptors.adaptors import Context, mars
+from cads_adaptors.adaptors import Context, mars, multi
 from cads_adaptors.exceptions import InvalidRequest
 
 TEST_GRIB_FILE = "https://sites.ecmwf.int/repository/earthkit-data/test-data/era5-levels-members.grib"
 logger = logging.getLogger(__name__)
+
+WHITESPACE_CHARS = set(" \t")
+MARS_BREAKING_CHARS = set("=,\n")
+EXTENDED_ASCII_CHARS = set(chr(i) for i in range(256))
+ASCII_WORD_CHARS = set(mstring.ascii_letters + mstring.digits + "_")
+ASCII_PRINTING_CHARS = set(chr(i) for i in range(ord(" "), ord("~")+1))
+
+# Note that whitespace characters are neither considered valid nor invalid - 
+# they are a special case since they are valid at the start/end but not in the
+# middle.
+VALID_KEY_CHARS = ASCII_WORD_CHARS
+INVALID_KEY_CHARS = EXTENDED_ASCII_CHARS - VALID_KEY_CHARS - WHITESPACE_CHARS
+VALID_VALUE_CHARS = ASCII_PRINTING_CHARS - MARS_BREAKING_CHARS - WHITESPACE_CHARS
+INVALID_VALUE_CHARS = EXTENDED_ASCII_CHARS - VALID_VALUE_CHARS - WHITESPACE_CHARS
 
 
 def test_get_mars_servers():
@@ -78,7 +93,7 @@ def test_schema_null():
     _check_schema_fail({}, "request: {} should be non-empty")
 
     # Null/whitespace keys and values
-    for string in ["", " ", "\t"]:
+    for string in [""] + sorted(WHITESPACE_CHARS):
         string_repr = repr(string).strip("'")
 
         # Null key
@@ -92,12 +107,10 @@ def test_schema_null():
         )
 
 
-def test_schema_invalid_chars():
-    """Test that invalid characters don't pass the schema."""
-    # Test various invalid characters. It's important to not allow ",", "=" and
-    # "\n" because they have special meaning to MARS. Test some other random non-word
-    # characters too.
-    for badchar in [",", "=", "\n", "\b", "\r", "\f"]:
+def test_schema_syntax_breakers():
+    """Test that characters that would lead to a syntactically invalid MARS
+       request don't pass the schema"""
+    for badchar in sorted(MARS_BREAKING_CHARS):
         # Test them at the beginning, middle and end of the string
         for pos in [0, 1, 2]:
             string = "ab"
@@ -115,9 +128,8 @@ def test_schema_invalid_chars():
 
 def test_schema_whitespace():
     """Test the presence of whitespace (space/tab) in keys and values."""
-    # Whitespace is only permitted at the start or end of a key/value, not in the
-    # middle
-    for badchar in [" ", "\t"]:
+    for badchar in sorted(WHITESPACE_CHARS):
+        # Test them at the beginning, middle and end of the string
         for pos in [0, 1, 2]:
             string = "ab"
             string = string[:pos] + badchar + string[pos:]
@@ -136,9 +148,57 @@ def test_schema_whitespace():
                     {"param": string}, f"request['param'][0]: invalid value: '{string}'"
                 )
 
+    # Check whitespace is allowed in the middle of a value if specifically
+    # requested
+    for badchar in sorted(WHITESPACE_CHARS):
+        _check_schema_pass({"x": f"a{badchar}b"}, {"x": [f"a{badchar}b"]},
+                           extra_value_chars=badchar)
+
+
+
+def test_schema_invalid_key_chars():
+    """Test that invalid key characters don't pass the schema."""
+    for badchar in sorted(INVALID_KEY_CHARS):
+
+        # Test them at the beginning, middle and end of the string
+        for pos in [0, 1, 2]:
+            string = "ab"
+            string = string[:pos] + badchar + string[pos:]
+            string_repr = repr(string)[1:-1]
+
+            # Check the request is rejected because of the bad character
+            _check_schema_fail(
+                {string: "1"}, f"request: '{string_repr}' is an invalid key name"
+            )
+
+            # Check we can allow the character with config
+            if badchar not in MARS_BREAKING_CHARS:
+                _check_schema_pass(
+                    {string: "1"}, {string: ["1"]}, extra_key_chars=re.escape(badchar)
+                )
+
+
+def test_schema_invalid_value_chars():
+    """Test that invalid value characters don't pass the schema."""
+    for badchar in sorted(INVALID_VALUE_CHARS):
+
+        # Test them at the beginning, middle and end of the string
+        for pos in [0, 1, 2]:
+            string = "ab"
+            string = string[:pos] + badchar + string[pos:]
+
+            # Check the request is rejected because of the bad character
+            _check_schema_fail({"a": string},
+                               f"request['a'][0]: invalid value: '{string}'")
+
+            # ...but can be allowed by config
+            if badchar not in MARS_BREAKING_CHARS:
+                _check_schema_pass({"a": string}, {"a": [string]},
+                               extra_value_chars=re.escape(string))
+
 
 def test_schema_pass():
-    """Check the schema allows expected keys/values."""
+    """Check the schema allows a selection of "normal-looking" requests."""
     _check_schema_pass({"a": 1}, {"a": ["1"]})
     _check_schema_pass({"A": "a"}, {"A": ["a"]})
     _check_schema_pass({"0": ["a"]}, {"0": ["a"]})
@@ -147,6 +207,13 @@ def test_schema_pass():
         {" abc ": [3, 2, 1, "foo-bar"], "\txyz\t\t": "3/2/1/foo-bar"},
         {" abc ": ["3", "2", "1", "foo-bar"], "\txyz\t\t": ["3/2/1/foo-bar"]},
     )
+    _check_schema_pass({"step": "1/to/24/by/3",
+                        "param_FOO": ["152.128","203.210"]},
+                       {"step": ["1/to/24/by/3"],
+                        "param_FOO": ["152.128","203.210"]})
+    kk = "".join(sorted(VALID_KEY_CHARS))
+    vv = "".join(sorted(VALID_VALUE_CHARS))
+    _check_schema_pass({kk: vv}, {kk: [vv]})
 
 
 def test_schema_duplicates():
@@ -174,22 +241,24 @@ def test_schema_duplicates():
 
 def _check_schema_fail(request, error_msg):
     """Check a request fails the schema with the expected error message."""
-    adp = mars.MarsCdsAdaptor(form=None, context=Context(logger=logger))
-    with pytest.raises(InvalidRequest) as einfo:
-        output = adp.normalise_request(request)
-        print("Output = ", output)
+    for cls in [mars.MarsCdsAdaptor, multi.MultiMarsCdsAdaptor]:
+        adp = cls(form=None, context=Context(logger=logger))
+        with pytest.raises(InvalidRequest) as einfo:
+            output = adp.normalise_request(request)
+            assert isinstance(output, dict)
 
-    if einfo.value.args[0] != error_msg:
-        raise Exception(
-            "Schema error message not as expected: "
-            f"{einfo.value.args[0]!r} != {error_msg!r}"
-        )
+        if einfo.value.args[0] != error_msg:
+            raise Exception(
+                "Schema error message not as expected: "
+                f"{einfo.value.args[0]!r} != {error_msg!r}"
+            )
 
 
 def _check_schema_pass(req_in, req_out, **schema_options):
     """Check a request passes the schema and gives the expected output."""
-    adp = mars.MarsCdsAdaptor(
-        form=None, context=Context(logger=logger), schema_options=schema_options
-    )
-    req_mod = adp.normalise_request(req_in)
-    assert req_mod == req_out
+    for cls in [mars.MarsCdsAdaptor, multi.MultiMarsCdsAdaptor]:
+        adp = cls(
+            form=None, context=Context(logger=logger), schema_options=schema_options
+        )
+        req_mod = adp.normalise_request(req_in)
+        assert req_mod == req_out

@@ -167,7 +167,8 @@ def minimal_mars_schema(
     # amount of whitespace as this would not cause a MARS failure.
     extra_key_chars = extra_key_chars or ""
     extra_value_chars = extra_value_chars or ""
-    key_regex = rf"^{neg_assertion}[ \t]*[\w{extra_key_chars}]+[ \t]*$"
+    ascii_word = "a-zA-Z0-9_"  # This is more strict than \w, which includes some non-ascii
+    key_regex = rf"^{neg_assertion}[ \t]*[{ascii_word}{extra_key_chars}]+[ \t]*$"
     value_regex = rf"^{neg_assertion}[ \t]*[!-~{extra_value_chars}]+[ \t]*$"
 
     # These are the only keys permitted to have duplicate values. Duplicate
@@ -244,7 +245,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def __init__(self, *args, schema_options=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.data_format: str | None = None
-        self.adaptor_schema = minimal_mars_schema(**(schema_options or {}))
+        schema_options = schema_options or {}
+        if not schema_options.get('disable_adaptor_schema'):
+            self.adaptor_schema = minimal_mars_schema(**schema_options)
 
     def convert_format(self, *args, **kwargs):
         from cads_adaptors.tools.convertors import convert_format

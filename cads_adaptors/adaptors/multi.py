@@ -2,6 +2,7 @@ from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
 from cads_adaptors.adaptors import Request
+from cads_adaptors.adaptors.mars import minimal_mars_schema
 from cads_adaptors.exceptions import CdsConfigurationError, MultiAdaptorNoDataError
 from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.general import ensure_list
@@ -194,6 +195,12 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
 
 class MultiMarsCdsAdaptor(MultiAdaptor):
+    def __init__(self, *args, schema_options=None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        schema_options = schema_options or {}
+        if not schema_options.get('disable_adaptor_schema'):
+            self.adaptor_schema = minimal_mars_schema(**schema_options)
+
     def convert_format(self, *args, **kwargs) -> list[str]:
         from cads_adaptors.tools.convertors import convert_format
 
