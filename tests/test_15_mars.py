@@ -1,9 +1,10 @@
 import logging
 import os
-import pytest
 import re
-import requests
 import string as mstring
+
+import pytest
+import requests
 
 from cads_adaptors.adaptors import Context, mars, multi
 from cads_adaptors.exceptions import InvalidRequest
@@ -15,9 +16,9 @@ WHITESPACE_CHARS = set(" \t")
 MARS_BREAKING_CHARS = set("=,\n")
 EXTENDED_ASCII_CHARS = set(chr(i) for i in range(256))
 ASCII_WORD_CHARS = set(mstring.ascii_letters + mstring.digits + "_")
-ASCII_PRINTING_CHARS = set(chr(i) for i in range(ord(" "), ord("~")+1))
+ASCII_PRINTING_CHARS = set(chr(i) for i in range(ord(" "), ord("~") + 1))
 
-# Note that whitespace characters are neither considered valid nor invalid - 
+# Note that whitespace characters are neither considered valid nor invalid -
 # they are a special case since they are valid at the start/end but not in the
 # middle.
 VALID_KEY_CHARS = ASCII_WORD_CHARS
@@ -109,7 +110,8 @@ def test_schema_null():
 
 def test_schema_syntax_breakers():
     """Test that characters that would lead to a syntactically invalid MARS
-       request don't pass the schema"""
+    request don't pass the schema.
+    """
     for badchar in sorted(MARS_BREAKING_CHARS):
         # Test them at the beginning, middle and end of the string
         for pos in [0, 1, 2]:
@@ -151,15 +153,14 @@ def test_schema_whitespace():
     # Check whitespace is allowed in the middle of a value if specifically
     # requested
     for badchar in sorted(WHITESPACE_CHARS):
-        _check_schema_pass({"x": f"a{badchar}b"}, {"x": [f"a{badchar}b"]},
-                           extra_value_chars=badchar)
-
+        _check_schema_pass(
+            {"x": f"a{badchar}b"}, {"x": [f"a{badchar}b"]}, extra_value_chars=badchar
+        )
 
 
 def test_schema_invalid_key_chars():
     """Test that invalid key characters don't pass the schema."""
     for badchar in sorted(INVALID_KEY_CHARS):
-
         # Test them at the beginning, middle and end of the string
         for pos in [0, 1, 2]:
             string = "ab"
@@ -181,20 +182,21 @@ def test_schema_invalid_key_chars():
 def test_schema_invalid_value_chars():
     """Test that invalid value characters don't pass the schema."""
     for badchar in sorted(INVALID_VALUE_CHARS):
-
         # Test them at the beginning, middle and end of the string
         for pos in [0, 1, 2]:
             string = "ab"
             string = string[:pos] + badchar + string[pos:]
 
             # Check the request is rejected because of the bad character
-            _check_schema_fail({"a": string},
-                               f"request['a'][0]: invalid value: '{string}'")
+            _check_schema_fail(
+                {"a": string}, f"request['a'][0]: invalid value: '{string}'"
+            )
 
             # ...but can be allowed by config
             if badchar not in MARS_BREAKING_CHARS:
-                _check_schema_pass({"a": string}, {"a": [string]},
-                               extra_value_chars=re.escape(string))
+                _check_schema_pass(
+                    {"a": string}, {"a": [string]}, extra_value_chars=re.escape(string)
+                )
 
 
 def test_schema_pass():
@@ -207,10 +209,10 @@ def test_schema_pass():
         {" abc ": [3, 2, 1, "foo-bar"], "\txyz\t\t": "3/2/1/foo-bar"},
         {" abc ": ["3", "2", "1", "foo-bar"], "\txyz\t\t": ["3/2/1/foo-bar"]},
     )
-    _check_schema_pass({"step": "1/to/24/by/3",
-                        "param_FOO": ["152.128","203.210"]},
-                       {"step": ["1/to/24/by/3"],
-                        "param_FOO": ["152.128","203.210"]})
+    _check_schema_pass(
+        {"step": "1/to/24/by/3", "param_FOO": ["152.128", "203.210"]},
+        {"step": ["1/to/24/by/3"], "param_FOO": ["152.128", "203.210"]},
+    )
     kk = "".join(sorted(VALID_KEY_CHARS))
     vv = "".join(sorted(VALID_VALUE_CHARS))
     _check_schema_pass({kk: vv}, {kk: [vv]})

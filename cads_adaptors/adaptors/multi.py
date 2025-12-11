@@ -198,7 +198,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
     def __init__(self, *args, schema_options=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         schema_options = schema_options or {}
-        if not schema_options.get('disable_adaptor_schema'):
+        if not schema_options.get("disable_adaptor_schema"):
             self.adaptor_schema = minimal_mars_schema(**schema_options)
 
     def convert_format(self, *args, **kwargs) -> list[str]:
