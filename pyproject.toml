@@ -18,6 +18,7 @@ dependencies = [
   # Only mandatory dependencies required by the broker and retrieve-api images
   "cryptography",
   "DateTimeRange",
+  "owslib",
   "python-dateutil",
   "structlog",
   "jsonschema"
@@ -35,12 +36,12 @@ complete = [
   "boto3",
   "cacholote",
   "cads-mars-server@git+https://github.com/ecmwf-projects/cads-mars-server.git",
-  "cds-common@git+https://github.com/ecmwf/cds-common.git@1.0.0",
+  "cds-common@git+ssh://git@github.com/ecmwf/cds-common.git@1.0.0",
   "cdsapi>=0.7.6",
   "cfgrib>=0.9.14.0",
   "cftime",
   "dask",
-  "ecmwflibs",
+  "eccodes",
   "earthkit-transforms>=0.5.2",
   "fsspec",
   "h5netcdf",

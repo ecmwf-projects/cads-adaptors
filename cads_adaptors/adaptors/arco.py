@@ -7,7 +7,7 @@ from dateutil.parser import parse as dtparse
 
 from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
-from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools.general import decrypt_recursive, ensure_list
 
 LAT_NAME = "latitude"
 LON_NAME = "longitude"
@@ -21,6 +21,7 @@ NAME_DICT = {
 }
 DEFAULT_AREA = [90, -180, -90, 180]
 DEFAULT_MAXIMUM_AREA_EXTENT = {"latitude": 1, "longitude": 1}
+DEFAULT_SPATIAL_RESOLUTION = {"latitude": 0.25, "longitude": 0.25}
 
 
 class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
@@ -122,6 +123,22 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             f"Invalid {data_format=}. Available options: {available_options}"
         )
 
+    def area_weight(self, request: Request, **kwargs) -> int:
+        # If area not defined, then assume point request with weight 1
+        if "area" not in request or kwargs.get("dont_weight_by_area", False):
+            return 1
+
+        # The area weight is calculated as the number of points, assuming a grid regular in lat/lon
+        max_lat, min_lon, min_lat, max_lon = request["area"]
+        # Spatial resolution passed in via the costing_kwargs, this could be set to match source chunking
+        resolution = kwargs.get("spatial_resolution", DEFAULT_SPATIAL_RESOLUTION)
+        return int(
+            (float(max_lat) - float(min_lat))
+            / float(resolution.get("latitude", 0.25))
+            * (float(max_lon) - float(min_lon))
+            / float(resolution.get("longitude", 0.25))
+        )
+
     def pre_mapping_modifications(self, request: Request) -> Request:
         request = super().pre_mapping_modifications(request)
 
@@ -157,8 +174,16 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         self.normalise_request(request)  # Needed to populate self.mapped_requests
         (request,) = self.mapped_requests
 
+        open_dataset_kwargs = decrypt_recursive(
+            self.config.get("open_dataset_kwargs", {}), ignore_errors=True
+        )
+        open_dataset_kwargs.setdefault("engine", "zarr")
+
         try:
-            ds = xr.open_dataset(self.config["url"], engine="zarr")
+            ds = xr.open_dataset(
+                self.config["url"],
+                **open_dataset_kwargs,
+            )
         except Exception:
             self.context.add_user_visible_error(
                 "Cannot access the ARCO Data Lake.\n"
@@ -206,19 +231,21 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
 
         match request["data_format"]:
             case "netcdf":
+                to_netcdf_kwargs = self.config.get("to_netcdf_kwargs", {})
                 _, path = tempfile.mkstemp(
                     prefix=self.config.get("collection-id", "arco-data"),
                     suffix=".nc",
                     dir=self.cache_tmp_path,
                 )
-                ds.to_netcdf(path)
+                ds.to_netcdf(path, **to_netcdf_kwargs)
             case "csv":
+                to_csv_kwargs = self.config.get("to_csv_kwargs", {})
                 _, path = tempfile.mkstemp(
                     prefix=self.config.get("collection-id", "arco-data"),
                     suffix=".csv",
                     dir=self.cache_tmp_path,
                 )
-                ds.to_pandas().to_csv(path)
+                ds.to_dataframe().to_csv(path, **to_csv_kwargs)
             case data_format:
                 raise NotImplementedError(f"Invalid {data_format=}.")
 
