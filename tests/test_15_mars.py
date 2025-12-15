@@ -20,7 +20,8 @@ ASCII_PRINTING_CHARS = set(chr(i) for i in range(ord(" "), ord("~") + 1))
 
 # Note that whitespace characters are neither considered valid nor invalid -
 # they are a special case since they are valid at the start/end but not in the
-# middle.
+# middle. The real set of valid value characters is less than listed here but
+# unfortunately not clearly documented.
 VALID_KEY_CHARS = ASCII_WORD_CHARS
 INVALID_KEY_CHARS = EXTENDED_ASCII_CHARS - VALID_KEY_CHARS - WHITESPACE_CHARS
 VALID_VALUE_CHARS = ASCII_PRINTING_CHARS - MARS_BREAKING_CHARS - WHITESPACE_CHARS

@@ -163,8 +163,10 @@ def minimal_mars_schema(
 
     # Regular expressions for valid keys and values. Valid keys contain one or
     # more consecutive [a-zA-Z0-9_] characters. Valid values contain one or more
-    # printable, non-whitespace characters (! to ~). Both can be bounded by any
-    # amount of whitespace as this would not cause a MARS failure.
+    # printable, non-whitespace characters (! to ~). (The real set of allowed
+    # value characters is less than this but not hard-coded here as it's not
+    # clearly documented.) Both can be bounded by any amount of whitespace as
+    # this would not cause a MARS failure.
     extra_key_chars = extra_key_chars or ""
     extra_value_chars = extra_value_chars or ""
     ascii_word = (
