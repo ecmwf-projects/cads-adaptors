@@ -146,8 +146,8 @@ def execute_mars(
 def minimal_mars_schema(
     allow_duplicate_values_keys=None,
     remove_duplicate_values=False,
-    extra_key_chars=None,
-    extra_value_chars=None,
+    key_regex=None,
+    value_regex=None,
 ):
     """A minimal schema required for the adaptor code to work and a syntactically
     valid MARS request to be formed. In future this should perhaps be made less
@@ -155,25 +155,18 @@ def minimal_mars_schema(
     slashes could also be done in order to detect duplicate values when in
     slash-separated form.
     """
-    # Negative look-ahead assertion used to reject any string containing a
-    # newline, equal sign or comma in a key or value. These have special meaning
-    # to MARS and can result in a syntactically invalid request, or can be used
-    # to hack MARS.
-    neg_assertion = r"(?!.*[\n=,].*$)"
 
-    # Regular expressions for valid keys and values. Valid keys contain one or
-    # more consecutive [a-zA-Z0-9_] characters. Valid values contain one or more
-    # printable, non-whitespace characters (! to ~). (The real set of allowed
-    # value characters is less than this but not hard-coded here as it's not
-    # clearly documented.) Both can be bounded by any amount of whitespace as
-    # this would not cause a MARS failure.
-    extra_key_chars = extra_key_chars or ""
-    extra_value_chars = extra_value_chars or ""
-    ascii_word = (
-        "a-zA-Z0-9_"  # This is more strict than \w, which includes some non-ascii
-    )
-    key_regex = rf"^{neg_assertion}[ \t]*[{ascii_word}{extra_key_chars}]+[ \t]*$"
-    value_regex = rf"^{neg_assertion}[ \t]*[!-~{extra_value_chars}]+[ \t]*$"
+    # Regular expressions for valid keys and values. Sane strings that won't
+    # cause MARS to choke start with an ASCII word character and are followed by
+    # any number of a slightly wider group of characters. This wider group was
+    # obtained by experimentation with the mars "reqcheck" binary.
+    key_regex = key_regex or r"[a-zA-Z0-9_][a-zA-Z0-9_ +\-.:@]*"
+    value_regex = value_regex or r"[a-zA-Z0-9_][a-zA-Z0-9_ +\-./:]*"
+    whitespace = r"[ \t]*"
+    # Note that \Z is used in place of $ here in order to disallow a trailing
+    # newline, which $ matches
+    key_regex = rf"^{whitespace}{key_regex}{whitespace}\Z"
+    value_regex = rf"^{whitespace}{value_regex}{whitespace}\Z"
 
     # These are the only keys permitted to have duplicate values. Duplicate
     # values for field-selection keys sometimes leads to MARS rejecting the
@@ -281,19 +274,19 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 "therefore it is not guaranteed to work."
             )
         # Remove "format" from request if it exists
-        data_format = request.pop("format", "grib")
+        data_format = request.pop("format", ["grib"])
         data_format = handle_data_format(request.get("data_format", data_format))
 
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             data_format = "netcdf"
-            request.setdefault("download_format", "zip")
+            request.setdefault("download_format", ["zip"])
 
         # Enforce value of data_format to normalized value
-        request["data_format"] = data_format
+        request["data_format"] = [data_format]
 
         default_download_format = "as_source"
-        download_format = request.pop("download_format", default_download_format)
+        download_format = ensure_list(request.pop("download_format", default_download_format))[0]
         self.set_download_format(
             download_format, default_download_format=default_download_format
         )

@@ -13,18 +13,13 @@ TEST_GRIB_FILE = "https://sites.ecmwf.int/repository/earthkit-data/test-data/era
 logger = logging.getLogger(__name__)
 
 WHITESPACE_CHARS = set(" \t")
-MARS_BREAKING_CHARS = set("=,\n")
+MARS_SPECIAL_CHARS = set("=,*!\n")  # *! are comment characters
 EXTENDED_ASCII_CHARS = set(chr(i) for i in range(256))
 ASCII_WORD_CHARS = set(mstring.ascii_letters + mstring.digits + "_")
-ASCII_PRINTING_CHARS = set(chr(i) for i in range(ord(" "), ord("~") + 1))
 
-# Note that whitespace characters are neither considered valid nor invalid -
-# they are a special case since they are valid at the start/end but not in the
-# middle. The real set of valid value characters is less than listed here but
-# unfortunately not clearly documented.
-VALID_KEY_CHARS = ASCII_WORD_CHARS
+VALID_KEY_CHARS = ASCII_WORD_CHARS | set(" +-.:@")
 INVALID_KEY_CHARS = EXTENDED_ASCII_CHARS - VALID_KEY_CHARS - WHITESPACE_CHARS
-VALID_VALUE_CHARS = ASCII_PRINTING_CHARS - MARS_BREAKING_CHARS - WHITESPACE_CHARS
+VALID_VALUE_CHARS = ASCII_WORD_CHARS | set(" +-./:")
 INVALID_VALUE_CHARS = EXTENDED_ASCII_CHARS - VALID_VALUE_CHARS - WHITESPACE_CHARS
 
 
@@ -111,9 +106,9 @@ def test_schema_null():
 
 def test_schema_syntax_breakers():
     """Test that characters that would lead to a syntactically invalid MARS
-    request don't pass the schema.
+    request, or cause part of the request to be ignored, don't pass the schema.
     """
-    for badchar in sorted(MARS_BREAKING_CHARS):
+    for badchar in sorted(MARS_SPECIAL_CHARS):
         # Test them at the beginning, middle and end of the string
         for pos in [0, 1, 2]:
             string = "ab"
@@ -138,9 +133,9 @@ def test_schema_whitespace():
             string = string[:pos] + badchar + string[pos:]
             string_repr = repr(string).strip("'")
 
-            # Whitespace is allowed at the start and end of the string, but not in
+            # Tabs are allowed at the start and end of the string, but not in
             # the middle
-            if pos in [0, 2]:
+            if pos in [0, 2] or badchar != '\t':
                 _check_schema_pass({string: "1"}, {string: ["1"]})
                 _check_schema_pass({"param": string}, {"param": [string]})
             else:
@@ -150,13 +145,6 @@ def test_schema_whitespace():
                 _check_schema_fail(
                     {"param": string}, f"request['param'][0]: invalid value: '{string}'"
                 )
-
-    # Check whitespace is allowed in the middle of a value if specifically
-    # requested
-    for badchar in sorted(WHITESPACE_CHARS):
-        _check_schema_pass(
-            {"x": f"a{badchar}b"}, {"x": [f"a{badchar}b"]}, extra_value_chars=badchar
-        )
 
 
 def test_schema_invalid_key_chars():
@@ -174,9 +162,9 @@ def test_schema_invalid_key_chars():
             )
 
             # Check we can allow the character with config
-            if badchar not in MARS_BREAKING_CHARS:
+            if badchar not in MARS_SPECIAL_CHARS:
                 _check_schema_pass(
-                    {string: "1"}, {string: ["1"]}, extra_key_chars=re.escape(badchar)
+                    {string: "1"}, {string: ["1"]}, key_regex=re.escape(string)
                 )
 
 
@@ -194,9 +182,9 @@ def test_schema_invalid_value_chars():
             )
 
             # ...but can be allowed by config
-            if badchar not in MARS_BREAKING_CHARS:
+            if badchar not in MARS_SPECIAL_CHARS:
                 _check_schema_pass(
-                    {"a": string}, {"a": [string]}, extra_value_chars=re.escape(string)
+                    {"a": string}, {"a": [string]}, value_regex=re.escape(string)
                 )
 
 
@@ -214,8 +202,8 @@ def test_schema_pass():
         {"step": "1/to/24/by/3", "param_FOO": ["152.128", "203.210"]},
         {"step": ["1/to/24/by/3"], "param_FOO": ["152.128", "203.210"]},
     )
-    kk = "".join(sorted(VALID_KEY_CHARS))
-    vv = "".join(sorted(VALID_VALUE_CHARS))
+    kk = "a" + "".join(sorted(VALID_KEY_CHARS))
+    vv = "a" + "".join(sorted(VALID_VALUE_CHARS))
     _check_schema_pass({kk: vv}, {kk: [vv]})
 
 

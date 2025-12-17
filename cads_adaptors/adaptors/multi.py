@@ -168,7 +168,8 @@ class MultiAdaptor(AbstractCdsAdaptor):
     def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
         request = super().pre_mapping_modifications(request)
 
-        download_format = request.pop("download_format", "zip")
+        download_format = request.pop("download_format", ["zip"])
+        download_format = ensure_list(download_format)[0]
         self.set_download_format(download_format)
 
         return request
@@ -229,16 +230,18 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         request = super().pre_mapping_modifications(request)
 
         # TODO: Remove legacy syntax all together
-        data_format = request.pop("format", "grib")
+        data_format = request.pop("format", ["grib"])
         data_format = request.pop("data_format", data_format)
+        data_format = ensure_list(data_format)[0]
 
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             data_format = "netcdf"
-            request.setdefault("download_format", "zip")
+            request.setdefault("download_format", ["zip"])
 
         default_download_format = "as_source"
-        download_format = request.pop("download_format", default_download_format)
+        download_format = request.pop("download_format", [default_download_format])
+        download_format = ensure_list(download_format)[0]
         self.set_download_format(
             download_format, default_download_format=default_download_format
         )
