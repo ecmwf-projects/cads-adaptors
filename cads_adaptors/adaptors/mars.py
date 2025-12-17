@@ -155,7 +155,6 @@ def minimal_mars_schema(
     slashes could also be done in order to detect duplicate values when in
     slash-separated form.
     """
-
     # Regular expressions for valid keys and values. Sane strings that won't
     # cause MARS to choke start with an ASCII word character and are followed by
     # any number of a slightly wider group of characters. This wider group was
@@ -286,7 +285,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         request["data_format"] = [data_format]
 
         default_download_format = "as_source"
-        download_format = ensure_list(request.pop("download_format", default_download_format))[0]
+        download_format = ensure_list(
+            request.pop("download_format", default_download_format)
+        )[0]
         self.set_download_format(
             download_format, default_download_format=default_download_format
         )

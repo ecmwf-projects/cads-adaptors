@@ -135,7 +135,7 @@ def test_schema_whitespace():
 
             # Tabs are allowed at the start and end of the string, but not in
             # the middle
-            if pos in [0, 2] or badchar != '\t':
+            if pos in [0, 2] or badchar != "\t":
                 _check_schema_pass({string: "1"}, {string: ["1"]})
                 _check_schema_pass({"param": string}, {"param": [string]})
             else:
