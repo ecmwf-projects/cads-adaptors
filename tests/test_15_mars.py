@@ -202,6 +202,12 @@ def test_schema_pass():
         {"step": "1/to/24/by/3", "param_FOO": ["152.128", "203.210"]},
         {"step": ["1/to/24/by/3"], "param_FOO": ["152.128", "203.210"]},
     )
+    _check_schema_pass({"area": [10, -10., -20.1, 10.1]}, {"area": ["10", "-10.0", "-20.1", "10.1"]})
+    _check_schema_pass({"area": "10/-10./-20.1/10.1"}, {"area": ["10/-10./-20.1/10.1"]})
+    _check_schema_pass(
+        {"x": ["1E+10", "-1.E-10", ".1E0", "-.1E0", "12.13e45", "-12.13.e-45"]},
+        {"x": ["1E+10", "-1.E-10", ".1E0", "-.1E0", "12.13e45", "-12.13.e-45"]}
+    )
     kk = "a" + "".join(sorted(VALID_KEY_CHARS))
     vv = "a" + "".join(sorted(VALID_VALUE_CHARS))
     _check_schema_pass({kk: vv}, {kk: [vv]})
