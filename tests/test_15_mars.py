@@ -16,13 +16,11 @@ WHITESPACE_CHARS = set(" \t")
 EXTENDED_ASCII_CHARS = set(chr(i) for i in range(256))
 
 VALID_KEY_CHARS = (
-    set(x for x in EXTENDED_ASCII_CHARS if re.match(r"\S", x))
-    - set(mstring.whitespace)
+    set(x for x in EXTENDED_ASCII_CHARS if re.match(r"\S", x)) - set(mstring.whitespace)
 ) | {" "}
 INVALID_KEY_CHARS = set(mstring.whitespace) - WHITESPACE_CHARS
 VALID_VALUE_CHARS = (
-    set(x for x in EXTENDED_ASCII_CHARS if re.match(r"\S", x))
-    - set(mstring.whitespace)
+    set(x for x in EXTENDED_ASCII_CHARS if re.match(r"\S", x)) - set(mstring.whitespace)
 ) | {" "}
 INVALID_VALUE_CHARS = set(mstring.whitespace) - WHITESPACE_CHARS
 
