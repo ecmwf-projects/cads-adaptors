@@ -18,6 +18,9 @@ REQUEST = FORM.copy()
 
 ADAPTOR_CONFIG = {
     "entry_point": "MultiAdaptor",
+    "user_uid": "user-1234",
+    "request_uid": "request-5678",
+    "collection_id": "test-collection",
     "adaptors": {
         "mean": {
             "entry_point": "cads_adaptors:UrlCdsAdaptor",
@@ -342,3 +345,14 @@ def test_intersect_constraints_handling():
     )
     for _, [adaptor, _] in sub_adaptors.items():
         assert adaptor.intersect_constraints_bool is True
+
+
+def test_uid_metadata_handling():
+    multi_adaptor = multi.MultiAdaptor(FORM, **ADAPTOR_CONFIG)
+    sub_adaptors = multi_adaptor.split_adaptors(
+        REQUEST,
+    )
+    for _adaptor_tag, [adaptor, _req] in sub_adaptors.items():
+        assert adaptor.config.get("user_uid") == multi_adaptor.config.get("user_uid")
+        assert adaptor.config.get("request_uid") == multi_adaptor.config.get("request_uid")
+        assert adaptor.config.get("collection_id") == multi_adaptor.config.get("collection_id")
