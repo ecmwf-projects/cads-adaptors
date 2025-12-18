@@ -149,33 +149,16 @@ def minimal_mars_schema(
     key_regex=None,
     value_regex=None,
 ):
-    """A minimal schema required for the adaptor code to work and a syntactically
-    valid MARS request to be formed. In future this should perhaps be made less
-    minimal in order to do a bit more tidying up of the request. Value splitting on
-    slashes could also be done in order to detect duplicate values when in
-    slash-separated form.
+    """A minimal schema that ensures all values are lists of strings. Also
+    ensures non-post-processing keys don't contain duplicate values.
     """
-    # Negative look-ahead assertion to reject strings containing characters that
-    # could be used to inject additional MARS requests into a key or value.
-    neg_assertion = r"^(?!.*[\n=,].*$)"
-
     # Regular expressions for valid keys and values. The one_char_minimum regex
     # matches any number of non-whitespace and space characters as long as there
     # is at least one non-whitespace.
     one_char_minimum = r"[\S ]*\S[\S ]*"
     whitespace = r"[ \t]*"
-    key_regex = (
-        key_regex or rf"^{neg_assertion}{whitespace}{one_char_minimum}{whitespace}\Z"
-    )
-    value_regex = (
-        value_regex or rf"^{neg_assertion}{whitespace}{one_char_minimum}{whitespace}\Z"
-    )
-
-    # Allow whitespace around each. Note that \Z is used in place of $ here in
-    # order to disallow a trailing newline, which $ matches
-    whitespace = r"[ \t]*"
-    key_regex = rf"^{whitespace}{key_regex}{whitespace}\Z"
-    value_regex = rf"^{whitespace}{value_regex}{whitespace}\Z"
+    key_regex = key_regex or rf"^{whitespace}{one_char_minimum}{whitespace}\Z"
+    value_regex = value_regex or rf"^{whitespace}{one_char_minimum}{whitespace}\Z"
 
     # These are the only keys permitted to have duplicate values. Duplicate
     # values for field-selection keys sometimes leads to MARS rejecting the

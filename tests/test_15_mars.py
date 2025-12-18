@@ -13,16 +13,17 @@ TEST_GRIB_FILE = "https://sites.ecmwf.int/repository/earthkit-data/test-data/era
 logger = logging.getLogger(__name__)
 
 WHITESPACE_CHARS = set(" \t")
-MARS_SPECIAL_CHARS = set("=,\n")
 EXTENDED_ASCII_CHARS = set(chr(i) for i in range(256))
 
-VALID_KEY_CHARS = (set(x for x in EXTENDED_ASCII_CHARS if re.match(r'\S', x))
-                   - MARS_SPECIAL_CHARS
-                   - set(mstring.whitespace)) | {' '}
+VALID_KEY_CHARS = (
+    set(x for x in EXTENDED_ASCII_CHARS if re.match(r"\S", x))
+    - set(mstring.whitespace)
+) | {" "}
 INVALID_KEY_CHARS = set(mstring.whitespace) - WHITESPACE_CHARS
-VALID_VALUE_CHARS = (set(x for x in EXTENDED_ASCII_CHARS if re.match(r'\S', x))
-                   - MARS_SPECIAL_CHARS
-                   - set(mstring.whitespace)) | {' '}
+VALID_VALUE_CHARS = (
+    set(x for x in EXTENDED_ASCII_CHARS if re.match(r"\S", x))
+    - set(mstring.whitespace)
+) | {" "}
 INVALID_VALUE_CHARS = set(mstring.whitespace) - WHITESPACE_CHARS
 
 
@@ -107,26 +108,6 @@ def test_schema_null():
         )
 
 
-def test_schema_syntax_breakers():
-    """Test that characters that would lead to a syntactically invalid MARS
-    request, or cause part of the request to be ignored, don't pass the schema.
-    """
-    for badchar in sorted(MARS_SPECIAL_CHARS):
-        # Test them at the beginning, middle and end of the string
-        for pos in [0, 1, 2]:
-            string = "ab"
-            string = string[:pos] + badchar + string[pos:]
-            string_repr = repr(string).strip("'")
-
-            # Check the invalid string fails both as a key and a value
-            _check_schema_fail(
-                {string: "1"}, f"request: '{string_repr}' is an invalid key name"
-            )
-            _check_schema_fail(
-                {"param": string}, f"request['param'][0]: invalid value: '{string}'"
-            )
-
-
 def test_schema_whitespace():
     """Test the presence of whitespace (space/tab) in keys and values."""
     for badchar in sorted(WHITESPACE_CHARS):
@@ -165,10 +146,9 @@ def test_schema_invalid_key_chars():
             )
 
             # Check we can allow the character with config
-            if badchar not in MARS_SPECIAL_CHARS:
-                _check_schema_pass(
-                    {string: "1"}, {string: ["1"]}, key_regex=re.escape(string)
-                )
+            _check_schema_pass(
+                {string: "1"}, {string: ["1"]}, key_regex=re.escape(string)
+            )
 
 
 def test_schema_invalid_value_chars():
@@ -185,10 +165,9 @@ def test_schema_invalid_value_chars():
             )
 
             # ...but can be allowed by config
-            if badchar not in MARS_SPECIAL_CHARS:
-                _check_schema_pass(
-                    {"a": string}, {"a": [string]}, value_regex=re.escape(string)
-                )
+            _check_schema_pass(
+                {"a": string}, {"a": [string]}, value_regex=re.escape(string)
+            )
 
 
 def test_good_requests():
