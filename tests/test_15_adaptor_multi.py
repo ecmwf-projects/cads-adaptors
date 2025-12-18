@@ -354,5 +354,9 @@ def test_uid_metadata_handling():
     )
     for _adaptor_tag, [adaptor, _req] in sub_adaptors.items():
         assert adaptor.config.get("user_uid") == multi_adaptor.config.get("user_uid")
-        assert adaptor.config.get("request_uid") == multi_adaptor.config.get("request_uid")
-        assert adaptor.config.get("collection_id") == multi_adaptor.config.get("collection_id")
+        assert adaptor.config.get("request_uid") == multi_adaptor.config.get(
+            "request_uid"
+        )
+        assert adaptor.config.get("collection_id") == multi_adaptor.config.get(
+            "collection_id"
+        )

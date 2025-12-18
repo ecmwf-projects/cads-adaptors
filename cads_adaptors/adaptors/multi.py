@@ -134,20 +134,27 @@ class MultiAdaptor(AbstractCdsAdaptor):
             adaptor_desc.setdefault(
                 "collection_id", self.config.get("collection_id", "unknown-collection")
             )
-            adaptor_desc.update({
-                key: self.config.get(key, None) for key in [
-                    "user_uid", "request_uid",
-                ]
-            })
+            adaptor_desc.update(
+                {
+                    key: self.config.get(key, None)
+                    for key in [
+                        "user_uid",
+                        "request_uid",
+                    ]
+                }
+            )
             # Preserve the context, constraints and licences from the parent for each sub-adaptor
-            adaptor_desc.update({
-                "context": self.context,
-                "constraints": self.constraints,
-                "licences": self.licences,
-            })
+            adaptor_desc.update(
+                {
+                    "context": self.context,
+                    "constraints": self.constraints,
+                    "licences": self.licences,
+                }
+            )
             # Instantiate the sub-adaptor
             this_adaptor = adaptor_tools.get_adaptor(
-                adaptor_desc, self.form,
+                adaptor_desc,
+                self.form,
             )
             this_values = adaptor_desc.get("values", {})
 
