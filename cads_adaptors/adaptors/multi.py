@@ -126,15 +126,34 @@ class MultiAdaptor(AbstractCdsAdaptor):
         sub_adaptors = {}
         for adaptor_tag, _adaptor_desc in self.config["adaptors"].items():
             adaptor_desc = _adaptor_desc.copy()
+            # Update adaptor_desc with any top-level config options
             adaptor_desc.setdefault(
                 "intersect_constraints", self.config.get("intersect_constraints", False)
             )
-            # Preserve the context and constraints from the parent for each sub-adaptor
-            # This would apply to the licences attribute. As licences are not currently used in retrieval
-            # not coding in case another approach is taken in the future.
+            # Preserve collection/user/request UIDs from parent adaptor
+            adaptor_desc.setdefault(
+                "collection_id", self.config.get("collection_id", "unknown-collection")
+            )
+            adaptor_desc.update(
+                {
+                    key: self.config.get(key, None)
+                    for key in [
+                        "user_uid",
+                        "request_uid",
+                    ]
+                }
+            )
+            # Preserve the context, constraints and licences from the parent for each sub-adaptor
+            adaptor_desc.update(
+                {
+                    "context": self.context,
+                    "constraints": self.constraints,
+                    "licences": self.licences,
+                }
+            )
+            # Instantiate the sub-adaptor
             this_adaptor = adaptor_tools.get_adaptor(
-                adaptor_desc
-                | {"context": self.context, "constraints": self.constraints},
+                adaptor_desc,
                 self.form,
             )
             this_values = adaptor_desc.get("values", {})
