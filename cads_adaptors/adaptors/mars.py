@@ -164,8 +164,12 @@ def minimal_mars_schema(
     # is at least one non-whitespace.
     one_char_minimum = r"[\S ]*\S[\S ]*"
     whitespace = r"[ \t]*"
-    key_regex = key_regex or rf"^{neg_assertion}{whitespace}{one_char_minimum}{whitespace}\Z"
-    value_regex = value_regex or rf"^{neg_assertion}{whitespace}{one_char_minimum}{whitespace}\Z"
+    key_regex = (
+        key_regex or rf"^{neg_assertion}{whitespace}{one_char_minimum}{whitespace}\Z"
+    )
+    value_regex = (
+        value_regex or rf"^{neg_assertion}{whitespace}{one_char_minimum}{whitespace}\Z"
+    )
 
     # Allow whitespace around each. Note that \Z is used in place of $ here in
     # order to disallow a trailing newline, which $ matches
