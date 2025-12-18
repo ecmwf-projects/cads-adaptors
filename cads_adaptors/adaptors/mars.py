@@ -155,18 +155,17 @@ def minimal_mars_schema(
     slashes could also be done in order to detect duplicate values when in
     slash-separated form.
     """
-    # Regular expressions for valid keys and values. Sane strings that won't
-    # cause MARS to choke start with an ASCII word character and are followed by
-    # any number of a slightly wider group of characters. These wider groups
-    # were obtained by experimentation with the mars "reqcheck" binary. The
-    # MARS code explicitly allows values which are numbers in scientific
-    # notation but does so with a highly imperfect regular expression. The same
-    # regex is used here for consistency however.
-    key_str = r"[a-zA-Z0-9_][a-zA-Z0-9_ +\-.:@]*"
-    value_str = r"[a-zA-Z0-9_][a-zA-Z0-9_ +\-./:]*"
-    value_num = r"[\-.]*[0-9]+[.0-9]*[Ee]*[\-+]*[0-9]*"
-    key_regex = key_regex or key_str
-    value_regex = value_regex or f"({value_str}|{value_num})"
+    # Negative look-ahead assertion to reject strings containing characters that
+    # could be used to inject additional MARS requests into a key or value.
+    neg_assertion = r"^(?!.*[\n=,].*$)"
+
+    # Regular expressions for valid keys and values. The one_char_minimum regex
+    # matches any number of non-whitespace and space characters as long as there
+    # is at least one non-whitespace.
+    one_char_minimum = r"[\S ]*\S[\S ]*"
+    whitespace = r"[ \t]*"
+    key_regex = key_regex or rf"^{neg_assertion}{whitespace}{one_char_minimum}{whitespace}\Z"
+    value_regex = value_regex or rf"^{neg_assertion}{whitespace}{one_char_minimum}{whitespace}\Z"
 
     # Allow whitespace around each. Note that \Z is used in place of $ here in
     # order to disallow a trailing newline, which $ matches

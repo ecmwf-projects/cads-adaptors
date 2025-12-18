@@ -13,14 +13,17 @@ TEST_GRIB_FILE = "https://sites.ecmwf.int/repository/earthkit-data/test-data/era
 logger = logging.getLogger(__name__)
 
 WHITESPACE_CHARS = set(" \t")
-MARS_SPECIAL_CHARS = set("=,*!\n")  # *! are comment characters
+MARS_SPECIAL_CHARS = set("=,\n")
 EXTENDED_ASCII_CHARS = set(chr(i) for i in range(256))
-ASCII_WORD_CHARS = set(mstring.ascii_letters + mstring.digits + "_")
 
-VALID_KEY_CHARS = ASCII_WORD_CHARS | set(" +-.:@")
-INVALID_KEY_CHARS = EXTENDED_ASCII_CHARS - VALID_KEY_CHARS - WHITESPACE_CHARS
-VALID_VALUE_CHARS = ASCII_WORD_CHARS | set(" +-./:")
-INVALID_VALUE_CHARS = EXTENDED_ASCII_CHARS - VALID_VALUE_CHARS - WHITESPACE_CHARS
+VALID_KEY_CHARS = (set(x for x in EXTENDED_ASCII_CHARS if re.match(r'\S', x))
+                   - MARS_SPECIAL_CHARS
+                   - set(mstring.whitespace)) | {' '}
+INVALID_KEY_CHARS = set(mstring.whitespace) - WHITESPACE_CHARS
+VALID_VALUE_CHARS = (set(x for x in EXTENDED_ASCII_CHARS if re.match(r'\S', x))
+                   - MARS_SPECIAL_CHARS
+                   - set(mstring.whitespace)) | {' '}
+INVALID_VALUE_CHARS = set(mstring.whitespace) - WHITESPACE_CHARS
 
 
 def test_get_mars_servers():
@@ -188,7 +191,7 @@ def test_schema_invalid_value_chars():
                 )
 
 
-def test_schema_pass():
+def test_good_requests():
     """Check the schema allows a selection of "normal-looking" requests."""
     _check_schema_pass({"a": 1}, {"a": ["1"]})
     _check_schema_pass({"A": "a"}, {"A": ["a"]})
@@ -210,8 +213,8 @@ def test_schema_pass():
         {"x": ["1E+10", "-1.E-10", ".1E0", "-.1E0", "12.13e45", "-12.13.e-45"]},
         {"x": ["1E+10", "-1.E-10", ".1E0", "-.1E0", "12.13e45", "-12.13.e-45"]},
     )
-    kk = "a" + "".join(sorted(VALID_KEY_CHARS))
-    vv = "a" + "".join(sorted(VALID_VALUE_CHARS))
+    kk = "".join(sorted(VALID_KEY_CHARS))
+    vv = "".join(sorted(VALID_VALUE_CHARS))
     _check_schema_pass({kk: vv}, {kk: [vv]})
 
 
