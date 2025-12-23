@@ -56,8 +56,93 @@ def get_mars_server_list(config) -> list[str]:
         )
     return mars_servers
 
+def execute_mars_pipe(
+    request: dict[str, Any] | list[dict[str, Any]],
+    context: Context = Context(),
+    config: dict[str, Any] = dict(),
+    mapping: dict[str, Any] = dict(),
+    target_fname: str = "data.grib",
+    target_dir: str | pathlib.Path = "",
+) -> str:
+    from cads_mars_server import client as mars_client
 
-def execute_mars(
+    requests = ensure_list(request)
+    # Implement embargo if it is set in the config
+    # This is now done in normalize request, but leaving it here for now, as running twice is not a problem
+    #  and the some adaptors may not use normalise_request yet
+    if config.get("embargo") is not None:
+        requests, _cacheable = implement_embargo(requests, config["embargo"])
+
+    target = str(pathlib.Path(target_dir) / target_fname)
+
+    split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
+    requests = split_requests_on_keys(requests, split_on_keys, context, mapping)
+
+    mars_servers = get_mars_server_list(config)
+
+    cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
+
+    # Add required fields to the env dictionary:
+    env = {
+        "user_id": config.get("user_uid"),
+        "request_id": config.get("request_uid"),
+        "namespace": (
+            f"{os.getenv('OPENSTACK_PROJECT', 'NO-OSPROJECT')}:"
+            f"{os.getenv('RUNTIME_NAMESPACE', 'NO-NAMESPACE')}"
+        ),
+        "host": os.getenv("HOSTNAME"),
+    }
+    env["username"] = str(env["namespace"]) + ":" + str(env["user_id"]).split("-")[-1]
+    time0 = time.time()
+    context.info(f"Request sent to proxy MARS client: {requests}")
+    reply = cluster.execute(requests, env, target)
+    reply_message = str(reply.message)
+    delta_time = time.time() - time0
+    if os.path.exists(target):
+        filesize = os.path.getsize(target)
+        context.info(
+            f"The MARS Request produced a target "
+            f"(filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds).",
+            delta_time=delta_time,
+            filesize=filesize,
+        )
+    else:
+        filesize = 0
+        context.info(
+            f"The MARS request produced no target (delta_time= {delta_time:.2f} seconds).",
+            delta_time=delta_time,
+        )
+
+    context.debug(message=reply_message)
+
+    if reply.error:
+        error_lines = "\n".join(
+            [message for message in reply_message.split("\n") if "ERROR" in message]
+        )
+        error_message = (
+            "MARS has returned an error, please check your selection.\n"
+            f"Request submitted to the MARS server:\n{requests}\n"
+            f"Full error message:\n{error_lines}\n"
+        )
+        context.add_user_visible_error(message=error_message)
+
+        error_message += f"Exception: {reply.error}\n"
+        raise MarsRuntimeError(error_message)
+
+    if not filesize:
+        error_message = (
+            "MARS returned no data, please check your selection."
+            f"Request submitted to the MARS server:\n{requests}\n"
+        )
+        context.add_user_visible_error(
+            message=error_message,
+        )
+        raise MarsNoDataError(error_message)
+
+    return target
+
+
+def execute_mars_shares(
     request: dict[str, Any] | list[dict[str, Any]],
     context: Context = Context(),
     config: dict[str, Any] = dict(),
@@ -84,7 +169,6 @@ def execute_mars(
     requests = split_requests_on_keys(requests, split_on_keys, context, mapping)
 
     mars_servers = get_mars_server_list(config)
-
 
     #cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
 
@@ -155,6 +239,39 @@ def execute_mars(
         raise MarsNoDataError(error_message)
 
     return target
+
+def execute_mars(
+    request: dict[str, Any] | list[dict[str, Any]],
+    context: Context = Context(),
+    config: dict[str, Any] = dict(),
+    mapping: dict[str, Any] = dict(),
+    target_fname: str = "data.grib",
+    target_dir: str | pathlib.Path = "",
+) -> str:
+    # Decide which MARS client to use based on config
+    mars_client_type = os.getenv("MARS_CLIENT_TYPE", "pipe").lower()
+    if mars_client_type == "pipe":
+        return execute_mars_pipe(
+            request,
+            context=context,
+            config=config,
+            mapping=mapping,
+            target_fname=target_fname,
+            target_dir=target_dir,
+        )
+    elif mars_client_type == "shares":
+        return execute_mars_shares(
+            request,
+            context=context,
+            config=config,
+            mapping=mapping,
+            target_fname=target_fname,
+            target_dir=target_dir,
+        )
+    else:
+        raise CdsConfigError(
+            f"Unknown MARS client type specified in config: {mars_client_type}"
+        )
 
 
 class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
