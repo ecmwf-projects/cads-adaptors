@@ -314,7 +314,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     self.ensure_list_values(conditions)
                     if self.satisfy_conditions(self.intersected_requests, conditions):
                         hidden_tag = f"__{tag}"
-                        request[hidden_tag] = True
+                        request[hidden_tag] = "true"
         except Exception as e:
             self.context.add_stdout(
                 f"An error occured while attempting conditional tagging: {e!r}"
