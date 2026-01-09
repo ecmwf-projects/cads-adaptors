@@ -1,4 +1,5 @@
 import copy
+import os
 import tempfile
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -7,7 +8,7 @@ from dateutil.parser import parse as dtparse
 
 from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
-from cads_adaptors.tools.general import decrypt_recursive, ensure_list
+from cads_adaptors.tools.general import decrypt, decrypt_recursive, ensure_list
 
 LAT_NAME = "latitude"
 LON_NAME = "longitude"
@@ -171,11 +172,53 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return dict(sorted(request.items()))
 
+    def arco_store(self):
+        from zarr.storage import FsspecStore
+        from zarr.storage._fsspec import ALLOWED_EXCEPTIONS
+
+        access_key = decrypt(
+            self.config.get("ARCO_ACCESS_KEY", os.environ.get("ARCO_ACCESS_KEY")),
+            ignore_errors=True,
+        )
+        secret_key = decrypt(
+            self.config.get("ARCO_SECRET_KEY", os.environ.get("ARCO_SECRET_KEY")),
+            ignore_errors=True,
+        )
+        endpoint_url = decrypt(
+            self.config.get("ARCO_ENDPOINT_URL", os.environ.get("ARCO_ENDPOINT_URL")),
+            ignore_errors=True,
+        )
+        storage_options = {
+            "key": access_key,
+            "secret": secret_key,
+            "client_kwargs": {"endpoint_url": endpoint_url},
+            **self.config.get(
+                "arco_storage_options", {}  # Option to overwrite from config
+            ),
+        }
+        arco_store_kwargs = {
+            "storage_options": storage_options,
+            "read_only": True,
+            "allowed_exceptions": ALLOWED_EXCEPTIONS + (PermissionError,),
+            **self.config.get(
+                "arco_store_kwargs", {}  # Option to overwrite from config
+            ),
+        }
+        return FsspecStore.from_url(
+            self.config["url"],
+            **arco_store_kwargs,
+        )
+
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         import xarray as xr
 
         self.normalise_request(request)  # Needed to populate self.mapped_requests
         (request,) = self.mapped_requests
+
+        if self.config.get("use_arco_store", True):
+            open_dataset_args = [self.arco_store()]
+        else:
+            open_dataset_args = [self.config["url"]]
 
         open_dataset_kwargs = decrypt_recursive(
             self.config.get("open_dataset_kwargs", {}), ignore_errors=True
@@ -184,7 +227,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
 
         try:
             ds = xr.open_dataset(
-                self.config["url"],
+                *open_dataset_args,
                 **open_dataset_kwargs,
             )
         except Exception:
