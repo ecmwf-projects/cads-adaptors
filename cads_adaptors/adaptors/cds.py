@@ -78,7 +78,14 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             except GeoServerError:
                 return
             if not features_in_request:
-                raise InvalidRequest(f"No features found in request for layer {layer}")
+                if request.get("location") is not None:
+                    raise InvalidRequest(
+                        "No features found in request for 'location' selection"
+                    )
+                elif request.get("area") is not None:
+                    raise InvalidRequest(
+                        "No features found in request for 'area' selection"
+                    )
         return
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
@@ -108,6 +115,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 highest_cost_limit_ratio = cost_limit_ratio
                 highest_cost = {"type": limit_id, "cost": cost, "limit": limit}
         return highest_cost["type"]
+
+    def area_weight(self, request: Request, **kwargs) -> int:
+        return 1
 
     def estimate_costs(self, request: Request, **kwargs: Any) -> dict[str, int]:
         cost_threshold = kwargs.get("cost_threshold", "max_costs")
@@ -153,7 +163,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 mapped_request,
                 self.constraints,
                 **costing_kwargs,
-            )
+            ) * self.area_weight(mapped_request, **costing_kwargs)
+
         # size is a fast and rough estimate of the number of fields
         costs[DEFAULT_COST_TYPE] = costing.estimate_number_of_fields(
             self.form,
@@ -164,7 +175,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 "weighted_keys": mapped_weighted_keys,
                 "weighted_values": mapped_weighted_values,
             },
-        )
+        ) * self.area_weight(mapped_request, **costing_kwargs)
+
         # Safety net for integration tests:
         costs["number_of_fields"] = costs[DEFAULT_COST_TYPE]
 
@@ -302,7 +314,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                     self.ensure_list_values(conditions)
                     if self.satisfy_conditions(self.intersected_requests, conditions):
                         hidden_tag = f"__{tag}"
-                        request[hidden_tag] = True
+                        request[hidden_tag] = "true"
         except Exception as e:
             self.context.add_stdout(
                 f"An error occured while attempting conditional tagging: {e!r}"

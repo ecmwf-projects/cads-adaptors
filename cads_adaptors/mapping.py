@@ -331,14 +331,14 @@ def make_bbox_centered_in_point(
     Returns
     -------
     tuple
-        A tuple representing the bounding box in the format (min_lat, min_lon, max_lat, max_lon).
+        A tuple representing the bounding box in the format (min_lon, min_lat, max_lon, max_lat).
     """
     half_size = size / 2.0
     bbox = (
-        point_lat - half_size,
         point_lon - half_size,
-        point_lat + half_size,
+        point_lat - half_size,
         point_lon + half_size,
+        point_lat + half_size,
     )
     return bbox
 
@@ -380,7 +380,7 @@ def get_features_at_point(
         wms = owslib.wms.WebMapService(
             os.environ.get("GEOSERVER_URL"),
             version=os.environ.get("GEOSERVER_WMS_VERSION"),
-            auth=owslib.util.Authentication(verify=False),
+            auth=owslib.util.Authentication(),
         )
     except Exception as e:
         context.error(f"Error connecting to WMS service: {e}")
@@ -420,7 +420,7 @@ def get_features_in_area(
     Parameters
     ----------
     area : tuple
-        A tuple representing the bounding box in the format (min_lat, min_lon, max_lat, max_lon).
+        A tuple representing the bounding box in the format (max_lat, min_lon, min_lat, max_lon).
     layer : str
         The layer to query.
     spatial_reference_system : str
@@ -444,15 +444,16 @@ def get_features_in_area(
         wfs = owslib.wfs.WebFeatureService(
             os.environ.get("GEOSERVER_URL"),
             version=os.environ.get("GEOSERVER_WFS_VERSION"),
-            auth=owslib.util.Authentication(verify=False),
+            auth=owslib.util.Authentication(),
         )
     except Exception as e:
         context.error(f"Error connecting to WFS service: {e}")
         raise exceptions.GeoServerError("Could not connect to WFS service") from e
     try:
+        bbox = (area[1], area[2], area[3], area[0])
         response = wfs.getfeature(
             typename=[layer],
-            bbox=area,
+            bbox=bbox,
             srsname=spatial_reference_system,
             outputFormat="application/json",
             maxfeatures=max_features,
@@ -472,7 +473,6 @@ def get_features_in_request(
     layer: str,
     max_features: int = 100,
     context: Context = Context(),
-    block_debug: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Get geographical features based on location or area specified in the request.
@@ -487,8 +487,6 @@ def get_features_in_request(
         Maximum number of features to retrieve. Defaults to 100.
     context : Context
         The context for logging and error handling.
-    block_debug : bool
-        If True, suppress debug messages.
 
     Returns
     -------
@@ -496,10 +494,6 @@ def get_features_in_request(
         A list of GEOJSON features.
     """
     if location := request.get("location"):
-        if not block_debug:
-            context.debug(
-                f"Getting features from layer {layer} for location: {location!r}"
-            )
         try:
             location_latitude = float(location["latitude"])
             location_longitude = float(location["longitude"])
@@ -516,8 +510,6 @@ def get_features_in_request(
             context=context,
         )
     elif area := request.get("area"):
-        if not block_debug:
-            context.debug(f"Getting features {layer} for area: {area!r}")
         if not isinstance(area, (list, tuple)) or len(area) != 4:
             context.error(
                 f"Invalid area provided: {area!r}. Should be a list or tuple of four numeric values."
@@ -527,10 +519,6 @@ def get_features_in_request(
             area=tuple(area), layer=layer, max_features=max_features, context=context
         )
     else:
-        if not block_debug:
-            context.debug(
-                "No location or area provided in request, no features retrieved."
-            )
         features = []
     return features
 

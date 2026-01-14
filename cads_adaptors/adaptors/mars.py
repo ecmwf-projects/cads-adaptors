@@ -16,6 +16,7 @@ from cads_adaptors.tools.general import (
     ensure_list,
     split_requests_on_keys,
 )
+from cads_adaptors.tools.simulate_preinterpolation import simulate_preinterpolation
 
 # This hard requirement of MARS requests should be moved to the proxy MARS client
 ALWAYS_SPLIT_ON: list[str] = [
@@ -140,6 +141,81 @@ def execute_mars_pipe(
         raise MarsNoDataError(error_message)
 
     return target
+
+
+def minimal_mars_schema(
+    allow_duplicate_values_keys=None,
+    remove_duplicate_values=False,
+    key_regex=None,
+    value_regex=None,
+):
+    """A minimal schema that ensures all values are lists of strings. Also
+    ensures non-post-processing keys don't contain duplicate values.
+    """
+    # Regular expressions for valid keys and values. The one_char_minimum regex
+    # matches any number of non-whitespace and space characters as long as there
+    # is at least one non-whitespace.
+    one_char_minimum = r"[\S ]*\S[\S ]*"
+    whitespace = r"[ \t]*"
+    key_regex = key_regex or rf"^{whitespace}{one_char_minimum}{whitespace}\Z"
+    value_regex = value_regex or rf"^{whitespace}{one_char_minimum}{whitespace}\Z"
+
+    # These are the only keys permitted to have duplicate values. Duplicate
+    # values for field-selection keys sometimes leads to MARS rejecting the
+    # request but other times can result in duplicate output fields which can
+    # cause downstream problems. Manuel advises not to rely on specific MARS
+    # behaviour when given duplicate values so we reject them in advance.
+    postproc_keys = ["grid", "area"] + (allow_duplicate_values_keys or [])
+
+    # Form a regex that matches any key that will not be interpreted as one of
+    # postproc_keys by MARS. i.e. a case-insensitive regex that matches anything
+    # other than optional whitespace followed by a sequence of characters whose
+    # lead characters match lead characters of one of postproc_keys. This
+    # complexity is required because MARS will interpret all of the following as
+    # area: "ArEa", "areaXYZ", "are", "arefoo".
+    same_lead_chars = [
+        "(".join(list(k)) + "".join([")?"] * (len(k) - 1)) for k in postproc_keys
+    ]
+    not_postproc_key = r"(?i)^(?!\s*(" + "|".join(same_lead_chars) + "))"
+
+    # Minimal schema
+    schema = {
+        "_draft": "7",
+        "allOf": [  # All following schemas must match.
+            # Basic requirements for all keys
+            {
+                "type": "object",  # Item is a dict
+                "minProperties": 1,  # ...with at least 1 key
+                "patternProperties": {
+                    key_regex: {  # ...with names matching this
+                        "type": "array",  # ...must hold lists
+                        "minItems": 1,  # ...of at least 1 item
+                        "items": {
+                            "type": "string",  # ...which are strings
+                            "pattern": value_regex,  # ...matching this regex
+                            "_onErrorShowPattern": False,  # (error msg control)
+                        },
+                    }
+                },
+                "additionalProperties": False,  # ...with no non-matching keys
+                "_onErrorShowPattern": False,  # (error msg control)
+            },
+            # Additional requirement for some keys
+            {
+                "type": "object",  # Item is a dict
+                "patternProperties": {
+                    not_postproc_key: {  # ...in which non post-processing keys
+                        "type": "array",
+                        "uniqueItems": True,  # ...containing duplicates
+                        # ... are rejected or have duplicates removed
+                        "_noRemoveDuplicates": not remove_duplicate_values,
+                    }
+                },
+            },
+        ],
+    }
+
+    return schema
 
 
 def execute_mars_shares(
@@ -287,9 +363,12 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 
 
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, **config) -> None:
+        super().__init__(*args, **config)
         self.data_format: str | None = None
+        schema_options = config.get("schema_options", {})
+        if not schema_options.get("disable_adaptor_schema"):
+            self.adaptor_schema = minimal_mars_schema(**schema_options)
 
     def convert_format(self, *args, **kwargs):
         from cads_adaptors.tools.convertors import convert_format
@@ -319,22 +398,29 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 "therefore it is not guaranteed to work."
             )
         # Remove "format" from request if it exists
-        data_format = request.pop("format", "grib")
+        data_format = request.pop("format", ["grib"])
         data_format = handle_data_format(request.get("data_format", data_format))
 
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             data_format = "netcdf"
-            request.setdefault("download_format", "zip")
+            request.setdefault("download_format", ["zip"])
 
         # Enforce value of data_format to normalized value
-        request["data_format"] = data_format
+        request["data_format"] = [data_format]
 
         default_download_format = "as_source"
-        download_format = request.pop("download_format", default_download_format)
+        download_format = ensure_list(
+            request.pop("download_format", default_download_format)
+        )[0]
         self.set_download_format(
             download_format, default_download_format=default_download_format
         )
+
+        # Perform actions necessary to simulate pre-interpolation of fields to
+        # a regular grid?
+        if cfg := self.config.get("simulate_preinterpolation"):
+            request = simulate_preinterpolation(request, cfg, self.context)
 
         return request
 

@@ -237,17 +237,15 @@ def apply_constraints_in_old_cds_fashion(
             if selected_widget_name in constraint:
                 constraint_is_intersected = False
                 if selected_widget_type == "DateRangeWidget":
-                    assert len(selected_widget_options) == 1, (
-                        "More than one selected date range!"
-                    )
-                    selected_range = gen_time_range_from_string(
-                        next(iter(selected_widget_options))
-                    )
+                    selected_ranges = [
+                        gen_time_range_from_string(selected_range)
+                        for selected_range in selected_widget_options
+                    ]
                     valid_ranges = [
                         gen_time_range_from_string(valid_range)
                         for valid_range in constraint[selected_widget_name]
                     ]
-                    if temporal_intersection_between(selected_range, valid_ranges):
+                    if temporal_intersection_between(selected_ranges, valid_ranges):
                         constraint_is_intersected = True
                 else:
                     constraint_selection_intersection = (
@@ -532,11 +530,12 @@ def get_temporal_intersection(
 
 
 def temporal_intersection_between(
-    selected: DateTimeRange, ranges: list[DateTimeRange]
+    selected_ranges: list[DateTimeRange], ranges: list[DateTimeRange]
 ) -> bool:
     for valid in ranges:
-        if selected.intersection(valid).is_valid_timerange():
-            return True
+        for selected in selected_ranges:
+            if selected.intersection(valid).is_valid_timerange():
+                return True
     return False
 
 
