@@ -242,7 +242,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
                 "If this problem persists, please contact user support."
             )
             raise
-        self.context.info(f"Dataset opened: {ds=}")
+        print(ds)
         try:
             ds = ds[ensure_list(request["variable"])]
         except KeyError as exc:
