@@ -207,6 +207,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
                 "arco_store_kwargs", {}  # Option to overwrite from config
             ),
         }
+        self.context.info(f"ARCO Store options: {arco_store_kwargs=}")
         return FsspecStore.from_url(
             self.config["url"],
             **arco_store_kwargs,
@@ -227,6 +228,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             self.config.get("open_dataset_kwargs", {}), ignore_errors=True
         )
         open_dataset_kwargs.setdefault("engine", "zarr")
+        self.context.info(f"Opening ARCO Data Lake with {open_dataset_kwargs=}")
 
         try:
             ds = xr.open_dataset(
@@ -240,7 +242,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
                 "If this problem persists, please contact user support."
             )
             raise
-
+        self.context.info(f"Dataset opened: {ds=}")
         try:
             ds = ds[ensure_list(request["variable"])]
         except KeyError as exc:
