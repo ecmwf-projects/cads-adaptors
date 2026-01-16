@@ -218,7 +218,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         self.normalise_request(request)  # Needed to populate self.mapped_requests
         (request,) = self.mapped_requests
 
-        if self.config.get("use_arco_store", True):
+        if self.config.get("use_arco_store", False):
             open_dataset_args = [self.arco_store()]
         else:
             open_dataset_args = [self.config["url"]]
