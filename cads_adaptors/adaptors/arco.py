@@ -176,18 +176,21 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         from zarr.storage import FsspecStore
         from zarr.storage._fsspec import ALLOWED_EXCEPTIONS
 
-        access_key = decrypt(
-            self.config.get("DSS_ARCO_S3_ACCESS_KEY", os.environ.get("ARCO_ACCESS_KEY")),
-            ignore_errors=True,
-        )
-        secret_key = decrypt(
-            self.config.get("DSS_ARCO_S3_SECRET_KEY", os.environ.get("ARCO_SECRET_KEY")),
-            ignore_errors=True,
-        )
-        endpoint_url = decrypt(
-            self.config.get("DSS_ARCO_S3_ENDPOINT_URL", os.environ.get("ARCO_ENDPOINT_URL")),
-            ignore_errors=True,
-        )
+        if "DSS_ARCO_S3_ACCESS_KEY" in self.config:
+            access_key = decrypt(self.config["DSS_ARCO_S3_ACCESS_KEY"], ignore_errors=True)
+        else:
+            access_key = os.environ.get("DSS_ARCO_S3_ACCESS_KEY", "")
+
+        if "DSS_ARCO_S3_SECRET_KEY" in self.config:
+            secret_key = decrypt(self.config["DSS_ARCO_S3_SECRET_KEY"], ignore_errors=True)
+        else:
+            secret_key = os.environ.get("DSS_ARCO_S3_SECRET_KEY", "")
+
+        if "DSS_ARCO_S3_ENDPOINT_URL" in self.config:
+            endpoint_url = decrypt(self.config["DSS_ARCO_S3_ENDPOINT_URL"], ignore_errors=True)
+        else:
+            endpoint_url = os.environ.get("DSS_ARCO_S3_ENDPOINT_URL", "")
+
         storage_options = {
             "key": access_key,
             "secret": secret_key,
