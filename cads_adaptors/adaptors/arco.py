@@ -177,15 +177,15 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         from zarr.storage._fsspec import ALLOWED_EXCEPTIONS
 
         access_key = decrypt(
-            self.config.get("ARCO_ACCESS_KEY", os.environ.get("ARCO_ACCESS_KEY")),
+            self.config.get("DSS_ARCO_S3_ACCESS_KEY", os.environ.get("ARCO_ACCESS_KEY")),
             ignore_errors=True,
         )
         secret_key = decrypt(
-            self.config.get("ARCO_SECRET_KEY", os.environ.get("ARCO_SECRET_KEY")),
+            self.config.get("DSS_ARCO_S3_SECRET_KEY", os.environ.get("ARCO_SECRET_KEY")),
             ignore_errors=True,
         )
         endpoint_url = decrypt(
-            self.config.get("ARCO_ENDPOINT_URL", os.environ.get("ARCO_ENDPOINT_URL")),
+            self.config.get("DSS_ARCO_S3_ENDPOINT_URL", os.environ.get("ARCO_ENDPOINT_URL")),
             ignore_errors=True,
         )
         storage_options = {
