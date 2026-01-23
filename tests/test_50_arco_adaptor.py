@@ -17,7 +17,8 @@ from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
 
 @pytest.fixture
 def arco_adaptor(
-    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, **kwargs
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> ArcoDataLakeCdsAdaptor:
     def mock_add_user_visible_error(
         self, message: str, session: Any | None = None
@@ -44,7 +45,6 @@ def arco_adaptor(
         cache_tmp_path=tmp_path,
         mapping={"remap": {"variable": {"FOO": "foo", "BAR": "bar"}}},
         url=url,
-        **kwargs,
     )
 
 
@@ -662,7 +662,7 @@ EXPECTED_STORAGE_OPTIONS = {
 
 def test_arco_store_setup_from_config(arco_adaptor: ArcoDataLakeCdsAdaptor) -> None:
     arco_adaptor.config["use_dss_store"] = True
-    arco_adaptor.config["path"] = "test/path"
+    arco_adaptor.config["url"] = "https://test.hostname.ec/test/path"
     arco_adaptor.config["DSS_ARCO_S3_SECRET_KEY"] = "test_secret_key"
     arco_adaptor.config["DSS_ARCO_S3_ACCESS_KEY"] = "test_access_key"
     arco_adaptor.config["DSS_ARCO_S3_ENDPOINT_URL"] = "https://s3.test-endpoint.com"
@@ -671,6 +671,9 @@ def test_arco_store_setup_from_config(arco_adaptor: ArcoDataLakeCdsAdaptor) -> N
     assert arco_store.path == "test/path"
     assert arco_store.fs.storage_options == EXPECTED_STORAGE_OPTIONS
     assert PermissionError in arco_store.allowed_exceptions
+
+    arco_adaptor.config["path"] = "test/path"
+    assert arco_store.path == "test/path"
 
 
 def test_arco_store_setup_from_env(arco_adaptor: ArcoDataLakeCdsAdaptor) -> None:
