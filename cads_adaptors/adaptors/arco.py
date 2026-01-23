@@ -206,13 +206,17 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         }
         self.context.info(f"ARCO Store options: {arco_store_kwargs=}")
         if "path" in self.config:
-            store_url = f"{self.config.get('scheme', 's3://')}{self.config['path'].lstrip('/')}"
+            store_url = (
+                f"{self.config.get('scheme', 's3://')}{self.config['path'].lstrip('/')}"
+            )
         else:
             # Deduce store_url from url (which is the public url), therefore
             # need to remove hostname and change to s3 scheme
             # This can be removed when we have ensured gecko has updated all datasets to include 'path'
             parsed_url = urlparse(self.config["url"])
-            store_url = f"{self.config.get('scheme', 's3://')}{parsed_url.path.lstrip('/')}"
+            store_url = (
+                f"{self.config.get('scheme', 's3://')}{parsed_url.path.lstrip('/')}"
+            )
 
         return FsspecStore.from_url(
             store_url,
