@@ -3,6 +3,7 @@ import os
 import tempfile
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from urllib.parse import urlparse
 
 from dateutil.parser import parse as dtparse
 
@@ -208,8 +209,17 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             ),
         }
         self.context.info(f"ARCO Store options: {arco_store_kwargs=}")
+        if "path" in self.config:
+            store_url = f"s3://{self.config['path'].lstrip('/')}"
+        else:
+            # Deduce store_url from url (which is the public url), therefore
+            # need to remove hostname and change to s3 scheme
+            # This can be removed when we have ensured gecko has updated all datasets to include 'path'
+            parsed_url = urlparse(self.config["url"])
+            store_url = f"s3://{parsed_url.path.lstrip('/')}"
+
         return FsspecStore.from_url(
-            self.config["url"],
+            store_url,
             **arco_store_kwargs,
         )
 
