@@ -173,30 +173,18 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return dict(sorted(request.items()))
 
+    def get_decrypt_var(self, key: str) -> str:
+        if key in self.config:
+            return decrypt(self.config[key], ignore_errors=True)
+        return os.environ.get(key, "")
+
     def custom_dss_store(self):
         from zarr.storage import FsspecStore
         from zarr.storage._fsspec import ALLOWED_EXCEPTIONS
 
-        if "DSS_ARCO_S3_ACCESS_KEY" in self.config:
-            access_key = decrypt(
-                self.config["DSS_ARCO_S3_ACCESS_KEY"], ignore_errors=True
-            )
-        else:
-            access_key = os.environ.get("DSS_ARCO_S3_ACCESS_KEY", "")
-
-        if "DSS_ARCO_S3_SECRET_KEY" in self.config:
-            secret_key = decrypt(
-                self.config["DSS_ARCO_S3_SECRET_KEY"], ignore_errors=True
-            )
-        else:
-            secret_key = os.environ.get("DSS_ARCO_S3_SECRET_KEY", "")
-
-        if "DSS_ARCO_S3_ENDPOINT_URL" in self.config:
-            endpoint_url = decrypt(
-                self.config["DSS_ARCO_S3_ENDPOINT_URL"], ignore_errors=True
-            )
-        else:
-            endpoint_url = os.environ.get("DSS_ARCO_S3_ENDPOINT_URL", "")
+        access_key = self.get_decrypt_var("DSS_ARCO_S3_ACCESS_KEY")
+        secret_key = self.get_decrypt_var("DSS_ARCO_S3_SECRET_KEY")
+        endpoint_url = self.get_decrypt_var("DSS_ARCO_S3_ENDPOINT_URL")
 
         storage_options = {
             "key": access_key,
@@ -218,13 +206,13 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         }
         self.context.info(f"ARCO Store options: {arco_store_kwargs=}")
         if "path" in self.config:
-            store_url = f"s3://{self.config['path'].lstrip('/')}"
+            store_url = f"{self.config.get('scheme', 's3://')}{self.config['path'].lstrip('/')}"
         else:
             # Deduce store_url from url (which is the public url), therefore
             # need to remove hostname and change to s3 scheme
             # This can be removed when we have ensured gecko has updated all datasets to include 'path'
             parsed_url = urlparse(self.config["url"])
-            store_url = f"s3://{parsed_url.path.lstrip('/')}"
+            store_url = f"{self.config.get('scheme', 's3://')}{parsed_url.path.lstrip('/')}"
 
         return FsspecStore.from_url(
             store_url,
