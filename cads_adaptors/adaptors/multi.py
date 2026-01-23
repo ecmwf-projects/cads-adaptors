@@ -218,14 +218,14 @@ class MultiAdaptor(AbstractCdsAdaptor):
             try:
                 this_result = adaptor.retrieve_list_of_results(req)
             except Exception as err:
-                exception_logs[adaptor_tag] = f"{err}"
+                exception_logs[adaptor_tag] = err
             else:
                 paths.extend(this_result)
 
         if len(paths) == 0:
             raise MultiAdaptorNoDataError(
                 "MultiAdaptor returned no results, the error logs of the sub-adaptors is as follows:\n"
-                f"{exception_logs}"
+                f"{exception_logs=}"
             )
 
         self.context.info(f"MultiAdaptor, result paths:\n{paths}")
