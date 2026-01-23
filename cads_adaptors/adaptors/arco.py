@@ -180,7 +180,8 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
 
     def custom_dss_store(self):
         from zarr.storage import FsspecStore
-        from zarr.storage._fsspec import ALLOWED_EXCEPTIONS
+
+        standard_default_exceptions = FsspecStore.from_url(".").allowed_exceptions
 
         access_key = self.get_decrypt_var("DSS_ARCO_S3_ACCESS_KEY")
         secret_key = self.get_decrypt_var("DSS_ARCO_S3_SECRET_KEY")
@@ -198,7 +199,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         arco_store_kwargs = {
             "storage_options": storage_options,
             "read_only": True,
-            "allowed_exceptions": ALLOWED_EXCEPTIONS + (PermissionError,),
+            "allowed_exceptions": standard_default_exceptions + (PermissionError,),
             **self.config.get(
                 "arco_store_kwargs",
                 {},  # Option to overwrite from config
