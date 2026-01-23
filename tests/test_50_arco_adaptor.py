@@ -648,3 +648,49 @@ def test_arco_to_csv_kwargs(
     monkeypatch.setitem(arco_adaptor.config, "to_csv_kwargs", {"dsadsa": True})
     with pytest.raises(TypeError):
         arco_adaptor.retrieve(request)
+
+
+def test_arco_store():
+    from zarr.storage import FsspecStore
+
+    expected_storage_options = {
+        "key": "test_access_key",
+        "secret": "test_secret_key",
+        "client_kwargs": {"endpoint_url": "https://s3.test-endpoint.com"},
+        "asynchronous": True,
+    }
+
+    adaptor = ArcoDataLakeCdsAdaptor(
+        form=None,
+        cache_tmp_path="",
+        mapping={},
+        url="s3://my-bucket/path/to/data.zarr",
+        use_arco_store=True,
+        DSS_ARCO_S3_SECRET_KEY="test_secret_key",
+        DSS_ARCO_S3_ACCESS_KEY="test_access_key",
+        DSS_ARCO_S3_ENDPOINT_URL="https://s3.test-endpoint.com",
+    )
+    arco_store = adaptor.custom_dss_store()
+    assert isinstance(arco_store, FsspecStore)
+    assert arco_store.path == "path/to/data.zarr"
+    assert arco_store.fs.storage_options == expected_storage_options
+    assert PermissionError in arco_store.allowed_exceptions
+
+    # Set secrets using environment variables
+    import os
+
+    os.environ["DSS_ARCO_S3_SECRET_KEY"] = "test_secret_key"
+    os.environ["DSS_ARCO_S3_ACCESS_KEY"] = "test_access_key"
+    os.environ["DSS_ARCO_S3_ENDPOINT_URL"] = "https://s3.test-endpoint.com"
+    adaptor_env = ArcoDataLakeCdsAdaptor(
+        form=None,
+        cache_tmp_path="",
+        mapping={},
+        url="s3://my-bucket/path/to/data.zarr",
+        use_arco_store=True,
+    )
+    arco_store_env = adaptor_env.custom_dss_store()
+    assert isinstance(arco_store_env, FsspecStore)
+    assert arco_store_env.path == "path/to/data.zarr"
+    assert arco_store_env.fs.storage_options == expected_storage_options
+    assert PermissionError in arco_store_env.allowed_exceptions

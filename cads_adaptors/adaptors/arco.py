@@ -173,22 +173,28 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return dict(sorted(request.items()))
 
-    def arco_store(self):
+    def custom_dss_store(self):
         from zarr.storage import FsspecStore
         from zarr.storage._fsspec import ALLOWED_EXCEPTIONS
 
         if "DSS_ARCO_S3_ACCESS_KEY" in self.config:
-            access_key = decrypt(self.config["DSS_ARCO_S3_ACCESS_KEY"], ignore_errors=True)
+            access_key = decrypt(
+                self.config["DSS_ARCO_S3_ACCESS_KEY"], ignore_errors=True
+            )
         else:
             access_key = os.environ.get("DSS_ARCO_S3_ACCESS_KEY", "")
 
         if "DSS_ARCO_S3_SECRET_KEY" in self.config:
-            secret_key = decrypt(self.config["DSS_ARCO_S3_SECRET_KEY"], ignore_errors=True)
+            secret_key = decrypt(
+                self.config["DSS_ARCO_S3_SECRET_KEY"], ignore_errors=True
+            )
         else:
             secret_key = os.environ.get("DSS_ARCO_S3_SECRET_KEY", "")
 
         if "DSS_ARCO_S3_ENDPOINT_URL" in self.config:
-            endpoint_url = decrypt(self.config["DSS_ARCO_S3_ENDPOINT_URL"], ignore_errors=True)
+            endpoint_url = decrypt(
+                self.config["DSS_ARCO_S3_ENDPOINT_URL"], ignore_errors=True
+            )
         else:
             endpoint_url = os.environ.get("DSS_ARCO_S3_ENDPOINT_URL", "")
 
@@ -197,7 +203,8 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             "secret": secret_key,
             "client_kwargs": {"endpoint_url": endpoint_url},
             **self.config.get(
-                "arco_storage_options", {}  # Option to overwrite from config
+                "arco_storage_options",
+                {},  # Option to overwrite from config
             ),
         }
         arco_store_kwargs = {
@@ -205,7 +212,8 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             "read_only": True,
             "allowed_exceptions": ALLOWED_EXCEPTIONS + (PermissionError,),
             **self.config.get(
-                "arco_store_kwargs", {}  # Option to overwrite from config
+                "arco_store_kwargs",
+                {},  # Option to overwrite from config
             ),
         }
         self.context.info(f"ARCO Store options: {arco_store_kwargs=}")
@@ -230,7 +238,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         (request,) = self.mapped_requests
 
         if self.config.get("use_arco_store", False):
-            open_dataset_args = [self.arco_store()]
+            open_dataset_args = [self.custom_dss_store()]
         else:
             open_dataset_args = [self.config["url"]]
 
