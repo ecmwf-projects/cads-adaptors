@@ -9,7 +9,7 @@ from dateutil.parser import parse as dtparse
 
 from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
-from cads_adaptors.tools.general import decrypt, decrypt_recursive, ensure_list
+from cads_adaptors.tools.general import decrypt, ensure_list
 
 LAT_NAME = "latitude"
 LON_NAME = "longitude"
@@ -242,9 +242,8 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         else:
             open_dataset_args = [self.config["url"]]
 
-        open_dataset_kwargs = decrypt_recursive(
-            self.config.get("open_dataset_kwargs", {}), ignore_errors=True
-        )
+        open_dataset_kwargs = self.config.get("open_dataset_kwargs", {})
+
         open_dataset_kwargs.setdefault("engine", "zarr")
         self.context.info(f"Opening ARCO Data Lake with {open_dataset_kwargs=}")
 
