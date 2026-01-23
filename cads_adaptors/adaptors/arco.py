@@ -1,13 +1,15 @@
 import copy
+import os
 import tempfile
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from urllib.parse import urlparse
 
 from dateutil.parser import parse as dtparse
 
 from cads_adaptors.adaptors import Request, cds
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
-from cads_adaptors.tools.general import decrypt_recursive, ensure_list
+from cads_adaptors.tools.general import decrypt, ensure_list
 
 LAT_NAME = "latitude"
 LON_NAME = "longitude"
@@ -171,20 +173,76 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
 
         return dict(sorted(request.items()))
 
+    def get_decrypt_var(self, key: str) -> str:
+        if key in self.config:
+            return decrypt(self.config[key], ignore_errors=True)
+        return os.environ.get(key, "")
+
+    def custom_dss_store(self):
+        from zarr.storage import FsspecStore
+
+        standard_default_exceptions = FsspecStore.from_url(".").allowed_exceptions
+
+        access_key = self.get_decrypt_var("DSS_ARCO_S3_ACCESS_KEY")
+        secret_key = self.get_decrypt_var("DSS_ARCO_S3_SECRET_KEY")
+        endpoint_url = self.get_decrypt_var("DSS_ARCO_S3_ENDPOINT_URL")
+
+        storage_options = {
+            "key": access_key,
+            "secret": secret_key,
+            "client_kwargs": {"endpoint_url": endpoint_url},
+            **self.config.get(
+                "arco_storage_options",
+                {},  # Option to overwrite from config
+            ),
+        }
+        arco_store_kwargs = {
+            "storage_options": storage_options,
+            "read_only": True,
+            "allowed_exceptions": standard_default_exceptions + (PermissionError,),
+            **self.config.get(
+                "arco_store_kwargs",
+                {},  # Option to overwrite from config
+            ),
+        }
+        self.context.info(f"ARCO Store options: {arco_store_kwargs=}")
+        if "path" in self.config:
+            store_url = (
+                f"{self.config.get('scheme', 's3://')}{self.config['path'].lstrip('/')}"
+            )
+        else:
+            # Deduce store_url from url (which is the public url), therefore
+            # need to remove hostname and change to s3 scheme
+            # This can be removed when we have ensured gecko has updated all datasets to include 'path'
+            parsed_url = urlparse(self.config["url"])
+            store_url = (
+                f"{self.config.get('scheme', 's3://')}{parsed_url.path.lstrip('/')}"
+            )
+
+        return FsspecStore.from_url(
+            store_url,
+            **arco_store_kwargs,
+        )
+
     def retrieve_list_of_results(self, request: Request) -> list[str]:
         import xarray as xr
 
         self.normalise_request(request)  # Needed to populate self.mapped_requests
         (request,) = self.mapped_requests
 
-        open_dataset_kwargs = decrypt_recursive(
-            self.config.get("open_dataset_kwargs", {}), ignore_errors=True
-        )
+        if self.config.get("use_dss_store", False):
+            open_dataset_args = [self.custom_dss_store()]
+        else:
+            open_dataset_args = [self.config["url"]]
+
+        open_dataset_kwargs = self.config.get("open_dataset_kwargs", {})
+
         open_dataset_kwargs.setdefault("engine", "zarr")
+        self.context.info(f"Opening ARCO Data Lake with {open_dataset_kwargs=}")
 
         try:
             ds = xr.open_dataset(
-                self.config["url"],
+                *open_dataset_args,
                 **open_dataset_kwargs,
             )
         except Exception:

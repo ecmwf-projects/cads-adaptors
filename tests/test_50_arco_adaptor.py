@@ -1,4 +1,5 @@
 import logging
+import os
 import pathlib
 from datetime import datetime, timedelta
 from typing import Any, Type
@@ -7,6 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
+from zarr.storage import FsspecStore
 
 from cads_adaptors import ArcoDataLakeCdsAdaptor
 from cads_adaptors.adaptors import Context
@@ -648,3 +650,40 @@ def test_arco_to_csv_kwargs(
     monkeypatch.setitem(arco_adaptor.config, "to_csv_kwargs", {"dsadsa": True})
     with pytest.raises(TypeError):
         arco_adaptor.retrieve(request)
+
+
+EXPECTED_STORAGE_OPTIONS = {
+    "key": "test_access_key",
+    "secret": "test_secret_key",
+    "client_kwargs": {"endpoint_url": "https://s3.test-endpoint.com"},
+    "asynchronous": True,
+}
+
+
+def test_arco_store_setup_from_config(arco_adaptor: ArcoDataLakeCdsAdaptor) -> None:
+    arco_adaptor.config["use_dss_store"] = True
+    arco_adaptor.config["url"] = "https://test.hostname.ec/test/path"
+    arco_adaptor.config["DSS_ARCO_S3_SECRET_KEY"] = "test_secret_key"
+    arco_adaptor.config["DSS_ARCO_S3_ACCESS_KEY"] = "test_access_key"
+    arco_adaptor.config["DSS_ARCO_S3_ENDPOINT_URL"] = "https://s3.test-endpoint.com"
+    arco_store = arco_adaptor.custom_dss_store()
+    assert isinstance(arco_store, FsspecStore)
+    assert arco_store.path == "test/path"
+    assert arco_store.fs.storage_options == EXPECTED_STORAGE_OPTIONS
+    assert PermissionError in arco_store.allowed_exceptions
+
+    arco_adaptor.config["path"] = "test/path"
+    assert arco_store.path == "test/path"
+
+
+def test_arco_store_setup_from_env(arco_adaptor: ArcoDataLakeCdsAdaptor) -> None:
+    arco_adaptor.config["use_dss_store"] = True
+    arco_adaptor.config["path"] = "test/path"
+    os.environ["DSS_ARCO_S3_SECRET_KEY"] = "test_secret_key"
+    os.environ["DSS_ARCO_S3_ACCESS_KEY"] = "test_access_key"
+    os.environ["DSS_ARCO_S3_ENDPOINT_URL"] = "https://s3.test-endpoint.com"
+    arco_store_env = arco_adaptor.custom_dss_store()
+    assert isinstance(arco_store_env, FsspecStore)
+    assert arco_store_env.path == "test/path"
+    assert arco_store_env.fs.storage_options == EXPECTED_STORAGE_OPTIONS
+    assert PermissionError in arco_store_env.allowed_exceptions
