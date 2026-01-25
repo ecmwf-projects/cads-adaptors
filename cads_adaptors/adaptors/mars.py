@@ -285,8 +285,8 @@ def execute_mars_shares(
         target=str(target),
         logger=context,
     )
-    
-    reply_message = str('\n'.join(reply['message']))
+
+    reply_message = reply_message = str(reply.message)
 
     _mars_common_output(
         target, requests, reply, reply_message, context, time0
