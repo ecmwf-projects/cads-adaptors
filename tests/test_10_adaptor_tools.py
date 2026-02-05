@@ -1,20 +1,15 @@
-
-
-import types
 import pytest
 
-from cads_adaptors.tools.adaptor_tools import (
-    handle_data_format,
-    get_data_format_from_mapped_requests,
-    get_adaptor_class,
-)
-from cads_adaptors.adaptors import AbstractAdaptor
 from cads_adaptors.exceptions import CdsConfigError
-
+from cads_adaptors.tools.adaptor_tools import (
+    get_data_format_from_mapped_requests,
+    handle_data_format,
+)
 
 # -------------------------
 # Tests for handle_data_format
 # -------------------------
+
 
 @pytest.mark.parametrize(
     "inp, expected",
@@ -44,6 +39,7 @@ def test_handle_data_format_multiple_values_asserts():
 # -------------------------
 # Tests for get_data_format_from_mapped_requests
 # -------------------------
+
 
 def test_get_data_format_from_mapped_requests_single_value():
     mapped_requests = [
@@ -84,4 +80,3 @@ def test_get_data_format_from_mapped_requests_missing_raises():
 
     with pytest.raises(CdsConfigError):
         get_data_format_from_mapped_requests(mapped_requests)
-
