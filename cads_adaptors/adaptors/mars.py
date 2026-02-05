@@ -300,12 +300,12 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Get data_format from the list of mapped_requests, performs an additional
         # check that only one data_format is present across all mapped_requests,
         # and ensures a normalised value.
-        data_format = adaptor_tools.get_data_format_from_mapped_requests(
-            self.mapped_requests
+        mapped_requests, data_format = (
+            adaptor_tools.get_data_format_from_mapped_requests(self.mapped_requests)
         )
 
         result = execute_mars(
-            self.mapped_requests,
+            mapped_requests,
             context=self.context,
             config=self.config,
             mapping=self.mapping,

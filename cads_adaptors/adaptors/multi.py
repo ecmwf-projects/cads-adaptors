@@ -290,8 +290,8 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             f"MultiMarsCdsAdaptor, mapped full request: {self.mapped_requests}"
         )
 
-        data_format = adaptor_tools.get_data_format_from_mapped_requests(
-            self.mapped_requests
+        _mapped_requests, data_format = (
+            adaptor_tools.get_data_format_from_mapped_requests(self.mapped_requests)
         )
 
         # We now split the mapped_request into sub-adaptors
@@ -302,7 +302,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
                 this_adaptor.config
             )
-            for mapped_request_piece in self.mapped_requests:
+            for mapped_request_piece in _mapped_requests:
                 this_request = self.extract_subrequest(
                     mapped_request_piece, this_values, **extract_subrequest_kwargs
                 )

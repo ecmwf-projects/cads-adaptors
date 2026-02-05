@@ -47,9 +47,12 @@ def test_get_data_format_from_mapped_requests_single_value():
         {"data_format": "netcdf", "bar": 2},
     ]
 
-    result = get_data_format_from_mapped_requests(mapped_requests)
+    updated_mapped_requests, data_format = get_data_format_from_mapped_requests(
+        mapped_requests
+    )
 
-    assert result == "netcdf"
+    assert data_format == "netcdf"
+    assert all("data_format" not in req for req in updated_mapped_requests)
 
 
 def test_get_data_format_from_mapped_requests_grib():
@@ -58,9 +61,12 @@ def test_get_data_format_from_mapped_requests_grib():
         {"data_format": "grib"},
     ]
 
-    result = get_data_format_from_mapped_requests(mapped_requests)
+    updated_mapped_requests, data_format = get_data_format_from_mapped_requests(
+        mapped_requests
+    )
 
-    assert result == "grib"
+    assert data_format == "grib"
+    assert all("data_format" not in req for req in updated_mapped_requests)
 
 
 def test_get_data_format_from_mapped_requests_mismatch_raises():

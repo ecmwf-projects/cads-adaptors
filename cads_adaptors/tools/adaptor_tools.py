@@ -1,3 +1,4 @@
+from copy import copy
 from typing import Any
 
 from cads_adaptors.adaptors import AbstractAdaptor
@@ -17,13 +18,16 @@ def handle_data_format(data_format: Any) -> str:
     return data_format
 
 
-def get_data_format_from_mapped_requests(mapped_requests: list[dict[str, Any]]) -> str:
+def get_data_format_from_mapped_requests(
+    mapped_requests: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], str]:
     """Extract the data_format from a list of mapped_requests.
 
     Ensures that there is a single value accross all requests, and that the value is normalised.
 
     Args:
-        mapped_requests (list[dict[str, Any]]): _description_
+        mapped_requests (list[dict[str, Any]]): A list of requests that contain a data_format key
+        which needs to be removed
 
     Raises
     ------
@@ -32,10 +36,13 @@ def get_data_format_from_mapped_requests(mapped_requests: list[dict[str, Any]]) 
 
     Returns
     -------
-        str: The single, normalised data_format value extracted from the mapped_requests.
+        tuple[list[dict[str, Any]], str]: A tuple containing the updated list of mapped_requests
+        with the data_format key removed, and the single data_format value.
     """
+    updated_mapped_requests = copy(mapped_requests)
     data_formats = [
-        handle_data_format(req.pop("data_format", None)) for req in mapped_requests
+        handle_data_format(req.pop("data_format", None))
+        for req in updated_mapped_requests
     ]
     data_formats = list(set(data_formats))
     if len(data_formats) != 1 or data_formats[0] is None:
@@ -45,7 +52,7 @@ def get_data_format_from_mapped_requests(mapped_requests: list[dict[str, Any]]) 
             "please try to submit your request again. "
             "If the problem persists, please contact user support."
         )
-    return data_formats[0]
+    return updated_mapped_requests, data_formats[0]
 
 
 def get_adaptor_class(
