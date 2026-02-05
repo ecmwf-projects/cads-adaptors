@@ -1,6 +1,7 @@
 from typing import Any
 
 from cads_adaptors.adaptors import AbstractAdaptor
+from cads_adaptors.exceptions import CdsConfigError
 
 
 def handle_data_format(data_format: Any) -> str:
@@ -14,6 +15,37 @@ def handle_data_format(data_format: Any) -> str:
     elif data_format in ["grib", "grib2", "grb", "grb2"]:
         data_format = "grib"
     return data_format
+
+
+def get_data_format_from_mapped_requests(mapped_requests: list[dict[str, Any]]) -> str:
+    """Extract the data_format from a list of mapped_requests.
+
+    Ensures that there is a single value accross all requests, and that the value is normalised.
+
+    Args:
+        mapped_requests (list[dict[str, Any]]): _description_
+
+    Raises
+    ------
+        CdsConfigError: Raised if a problem is encountered, indicating a problem with the configuration
+        of the dataset.
+
+    Returns
+    -------
+        str: The single, normalised data_format value extracted from the mapped_requests.
+    """
+    data_formats = [
+        handle_data_format(req.pop("data_format", None)) for req in mapped_requests
+    ]
+    data_formats = list(set(data_formats))
+    if len(data_formats) != 1 or data_formats[0] is None:
+        # It should not be possible to reach here, if it is, there is a problem.
+        raise CdsConfigError(
+            "Something has gone wrong in preparing your request, "
+            "please try to submit your request again. "
+            "If the problem persists, please contact user support."
+        )
+    return data_formats[0]
 
 
 def get_adaptor_class(
