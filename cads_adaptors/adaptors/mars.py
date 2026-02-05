@@ -234,7 +234,6 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def __init__(self, *args, **config) -> None:
         super().__init__(*args, **config)
-        self.data_format: str | None = None
         schema_options = config.get("schema_options", {})
         if not schema_options.get("disable_adaptor_schema"):
             self.adaptor_schema = minimal_mars_schema(**schema_options)
@@ -310,7 +309,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 "please try to submit your request again. "
                 "If the problem persists, please contact user support."
             )
-        self.data_format = data_formats[0]
+        data_format = data_formats[0]
 
         result = execute_mars(
             self.mapped_requests,
@@ -325,7 +324,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # TODO?: Generalise format conversion to be a post-processor
         paths = self.convert_format(
             results_dict,
-            self.data_format,
+            data_format,
             context=self.context,
             config=self.config,
             target_dir=str(self.cache_tmp_path),
