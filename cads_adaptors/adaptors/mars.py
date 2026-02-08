@@ -1,7 +1,30 @@
+"""
+MARS adaptor for CDS data retrieval.
+
+IMPORTANT ARCHITECTURAL NOTE:
+This module is imported by multiple services:
+1. Data retrieval workers - actually execute MARS requests
+2. API services - use adaptors for constraint validation, mapping, schema
+3. Catalogue services - metadata and configuration management
+
+To avoid forcing ALL services to have cads-mars-server installed, we follow
+these import guidelines:
+
+1. Module-level imports: Only cads_adaptors dependencies and standard library
+2. Configuration: Read from environment variables (no cads-mars-server dependency)
+3. Client imports: Encapsulated INSIDE execute_mars_pipe() and execute_mars_shares()
+   - from cads_mars_server import client (pipe mode)
+   - from cads_mars_server.ws_client import mars_via_ws_sync (shares mode)
+
+This way, services that only validate constraints or manage mappings can import
+this module without needing the full MARS client infrastructure installed.
+"""
+
 import os
 import pathlib
 import time
 from typing import Any, BinaryIO
+from urllib.parse import urlparse, urlunparse
 
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import (
@@ -18,6 +41,15 @@ from cads_adaptors.tools.general import (
 )
 from cads_adaptors.tools.simulate_preinterpolation import simulate_preinterpolation
 
+# Configuration for MARS client selection and ports
+# These are read from environment variables to avoid forcing a dependency on
+# cads-mars-server for services that only use adaptors for constraints/mappings.
+# The actual client imports (mars_client, ws_client) are deferred until needed
+# inside execute_mars_pipe() and execute_mars_shares().
+USE_SHARES = os.getenv("MARS_USE_SHARES", "false").lower() == "true"
+DEFAULT_PIPE_PORT = int(os.getenv("MARS_PIPE_PORT", "9000"))
+DEFAULT_SHARES_PORT = int(os.getenv("MARS_SHARES_PORT", "9001"))
+
 # This hard requirement of MARS requests should be moved to the proxy MARS client
 ALWAYS_SPLIT_ON: list[str] = [
     "class",
@@ -30,10 +62,6 @@ ALWAYS_SPLIT_ON: list[str] = [
     "method",
     "origin",
 ]
-
-USE_SHARES = os.getenv("MARS_USE_SHARES", "false").lower() == "true"
-PORT_SHARES = 9001
-PORT_PIPE = 9000
 
 
 def get_mars_server_list(config) -> list[str]:
@@ -62,11 +90,43 @@ def get_mars_server_list(config) -> list[str]:
     return mars_servers
 
 def get_mars_server_list_ws(config) -> list[str]:
-    # TODO: refactor with get_mars_server_list when we have a more stable set of mars-servers
-    mars_servers = get_mars_server_list(config)
-    mars_servers = [s.replace(f":{PORT_PIPE}", f":{PORT_SHARES}") for s in mars_servers]
-    mars_servers = [s.replace(f"http://", f"ws://") for s in mars_servers]
-    return mars_servers
+    """
+    Convert HTTP pipe server URLs to WebSocket shares server URLs.
+    
+    Properly parses URLs and converts:
+    - http:// -> ws://
+    - https:// -> wss://
+    - port 9000 -> port 9001 (or configured ports)
+    
+    Args:
+        config: Configuration dictionary
+        
+    Returns:
+        List of WebSocket server URLs
+    """
+    http_servers = get_mars_server_list(config)
+    ws_servers = []
+    
+    for server in http_servers:
+        parsed = urlparse(server)
+        
+        # Convert HTTP scheme to WebSocket scheme
+        scheme = "wss" if parsed.scheme == "https" else "ws"
+        
+        # Convert port if it matches the default pipe port
+        netloc = parsed.netloc
+        if parsed.port == DEFAULT_PIPE_PORT:
+            netloc = netloc.replace(
+                f":{DEFAULT_PIPE_PORT}", f":{DEFAULT_SHARES_PORT}"
+            )
+        elif parsed.port is None:
+            # No port specified, add the shares port
+            netloc = f"{parsed.hostname}:{DEFAULT_SHARES_PORT}"
+        
+        ws_url = urlunparse((scheme, netloc, parsed.path, "", "", ""))
+        ws_servers.append(ws_url)
+    
+    return ws_servers
 
 def minimal_mars_schema(
     allow_duplicate_values_keys=None,
@@ -202,20 +262,33 @@ def _mars_common_output(target, requests, reply, reply_message, context, time0):
         raise MarsNoDataError(error_message)
 
 
-def execute_mars_pipe(
+def _prepare_mars_request(
     request: dict[str, Any] | list[dict[str, Any]],
-    context: Context = Context(),
-    config: dict[str, Any] = dict(),
-    mapping: dict[str, Any] = dict(),
-    target_fname: str = "data.grib",
-    target_dir: str | pathlib.Path = "",
-) -> str:
-    from cads_mars_server import client as mars_client
-
+    context: Context,
+    config: dict[str, Any],
+    mapping: dict[str, Any],
+    target_fname: str,
+    target_dir: str | pathlib.Path,
+) -> tuple[list[dict[str, Any]], str, dict[str, Any]]:
+    """
+    Common preparation logic for both pipe and shares MARS implementations.
+    
+    Args:
+        request: Single request dict or list of request dicts
+        context: Context object for logging
+        config: Configuration dictionary
+        mapping: Mapping dictionary for field transformations
+        target_fname: Target filename
+        target_dir: Target directory path
+        
+    Returns:
+        Tuple of (processed_requests, target_path, environment_dict)
+    """
     requests = ensure_list(request)
-    # Implement embargo if it is set in the config
-    # This is now done in normalize request, but leaving it here for now, as running twice is not a problem
-    #  and the some adaptors may not use normalise_request yet
+    
+    # Implement embargo if configured
+    # Note: This is also done in normalise_request, but kept here for adaptors
+    # that may not use normalise_request yet. Running twice is safe.
     if config.get("embargo") is not None:
         requests, _cacheable = implement_embargo(requests, config["embargo"])
 
@@ -224,21 +297,49 @@ def execute_mars_pipe(
     split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
     requests = split_requests_on_keys(requests, split_on_keys, context, mapping)
 
-    mars_servers = get_mars_server_list(config)
+    # Add required fields to the env dictionary
+    env = make_env_dict(config)
+    
+    return requests, target, env
 
+
+def execute_mars_pipe(
+    request: dict[str, Any] | list[dict[str, Any]],
+    context: Context = Context(),
+    config: dict[str, Any] = dict(),
+    mapping: dict[str, Any] = dict(),
+    target_fname: str = "data.grib",
+    target_dir: str | pathlib.Path = "",
+) -> str:
+    """
+    Execute MARS request using pipe-based client.
+    
+    Args:
+        request: MARS request(s)
+        context: Context for logging
+        config: Configuration dictionary
+        mapping: Field mapping dictionary
+        target_fname: Output filename
+        target_dir: Output directory
+        
+    Returns:
+        Path to output file
+    """
+    from cads_mars_server import client as mars_client
+
+    requests, target, env = _prepare_mars_request(
+        request, context, config, mapping, target_fname, target_dir
+    )
+
+    mars_servers = get_mars_server_list(config)
     cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
 
-    # Add required fields to the env dictionary:
-    env = make_env_dict(config)
     time0 = time.time()
-    
     context.info(f"Request sent to proxy MARS client: {requests}")
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
 
-    _mars_common_output(
-        target, requests, reply, reply_message, context, time0
-    )
+    _mars_common_output(target, requests, reply, reply_message, context, time0)
 
     return target
 
@@ -251,30 +352,35 @@ def execute_mars_shares(
     target_fname: str = "data.grib",
     target_dir: str | pathlib.Path = "",
 ) -> str:
+    """
+    Execute MARS request using WebSocket-based shares client.
+    
+    This implementation uses shared filesystem access, where the server
+    writes directly to the shared filesystem and the client monitors progress.
+    
+    Args:
+        request: MARS request(s)
+        context: Context for logging
+        config: Configuration dictionary
+        mapping: Field mapping dictionary
+        target_fname: Output filename
+        target_dir: Output directory
+        
+    Returns:
+        Path to output file
+    """
     from cads_mars_server.ws_client import mars_via_ws_sync as mars_client
 
-    requests = ensure_list(request)
-    # Implement embargo if it is set in the config
-    # This is now done in normalize request, but leaving it here for now, as running twice is not a problem
-    #  and the some adaptors may not use normalise_request yet
-    if config.get("embargo") is not None:
-        requests, _cacheable = implement_embargo(requests, config["embargo"])
+    requests, target, env = _prepare_mars_request(
+        request, context, config, mapping, target_fname, target_dir
+    )
 
+    # Ensure target directory is accessible by MARS server
     if target_dir:
         os.chmod(target_dir, 0o777)
 
-    target = str(pathlib.Path(target_dir) / target_fname)
-
-    split_on_keys = ALWAYS_SPLIT_ON + ensure_list(config.get("split_on", []))
-    requests = split_requests_on_keys(requests, split_on_keys, context, mapping)
-
     mars_servers = get_mars_server_list_ws(config)
 
-    #cluster = mars_client.RemoteMarsClientCluster(urls=mars_servers, log=context)
-
-    # Add required fields to the env dictionary:
-    env = make_env_dict(config)
-    
     time0 = time.time()
     context.info(f"Request(s) sent to proxy MARS client: {requests}")
 
@@ -286,11 +392,9 @@ def execute_mars_shares(
         logger=context,
     )
 
-    reply_message = reply_message = str(reply.message)
+    reply_message = str(reply.message)
 
-    _mars_common_output(
-        target, requests, reply, reply_message, context, time0
-    )
+    _mars_common_output(target, requests, reply, reply_message, context, time0)
 
     return target
 
@@ -302,10 +406,25 @@ def execute_mars(
     target_fname: str = "data.grib",
     target_dir: str | pathlib.Path = "",
 ) -> str:
-    # Decide which MARS client to use based on config
+    """
+    Execute MARS request using the configured client (pipe or shares).
     
+    The client selection is controlled by the MARS_USE_SHARES environment variable
+    or the cads_mars_server.config.USE_SHARES setting.
+    
+    Args:
+        request: MARS request(s)
+        context: Context for logging
+        config: Configuration dictionary
+        mapping: Field mapping dictionary
+        target_fname: Output filename
+        target_dir: Output directory
+        
+    Returns:
+        Path to output file
+    """
     if USE_SHARES:
-        context.info("Using MARS Shares client for MARS retrievals.")
+        context.info("Using MARS Shares (WebSocket) client for MARS retrievals.")
         return execute_mars_shares(
             request,
             context=context,
