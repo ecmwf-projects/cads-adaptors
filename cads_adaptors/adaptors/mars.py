@@ -351,6 +351,7 @@ def execute_mars_shares(
     mapping: dict[str, Any] = dict(),
     target_fname: str = "data.grib",
     target_dir: str | pathlib.Path = "",
+    log_handler: Any = None,
 ) -> str:
     """
     Execute MARS request using WebSocket-based shares client.
@@ -365,6 +366,9 @@ def execute_mars_shares(
         mapping: Field mapping dictionary
         target_fname: Output filename
         target_dir: Output directory
+        log_handler: Optional custom log handler for parsing MARS output.
+                     Handler receives (line, ws, logger) and returns formatted
+                     line or None to suppress. Can raise exceptions to abort.
         
     Returns:
         Path to output file
@@ -390,6 +394,7 @@ def execute_mars_shares(
         env,
         target=str(target),
         logger=context,
+        log_handler=log_handler,
     )
 
     reply_message = str(reply.message)
@@ -405,6 +410,7 @@ def execute_mars(
     mapping: dict[str, Any] = dict(),
     target_fname: str = "data.grib",
     target_dir: str | pathlib.Path = "",
+    log_handler: Any = None,
 ) -> str:
     """
     Execute MARS request using the configured client (pipe or shares).
@@ -419,6 +425,10 @@ def execute_mars(
         mapping: Field mapping dictionary
         target_fname: Output filename
         target_dir: Output directory
+        log_handler: Optional custom log handler for parsing MARS output.
+                     Handler receives (line, ws, logger) and returns formatted
+                     line or None to suppress. Can raise exceptions to abort.
+                     Only used when USE_SHARES=True (WebSocket client).
         
     Returns:
         Path to output file
@@ -432,6 +442,7 @@ def execute_mars(
             mapping=mapping,
             target_fname=target_fname,
             target_dir=target_dir,
+            log_handler=log_handler,
         )
     else:
         context.info("Using MARS Pipe client for MARS retrievals.")
