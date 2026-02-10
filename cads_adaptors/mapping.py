@@ -440,6 +440,7 @@ def get_features_in_area(
         If there is an error connecting to or retrieving data from the WFS service.
     """
     import owslib.wfs
+
     try:
         wfs = owslib.wfs.WebFeatureService(
             os.environ.get("GEOSERVER_URL"),
