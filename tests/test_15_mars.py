@@ -249,17 +249,17 @@ def test_version_check_logic():
     
     # Test cases: (version_string, should_support_websocket, description)
     test_cases = [
-        ('3.0.0', True, 'Exact match - release version'),
-        ('3.0.1', True, 'Newer patch version'),
-        ('3.1.0', True, 'Newer minor version'),
-        ('4.0.0', True, 'Major version upgrade'),
-        ('3.0.0.dev1+g1234567', True, 'Dev version from websocketmars branch'),
-        ('3.0.0rc1', True, 'Release candidate'),
-        ('2.9.9', False, 'Older version'),
+        ('0.3.0', True, 'Exact match - release version'),
+        ('0.3.1', True, 'Newer patch version'),
+        ('0.4.0', True, 'Newer minor version'),
+        ('1.0.0', True, 'Major version upgrade'),
+        ('0.3.0.dev1+g1234567', True, 'Dev version from websocketmars branch'),
+        ('0.3.0rc1', True, 'Release candidate'),
+        ('0.2.9', False, 'Older version'),
         ('0.2.5.1', False, 'Current old version'),
     ]
     
-    required_version = version.parse('3.0.0')
+    required_version = version.parse('0.3.0')
     
     for version_str, expected_result, description in test_cases:
         parsed_version = version.parse(version_str)
@@ -292,13 +292,13 @@ def test_version_check_with_mock(monkeypatch):
     
     # Test 2: Check that base_version attribute exists
     from packaging import version
-    dev_version = version.parse('3.0.0.dev1+g1234567')
+    dev_version = version.parse('0.3.0.dev1+g1234567')
     assert hasattr(dev_version, 'base_version')
-    assert dev_version.base_version == '3.0.0'
+    assert dev_version.base_version == '0.3.0'
     
     # Test 3: Verify old version is rejected
     old_version = version.parse('0.2.5.1')
-    assert version.parse(old_version.base_version) < version.parse('3.0.0')
+    assert version.parse(old_version.base_version) < version.parse('0.3.0')
 
 
 def test_should_use_websocket_mode(monkeypatch):
