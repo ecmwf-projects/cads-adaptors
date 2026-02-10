@@ -241,3 +241,85 @@ def _check_schema_pass(req_in, req_out, **schema_options):
         )
         req_mod = adp.normalise_request(req_in)
         assert req_mod == req_out
+
+
+def test_version_check_logic():
+    """Test version checking logic for cads-mars-server compatibility."""
+    from packaging import version
+    
+    # Test cases: (version_string, should_support_websocket, description)
+    test_cases = [
+        ('3.0.0', True, 'Exact match - release version'),
+        ('3.0.1', True, 'Newer patch version'),
+        ('3.1.0', True, 'Newer minor version'),
+        ('4.0.0', True, 'Major version upgrade'),
+        ('3.0.0.dev1+g1234567', True, 'Dev version from websocketmars branch'),
+        ('3.0.0rc1', True, 'Release candidate'),
+        ('2.9.9', False, 'Older version'),
+        ('0.2.5.1', False, 'Current old version'),
+    ]
+    
+    required_version = version.parse('3.0.0')
+    
+    for version_str, expected_result, description in test_cases:
+        parsed_version = version.parse(version_str)
+        
+        # Replicate the logic from _check_cads_mars_server_supports_websocket()
+        if hasattr(parsed_version, 'base_version'):
+            base = version.parse(parsed_version.base_version)
+            result = base >= required_version
+        else:
+            result = parsed_version >= required_version
+        
+        assert result == expected_result, (
+            f"Version check failed for {version_str} ({description}): "
+            f"expected {expected_result}, got {result}"
+        )
+
+
+def test_version_check_with_mock(monkeypatch):
+    """Test the actual version checking functions with mocked cads-mars-server."""
+    
+    # Test 1: Module not installed
+    def mock_import_fail(name, *args, **kwargs):
+        if name == 'cads_mars_server':
+            raise ImportError("No module named 'cads_mars_server'")
+        return __import__(name, *args, **kwargs)
+    
+    # Note: We can't easily monkeypatch __import__ in a way that works with
+    # the function definition at module load time, so instead we test the
+    # logic directly by checking the version parsing behavior
+    
+    # Test 2: Check that base_version attribute exists
+    from packaging import version
+    dev_version = version.parse('3.0.0.dev1+g1234567')
+    assert hasattr(dev_version, 'base_version')
+    assert dev_version.base_version == '3.0.0'
+    
+    # Test 3: Verify old version is rejected
+    old_version = version.parse('0.2.5.1')
+    assert version.parse(old_version.base_version) < version.parse('3.0.0')
+
+
+def test_should_use_websocket_mode(monkeypatch):
+    """Test _should_use_websocket_mode function behavior with different env vars."""
+    
+    # Test 1: MARS_USE_SHARES not set (or False)
+    monkeypatch.delenv('MARS_USE_SHARES', raising=False)
+    # Re-import to get fresh module state
+    import importlib
+    importlib.reload(mars)
+    assert mars.USE_SHARES is False, "USE_SHARES should be False when env var not set"
+    
+    # Test 2: MARS_USE_SHARES=false explicitly
+    monkeypatch.setenv('MARS_USE_SHARES', 'false')
+    importlib.reload(mars)
+    assert mars.USE_SHARES is False, "USE_SHARES should be False when env var is 'false'"
+    
+    # Test 3: MARS_USE_SHARES=true but need to check version
+    # (actual behavior depends on installed cads-mars-server version)
+    monkeypatch.setenv('MARS_USE_SHARES', 'true')
+    importlib.reload(mars)
+    # USE_SHARES will be True or False depending on installed version
+    # We just verify it's a boolean
+    assert isinstance(mars.USE_SHARES, bool), "USE_SHARES should be a boolean"

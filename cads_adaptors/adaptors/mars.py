@@ -26,6 +26,8 @@ import time
 from typing import Any, BinaryIO
 from urllib.parse import urlparse, urlunparse
 
+from packaging import version
+
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import (
     CdsConfigError,
@@ -46,9 +48,85 @@ from cads_adaptors.tools.simulate_preinterpolation import simulate_preinterpolat
 # cads-mars-server for services that only use adaptors for constraints/mappings.
 # The actual client imports (mars_client, ws_client) are deferred until needed
 # inside execute_mars_pipe() and execute_mars_shares().
-USE_SHARES = os.getenv("MARS_USE_SHARES", "false").lower() == "true"
 DEFAULT_PIPE_PORT = int(os.getenv("MARS_PIPE_PORT", "9000"))
 DEFAULT_SHARES_PORT = int(os.getenv("MARS_SHARES_PORT", "9001"))
+
+
+def _check_cads_mars_server_supports_websocket() -> bool:
+    """
+    Check if cads-mars-server is installed and supports WebSocket mode.
+    
+    WebSocket mode requires cads-mars-server >= 3.0.0.
+    
+    This function handles:
+    - Module not installed (returns False)
+    - Released versions (e.g., "3.0.0", "3.1.0")
+    - Development versions from branches (e.g., "3.0.0.dev1+g1234567")
+    
+    For development versions, we check the base version (major.minor.patch)
+    ignoring pre-release and local version identifiers. This ensures that
+    builds from the websocketmars branch (which will have 3.0.0.devN versions)
+    are recognized as supporting WebSocket features.
+    
+    Returns:
+        True if cads-mars-server >= 3.0.0 is available, False otherwise
+    """
+    try:
+        import cads_mars_server
+        
+        installed_version = version.parse(cads_mars_server.__version__)
+        required_version = version.parse("3.0.0")
+        
+        # For development versions like "3.0.0.dev1+g1234567", the base_version
+        # gives us "3.0.0" which we can compare. This ensures branch builds
+        # are recognized as having the features.
+        if hasattr(installed_version, "base_version"):
+            base = version.parse(installed_version.base_version)
+            return base >= required_version
+        else:
+            # Fallback for older packaging versions
+            return installed_version >= required_version
+            
+    except ImportError:
+        # cads-mars-server not installed
+        return False
+    except Exception:
+        # Any other error (version parsing, etc.) - fall back to pipe mode
+        return False
+
+
+def _should_use_websocket_mode() -> bool:
+    """
+    Determine if WebSocket mode should be used based on configuration and version.
+    
+    WebSocket mode is enabled when BOTH conditions are met:
+    1. MARS_USE_SHARES environment variable is set to "true"
+    2. cads-mars-server >= 3.0.0 is installed
+    
+    This ensures backward compatibility: older cads-mars-server versions will
+    fall back to pipe mode even if MARS_USE_SHARES=true is set.
+    
+    Returns:
+        True if WebSocket mode should be used, False for pipe mode
+    """
+    use_shares_env = os.getenv("MARS_USE_SHARES", "false").lower() == "true"
+    
+    if not use_shares_env:
+        # MARS_USE_SHARES not set or false - use pipe mode
+        return False
+    
+    # MARS_USE_SHARES is true - check if server supports WebSocket
+    if not _check_cads_mars_server_supports_websocket():
+        # WebSocket requested but not supported - log warning and fall back
+        # Note: This will be logged in execute_mars() when context is available
+        return False
+    
+    return True
+
+
+# Determine at module load time which mode to use
+# This value is read by execute_mars() to select the client
+USE_SHARES = _should_use_websocket_mode()
 
 # This hard requirement of MARS requests should be moved to the proxy MARS client
 ALWAYS_SPLIT_ON: list[str] = [
@@ -415,8 +493,12 @@ def execute_mars(
     """
     Execute MARS request using the configured client (pipe or shares).
     
-    The client selection is controlled by the MARS_USE_SHARES environment variable
-    or the cads_mars_server.config.USE_SHARES setting.
+    The client selection requires BOTH conditions:
+    1. MARS_USE_SHARES environment variable set to "true"
+    2. cads-mars-server >= 3.0.0 installed
+    
+    If MARS_USE_SHARES is true but cads-mars-server < 3.0.0, falls back to pipe mode
+    with a warning. This ensures backward compatibility with older deployments.
     
     Args:
         request: MARS request(s)
@@ -433,8 +515,21 @@ def execute_mars(
     Returns:
         Path to output file
     """
+    # Check if WebSocket was requested but not available
+    use_shares_env = os.getenv("MARS_USE_SHARES", "false").lower() == "true"
+    
     if USE_SHARES:
-        context.info("Using MARS Shares (WebSocket) client for MARS retrievals.")
+        # Get version info for logging
+        try:
+            import cads_mars_server
+            version_str = cads_mars_server.__version__
+            context.info(
+                f"Using MARS Shares (WebSocket) client for MARS retrievals "
+                f"(cads-mars-server {version_str})."
+            )
+        except ImportError:
+            context.info("Using MARS Shares (WebSocket) client for MARS retrievals.")
+        
         return execute_mars_shares(
             request,
             context=context,
@@ -445,6 +540,23 @@ def execute_mars(
             log_handler=log_handler,
         )
     else:
+        # Log reason for using pipe mode
+        if use_shares_env:
+            # MARS_USE_SHARES was set but we're using pipe mode - explain why
+            try:
+                import cads_mars_server
+                version_str = cads_mars_server.__version__
+                context.add_user_visible_log(
+                    f"WebSocket mode requested (MARS_USE_SHARES=true) but cads-mars-server "
+                    f"version {version_str} < 3.0.0. Falling back to pipe mode. "
+                    f"Upgrade to cads-mars-server >= 3.0.0 to use WebSocket features."
+                )
+            except ImportError:
+                context.add_user_visible_log(
+                    "WebSocket mode requested (MARS_USE_SHARES=true) but cads-mars-server "
+                    "is not installed. Falling back to pipe mode."
+                )
+        
         context.info("Using MARS Pipe client for MARS retrievals.")
         return execute_mars_pipe(
             request,
