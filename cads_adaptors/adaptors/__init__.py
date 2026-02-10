@@ -207,6 +207,23 @@ class AbstractAdaptor(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def make_receipt(self, **kwargs) -> dict[str, Any]:
+        """
+        Make receipt associated with a given finished request.
+
+        Parameters
+        ----------
+        **kwargs : Any
+            Additional parameters, specific to the particular method's implementation.
+
+        Returns
+        -------
+        dict[str, Any]
+            Receipt content.
+        """
+        pass
+
+    @abc.abstractmethod
     def retrieve(self, request: Request) -> BinaryIO:
         """
         Retrieve file associated with the request.
