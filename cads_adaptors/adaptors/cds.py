@@ -1,4 +1,5 @@
 import bisect
+import dataclasses
 import os
 import pathlib
 import time
@@ -22,6 +23,15 @@ DEFAULT_COST_TYPE_FOR_COSTING_CLASS = DEFAULT_COST_TYPE
 COST_TYPE_WITH_HIGHEST_COST_LIMIT_RATIO_FOR_COSTING_CLASS = "highest_cost_limit_ratio"
 
 
+@dataclasses.dataclass
+class CachingArgs:
+    mapped_requests: list[Request]
+    avoid_cache: bool
+    download_format: str
+    area: list[float | int] | dict[str, float | int]
+    post_processing_steps: list[str]
+
+
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
     adaptor_schema: dict[str, Any] = {}
@@ -43,14 +53,11 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.input_request: Request = dict()
         self.mapped_request: Request = dict()
         self.download_format: str = "zip"
-        self.receipt: bool = config.pop("receipt", False)
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
         self.intersect_constraints_bool: bool = config.get(
             "intersect_constraints", False
         )
         self.embargo: dict[str, int] | None = config.get("embargo", None)
-        # Flag to ensure we only normalise the request once
-        self.normalised: bool = False
         # List of steps to perform after retrieving the data
         self.post_process_steps: list[dict[str, Any]] = [{}]
 
@@ -238,9 +245,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         Method called before the mapping is applied to the request. This will differ for each
         adaptor, so is separated out from the normalise_request method.
         """
-        # Move the receipt flag from the request to the adaptor attributes (currently not in use)
-        self.receipt = request.pop("receipt", False)
-
         # Extract post-process steps from the request before applying the mapping
         self.post_process_steps = request.pop("post_process", [])
         self.context.debug(
@@ -273,9 +277,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         The returned request needs to be compatible with the web-portal, it is currently what is used
         on the "Your requests" page, hence it should not be modified to much from the user's request.
         """
-        if self.normalised:
-            return request
-
         # Make a copy of the original request for debugging purposes
         self.input_request = deepcopy(request)
         self.context.debug(f"Input request:\n{self.input_request}")
@@ -357,7 +358,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             random_key = str(randint(0, 2**128))
             request["__in_adaptor_no_cache"] = random_key
 
-        self.normalised = True
         return request
 
     def set_download_format(self, download_format, default_download_format="zip"):
@@ -479,12 +479,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if len(paths) > 1 and download_format == "as_source":
             download_format = "zip"
 
-        # Allow adaptor possibility of over-riding request value
-        if kwargs.get("receipt", self.receipt):
-            receipt_kwargs = kwargs.pop("receipt_kwargs", {})
-            kwargs.setdefault(
-                "receipt", self.make_receipt(filenames=filenames, **receipt_kwargs)
-            )
         self.context.debug(
             f"Creating download object as {download_format} with paths:\n{paths}\n and kwargs:\n{kwargs}"
         )

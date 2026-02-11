@@ -152,9 +152,6 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         return request
 
     def normalise_request(self, request: Request) -> Request:
-        if self.normalised:
-            return request
-
         if len({"area", "location"} & set(request)) != 1:
             raise InvalidRequest(
                 "The parameters `area` and `request` are mutually exclusive, and one of them is required."
