@@ -5,12 +5,11 @@ from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request, cds
 from cads_adaptors.exceptions import (
-    CdsConfigError,
     MarsNoDataError,
     MarsRuntimeError,
     MarsSystemError,
 )
-from cads_adaptors.tools.adaptor_tools import handle_data_format
+from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import (
     ensure_list,
@@ -234,7 +233,6 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
 class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
     def __init__(self, *args, **config) -> None:
         super().__init__(*args, **config)
-        self.data_format: str | None = None
         schema_options = config.get("schema_options", {})
         if not schema_options.get("disable_adaptor_schema"):
             self.adaptor_schema = minimal_mars_schema(**schema_options)
@@ -268,7 +266,9 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             )
         # Remove "format" from request if it exists
         data_format = request.pop("format", ["grib"])
-        data_format = handle_data_format(request.get("data_format", data_format))
+        data_format = adaptor_tools.handle_data_format(
+            request.get("data_format", data_format)
+        )
 
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
@@ -297,23 +297,15 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # Call normalise_request to set self.mapped_requests
         request = self.normalise_request(request)
 
-        # Invoke handle_data_format again as intersect_constraints may turn "data_format" into a list
-        data_formats = [
-            handle_data_format(req.pop("data_format", None))
-            for req in self.mapped_requests
-        ]
-        data_formats = list(set(data_formats))
-        if len(data_formats) != 1 or data_formats[0] is None:
-            # It should not be possible to reach here, if it is, there is a problem.
-            raise CdsConfigError(
-                "Something has gone wrong in preparing your request, "
-                "please try to submit your request again. "
-                "If the problem persists, please contact user support."
-            )
-        self.data_format = data_formats[0]
+        # Get data_format from the list of mapped_requests, performs an additional
+        # check that only one data_format is present across all mapped_requests,
+        # and ensures a normalised value.
+        mapped_requests, data_format = (
+            adaptor_tools.get_data_format_from_mapped_requests(self.mapped_requests)
+        )
 
         result = execute_mars(
-            self.mapped_requests,
+            mapped_requests,
             context=self.context,
             config=self.config,
             mapping=self.mapping,
@@ -325,7 +317,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         # TODO?: Generalise format conversion to be a post-processor
         paths = self.convert_format(
             results_dict,
-            self.data_format,
+            data_format,
             context=self.context,
             config=self.config,
             target_dir=str(self.cache_tmp_path),
