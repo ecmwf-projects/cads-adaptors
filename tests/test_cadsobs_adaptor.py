@@ -272,20 +272,34 @@ def test_adaptor(tmp_path, monkeypatch):
     assert tempfile.stat().st_size > 0
     actual = h5netcdf.File(tempfile)
     assert actual.dimensions["index"].size > 0
+
+
+def test_adaptor_mapped_requests(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        MockerCadsobsApiClient,
+    )
+    test_form = {}
+
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
+
     # Check if the parameters have been properly mapped.
-    assert adaptor.mapped_request == {
-        "dataset_source": "uscrn_daily",
-        "format": "netCDF",
-        "variables": [
-            "daily_maximum_air_temperature",
-            "daily_maximum_relative_humidity",
-        ],
-        "year": [2007],
-        "month": [11],
-        "day": [1, 2, 3],
-        "latitude_coverage": ["30", "50"],
-        "longitude_coverage": ["-150", "-100"],
-    }
+    mapped_requests = adaptor.get_cache_args(TEST_REQUEST).mapped_requests
+    assert mapped_requests == [
+        {
+            "dataset_source": "uscrn_daily",
+            "format": "netCDF",
+            "variables": [
+                "daily_maximum_air_temperature",
+                "daily_maximum_relative_humidity",
+            ],
+            "year": [2007],
+            "month": [11],
+            "day": [1, 2, 3],
+            "latitude_coverage": ["30", "50"],
+            "longitude_coverage": ["-150", "-100"],
+        }
+    ]
 
 
 def test_adaptor_cuon(tmp_path, monkeypatch):

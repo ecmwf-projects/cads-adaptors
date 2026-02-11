@@ -1,9 +1,9 @@
 import tempfile
 from pathlib import Path
+from typing import Any
 
-from cads_adaptors.adaptors import Request
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CacheArgs, Request
 from cads_adaptors.exceptions import CadsObsRuntimeError, InvalidRequest
 
 
@@ -26,30 +26,44 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             raise e
         return output
 
-    def retrieve_list_of_results(self, request: Request) -> list[str]:
-        from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
+    def get_cache_args(self, request: Request) -> CacheArgs:
+        args = super().get_cache_args(request)
+        mapped_requests = args.mapped_requests
 
-        # Maps observation_type to source. This sets self.mapped_requests
-        request = self.normalise_request(request)
         # TODO: handle lists of requests, normalise_request has the power to implement_constraints
         #  which produces a list of complete hypercube requests.
         try:
-            assert len(self.mapped_requests) == 1
+            assert len(mapped_requests) == 1
         except AssertionError:
             self.context.add_user_visible_log(
-                f"WARNING: More than one request was mapped: {self.mapped_requests}, "
-                f"returning the first one only:\n{self.mapped_requests[0]}"
+                f"WARNING: More than one request was mapped: {mapped_requests}, "
+                f"returning the first one only:\n{mapped_requests[0]}"
             )
-        self.mapped_request = self.mapped_requests[0]
+        mapped_request = mapped_requests[0]
+
+        # dataset_source must be a string, asking for two sources is unsupported
+        dataset_source = self.handle_sources_list(mapped_request["dataset_source"])
+        mapped_request["dataset_source"] = dataset_source
+        mapped_request = self.adapt_parameters(mapped_request)
+        args.mapped_requests = [mapped_request]
+        return args
+
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        area: list[float | int] | dict[str, float | int],
+        post_process_steps: list[dict[str, Any]],
+    ) -> list[str]:
+        from cads_adaptors.adaptors.cadsobs.retrieve import retrieve_data
 
         # Catalogue credentials are in config, which is parsed from adaptor.json
         obs_api_url = self.config["obs_api_url"]
         # Dataset name is in this config too
         dataset_name = self.config["collection_id"]
-        # dataset_source must be a string, asking for two sources is unsupported
-        dataset_source = self.handle_sources_list(self.mapped_request["dataset_source"])
-        self.mapped_request["dataset_source"] = dataset_source
-        self.mapped_request = self.adapt_parameters()
+
+        mapped_request = mapped_requests[0]
+        dataset_source = mapped_request["dataset_source"]
+
         # Get CDM lite variables as a dict with mandatory, optional and auxiliary
         cadsobs_client = CadsobsApiClient(obs_api_url, self.context)
         cdm_lite_variables_dict = cadsobs_client.get_cdm_lite_variables()
@@ -63,7 +77,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         cdm_lite_variables = [v for v in cdm_lite_variables if v not in disabled_fields]
         # Get the objects that match the request
         object_urls = cadsobs_client.get_objects_to_retrieve(
-            dataset_name, self.mapped_request
+            dataset_name, mapped_request
         )
         # Get the service definition file
         service_definition = cadsobs_client.get_service_definition(dataset_name)
@@ -76,7 +90,7 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         output_dir = Path(tempfile.mkdtemp())
         output_path = retrieve_data(
             dataset_name,
-            self.mapped_request,
+            mapped_request,
             output_dir,
             object_urls,
             cdm_lite_variables,
@@ -86,28 +100,24 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         )
         return [str(output_path)]
 
-    def adapt_parameters(self) -> dict:
+    def adapt_parameters(self, mapped_request: Request) -> dict:
         # We need these changes right now to adapt the parameters to what we need
         # Turn single values into length one lists
         for key_to_listify in ["variables", "stations", "year", "month", "day"]:
-            if key_to_listify in self.mapped_request and not isinstance(
-                self.mapped_request[key_to_listify], list
+            if key_to_listify in mapped_request and not isinstance(
+                mapped_request[key_to_listify], list
             ):
-                self.mapped_request[key_to_listify] = [
-                    self.mapped_request[key_to_listify]
-                ]
+                mapped_request[key_to_listify] = [mapped_request[key_to_listify]]
         # Turn year, month, day strings into integers
         for key_to_int in ["year", "month", "day"]:
-            self.mapped_request[key_to_int] = [
-                int(v) for v in self.mapped_request[key_to_int]
-            ]
+            mapped_request[key_to_int] = [int(v) for v in mapped_request[key_to_int]]
         # Turn area into latitude and longitude coverage
-        if "area" in self.mapped_request:
-            area = self.mapped_request.pop("area")
-            self.mapped_request["latitude_coverage"] = [area[2], area[0]]
-            self.mapped_request["longitude_coverage"] = [area[1], area[3]]
+        if "area" in mapped_request:
+            area = mapped_request.pop("area")
+            mapped_request["latitude_coverage"] = [area[2], area[0]]
+            mapped_request["longitude_coverage"] = [area[1], area[3]]
         # Handle auxiliary variables such as uncertainty, which now are metadata
-        return self.mapped_request
+        return mapped_request
 
     def handle_sources_list(self, dataset_source: list | str) -> str:
         """Raise error if many, extract if list."""
