@@ -1,3 +1,4 @@
+import filecmp
 import os
 import pathlib
 import zipfile
@@ -8,18 +9,21 @@ import cads_adaptors
 def test_dummy_adaptor_cache_tmp_path(tmp_path: pathlib.Path) -> None:
     dummy_adaptor = cads_adaptors.DummyAdaptor(None, cache_tmp_path=tmp_path)
     result = dummy_adaptor.retrieve({"size": 1})
-    assert result.name == str(tmp_path / "dummy.grib")
+    assert (tmp_path / "dummy.grib").exists()
+    assert filecmp.cmp(tmp_path / "dummy.grib", result.name, shallow=False)
     assert os.path.getsize(result.name) == 1
 
 
 def test_dummy_adaptor_netcdf(tmp_path: pathlib.Path) -> None:
     dummy_adaptor = cads_adaptors.DummyAdaptor(None, cache_tmp_path=tmp_path)
     grib_file = dummy_adaptor.retrieve({"size": 1})
-    assert grib_file.name == str(tmp_path / "dummy.grib")
+    assert (tmp_path / "dummy.grib").exists()
+    assert filecmp.cmp(tmp_path / "dummy.grib", grib_file.name, shallow=False)
     assert os.path.getsize(grib_file.name) == 1
 
     netcdf_file = dummy_adaptor.retrieve({"size": 1, "format": "netcdf"})
-    assert netcdf_file.name == str(tmp_path / "dummy.nc")
+    assert (tmp_path / "dummy.nc").exists()
+    assert filecmp.cmp(tmp_path / "dummy.nc", netcdf_file.name, shallow=False)
     assert os.path.getsize(netcdf_file.name) == 1
     assert grib_file.read() == netcdf_file.read()
 
@@ -27,7 +31,8 @@ def test_dummy_adaptor_netcdf(tmp_path: pathlib.Path) -> None:
 def test_dummy_adaptor_zip(tmp_path: pathlib.Path) -> None:
     dummy_adaptor = cads_adaptors.DummyAdaptor(None, cache_tmp_path=tmp_path)
     grib_file = dummy_adaptor.retrieve({"size": 1, "foo": 1})
-    assert grib_file.name == str(tmp_path / "dummy.grib")
+    assert (tmp_path / "dummy.grib").exists()
+    assert filecmp.cmp(tmp_path / "dummy.grib", grib_file.name, shallow=False)
     assert os.path.getsize(grib_file.name) == 1
 
     zip_file = dummy_adaptor.retrieve({"size": 3, "foo": [0, 1], "format": "zip"})

@@ -263,15 +263,15 @@ class DummyAdaptor(AbstractAdaptor):
         }
         return dict(sorted(request.items()))
 
-    def cached_retrieve(self, request: Request) -> BinaryIO:
+    def retrieve(self, request: Request) -> BinaryIO:
         import cacholote
 
-        cache_kwargs = {"collection_id": self.config.get("collection_id")}
         request = self.normalise_request(request)
-        with cacholote.config.set(return_cache_entry=False):
-            return cacholote.cacheable(self.retrieve, **cache_kwargs)(request)
+        return cacholote.cacheable(self.uncached_retrieve)(request)
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def uncached_retrieve(self, request: Request) -> BinaryIO:
+        import cacholote
+
         request = self.normalise_request(request)
         size = request["size"]
         elapsed = request["elapsed"]
@@ -299,7 +299,8 @@ class DummyAdaptor(AbstractAdaptor):
             case "netcdf":
                 # Retrieve cached grib and convert
                 dummy_file = self.cache_tmp_path / "dummy.nc"
-                grib_fp = self.cached_retrieve(request | {"format": "grib"})
+                with cacholote.config.set(return_cache_entry=False):
+                    grib_fp = self.retrieve(request | {"format": "grib"})
                 with dummy_file.open("wb") as netcdf_fp:
                     while True:
                         if not (data := grib_fp.read(CHUNK_SIZE)):
@@ -323,7 +324,8 @@ class DummyAdaptor(AbstractAdaptor):
                         request["format"] = "grib"
                         request["size"] = grib_size + (size % len(requests)) * (not i)
                         request["elapsed"] = grib_elapsed
-                        grib_fp = self.cached_retrieve(request)
+                        with cacholote.config.set(return_cache_entry=False):
+                            grib_fp = self.retrieve(request)
                         with zip_fp.open(f"dummy_{i}.grib", "w") as zip_grib_fp:
                             while True:
                                 if not (data := grib_fp.read(CHUNK_SIZE)):
