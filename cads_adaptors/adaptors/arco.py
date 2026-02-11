@@ -7,7 +7,12 @@ from urllib.parse import urlparse
 
 from dateutil.parser import parse as dtparse
 
-from cads_adaptors.adaptors import Request, cds
+from cads_adaptors.adaptors.cds import (
+    AbstractCdsAdaptor,
+    CacheArgs,
+    CacheKwargs,
+    Request,
+)
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
 from cads_adaptors.tools.general import decrypt, ensure_list
 
@@ -26,7 +31,7 @@ DEFAULT_MAXIMUM_AREA_EXTENT = {"latitude": 1, "longitude": 1}
 DEFAULT_SPATIAL_RESOLUTION = {"latitude": 0.25, "longitude": 0.25}
 
 
-class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
+class ArcoDataLakeCdsAdaptor(AbstractCdsAdaptor):
     def _normalise_variable(self, request: Request) -> None:
         variable = sorted(ensure_list(request.get("variable")))
         if not variable:
@@ -144,12 +149,14 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             ),
         )
 
-    def pre_mapping_modifications(self, request: Request) -> Request:
-        request = super().pre_mapping_modifications(request)
+    def pre_mapping_modifications(
+        self, request: dict[str, Any]
+    ) -> tuple[Request, CacheKwargs]:
+        request, kwargs = super().pre_mapping_modifications(request)
 
         download_format = request.pop("download_format", "as_source")
-        self.set_download_format(download_format)
-        return request
+        kwargs["download_format"] = self.get_download_format(download_format)
+        return request, kwargs
 
     def normalise_request(self, request: Request) -> Request:
         if len({"area", "location"} & set(request)) != 1:
@@ -164,11 +171,7 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
         self._normalise_date(request)
         self._normalise_data_format(request)
 
-        request = super().normalise_request(request)
-        if len(self.mapped_requests) != 1:
-            raise InvalidRequest("Empty or multiple requests are not supported.")
-
-        return dict(sorted(request.items()))
+        return super().normalise_request(request)
 
     def get_decrypt_var(self, key: str) -> str:
         if key in self.config:
@@ -221,11 +224,20 @@ class ArcoDataLakeCdsAdaptor(cds.AbstractCdsAdaptor):
             **arco_store_kwargs,
         )
 
-    def retrieve_list_of_results(self, request: Request) -> list[str]:
+    def get_cache_args(self, request: Request) -> CacheArgs:
+        args = super().get_cache_args(request)
+        args.must_be_one_mapped_request()
+        return args
+
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        area: list[float | int] | dict[str, float | int],
+        post_process_steps: list[dict[str, Any]],
+    ) -> list[str]:
         import xarray as xr
 
-        self.normalise_request(request)  # Needed to populate self.mapped_requests
-        (request,) = self.mapped_requests
+        (request,) = mapped_requests
 
         if self.config.get("use_dss_store", False):
             open_dataset_args = [self.custom_dss_store()]

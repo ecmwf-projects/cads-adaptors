@@ -3,7 +3,8 @@ import pathlib
 import time
 from typing import Any, BinaryIO
 
-from cads_adaptors.adaptors import Context, Request, cds
+from cads_adaptors.adaptors import Context, Request
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CacheKwargs
 from cads_adaptors.exceptions import (
     MarsNoDataError,
     MarsRuntimeError,
@@ -218,7 +219,7 @@ def minimal_mars_schema(
     return schema
 
 
-class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
+class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def retrieve(self, request: Request) -> BinaryIO:
@@ -230,7 +231,7 @@ class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
         return open(result, "rb")
 
 
-class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
+class MarsCdsAdaptor(AbstractCdsAdaptor):
     def __init__(self, *args, **config) -> None:
         super().__init__(*args, **config)
         schema_options = config.get("schema_options", {})
@@ -254,9 +255,11 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         kwargs.setdefault("context", self.context)
         return monthly_reduce(*args, **kwargs)
 
-    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+    def pre_mapping_modifications(
+        self, request: dict[str, Any]
+    ) -> tuple[Request, CacheKwargs]:
         """Implemented in normalise_request, before the mapping is applied."""
-        request = super().pre_mapping_modifications(request)
+        request, kwargs = super().pre_mapping_modifications(request)
 
         if "format" in request:
             self.context.add_user_visible_error(
@@ -282,7 +285,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         download_format = ensure_list(
             request.pop("download_format", default_download_format)
         )[0]
-        self.set_download_format(
+        kwargs["download_format"] = self.get_download_format(
             download_format, default_download_format=default_download_format
         )
 
@@ -291,17 +294,19 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         if cfg := self.config.get("simulate_preinterpolation"):
             request = simulate_preinterpolation(request, cfg, self.context)
 
-        return request
+        return request, kwargs
 
-    def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
-        # Call normalise_request to set self.mapped_requests
-        request = self.normalise_request(request)
-
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        area: list[float | int] | dict[str, float | int],
+        post_process_steps: list[dict[str, Any]],
+    ) -> list[str]:
         # Get data_format from the list of mapped_requests, performs an additional
         # check that only one data_format is present across all mapped_requests,
         # and ensures a normalised value.
         mapped_requests, data_format = (
-            adaptor_tools.get_data_format_from_mapped_requests(self.mapped_requests)
+            adaptor_tools.get_data_format_from_mapped_requests(mapped_requests)
         )
 
         result = execute_mars(
@@ -312,7 +317,7 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             target_dir=self.cache_tmp_path,
         )
 
-        results_dict = self.post_process(result)
+        results_dict = self.post_process(result, post_process_steps)
 
         # TODO?: Generalise format conversion to be a post-processor
         paths = self.convert_format(
@@ -322,10 +327,5 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
             config=self.config,
             target_dir=str(self.cache_tmp_path),
         )
-
-        # A check to ensure that if there is more than one path, and download_format
-        #  is as_source, we over-ride and zip up the files
-        if len(paths) > 1 and self.download_format == "as_source":
-            self.download_format = "zip"
 
         return paths
