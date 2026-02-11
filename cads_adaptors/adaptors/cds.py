@@ -50,7 +50,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         super().__init__(form, context, cache_tmp_path, **config)
 
         # The following attributes are updated during the retireve method
-        self.input_request: Request = dict()
         self.mapped_request: Request = dict()
         self.download_format: str = "zip"
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
@@ -278,8 +277,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         on the "Your requests" page, hence it should not be modified to much from the user's request.
         """
         # Make a copy of the original request for debugging purposes
-        self.input_request = deepcopy(request)
-        self.context.debug(f"Input request:\n{self.input_request}")
+        request = deepcopy(request)
+        self.context.debug(f"Input request:\n{request}")
 
         # Enforce the schema on the input request
         schemas = self.schemas
@@ -465,11 +464,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         paths = ensure_list(paths)
         filenames = [os.path.basename(path) for path in paths]
         # TODO: use request-id instead of hash
-        if self.input_request is None:
-            self.input_request = {}
-        kwargs.setdefault(
-            "base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}"
-        )
+        kwargs.setdefault("base_target", f"{self.collection_id}-{hash(time.time())}")
 
         # Allow possibility of over-riding the download format from the adaptor
         download_format = kwargs.get("download_format", self.download_format)
@@ -535,10 +530,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         **kwargs contains any other fields that are calculated during the runtime of the adaptor
         """
         from datetime import datetime as dt
-
-        # Allow adaptor to override and provide sanitized "input_request" if necessary
-        if input_request is None:
-            input_request = self.input_request
 
         # Update kwargs with default values
         if download_size is None:
