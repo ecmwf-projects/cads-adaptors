@@ -221,7 +221,10 @@ class MultiAdaptor(AbstractCdsAdaptor):
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
             try:
-                this_result = adaptor.retrieve_list_of_results([req], processing_kwargs)
+                sub_args = adaptor.get_caching_args(req)
+                this_result = adaptor.retrieve_list_of_results(
+                    sub_args.mapped_requests, sub_args.kwargs
+                )
             except Exception as err:
                 exception_logs[adaptor_tag] = f"{err}"
             else:
