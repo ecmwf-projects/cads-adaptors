@@ -68,8 +68,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def retrieve_list_of_results(
         self,
         mapped_requests: list[Request],
-        area: list[float | int] | dict[str, float | int],
-        post_process_steps: list[dict[str, Any]],
+        processing_kwargs: ProcessingKwargs,
     ) -> list[str]:
         """
         Return a list of results, which are paths to files that have been downloaded,
@@ -83,16 +82,15 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def uncached_retrieve(
         self,
         mapped_requests: list[Request],
-        area: list[float | int] | dict[str, float | int],
-        post_process_steps: list[dict[str, Any]],
-        download_format: str,
+        processing_kwargs: ProcessingKwargs,
     ) -> BinaryIO:
         result = self.retrieve_list_of_results(
             mapped_requests=mapped_requests,
-            area=area,
-            post_process_steps=post_process_steps,
+            processing_kwargs=processing_kwargs,
         )
-        return self.make_download_object(result, download_format=download_format)
+        return self.make_download_object(
+            result, download_format=processing_kwargs["download_format"]
+        )
 
     def retrieve(self, request: Request) -> BinaryIO:
         import cacholote
@@ -102,7 +100,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             self.uncached_retrieve,
             no_cache=random.randint(1, 2**128) if args.avoid_cache else 0,
             collection_id=self.collection_id,
-        )(args.mapped_requests, **args.kwargs)
+        )(args.mapped_requests, args.kwargs)
 
     def check_validity(self, request: Request) -> None:
         layer = self.config.get("geoserver-layer")
@@ -605,8 +603,7 @@ class DummyCdsAdaptor(AbstractCdsAdaptor):
     def retrieve_list_of_results(
         self,
         mapped_requests: list[Request],
-        area: list[float | int] | dict[str, float | int],
-        post_process_steps: list[dict[str, Any]],
+        processing_kwargs: ProcessingKwargs,
     ) -> list[str]:
         dummy_file = self.cache_tmp_path / "dummy.grib"
         with dummy_file.open("w") as fp:

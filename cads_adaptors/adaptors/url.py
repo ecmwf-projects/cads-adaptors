@@ -33,8 +33,7 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
     def retrieve_list_of_results(
         self,
         mapped_requests: list[Request],
-        area: list[float | int] | dict[str, float | int],
-        post_processing_steps: list[dict[str, Any]],
+        processing_kwargs: ProcessingKwargs,
     ) -> list[str]:
         from cads_adaptors.tools import area_selector, general, url_tools
 
@@ -59,7 +58,7 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
 
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
-        if area is not None:
+        if (area := processing_kwargs["area"]) is not None:
             paths = area_selector.area_selector_paths(
                 paths,
                 area,

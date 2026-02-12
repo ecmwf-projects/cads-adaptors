@@ -1,8 +1,12 @@
 import os
 import re
-from typing import Any
 
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CachingArgs, Request
+from cads_adaptors.adaptors.cds import (
+    AbstractCdsAdaptor,
+    CachingArgs,
+    ProcessingKwargs,
+    Request,
+)
 from cads_adaptors.exceptions import RoocsRuntimeError, RoocsValueError
 
 ROOK_URL = "http://compute.mips.climate.copernicus.eu/wps"
@@ -26,8 +30,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
     def retrieve_list_of_results(
         self,
         mapped_requests: list[Request],
-        area: list[float | int] | dict[str, float | int],
-        post_process_steps: list[dict[str, Any]],
+        processing_kwargs: ProcessingKwargs,
     ) -> list[str]:
         from cads_adaptors.tools import url_tools
 

@@ -85,8 +85,7 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
     def retrieve_list_of_results(
         self,
         mapped_requests: list[Request],
-        area: list[float | int] | dict[str, float | int],
-        post_process_steps: list[dict[str, Any]],
+        processing_kwargs: ProcessingKwargs,
     ) -> list[str]:
         # Intersecting the constraints should never result in >1 request
         if len(mapped_requests) != 1:

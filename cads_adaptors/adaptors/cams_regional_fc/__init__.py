@@ -1,6 +1,9 @@
-from typing import Any
-
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CachingArgs, Request
+from cads_adaptors.adaptors.cds import (
+    AbstractCdsAdaptor,
+    CachingArgs,
+    ProcessingKwargs,
+    Request,
+)
 
 STACK_TEMP_DIR = "/tmp/cams-europe-air-quality-forecasts/temp"
 STACK_DOWNLOAD_DIR = "/tmp/cams-europe-air-quality-forecasts/download"
@@ -15,8 +18,7 @@ class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
     def retrieve_list_of_results(
         self,
         mapped_requests: list[Request],
-        area: list[float | int] | dict[str, float | int],
-        post_process_steps: list[dict[str, Any]],
+        processing_kwargs: ProcessingKwargs,
     ) -> list[str]:
         from .cams_regional_fc import cams_regional_fc
 
@@ -42,8 +44,7 @@ class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
     def retrieve_list_of_results(
         self,
         mapped_requests: list[Request],
-        area: list[float | int] | dict[str, float | int],
-        post_process_steps: list[dict[str, Any]],
+        processing_kwargs: ProcessingKwargs,
     ) -> list[str]:
         from .subrequest_main import subrequest_main
 
@@ -64,8 +65,7 @@ class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
     def retrieve_list_of_results(
         self,
         mapped_requests: list[Request],
-        area: list[float | int] | dict[str, float | int],
-        post_process_steps: list[dict[str, Any]],
+        processing_kwargs: ProcessingKwargs,
     ) -> list[str]:
         from .subrequest_main import subrequest_main
 

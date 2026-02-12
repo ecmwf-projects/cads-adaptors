@@ -239,8 +239,7 @@ class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
     def retrieve_list_of_results(
         self,
         mapped_requests: list[Request],
-        area: list[float | int] | dict[str, float | int],
-        post_process_steps: list[dict[str, Any]],
+        processing_kwargs: ProcessingKwargs,
     ) -> list[str]:
         result = execute_mars(
             mapped_requests,
@@ -324,8 +323,7 @@ class MarsCdsAdaptor(AbstractCdsAdaptor):
     def retrieve_list_of_results(
         self,
         mapped_requests: list[Request],
-        area: list[float | int] | dict[str, float | int],
-        post_process_steps: list[dict[str, Any]],
+        processing_kwargs: ProcessingKwargs,
     ) -> list[str]:
         # Get data_format from the list of mapped_requests, performs an additional
         # check that only one data_format is present across all mapped_requests,
@@ -342,7 +340,9 @@ class MarsCdsAdaptor(AbstractCdsAdaptor):
             target_dir=self.cache_tmp_path,
         )
 
-        results_dict = self.post_process(result, post_process_steps)
+        results_dict = self.post_process(
+            result, processing_kwargs["post_process_steps"]
+        )
 
         # TODO?: Generalise format conversion to be a post-processor
         paths = self.convert_format(
