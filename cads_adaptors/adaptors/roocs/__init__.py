@@ -2,7 +2,7 @@ import os
 import re
 from typing import Any
 
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CacheArgs, Request
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CachingArgs, Request
 from cads_adaptors.exceptions import RoocsRuntimeError, RoocsValueError
 
 ROOK_URL = "http://compute.mips.climate.copernicus.eu/wps"
@@ -18,8 +18,8 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         self.facet_search = self.config.get("facet_search", dict())
         self.operators = self.config.get("operators", dict())
 
-    def get_cache_args(self, request: Request) -> CacheArgs:
-        args = super().get_cache_args(request)
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        args = super().get_caching_args(request)
         args.must_be_one_mapped_request()
         return args
 

@@ -5,7 +5,11 @@ from copy import deepcopy
 from typing import Any
 
 from cads_adaptors.adaptors import Context, Request
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CacheArgs, CacheKwargs
+from cads_adaptors.adaptors.cds import (
+    AbstractCdsAdaptor,
+    CachingArgs,
+    ProcessingKwargs,
+)
 from cads_adaptors.exceptions import (
     MarsNoDataError,
     MarsRuntimeError,
@@ -223,11 +227,11 @@ def minimal_mars_schema(
 class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
-    def get_cache_args(self, request: Request) -> CacheArgs:
-        return CacheArgs(
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        return CachingArgs(
             mapped_requests=[request],
             avoid_cache=False,
-            kwargs=CacheKwargs(
+            kwargs=ProcessingKwargs(
                 download_format="as_source", area=[], post_process_steps=[]
             ),
         )
@@ -272,7 +276,7 @@ class MarsCdsAdaptor(AbstractCdsAdaptor):
 
     def pre_mapping_modifications(
         self, request: dict[str, Any]
-    ) -> tuple[Request, CacheKwargs]:
+    ) -> tuple[Request, ProcessingKwargs]:
         """Implemented in normalise_request, before the mapping is applied."""
         request, kwargs = super().pre_mapping_modifications(request)
 

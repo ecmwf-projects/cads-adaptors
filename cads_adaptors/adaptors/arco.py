@@ -9,8 +9,8 @@ from dateutil.parser import parse as dtparse
 
 from cads_adaptors.adaptors.cds import (
     AbstractCdsAdaptor,
-    CacheArgs,
-    CacheKwargs,
+    CachingArgs,
+    ProcessingKwargs,
     Request,
 )
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
@@ -151,7 +151,7 @@ class ArcoDataLakeCdsAdaptor(AbstractCdsAdaptor):
 
     def pre_mapping_modifications(
         self, request: dict[str, Any]
-    ) -> tuple[Request, CacheKwargs]:
+    ) -> tuple[Request, ProcessingKwargs]:
         request, kwargs = super().pre_mapping_modifications(request)
 
         download_format = request.pop("download_format", "as_source")
@@ -224,8 +224,8 @@ class ArcoDataLakeCdsAdaptor(AbstractCdsAdaptor):
             **arco_store_kwargs,
         )
 
-    def get_cache_args(self, request: Request) -> CacheArgs:
-        args = super().get_cache_args(request)
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        args = super().get_caching_args(request)
         args.must_be_one_mapped_request()
         return args
 

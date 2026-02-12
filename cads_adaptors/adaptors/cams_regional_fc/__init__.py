@@ -1,6 +1,6 @@
 from typing import Any
 
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CacheArgs, Request
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CachingArgs, Request
 
 STACK_TEMP_DIR = "/tmp/cams-europe-air-quality-forecasts/temp"
 STACK_DOWNLOAD_DIR = "/tmp/cams-europe-air-quality-forecasts/download"
@@ -34,8 +34,8 @@ class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
         super().__init__(*args, **kwargs)
         self.download_format = "as_source"
 
-    def get_cache_args(self, request: Request) -> CacheArgs:
-        args = super().get_cache_args(request)
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        args = super().get_caching_args(request)
         args.must_be_one_mapped_request()
         return args
 
@@ -56,8 +56,8 @@ class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
         super().__init__(*args, **kwargs)
         self.download_format = "as_source"
 
-    def get_cache_args(self, request: Request) -> CacheArgs:
-        args = super().get_cache_args(request)
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        args = super().get_caching_args(request)
         args.must_be_one_mapped_request()
         return args
 

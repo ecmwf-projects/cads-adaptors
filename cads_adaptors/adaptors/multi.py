@@ -1,7 +1,7 @@
 from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
-from cads_adaptors.adaptors.cds import CacheKwargs, Request
+from cads_adaptors.adaptors.cds import ProcessingKwargs, Request
 from cads_adaptors.adaptors.mars import minimal_mars_schema
 from cads_adaptors.exceptions import (
     CdsConfigurationError,
@@ -187,7 +187,7 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
     def pre_mapping_modifications(
         self, request: dict[str, Any]
-    ) -> tuple[Request, CacheKwargs]:
+    ) -> tuple[Request, ProcessingKwargs]:
         request, kwargs = super().pre_mapping_modifications(request)
 
         download_format = request.pop("download_format", ["zip"])
@@ -255,7 +255,7 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
     def pre_mapping_modifications(
         self, request: dict[str, Any]
-    ) -> tuple[Request, CacheKwargs]:
+    ) -> tuple[Request, ProcessingKwargs]:
         """Implemented in normalise_request, before the mapping is applied."""
         request, kwargs = super().pre_mapping_modifications(request)
 

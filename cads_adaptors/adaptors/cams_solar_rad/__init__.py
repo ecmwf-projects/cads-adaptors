@@ -7,8 +7,8 @@ from cads_adaptors.adaptors.cams_solar_rad.functions import (
 )
 from cads_adaptors.adaptors.cds import (
     AbstractCdsAdaptor,
-    CacheArgs,
-    CacheKwargs,
+    CachingArgs,
+    ProcessingKwargs,
     Request,
 )
 from cads_adaptors.exceptions import InvalidRequest
@@ -65,7 +65,7 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
 
     def pre_mapping_modifications(
         self, request: dict[str, Any]
-    ) -> tuple[Request, CacheKwargs]:
+    ) -> tuple[Request, ProcessingKwargs]:
         """Implemented in normalise_request, before the mapping is applied."""
         request, kwargs = super().pre_mapping_modifications(request)
 
@@ -77,8 +77,8 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
 
         return request, kwargs
 
-    def get_cache_args(self, request: Request) -> CacheArgs:
-        args = super().get_cache_args(request)
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        args = super().get_caching_args(request)
         args.must_be_one_mapped_request()
         return args
 

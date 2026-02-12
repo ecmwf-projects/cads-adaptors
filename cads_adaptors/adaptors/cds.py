@@ -23,17 +23,17 @@ DEFAULT_COST_TYPE_FOR_COSTING_CLASS = DEFAULT_COST_TYPE
 COST_TYPE_WITH_HIGHEST_COST_LIMIT_RATIO_FOR_COSTING_CLASS = "highest_cost_limit_ratio"
 
 
-class CacheKwargs(TypedDict):
+class ProcessingKwargs(TypedDict):
     download_format: str
     area: list[float | int] | dict[str, float | int]
     post_process_steps: list[dict[str, Any]]
 
 
 @dataclasses.dataclass
-class CacheArgs:
+class CachingArgs:
     mapped_requests: list[Request]
     avoid_cache: bool
-    kwargs: CacheKwargs
+    kwargs: ProcessingKwargs
 
     def must_be_one_mapped_request(self) -> None:
         if len(self.mapped_requests) != 1:
@@ -97,12 +97,12 @@ class AbstractCdsAdaptor(AbstractAdaptor):
     def retrieve(self, request: Request) -> BinaryIO:
         import cacholote
 
-        cache_args = self.get_cache_args(request)
+        args = self.get_caching_args(request)
         return cacholote.cacheable(
             self.uncached_retrieve,
-            no_cache=random.randint(1, 2**128) if cache_args.avoid_cache else 0,
+            no_cache=random.randint(1, 2**128) if args.avoid_cache else 0,
             collection_id=self.collection_id,
-        )(cache_args.mapped_requests, **cache_args.kwargs)
+        )(args.mapped_requests, **args.kwargs)
 
     def check_validity(self, request: Request) -> None:
         layer = self.config.get("geoserver-layer")
@@ -271,7 +271,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def pre_mapping_modifications(
         self, request: dict[str, Any]
-    ) -> tuple[Request, CacheKwargs]:
+    ) -> tuple[Request, ProcessingKwargs]:
         """
         Method called before the mapping is applied to the request. This will differ for each
         adaptor, so is separated out from the normalise_request method.
@@ -281,7 +281,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         self.context.debug(
             f"Post-process steps extracted from request:\n{post_process_steps}"
         )
-        return request, CacheKwargs(
+        return request, ProcessingKwargs(
             post_process_steps=post_process_steps,
             area=[],
             download_format=self.download_format,
@@ -326,7 +326,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             request = enforce.enforce(request, schema, self.context.logger)
         return dict(sorted(request.items()))
 
-    def get_cache_args(self, request: Request) -> CacheArgs:
+    def get_caching_args(self, request: Request) -> CachingArgs:
         avoid_cache = self.config.get("avoid_cache", False)
         request = self.normalise_request(request)
 
@@ -386,7 +386,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             f"Request mapped to (collection_id={self.collection_id}):\n{mapped_requests}"
         )
 
-        return CacheArgs(
+        return CachingArgs(
             mapped_requests=mapped_requests,
             avoid_cache=avoid_cache,
             kwargs=cache_kwargs,

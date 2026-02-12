@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CacheArgs, Request
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CachingArgs, Request
 from cads_adaptors.exceptions import CadsObsRuntimeError, InvalidRequest
 
 
@@ -26,8 +26,8 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             raise e
         return output
 
-    def get_cache_args(self, request: Request) -> CacheArgs:
-        args = super().get_cache_args(request)
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        args = super().get_caching_args(request)
         mapped_requests = args.mapped_requests
 
         # TODO: handle lists of requests, normalise_request has the power to implement_constraints

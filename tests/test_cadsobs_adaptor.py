@@ -284,7 +284,7 @@ def test_adaptor_mapped_requests(tmp_path, monkeypatch):
     adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
 
     # Check if the parameters have been properly mapped.
-    mapped_requests = adaptor.get_cache_args(TEST_REQUEST).mapped_requests
+    mapped_requests = adaptor.get_caching_args(TEST_REQUEST).mapped_requests
     assert mapped_requests == [
         {
             "dataset_source": "uscrn_daily",

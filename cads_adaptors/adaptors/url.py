@@ -1,7 +1,7 @@
 from typing import Any
 
 from cads_adaptors import mapping
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CacheKwargs, Request
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, ProcessingKwargs, Request
 
 
 class UrlCdsAdaptor(AbstractCdsAdaptor):
@@ -14,7 +14,7 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
 
     def pre_mapping_modifications(
         self, request: dict[str, Any]
-    ) -> tuple[Request, CacheKwargs]:
+    ) -> tuple[Request, ProcessingKwargs]:
         request, kwargs = super().pre_mapping_modifications(request)
 
         # TODO: Remove legacy syntax all together
