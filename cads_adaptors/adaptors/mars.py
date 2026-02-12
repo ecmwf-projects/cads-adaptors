@@ -223,9 +223,6 @@ def minimal_mars_schema(
 class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
-    def __init__(self, form, context=None, cache_tmp_path=None, **config):
-        super().__init__(form, context, cache_tmp_path, **config)
-
     def get_cache_args(self, request: Request) -> CacheArgs:
         return CacheArgs(
             mapped_requests=[request],

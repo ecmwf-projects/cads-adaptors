@@ -602,8 +602,13 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        area: list[float | int] | dict[str, float | int],
+        post_process_steps: list[dict[str, Any]],
+    ) -> list[str]:
         dummy_file = self.cache_tmp_path / "dummy.grib"
         with dummy_file.open("w") as fp:
             fp.write("DUMMY CONTENT")
-        return open(dummy_file, "rb")
+        return [str(dummy_file)]
