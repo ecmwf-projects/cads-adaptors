@@ -2,10 +2,10 @@ import os
 import pathlib
 import time
 from copy import deepcopy
-from typing import Any, BinaryIO
+from typing import Any
 
 from cads_adaptors.adaptors import Context, Request
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CacheKwargs
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, CacheArgs, CacheKwargs
 from cads_adaptors.exceptions import (
     MarsNoDataError,
     MarsRuntimeError,
@@ -223,13 +223,30 @@ def minimal_mars_schema(
 class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def __init__(self, form, context=None, cache_tmp_path=None, **config):
+        super().__init__(form, context, cache_tmp_path, **config)
+
+    def get_cache_args(self, request: Request) -> CacheArgs:
+        return CacheArgs(
+            mapped_requests=[request],
+            avoid_cache=False,
+            kwargs=CacheKwargs(
+                download_format="as_source", area=[], post_process_steps=[]
+            ),
+        )
+
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        area: list[float | int] | dict[str, float | int],
+        post_process_steps: list[dict[str, Any]],
+    ) -> list[str]:
         result = execute_mars(
-            request,
+            mapped_requests,
             context=self.context,
             target_dir=self.cache_tmp_path,
         )
-        return open(result, "rb")
+        return [result]
 
 
 class MarsCdsAdaptor(AbstractCdsAdaptor):
