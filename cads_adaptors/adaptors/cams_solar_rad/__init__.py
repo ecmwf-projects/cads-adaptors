@@ -1,17 +1,23 @@
-from typing import Any, BinaryIO
+from typing import Any
 
 from cads_adaptors.adaptors.cams_solar_rad.functions import (
     BadRequest,
     NoData,
     solar_rad_retrieve,
 )
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+from cads_adaptors.adaptors.cds import (
+    AbstractCdsAdaptor,
+    CacheArgs,
+    CacheKwargs,
+    Request,
+)
 from cads_adaptors.exceptions import InvalidRequest
 
 
 class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.download_format = "as_source"
 
         # Schema required to ensure adaptor will not fall over with an uncaught exception.
         # This is here rather than in the config because it's fundamentally tied to the
@@ -57,9 +63,11 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
             }
         )
 
-    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+    def pre_mapping_modifications(
+        self, request: dict[str, Any]
+    ) -> tuple[Request, CacheKwargs]:
         """Implemented in normalise_request, before the mapping is applied."""
-        request = super().pre_mapping_modifications(request)
+        request, kwargs = super().pre_mapping_modifications(request)
 
         # Rename format to data_format for backwards compatibility with old key
         # name. This can't be done in the usual way (using remapping) because
@@ -67,24 +75,27 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         # the constraints are applied.
         request.setdefault("data_format", request.pop("format", "csv"))
 
-        return request
+        return request, kwargs
 
-    def retrieve(self, request: Request) -> BinaryIO:
-        self.context.debug(f"Request is {request!r}")
+    def get_cache_args(self, request: Request) -> CacheArgs:
+        args = super().get_cache_args(request)
+        args.must_be_one_mapped_request()
+        return args
 
-        self.normalise_request(request)
-
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        area: list[float | int] | dict[str, float | int],
+        post_process_steps: list[dict[str, Any]],
+    ) -> list[str]:
         # Intersecting the constraints should never result in >1 request
-        if len(self.mapped_requests) != 1:
-            msg = (
-                f"Request pre-processing resulted in {len(self.mapped_requests)} "
-                "requests"
-            )
-            self.context.error(f"{msg}: {self.mapped_requests!r}")
+        if len(mapped_requests) != 1:
+            msg = f"Request pre-processing resulted in {len(mapped_requests)} requests"
+            self.context.error(f"{msg}: {mapped_requests!r}")
             self.context.add_user_visible_error(msg)
             raise InvalidRequest(msg)
 
-        mreq = self.mapped_requests[0]
+        mreq = mapped_requests[0]
         self.context.debug(f"Mapped request is {mreq!r}")
 
         # Although the schema should have ensured that each value is a scalar,
@@ -109,7 +120,7 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
             self.context.add_user_visible_error(msg)
             raise InvalidRequest(msg)
 
-        return open(outfile, "rb")
+        return [outfile]
 
     def _user_id(self, mreq):
         """Return the current user ID, unless the current user is Wekeo and they've

@@ -1,6 +1,7 @@
 import os
 import pathlib
 import time
+from copy import deepcopy
 from typing import Any, BinaryIO
 
 from cads_adaptors.adaptors import Context, Request
@@ -295,6 +296,12 @@ class MarsCdsAdaptor(AbstractCdsAdaptor):
             request = simulate_preinterpolation(request, cfg, self.context)
 
         return request, kwargs
+
+    def normalise_request(self, request: Request) -> Request:
+        request = super().normalise_request(request)
+        if self.config.get("simulate_preinterpolation"):
+            self.pre_mapping_modifications(deepcopy(request))
+        return request
 
     def retrieve_list_of_results(
         self,
