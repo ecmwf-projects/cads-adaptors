@@ -103,6 +103,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         )(args.mapped_requests, args.kwargs)
 
     def check_validity(self, request: Request) -> None:
+        _ = self.get_caching_args(request)
+
         layer = self.config.get("geoserver-layer")
         if layer is not None:
             try:
