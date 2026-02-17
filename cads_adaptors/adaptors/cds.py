@@ -39,6 +39,10 @@ class CachingArgs:
         if len(self.mapped_requests) != 1:
             raise InvalidRequest("Empty or multiple requests are not supported.")
 
+    @property
+    def sorted_mapped_requests(self) -> list[Request]:
+        return [dict(sorted(request.items())) for request in self.mapped_requests]
+
 
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
@@ -100,7 +104,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             self.uncached_retrieve,
             no_cache=random.randint(1, 2**128) if args.avoid_cache else 0,
             collection_id=self.collection_id,
-        )(args.mapped_requests, args.kwargs)
+        )(args.sorted_mapped_requests, args.kwargs)
 
     def check_validity(self, request: Request) -> None:
         _ = self.get_caching_args(request)
