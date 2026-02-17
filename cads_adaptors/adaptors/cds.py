@@ -43,6 +43,9 @@ class CachingArgs:
     def sorted_mapped_requests(self) -> list[Request]:
         return [dict(sorted(request.items())) for request in self.mapped_requests]
 
+    def get_no_cache_randint(self) -> int:
+        return random.randint(1, 2**128) if self.avoid_cache else 0
+
 
 class AbstractCdsAdaptor(AbstractAdaptor):
     resources = {"CADS_ADAPTORS": 1}
@@ -102,7 +105,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         args = self.get_caching_args(request)
         return cacholote.cacheable(
             self.uncached_retrieve,
-            no_cache=random.randint(1, 2**128) if args.avoid_cache else 0,
+            no_cache=args.get_no_cache_randint(),
             collection_id=self.collection_id,
         )(args.sorted_mapped_requests, args.kwargs)
 
