@@ -155,6 +155,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             for key, values in weighted_values.items()
         }
 
+        area_weight = self.area_weight(mapped_request, **costing_kwargs)
+        # Ensure that area is no longer in mapped_request as not uses in estimate number of fields methods
+        mapped_request.pop("area", None)
+
         # "precise_size" is a new costing method that is more accurate than "size
         costing_limits = costing_config.get(cost_threshold, {})
         if "precise_size" in costing_limits:
@@ -163,7 +167,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 mapped_request,
                 self.constraints,
                 **costing_kwargs,
-            ) * self.area_weight(mapped_request, **costing_kwargs)
+            ) * area_weight
 
         # size is a fast and rough estimate of the number of fields
         costs[DEFAULT_COST_TYPE] = costing.estimate_number_of_fields(
@@ -175,7 +179,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
                 "weighted_keys": mapped_weighted_keys,
                 "weighted_values": mapped_weighted_values,
             },
-        ) * self.area_weight(mapped_request, **costing_kwargs)
+        ) * area_weight
 
         # Safety net for integration tests:
         costs["number_of_fields"] = costs[DEFAULT_COST_TYPE]

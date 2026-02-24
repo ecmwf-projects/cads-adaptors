@@ -125,25 +125,25 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
             dataset_source_str = dataset_source
         return dataset_source_str
 
-    def estimate_costs(self, request, **kwargs):
-        """Estimate costs weighting by area."""
-        costs = super().estimate_costs(request, **kwargs)
-        if "area" in request:
-            self.weight_by_area(costs, request)
-        return costs
+    def area_weight(self, request: Request, **kwargs) -> int:
+        # If area not defined, then assume point request with weight 1
+        if "area" not in request or kwargs.get("dont_weight_by_area", False):
+            return 1
 
-    def weight_by_area(self, costs, request):
-        maxlat, minlon, minlat, maxlon = (float(i) for i in request["area"])
-        # This "area" is in degrees^2. Is not a real area but area in the
-        # lat-lon (PlateCarree) projection.
-        requested_area = (maxlon - minlon) * (maxlat - minlat)
-        # It is not realistic to have very little cost for small areas, so we set a
-        # minimum value of 1000 square degrees (aprox a 30 by 30 box).
-        # Ideally we should be making queries to the catalogue, but it would be too
-        # costly to do this for every click.
-        min_area = 1000
-        requested_area = max(requested_area, min_area)
-        total_area = 64800  # 360 * 180
-        area_weight = requested_area / total_area
-        for k, v in costs.items():
-            costs[k] = v * area_weight
+        # The area weight is calculated as the number of points, assuming a grid regular in lat/lon
+        max_lat, min_lon, min_lat, max_lon = request["area"]
+        # Absolute lat/lon range of the request area
+        lat_range = abs(float(max_lat) - float(min_lat))
+        lon_range = abs(float(max_lon) - float(min_lon))
+        # Spatial resolution passed in via the costing_kwargs, this could be set to match source chunking
+        resolution = kwargs.get("resolution", {})
+        resolution.setdefault("latitude", 1)
+        resolution.setdefault("longitude", 1)
+        return max(
+            1,
+            int(
+                lat_range / float(resolution["latitude"])
+                *
+                lon_range / float(resolution["longitude"])
+            ),
+        )

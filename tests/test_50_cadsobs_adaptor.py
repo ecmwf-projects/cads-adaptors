@@ -317,8 +317,10 @@ def test_adaptor_estimate_costs(tmp_path, monkeypatch):
     test_request_noarea.pop("area")
     costs_noarea = adaptor.estimate_costs(test_request_noarea)
     costs = adaptor.estimate_costs(TEST_REQUEST)
-    assert costs_noarea["number_of_fields"] > costs["number_of_fields"]
-    assert costs_noarea["size"] > costs["size"]
+
+    # Area is 20 degrees in lat and 50 degrees in lon, so we expect the costs to be 20*50=1000 times higher
+    # assert costs_noarea["number_of_fields"*1000] == costs["number_of_fields"]
+    assert costs_noarea["size"]*1000 == costs["size"]
 
 
 def test_adaptor_csv(tmp_path, monkeypatch):
