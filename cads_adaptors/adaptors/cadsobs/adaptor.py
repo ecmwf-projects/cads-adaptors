@@ -136,15 +136,14 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         lat_range = abs(float(max_lat) - float(min_lat))
         lon_range = abs(float(max_lon) - float(min_lon))
         # Spatial resolution passed in via the costing_kwargs, this could be set to match source chunking
-        resolution = kwargs.get("resolution", {})
-        resolution.setdefault("latitude", 1)
-        resolution.setdefault("longitude", 1)
+        base_resolution = kwargs.get("resolution") or {}
+        # Work on a local copy / derived values to avoid mutating any shared configuration
+        lat_resolution = float(base_resolution.get("latitude", 1))
+        lon_resolution = float(base_resolution.get("longitude", 1))
         return max(
             1,
             int(
-                lat_range
-                / float(resolution["latitude"])
-                * lon_range
-                / float(resolution["longitude"])
+                lat_range / lat_resolution
+                * lon_range / lon_resolution
             ),
         )
