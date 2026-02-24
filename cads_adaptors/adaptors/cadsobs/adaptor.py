@@ -142,8 +142,9 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         return max(
             1,
             int(
-                lat_range / float(resolution["latitude"])
-                *
-                lon_range / float(resolution["longitude"])
+                lat_range
+                / float(resolution["latitude"])
+                * lon_range
+                / float(resolution["longitude"])
             ),
         )
