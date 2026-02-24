@@ -551,11 +551,11 @@ def test_estimate_number_of_fields_area_ignored_by_default() -> None:
         "year": ["2020", "2021"],
         "area": ["value1", "value2"],
     }
-    
+
     # Without area in request: 2 variables * 2 years = 4 fields
     fields_without_area = costing.estimate_number_of_fields(form, request_without_area)
     assert fields_without_area == 4
-    
+
     # With area in request but ignored by default: still 4 fields
     fields_with_area = costing.estimate_number_of_fields(form, request_with_area)
     assert fields_with_area == 4, "area key should be ignored by default"
@@ -565,8 +565,9 @@ def test_estimate_number_of_fields_area_ignored_by_default() -> None:
         form, request_with_area, ignore_keys=[]
     )
     # Now area contributes: 2 variables * 2 years * 2 area values = 8 fields
-    assert fields_with_area_included == 8, "area key should be counted when ignore_keys=[]"
-
+    assert fields_with_area_included == 8, (
+        "area key should be counted when ignore_keys=[]"
+    )
 
 
 def test_estimate_costs() -> None:

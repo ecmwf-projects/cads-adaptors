@@ -142,8 +142,5 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         lon_resolution = float(base_resolution.get("longitude", 1))
         return max(
             1,
-            int(
-                lat_range / lat_resolution
-                * lon_range / lon_resolution
-            ),
+            int(lat_range / lat_resolution * lon_range / lon_resolution),
         )
