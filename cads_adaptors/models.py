@@ -1,5 +1,4 @@
 import datetime
-from typing import Any
 
 import pydantic
 
@@ -36,6 +35,8 @@ class JobMetadata(pydantic.BaseModel):
     finished: datetime.datetime | None = None
     updated: datetime.datetime | None = None
     origin: str | None = None
+    traceback: str | None = None
+    user_support_url: str | None = None
 
 
 class ResultsMetadata(pydantic.BaseModel):
@@ -46,14 +47,3 @@ class ResultsMetadata(pydantic.BaseModel):
     file_checksum: str | None = pydantic.Field(None, alias="file:checksum")
     file_size: int | None = pydantic.Field(None, alias="file:size")
     file_local_path: str | None = pydantic.Field(None, alias="file:local_path")
-
-
-class MakeReceiptArgs(pydantic.BaseModel):
-    """Arguments for the `make_receipt` function."""
-
-    request: dict[str, Any] | None = None
-    collection: CollectionMetadata | None = None
-    job: JobMetadata
-    results: ResultsMetadata | None = None
-    traceback: str | None = None
-    user_support_url: str | None = None

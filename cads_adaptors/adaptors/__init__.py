@@ -7,6 +7,7 @@ import time
 import zipfile
 from typing import Any, BinaryIO
 
+import cads_adaptors.models
 import cads_adaptors.tools.general
 import cads_adaptors.tools.logger
 
@@ -206,22 +207,28 @@ class AbstractAdaptor(abc.ABC):
         """
         pass
 
-    @abc.abstractmethod
-    def make_receipt(self, **kwargs) -> dict[str, Any]:
-        """
-        Make receipt associated with a given finished request.
+    # @abc.abstractmethod
+    # def make_receipt(
+    #     self,
+    #     request: Request,
+    #     collection: cads_adaptors.models.CollectionMetadata,
+    #     job: cads_adaptors.models.JobMetadata,
+    #     results: cads_adaptors.models.ResultsMetadata
+    # ) -> dict[str, Any]:
+    #     """
+    #     Make receipt associated with a given finished request.
 
-        Parameters
-        ----------
-        **kwargs : Any
-            Additional parameters, specific to the particular method's implementation.
+    #     Parameters
+    #     ----------
+    #     **kwargs : Any
+    #         Additional parameters, specific to the particular method's implementation.
 
-        Returns
-        -------
-        dict[str, Any]
-            Receipt content.
-        """
-        pass
+    #     Returns
+    #     -------
+    #     dict[str, Any]
+    #         Receipt content.
+    #     """
+    #     pass
 
     @abc.abstractmethod
     def retrieve(self, request: Request) -> BinaryIO:
