@@ -14,7 +14,7 @@ class Licence(pydantic.BaseModel):
 class CollectionMetadata(pydantic.BaseModel):
     """Metadata for a collection."""
 
-    model_config = pydantic.ConfigDict(extra="allow", exclude_none=True)
+    model_config = pydantic.ConfigDict(extra="allow")
 
     collection_id: str | None = None
     title: str | None = None
