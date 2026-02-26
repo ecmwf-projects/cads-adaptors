@@ -207,28 +207,34 @@ class AbstractAdaptor(abc.ABC):
         """
         pass
 
-    # @abc.abstractmethod
-    # def make_receipt(
-    #     self,
-    #     request: Request,
-    #     collection: cads_adaptors.models.CollectionMetadata,
-    #     job: cads_adaptors.models.JobMetadata,
-    #     results: cads_adaptors.models.ResultsMetadata
-    # ) -> dict[str, Any]:
-    #     """
-    #     Make receipt associated with a given finished request.
+    @abc.abstractmethod
+    def make_receipt(
+        self,
+        request: Request,
+        collection: cads_adaptors.models.CollectionMetadata,
+        job: cads_adaptors.models.JobMetadata,
+        results: cads_adaptors.models.ResultsMetadata | None,
+    ) -> dict[str, Any]:
+        """
+        Make receipt associated with a given finished request.
 
-    #     Parameters
-    #     ----------
-    #     **kwargs : Any
-    #         Additional parameters, specific to the particular method's implementation.
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+        collection : cads_adaptors.models.CollectionMetadata
+            Metadata of the request's collection.
+        job : cads_adaptors.models.JobMetadata
+            Metadata of the request's job.
+        results : cads_adaptors.models.ResultsMetadata | None, optional
+            Metadata of the request's results file, by default None.
 
-    #     Returns
-    #     -------
-    #     dict[str, Any]
-    #         Receipt content.
-    #     """
-    #     pass
+        Returns
+        -------
+        dict[str, Any]
+            Receipt content.
+        """
+        pass
 
     @abc.abstractmethod
     def retrieve(self, request: Request) -> BinaryIO:
@@ -356,3 +362,19 @@ class DummyAdaptor(AbstractAdaptor):
             case _:
                 raise NotImplementedError(f"{format=}")
         return dummy_file.open("rb")
+
+    def make_receipt(
+        self,
+        request: Request,
+        collection: cads_adaptors.models.CollectionMetadata,
+        job: cads_adaptors.models.JobMetadata,
+        results: cads_adaptors.models.ResultsMetadata | None,
+    ) -> dict[str, Any]:
+        receipt = {
+            "request": request,
+            "collection": collection.model_dump(),
+            "job": job.model_dump(),
+        }
+        if results is not None:
+            receipt["results"] = results.model_dump()
+        return receipt

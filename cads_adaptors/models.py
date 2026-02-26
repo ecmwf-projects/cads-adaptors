@@ -16,6 +16,7 @@ class CollectionMetadata(pydantic.BaseModel):
 
     model_config = pydantic.ConfigDict(extra="allow", exclude_none=True)
 
+    collection_id: str | None = None
     title: str | None = None
     licences: list[Licence] | None = None
     doi: str | None = None
@@ -26,9 +27,8 @@ class CollectionMetadata(pydantic.BaseModel):
 class JobMetadata(pydantic.BaseModel):
     """Metadata for a job."""
 
-    process_id: str | None = None
     user_id: str | None = None
-    job_id: str | None = None
+    request_id: str | None = None
     status: str | None = None
     message: str | None = None
     created: datetime.datetime | None = None

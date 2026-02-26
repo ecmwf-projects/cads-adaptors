@@ -1,4 +1,5 @@
 import bisect
+import datetime
 import os
 import pathlib
 import time
@@ -13,6 +14,7 @@ from cads_adaptors.exceptions import (
     GeoServerError,
     InvalidRequest,
 )
+from cads_adaptors.models import CollectionMetadata, JobMetadata, ResultsMetadata
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.hcube_tools import hcubes_intdiff2
 from cads_adaptors.validation import enforce
@@ -479,12 +481,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if len(paths) > 1 and download_format == "as_source":
             download_format = "zip"
 
-        # Allow adaptor possibility of over-riding request value
-        if kwargs.get("receipt", self.receipt):
-            receipt_kwargs = kwargs.pop("receipt_kwargs", {})
-            kwargs.setdefault(
-                "receipt", self.make_receipt(filenames=filenames, **receipt_kwargs)
-            )
         self.context.debug(
             f"Creating download object as {download_format} with paths:\n{paths}\n and kwargs:\n{kwargs}"
         )
@@ -530,41 +526,25 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def make_receipt(
         self,
-        input_request: Request | None = None,
-        download_size: Any = None,
-        filenames: list = [],
-        **kwargs,
+        request: Request,
+        collection: CollectionMetadata,
+        job: JobMetadata,
+        results: ResultsMetadata | None,
     ) -> dict[str, Any]:
-        """
-        Create a receipt to be included in the downloaded archive.
-
-        **kwargs contains any other fields that are calculated during the runtime of the adaptor
-        """
-        from datetime import datetime as dt
-
-        # Allow adaptor to override and provide sanitized "input_request" if necessary
-        if input_request is None:
-            input_request = self.input_request
-
-        # Update kwargs with default values
-        if download_size is None:
-            download_size = "unknown"
-
         receipt = {
             "collection-id": self.collection_id,
-            "request": input_request,
-            "request-timestamp": dt.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "download-size": download_size,
-            "filenames": filenames,
+            "request": request,
+            "request-timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             # Get static URLs:
-            "user-support": "https://support.ecmwf.int",
+            "user-support": job.user_support_url,
             "privacy-policy": "https://cds.climate.copernicus.eu/disclaimer-privacy",
             # TODO: Change to URLs for licence instead of slug
             "licence": [
-                f"{licence[0]} (version {licence[1]})" for licence in self.licences
+                f"{licence.title} (version {licence.revision})"
+                for licence in collection.licences or []
             ],
-            "user_uid": self.config.get("user_uid"),
-            "request_uid": self.config.get("request_uid"),
+            "user_uid": job.user_id,
+            "request_uid": job.request_id,
             #
             # TODO: Add URL/DNS information to the context for populating these fields:
             # "web-portal": self.???, # Need update to information available to adaptors
@@ -573,10 +553,11 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             #
             # TODO: Add metadata information to config, this could also be done via the metadata api
             # "citation": self.???, # Need update to information available to adaptors
-            **kwargs,
             **self.config.get("additional_receipt_info", {}),
         }
-
+        if results is not None:
+            receipt["filename"] = results.file_local_path
+            receipt["download-size"] = results.file_size
         return receipt
 
 
