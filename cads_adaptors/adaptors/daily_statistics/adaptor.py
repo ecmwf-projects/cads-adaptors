@@ -52,7 +52,7 @@ ACCUMULATED_FIELDS = [
     'large_scale_snowfall', 'potential_evaporation', 'total_evaporation',
     'evaporation_from_bare_soil', 'evaporation_from_the_top_of_canopy',
     'evaporation_from_open_water_surfaces_excluding_oceans',
-    'evaporation_from_vegetation_transpiration', 
+    'evaporation_from_vegetation_transpiration',
 ]
 MEAN_FIELDS = [
     'mean_boundary_layer_dissipation',
@@ -195,7 +195,7 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
         ]
         if len(date_obj_list) == 0:
             raise InvalidRequest(
-                "Your request did not provide a valid time-period, please check that your date selection."
+                "Your request did not provide a valid time-period, please check your date selection."
             )
         if len(date_obj_list) != len(_date_obj_list):
             self.context.add_user_visible_error(
@@ -261,7 +261,7 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
             mars_request["dataset"] = mars_dataset[0]
             # Accumulation period is required for adjusting the request time
             #  to get the correct values for the day requested
-            # The default values below are for ERA5 oper. Tecnically, members for ERA5 wave data should be 1
+            # The default values below are for ERA5 oper. Technically, members for ERA5 wave data should be 1
             #  but as there are no accumulated variables in the wave data, we can ignore this.
             accumulation_period_to_dataset_mapping = self.config.get(
                 "accumulation_period_to_dataset_mapping", {
