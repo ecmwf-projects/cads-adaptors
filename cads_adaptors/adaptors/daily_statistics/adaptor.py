@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from multiprocessing import context
 
 from cads_adaptors import MarsCdsAdaptor
 from typing import Any
@@ -136,12 +135,13 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
 
         # Extract post-process steps from the request before applying the mapping
         if request.pop("post_process", []):
-            context.add_user_visible_log(
+            self.context.add_user_visible_log(
                 "WARNING: Post-processing steps cannot be applied to the daily statistics datasets. "
                 "The post-processing steps you have requested have been ignored"
             )
 
-        self.download_format = request.pop("download_format", "zip")
+        download_format = request.pop("download_format", "zip")
+        self.set_download_format(ensure_list(download_format))
 
         # Some quick checks to ensure valid request
         if len(ensure_list(request.get("daily_statistic", "daily_mean"))) > 1:
@@ -253,7 +253,7 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
         #       It could be made more flexible in the future if required
         accumulation_period = 1  # Set a default value
         if mars_dataset := mars_request.get("dataset", None):
-            ensure_list(mars_dataset)
+            mars_dataset = ensure_list(mars_dataset)
             if len(mars_dataset) > 1:
                 raise InvalidRequest(
                     "Only one product_type per request is supported for daily statistics."
@@ -304,15 +304,19 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
             self.context.debug(f"Daily stats, var, param_id = {var}, {param_id}")
 
             # Accumulated and Mean fields are accumulated for the hour up to the time stamp, therefore the
-            # values at 00:00 represent the values from 23:00 to 00:00 from the previoous day.
+            # values at 00:00 represent the values from 23:00 to 00:00 from the previous day.
             # Therefore, we shift the time zone hour back by 1 to get the correct values for the day requested
             if var in ACCUMULATED_FIELDS+MEAN_FIELDS:
                 this_hour = time_zone_hour-accumulation_period
             else:
                 this_hour = time_zone_hour
 
-            # List of times to request at the requested frequency
-            this_time: list[str] = [f"{i+(this_hour % frequency):02d}:00:00" for i in range(0, 24, frequency)]
+            # List of times to request at the requested frequency.
+            # Ensure hours are wrapped into the 0–23 range and are unique and sorted,
+            # as expected by MARS.
+            raw_hours = [(i + (this_hour % frequency)) % 24 for i in range(0, 24, frequency)]
+            unique_sorted_hours = sorted(set(raw_hours))
+            this_time: list[str] = [f"{hour:02d}:00:00" for hour in unique_sorted_hours]
 
             # Create a request for this variable
             this_request = {
@@ -350,7 +354,7 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
         if len(results) == 0:
             self.context.add_user_visible_error(
                 "Your request did not return any data. Please check that your data selection matches "
-                "the statistc you requested and try again."
+                "the statistic you requested and try again."
             )
             raise InvalidRequest("No data returned")
 
