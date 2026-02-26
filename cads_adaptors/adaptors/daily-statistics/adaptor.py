@@ -1,4 +1,19 @@
-# Bespoke adaptors for post-processing ERA5 data to produce daily statistics.
+"""Adaptor for post-processing ERA5 and ERA5-land data to produce daily statistics."""
+
+# Copyright 2022, European Union.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from multiprocessing import context
 
 from cads_adaptors import MarsCdsAdaptor
@@ -13,70 +28,70 @@ from cads_adaptors.adaptors.mars import execute_mars
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.hcube_tools import merge_requests
 
-class Era5DailyCdsAdaptor(MarsCdsAdaptor):
-    # define variables type
-    ACCUMULATED_FIELDS = [
-        'large_scale_precipitation_fraction',
-        'downward_uv_radiation_at_the_surface', 'boundary_layer_dissipation',
-        'surface_sensible_heat_flux', 'surface_latent_heat_flux',
-        'surface_solar_radiation_downwards', 'surface_thermal_radiation_downwards',
-        'surface_net_solar_radiation', 'surface_net_thermal_radiation',
-        'top_net_solar_radiation', 'top_net_thermal_radiation',
-        'eastward_turbulent_surface_stress', 'northward_turbulent_surface_stress',
-        'eastward_gravity_wave_surface_stress',
-        'northward_gravity_wave_surface_stress', 'gravity_wave_dissipation',
-        'top_net_solar_radiation_clear_sky', 'top_net_thermal_radiation_clear_sky',
-        'surface_net_solar_radiation_clear_sky',
-        'surface_net_thermal_radiation_clear_sky', 'toa_incident_solar_radiation',
-        'vertically_integrated_moisture_divergence',
-        'total_sky_direct_solar_radiation_at_surface',
-        'clear_sky_direct_solar_radiation_at_surface',
-        'surface_solar_radiation_downward_clear_sky',
-        'surface_thermal_radiation_downward_clear_sky', 'surface_runoff',
-        'sub_surface_runoff', 'snow_evaporation', 'snowmelt',
-        'large_scale_precipitation', 'convective_precipitation', 'snowfall',
-        'evaporation', 'runoff', 'total_precipitation', 'convective_snowfall',
-        'large_scale_snowfall', 'potential_evaporation', 'total_evaporation',
-        'evaporation_from_bare_soil', 'evaporation_from_the_top_of_canopy',
-        'evaporation_from_open_water_surfaces_excluding_oceans',
-        'evaporation_from_vegetation_transpiration', 
-    ]
-    MEAN_FIELDS = [
-        'mean_boundary_layer_dissipation',
-        'mean_convective_precipitation_rate', 'mean_convective_snowfall_rate',
-        'mean_eastward_gravity_wave_surface_stress',
-        'mean_eastward_turbulent_surface_stress', 'mean_evaporation_rate',
-        'mean_gravity_wave_dissipation',
-        'mean_large_scale_precipitation_fraction',
-        'mean_large_scale_precipitation_rate',
-        'mean_large_scale_snowfall_rate',
-        'mean_northward_gravity_wave_surface_stress',
-        'mean_northward_turbulent_surface_stress',
-        'mean_potential_evaporation_rate', 'mean_runoff_rate',
-        'mean_snow_evaporation_rate', 'mean_snowfall_rate',
-        'mean_snowmelt_rate', 'mean_sub_surface_runoff_rate',
-        'mean_surface_direct_short_wave_radiation_flux',
-        'mean_surface_direct_short_wave_radiation_flux, clear_sky',
-        'mean_surface_downward_uv_radiation_flux',
-        'mean_surface_downward_long_wave_radiation_flux',
-        'mean_surface_downward_long_wave_radiation_flux, clear_sky',
-        'mean_surface_downward_short_wave_radiation_flux',
-        'mean_surface_downward_short_wave_radiation_flux, clear_sky',
-        'mean_surface_latent_heat_flux',
-        'mean_surface_net_long_wave_radiation_flux',
-        'mean_surface_net_long_wave_radiation_flux_clear_sky',
-        'mean_surface_net_short_wave_radiation_flux',
-        'mean_surface_net_short_wave_radiation_flux, clear_sky',
-        'mean_surface_runoff_rate', 'mean_surface_sensible_heat_flux',
-        'mean_top_downward_short_wave_radiation_flux',
-        'mean_top_net_long_wave_radiation_flux',
-        'mean_top_net_long_wave_radiation_flux, clear_sky',
-        'mean_top_net_short_wave_radiation_flux',
-        'mean_top_net_short_wave_radiation_flux, clear_sky',
-        'mean_total_precipitation_rate',
-        'mean_vertically_integrated_moisture_divergence'
-    ]
+# define variables type
+ACCUMULATED_FIELDS = [
+    'large_scale_precipitation_fraction',
+    'downward_uv_radiation_at_the_surface', 'boundary_layer_dissipation',
+    'surface_sensible_heat_flux', 'surface_latent_heat_flux',
+    'surface_solar_radiation_downwards', 'surface_thermal_radiation_downwards',
+    'surface_net_solar_radiation', 'surface_net_thermal_radiation',
+    'top_net_solar_radiation', 'top_net_thermal_radiation',
+    'eastward_turbulent_surface_stress', 'northward_turbulent_surface_stress',
+    'eastward_gravity_wave_surface_stress',
+    'northward_gravity_wave_surface_stress', 'gravity_wave_dissipation',
+    'top_net_solar_radiation_clear_sky', 'top_net_thermal_radiation_clear_sky',
+    'surface_net_solar_radiation_clear_sky',
+    'surface_net_thermal_radiation_clear_sky', 'toa_incident_solar_radiation',
+    'vertically_integrated_moisture_divergence',
+    'total_sky_direct_solar_radiation_at_surface',
+    'clear_sky_direct_solar_radiation_at_surface',
+    'surface_solar_radiation_downward_clear_sky',
+    'surface_thermal_radiation_downward_clear_sky', 'surface_runoff',
+    'sub_surface_runoff', 'snow_evaporation', 'snowmelt',
+    'large_scale_precipitation', 'convective_precipitation', 'snowfall',
+    'evaporation', 'runoff', 'total_precipitation', 'convective_snowfall',
+    'large_scale_snowfall', 'potential_evaporation', 'total_evaporation',
+    'evaporation_from_bare_soil', 'evaporation_from_the_top_of_canopy',
+    'evaporation_from_open_water_surfaces_excluding_oceans',
+    'evaporation_from_vegetation_transpiration', 
+]
+MEAN_FIELDS = [
+    'mean_boundary_layer_dissipation',
+    'mean_convective_precipitation_rate', 'mean_convective_snowfall_rate',
+    'mean_eastward_gravity_wave_surface_stress',
+    'mean_eastward_turbulent_surface_stress', 'mean_evaporation_rate',
+    'mean_gravity_wave_dissipation',
+    'mean_large_scale_precipitation_fraction',
+    'mean_large_scale_precipitation_rate',
+    'mean_large_scale_snowfall_rate',
+    'mean_northward_gravity_wave_surface_stress',
+    'mean_northward_turbulent_surface_stress',
+    'mean_potential_evaporation_rate', 'mean_runoff_rate',
+    'mean_snow_evaporation_rate', 'mean_snowfall_rate',
+    'mean_snowmelt_rate', 'mean_sub_surface_runoff_rate',
+    'mean_surface_direct_short_wave_radiation_flux',
+    'mean_surface_direct_short_wave_radiation_flux, clear_sky',
+    'mean_surface_downward_uv_radiation_flux',
+    'mean_surface_downward_long_wave_radiation_flux',
+    'mean_surface_downward_long_wave_radiation_flux, clear_sky',
+    'mean_surface_downward_short_wave_radiation_flux',
+    'mean_surface_downward_short_wave_radiation_flux, clear_sky',
+    'mean_surface_latent_heat_flux',
+    'mean_surface_net_long_wave_radiation_flux',
+    'mean_surface_net_long_wave_radiation_flux_clear_sky',
+    'mean_surface_net_short_wave_radiation_flux',
+    'mean_surface_net_short_wave_radiation_flux, clear_sky',
+    'mean_surface_runoff_rate', 'mean_surface_sensible_heat_flux',
+    'mean_top_downward_short_wave_radiation_flux',
+    'mean_top_net_long_wave_radiation_flux',
+    'mean_top_net_long_wave_radiation_flux, clear_sky',
+    'mean_top_net_short_wave_radiation_flux',
+    'mean_top_net_short_wave_radiation_flux, clear_sky',
+    'mean_total_precipitation_rate',
+    'mean_vertically_integrated_moisture_divergence'
+]
 
+class Era5DailyCdsAdaptor(MarsCdsAdaptor):
     def remove_partial_periods(
         self,
         in_xarray_dict: dict[str, Any],
@@ -273,14 +288,14 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
         results: list[str] = []
         for var, param_id in param_ids.items():
             # Accumulated variables checks
-            if var in self.ACCUMULATED_FIELDS and not self.config.get("accumulated_variables_supported", True):
+            if var in ACCUMULATED_FIELDS and not self.config.get("accumulated_variables_supported", True):
                 self.context.add_user_visible_error(
                     "Daily statistics of accumulated variables are not supported for this dataset, "
                     f"skipping: {var}."
                 )
                 continue
 
-            if statistic in ["daily_sum"] and var not in self.ACCUMULATED_FIELDS:
+            if statistic in ["daily_sum"] and var not in ACCUMULATED_FIELDS:
                 self.context.add_user_visible_error(
                     f"Daily sum is not available for this variable, skipping: {var}."
                 )
@@ -291,7 +306,7 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
             # Accumulated and Mean fields are accumulated for the hour up to the time stamp, therefore the
             # values at 00:00 represent the values from 23:00 to 00:00 from the previoous day.
             # Therefore, we shift the time zone hour back by 1 to get the correct values for the day requested
-            if var in self.ACCUMULATED_FIELDS+self.MEAN_FIELDS:
+            if var in ACCUMULATED_FIELDS+MEAN_FIELDS:
                 this_hour = time_zone_hour-accumulation_period
             else:
                 this_hour = time_zone_hour
