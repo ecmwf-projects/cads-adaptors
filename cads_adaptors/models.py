@@ -27,6 +27,7 @@ class JobMetadata(pydantic.BaseModel):
     """Metadata for a job."""
 
     process_id: str | None = None
+    user_id: str | None = None
     job_id: str | None = None
     status: str | None = None
     message: str | None = None
