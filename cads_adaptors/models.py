@@ -22,6 +22,7 @@ class CollectionMetadata(pydantic.BaseModel):
     doi: str | None = None
     citation: str | None = None
     url: str | None = None
+    portal: str | None = None
 
 
 class JobMetadata(pydantic.BaseModel):
