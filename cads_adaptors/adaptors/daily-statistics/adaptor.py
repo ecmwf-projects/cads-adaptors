@@ -239,7 +239,7 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
         # Extract the non-MARS parameters from the request, with defaults if not provided
         statistic: str = mars_request.pop("daily_statistic", "daily_mean")
         time_zone: str = mars_request.pop("time_zone", "UTC+00:00")
-        time_zone_hour: int = int(time_zone.replace('utc', '')[:3])
+        time_zone_hour: int = int(time_zone.lower().replace('utc', '')[:3])
         frequency_str: str = mars_request.pop("frequency", "1_hourly")
         frequency: int = int(frequency_str.replace("_hourly", ""))
 
