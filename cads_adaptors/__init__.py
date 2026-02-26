@@ -60,4 +60,5 @@ __all__ = [
     "ObservationsAdaptor",
     "CamsSolarRadiationTimeseriesAdaptor",
     "ArcoDataLakeCdsAdaptor",
+    "Era5DailyStatisticsCdsAdaptor"
 ]
