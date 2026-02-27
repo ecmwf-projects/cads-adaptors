@@ -130,6 +130,10 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
         if kwargs.get("dont_weight_by_area", False):
             return 1
 
+        # If stations in request, then we don't need area weighting
+        if self.config.get("station_key", "stations") in request:
+            return 1
+
         # Spatial resolution passed in via the costing_kwargs, this could be set to match source chunking
         base_resolution = kwargs.get("resolution") or {}
         # Work on a local copy / derived values to avoid mutating any shared configuration
