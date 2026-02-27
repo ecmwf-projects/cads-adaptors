@@ -208,7 +208,10 @@ class TestTimeListGeneration:
         unique_sorted_hours = sorted(set(raw_hours))
         time_list = [f"{hour:02d}:00:00" for hour in unique_sorted_hours]
 
-        expected = ["00:00:00", "03:00:00", "06:00:00", "09:00:00", "12:00:00", "15:00:00", "18:00:00", "21:00:00"]
+        expected = [
+            "00:00:00", "03:00:00", "06:00:00", "09:00:00",
+            "12:00:00", "15:00:00", "18:00:00", "21:00:00"
+        ]
         assert time_list == expected
 
     def test_6_hourly_frequency_no_offset(self):
@@ -253,7 +256,10 @@ class TestTimeListGeneration:
 
         # this_hour % frequency = 5 % 3 = 2
         # So we get: 2, 5, 8, 11, 14, 17, 20, 23
-        expected = ["02:00:00", "05:00:00", "08:00:00", "11:00:00", "14:00:00", "17:00:00", "20:00:00", "23:00:00"]
+        expected = [
+            "02:00:00", "05:00:00", "08:00:00", "11:00:00",
+            "14:00:00", "17:00:00", "20:00:00", "23:00:00"
+        ]
         assert time_list == expected
 
     def test_6_hourly_with_positive_offset(self):
@@ -285,7 +291,10 @@ class TestTimeListGeneration:
 
         # this_hour % frequency = -1 % 3 = 2
         # So we get: 2, 5, 8, 11, 14, 17, 20, 23
-        expected = ["02:00:00", "05:00:00", "08:00:00", "11:00:00", "14:00:00", "17:00:00", "20:00:00", "23:00:00"]
+        expected = [
+            "02:00:00", "05:00:00", "08:00:00", "11:00:00",
+            "14:00:00", "17:00:00", "20:00:00", "23:00:00"
+        ]
         assert time_list == expected
 
     def test_accumulated_field_offset(self):
@@ -305,7 +314,10 @@ class TestTimeListGeneration:
 
         # this_hour % frequency = 4 % 3 = 1
         # So we get: 1, 4, 7, 10, 13, 16, 19, 22
-        expected = ["01:00:00", "04:00:00", "07:00:00", "10:00:00", "13:00:00", "16:00:00", "19:00:00", "22:00:00"]
+        expected = [
+            "01:00:00", "04:00:00", "07:00:00", "10:00:00",
+            "13:00:00", "16:00:00", "19:00:00", "22:00:00"
+        ]
         assert time_list == expected
 
     def test_mean_field_offset_3hour_accumulation(self):
