@@ -14,16 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from cads_adaptors import MarsCdsAdaptor
 from typing import Any
 
-from datetime import timedelta
 import dateutil
-from copy import copy
 
-from cads_adaptors.exceptions import InvalidRequest
+from cads_adaptors import MarsCdsAdaptor
 from cads_adaptors.adaptors.mars import execute_mars
+from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.hcube_tools import merge_requests
 
@@ -55,42 +52,49 @@ ACCUMULATED_FIELDS = [
     'evaporation_from_vegetation_transpiration',
 ]
 MEAN_FIELDS = [
-    'mean_boundary_layer_dissipation',
-    'mean_convective_precipitation_rate', 'mean_convective_snowfall_rate',
-    'mean_eastward_gravity_wave_surface_stress',
-    'mean_eastward_turbulent_surface_stress', 'mean_evaporation_rate',
-    'mean_gravity_wave_dissipation',
-    'mean_large_scale_precipitation_fraction',
-    'mean_large_scale_precipitation_rate',
-    'mean_large_scale_snowfall_rate',
-    'mean_northward_gravity_wave_surface_stress',
-    'mean_northward_turbulent_surface_stress',
-    'mean_potential_evaporation_rate', 'mean_runoff_rate',
-    'mean_snow_evaporation_rate', 'mean_snowfall_rate',
-    'mean_snowmelt_rate', 'mean_sub_surface_runoff_rate',
-    'mean_surface_direct_short_wave_radiation_flux',
-    'mean_surface_direct_short_wave_radiation_flux, clear_sky',
-    'mean_surface_downward_uv_radiation_flux',
-    'mean_surface_downward_long_wave_radiation_flux',
-    'mean_surface_downward_long_wave_radiation_flux, clear_sky',
-    'mean_surface_downward_short_wave_radiation_flux',
-    'mean_surface_downward_short_wave_radiation_flux, clear_sky',
-    'mean_surface_latent_heat_flux',
-    'mean_surface_net_long_wave_radiation_flux',
-    'mean_surface_net_long_wave_radiation_flux_clear_sky',
-    'mean_surface_net_short_wave_radiation_flux',
-    'mean_surface_net_short_wave_radiation_flux, clear_sky',
-    'mean_surface_runoff_rate', 'mean_surface_sensible_heat_flux',
-    'mean_top_downward_short_wave_radiation_flux',
-    'mean_top_net_long_wave_radiation_flux',
-    'mean_top_net_long_wave_radiation_flux, clear_sky',
-    'mean_top_net_short_wave_radiation_flux',
-    'mean_top_net_short_wave_radiation_flux, clear_sky',
-    'mean_total_precipitation_rate',
-    'mean_vertically_integrated_moisture_divergence'
+    "mean_boundary_layer_dissipation",
+    "mean_convective_precipitation_rate",
+    "mean_convective_snowfall_rate",
+    "mean_eastward_gravity_wave_surface_stress",
+    "mean_eastward_turbulent_surface_stress",
+    "mean_evaporation_rate",
+    "mean_gravity_wave_dissipation",
+    "mean_large_scale_precipitation_fraction",
+    "mean_large_scale_precipitation_rate",
+    "mean_large_scale_snowfall_rate",
+    "mean_northward_gravity_wave_surface_stress",
+    "mean_northward_turbulent_surface_stress",
+    "mean_potential_evaporation_rate",
+    "mean_runoff_rate",
+    "mean_snow_evaporation_rate",
+    "mean_snowfall_rate",
+    "mean_snowmelt_rate",
+    "mean_sub_surface_runoff_rate",
+    "mean_surface_direct_short_wave_radiation_flux",
+    "mean_surface_direct_short_wave_radiation_flux, clear_sky",
+    "mean_surface_downward_uv_radiation_flux",
+    "mean_surface_downward_long_wave_radiation_flux",
+    "mean_surface_downward_long_wave_radiation_flux, clear_sky",
+    "mean_surface_downward_short_wave_radiation_flux",
+    "mean_surface_downward_short_wave_radiation_flux, clear_sky",
+    "mean_surface_latent_heat_flux",
+    "mean_surface_net_long_wave_radiation_flux",
+    "mean_surface_net_long_wave_radiation_flux_clear_sky",
+    "mean_surface_net_short_wave_radiation_flux",
+    "mean_surface_net_short_wave_radiation_flux, clear_sky",
+    "mean_surface_runoff_rate",
+    "mean_surface_sensible_heat_flux",
+    "mean_top_downward_short_wave_radiation_flux",
+    "mean_top_net_long_wave_radiation_flux",
+    "mean_top_net_long_wave_radiation_flux, clear_sky",
+    "mean_top_net_short_wave_radiation_flux",
+    "mean_top_net_short_wave_radiation_flux, clear_sky",
+    "mean_total_precipitation_rate",
+    "mean_vertically_integrated_moisture_divergence",
 ]
 
-class Era5DailyCdsAdaptor(MarsCdsAdaptor):
+
+class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
     def remove_partial_periods(
         self,
         in_xarray_dict: dict[str, Any],
@@ -108,7 +112,7 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
             consecutive_dates = True
             date_obj_list = [dateutil.parser.parse(date) for date in date_list]
             for i, date in enumerate(date_obj_list[:-1]):
-                if date != date_obj_list[i+1] - timedelta(days=1):
+                if date != date_obj_list[i + 1] - timedelta(days=1):
                     consecutive_dates = False
                     break
             if consecutive_dates:
@@ -123,9 +127,7 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
 
         out_xarray_dict = {}
         for tag, in_dataset in in_xarray_dict.items():
-            out_xarray_dict[tag] = in_dataset.sel(
-                valid_time=selection
-            )
+            out_xarray_dict[tag] = in_dataset.sel(valid_time=selection)
 
         return out_xarray_dict
 
@@ -160,8 +162,7 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
         return request
 
     def get_date_list_extended(
-        self, date_list: list[str], time_zone_hour: int,
-        first_valid_date_str: str
+        self, date_list: list[str], time_zone_hour: int, first_valid_date_str: str
     ) -> list[str]:
         """Return extended date list with one day before and after the requested dates.
 
@@ -190,9 +191,7 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
         if time_zone_hour > 0:
             first_valid_date = first_valid_date + timedelta(days=1)
 
-        date_obj_list = [
-            date for date in _date_obj_list if date >= first_valid_date
-        ]
+        date_obj_list = [date for date in _date_obj_list if date >= first_valid_date]
         if len(date_obj_list) == 0:
             raise InvalidRequest(
                 "Your request did not provide a valid time-period, please check your date selection."
@@ -239,7 +238,7 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
         # Extract the non-MARS parameters from the request, with defaults if not provided
         statistic: str = mars_request.pop("daily_statistic", "daily_mean")
         time_zone: str = mars_request.pop("time_zone", "UTC+00:00")
-        time_zone_hour: int = int(time_zone.lower().replace('utc', '')[:3])
+        time_zone_hour: int = int(time_zone.lower().replace("utc", "")[:3])
         frequency_str: str = mars_request.pop("frequency", "1_hourly")
         frequency: int = int(frequency_str.replace("_hourly", ""))
 
@@ -264,15 +263,20 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
             # The default values below are for ERA5 oper. Technically, members for ERA5 wave data should be 1
             #  but as there are no accumulated variables in the wave data, we can ignore this.
             accumulation_period_to_dataset_mapping = self.config.get(
-                "accumulation_period_to_dataset_mapping", {
+                "accumulation_period_to_dataset_mapping",
+                {
                     "reanalysis": 1,
                     "mean": 3,
                     "members": 3,
-                }
+                },
             )
-            accumulation_period = accumulation_period_to_dataset_mapping.get(mars_request["dataset"], None)
+            accumulation_period = accumulation_period_to_dataset_mapping.get(
+                mars_request["dataset"], None
+            )
             if accumulation_period is None:
-                raise InvalidRequest(f"Unrecognised product_type: {mars_request['dataset']}")
+                raise InvalidRequest(
+                    f"Unrecognised product_type: {mars_request['dataset']}"
+                )
 
         # Split by variable as time handling varies, and best to have a clean consistent approach
         variables = ensure_list(self.input_request["variable"])
@@ -280,15 +284,15 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
 
         self.context.debug(f"Daily stats, variable_mapping = {variable_mapping}")
         # Map variables to param ids
-        param_ids = {
-            var: variable_mapping.get(var, var) for var in variables
-        }
+        param_ids = {var: variable_mapping.get(var, var) for var in variables}
         self.context.debug(f"Daily stats, param_ids = {param_ids}")
 
         results: list[str] = []
         for var, param_id in param_ids.items():
             # Accumulated variables checks
-            if var in ACCUMULATED_FIELDS and not self.config.get("accumulated_variables_supported", True):
+            if var in ACCUMULATED_FIELDS and not self.config.get(
+                "accumulated_variables_supported", True
+            ):
                 self.context.add_user_visible_error(
                     "Daily statistics of accumulated variables are not supported for this dataset, "
                     f"skipping: {var}."
@@ -306,8 +310,8 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
             # Accumulated and Mean fields are accumulated for the hour up to the time stamp, therefore the
             # values at 00:00 represent the values from 23:00 to 00:00 from the previous day.
             # Therefore, we shift the time zone hour back by 1 to get the correct values for the day requested
-            if var in ACCUMULATED_FIELDS+MEAN_FIELDS:
-                this_hour = time_zone_hour-accumulation_period
+            if var in ACCUMULATED_FIELDS + MEAN_FIELDS:
+                this_hour = time_zone_hour - accumulation_period
             else:
                 this_hour = time_zone_hour
 
@@ -328,26 +332,31 @@ class Era5DailyCdsAdaptor(MarsCdsAdaptor):
             self.context.debug(f"Daily stats, this_request = {this_request}")
             # Get the data from MARS
             mars_result = execute_mars(
-                this_request, context=self.context, config=self.config, target_fname=f"{var}.grib",
+                this_request,
+                context=self.context,
+                config=self.config,
+                target_fname=f"{var}.grib",
                 mapping=self.mapping,
             )
 
             # Create daily statistic post processing step.
             # NOTE: Could append existing pp_steps here, but for now just overwrite
-            self.post_process_steps = self.pp_mapping([
-                {
-                    "method": statistic, "time_shift": {"hours": this_hour},
-                },
-                # Use a bespoke function to select based on the requested date_list
-                {
-                    "method": "remove_partial_periods",
-                    "date_list": date_list
-                }
-            ])
+            self.post_process_steps = self.pp_mapping(
+                [
+                    {
+                        "method": statistic,
+                        "time_shift": {"hours": this_hour},
+                    },
+                    # Use a bespoke function to select based on the requested date_list
+                    {"method": "remove_partial_periods", "date_list": date_list},
+                ]
+            )
 
             results += self.convert_format(
                 self.post_process(mars_result),
-                "netcdf", context=self.context, config=self.config
+                "netcdf",
+                context=self.context,
+                config=self.config,
             )
 
         # Check that we have produced a result
