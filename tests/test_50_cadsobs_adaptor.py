@@ -316,7 +316,7 @@ def test_adaptor_estimate_costs(tmp_path, monkeypatch):
     test_request_noarea = TEST_REQUEST.copy()
     test_request_noarea.pop("area")
     test_request_station = test_request_noarea.copy()
-    test_request_station['stations'] = ["test-station"]
+    test_request_station["stations"] = ["test-station"]
     costs_station = adaptor.estimate_costs(test_request_station)
     costs_noarea = adaptor.estimate_costs(test_request_noarea)
     costs = adaptor.estimate_costs(TEST_REQUEST)
@@ -325,7 +325,7 @@ def test_adaptor_estimate_costs(tmp_path, monkeypatch):
     # 20*50=1000 times than the single station request
     assert costs_station["size"] * 1000 == costs["size"]
     # 20*50/180*360 times the global request
-    assert costs_noarea["size"] * 1000/(180*360) == costs["size"]
+    assert costs_noarea["size"] * 1000 / (180 * 360) == costs["size"]
 
 
 def test_adaptor_csv(tmp_path, monkeypatch):
