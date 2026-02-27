@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from copy import copy
+from datetime import timedelta
 from typing import Any
 
 import dateutil
@@ -26,30 +28,50 @@ from cads_adaptors.tools.hcube_tools import merge_requests
 
 # define variables type
 ACCUMULATED_FIELDS = [
-    'large_scale_precipitation_fraction',
-    'downward_uv_radiation_at_the_surface', 'boundary_layer_dissipation',
-    'surface_sensible_heat_flux', 'surface_latent_heat_flux',
-    'surface_solar_radiation_downwards', 'surface_thermal_radiation_downwards',
-    'surface_net_solar_radiation', 'surface_net_thermal_radiation',
-    'top_net_solar_radiation', 'top_net_thermal_radiation',
-    'eastward_turbulent_surface_stress', 'northward_turbulent_surface_stress',
-    'eastward_gravity_wave_surface_stress',
-    'northward_gravity_wave_surface_stress', 'gravity_wave_dissipation',
-    'top_net_solar_radiation_clear_sky', 'top_net_thermal_radiation_clear_sky',
-    'surface_net_solar_radiation_clear_sky',
-    'surface_net_thermal_radiation_clear_sky', 'toa_incident_solar_radiation',
-    'vertically_integrated_moisture_divergence',
-    'total_sky_direct_solar_radiation_at_surface',
-    'clear_sky_direct_solar_radiation_at_surface',
-    'surface_solar_radiation_downward_clear_sky',
-    'surface_thermal_radiation_downward_clear_sky', 'surface_runoff',
-    'sub_surface_runoff', 'snow_evaporation', 'snowmelt',
-    'large_scale_precipitation', 'convective_precipitation', 'snowfall',
-    'evaporation', 'runoff', 'total_precipitation', 'convective_snowfall',
-    'large_scale_snowfall', 'potential_evaporation', 'total_evaporation',
-    'evaporation_from_bare_soil', 'evaporation_from_the_top_of_canopy',
-    'evaporation_from_open_water_surfaces_excluding_oceans',
-    'evaporation_from_vegetation_transpiration',
+    "large_scale_precipitation_fraction",
+    "downward_uv_radiation_at_the_surface",
+    "boundary_layer_dissipation",
+    "surface_sensible_heat_flux",
+    "surface_latent_heat_flux",
+    "surface_solar_radiation_downwards",
+    "surface_thermal_radiation_downwards",
+    "surface_net_solar_radiation",
+    "surface_net_thermal_radiation",
+    "top_net_solar_radiation",
+    "top_net_thermal_radiation",
+    "eastward_turbulent_surface_stress",
+    "northward_turbulent_surface_stress",
+    "eastward_gravity_wave_surface_stress",
+    "northward_gravity_wave_surface_stress",
+    "gravity_wave_dissipation",
+    "top_net_solar_radiation_clear_sky",
+    "top_net_thermal_radiation_clear_sky",
+    "surface_net_solar_radiation_clear_sky",
+    "surface_net_thermal_radiation_clear_sky",
+    "toa_incident_solar_radiation",
+    "vertically_integrated_moisture_divergence",
+    "total_sky_direct_solar_radiation_at_surface",
+    "clear_sky_direct_solar_radiation_at_surface",
+    "surface_solar_radiation_downward_clear_sky",
+    "surface_thermal_radiation_downward_clear_sky",
+    "surface_runoff",
+    "sub_surface_runoff",
+    "snow_evaporation",
+    "snowmelt",
+    "large_scale_precipitation",
+    "convective_precipitation",
+    "snowfall",
+    "evaporation",
+    "runoff",
+    "total_precipitation",
+    "convective_snowfall",
+    "large_scale_snowfall",
+    "potential_evaporation",
+    "total_evaporation",
+    "evaporation_from_bare_soil",
+    "evaporation_from_the_top_of_canopy",
+    "evaporation_from_open_water_surfaces_excluding_oceans",
+    "evaporation_from_vegetation_transpiration",
 ]
 MEAN_FIELDS = [
     "mean_boundary_layer_dissipation",
@@ -318,7 +340,9 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
             # List of times to request at the requested frequency.
             # Ensure hours are wrapped into the 0–23 range and are unique and sorted,
             # as expected by MARS.
-            raw_hours = [(i + (this_hour % frequency)) % 24 for i in range(0, 24, frequency)]
+            raw_hours = [
+                (i + (this_hour % frequency)) % 24 for i in range(0, 24, frequency)
+            ]
             unique_sorted_hours = sorted(set(raw_hours))
             this_time: list[str] = [f"{hour:02d}:00:00" for hour in unique_sorted_hours]
 
