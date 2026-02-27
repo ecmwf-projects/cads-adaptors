@@ -127,19 +127,26 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
 
     def area_weight(self, request: Request, **kwargs) -> int:
         # If area not defined, then assume point request with weight 1
-        if "area" not in request or kwargs.get("dont_weight_by_area", False):
+        if kwargs.get("dont_weight_by_area", False):
             return 1
 
-        # The area weight is calculated as the number of points, assuming a grid regular in lat/lon
-        max_lat, min_lon, min_lat, max_lon = request["area"]
-        # Absolute lat/lon range of the request area
-        lat_range = abs(float(max_lat) - float(min_lat))
-        lon_range = abs(float(max_lon) - float(min_lon))
         # Spatial resolution passed in via the costing_kwargs, this could be set to match source chunking
         base_resolution = kwargs.get("resolution") or {}
         # Work on a local copy / derived values to avoid mutating any shared configuration
         lat_resolution = float(base_resolution.get("latitude", 1))
         lon_resolution = float(base_resolution.get("longitude", 1))
+
+        if "area" not in request:
+            # If area not provided, request is global
+            lat_range = 180.0
+            lon_range = 360.0
+        else:
+            # The area weight is calculated as the number of points, assuming a grid regular in lat/lon
+            max_lat, min_lon, min_lat, max_lon = request["area"]
+            # Absolute lat/lon range of the request area
+            lat_range = abs(float(max_lat) - float(min_lat))
+            lon_range = abs(float(max_lon) - float(min_lon))
+
         return max(
             1,
             int(lat_range / lat_resolution * lon_range / lon_resolution),
