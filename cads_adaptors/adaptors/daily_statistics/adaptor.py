@@ -20,8 +20,7 @@ from typing import Any
 
 import dateutil
 
-from cads_adaptors import MarsCdsAdaptor
-from cads_adaptors.adaptors.mars import execute_mars
+from cads_adaptors.adaptors.mars import MarsCdsAdaptor, execute_mars
 from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.hcube_tools import merge_requests
