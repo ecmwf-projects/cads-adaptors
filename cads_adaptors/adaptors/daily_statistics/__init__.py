@@ -1,3 +1,3 @@
-from .adaptor import Era5DailyCdsAdaptor
+from .adaptor import Era5DailyStatisticsCdsAdaptor
 
-__all__ = ["Era5DailyCdsAdaptor"]
+__all__ = ["Era5DailyStatisticsCdsAdaptor"]
