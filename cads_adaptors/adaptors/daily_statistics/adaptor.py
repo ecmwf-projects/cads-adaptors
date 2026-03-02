@@ -240,40 +240,39 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
         # This is all the dates with any extra days before or after the requested dates
         return [date.strftime("%Y-%m-%d") for date in date_obj_list_extended]
 
-    def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
-        request = self.normalise_request(request=request)
+    def separate_mars_requests(
+        self,
+        request: dict[str, Any],
+        non_mars_keys: list[str] | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Extract non-MARS parameters from the request.
 
-        # Turn back into a single request
-        if len(self.mapped_requests) > 1:
-            mapped_request = merge_requests(self.mapped_requests)
-        else:
-            mapped_request = self.mapped_requests[0]
+        Args
+        ----
+            request (dict[str, Any]):
+                The MARS request to extract the non-MARS parameters from
+            non_mars_keys (list[str]):
+                The keys of the non-MARS parameters to extract
 
-        # Ensure that data_format is removed from request, output is always netCDF
-        _ = mapped_request.pop("data_format", None)
-        self.context.info(f"Daily stats, mapped_request = {mapped_request}")
+        Returns
+        -------
+            tuple[dict[str, Any], dict[str, Any]]:
+                A tuple containing the updated MARS request and the extracted non-MARS parameters
+        """
+        non_mars_keys = non_mars_keys or ["daily_statistic", "time_zone", "frequency"]
+        non_mars_elements = {}
+        mars_request = {}
+        for key in request:
+            if key in non_mars_keys:
+                non_mars_elements[key] = request.pop(key)
+            else:
+                mars_request[key] = request[key]
 
-        # Take a copy of the request, so we can remove elements that are not required for MARS
-        mars_request = copy(mapped_request)
+        return mars_request, non_mars_elements
 
-        # Extract the non-MARS parameters from the request, with defaults if not provided
-        #  The must always be single values, as checked in the pre_mapping_modifications step
-        #  TODO: Refactor this after/during the request handling refactor
-        statistic: str = ensure_list(mars_request.pop("daily_statistic", "daily_mean"))[0]
-        time_zone: str = ensure_list(mars_request.pop("time_zone", "UTC+00:00"))[0]
-        time_zone_hour: int = int(time_zone.lower().replace("utc", "")[:3])
-        frequency_str: str = ensure_list(mars_request.pop("frequency", "1_hourly"))[0]
-        frequency: int = int(frequency_str.replace("_hourly", ""))
-
-        # Pre-process dates
-        date_list: list[str] = ensure_list(mars_request["date"])
-        date_list_extended = self.get_date_list_extended(
-            date_list, time_zone_hour, self.config.get("first_valid_date", "1940-01-01")
-        )
-
+    def get_validated_accumulation_period(self, mars_request: dict[str, Any]) -> int:
         # TODO: The accumulation_period logic is hard-coded to ERA5, i.e. based on the dataset value.
         #       It could be made more flexible in the future if required
-        accumulation_period = 1  # Set a default value
         if mars_dataset := mars_request.get("dataset", None):
             mars_dataset = ensure_list(mars_dataset)
             if len(mars_dataset) > 1:
@@ -300,6 +299,41 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
                 raise InvalidRequest(
                     f"Unrecognised product_type: {mars_request['dataset']}"
                 )
+        return accumulation_period or 1
+
+    def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
+        request = self.normalise_request(request=request)
+
+        # Turn back into a single request
+        if len(self.mapped_requests) > 1:
+            mapped_request = merge_requests(self.mapped_requests)
+        else:
+            mapped_request = self.mapped_requests[0]
+
+        # Ensure that data_format is removed from request, output is always netCDF
+        _ = mapped_request.pop("data_format", None)
+        self.context.info(f"Daily stats, mapped_request = {mapped_request}")
+
+        # Separate out the MARS and non-MARS elements of the request, as we need to handle them differently.
+        mars_request, non_mars_elements = self.separate_mars_requests(mapped_request)
+
+        statistic: str = ensure_list(
+            non_mars_elements.get("daily_statistic", "daily_mean")
+        )[0]
+        time_zone: str = ensure_list(non_mars_elements.get("time_zone", "UTC+00:00"))[0]
+        time_zone_hour: int = int(time_zone.lower().replace("utc", "")[:3])
+        frequency_str: str = ensure_list(
+            non_mars_elements.get("frequency", "1_hourly")
+        )[0]
+        frequency: int = int(frequency_str.replace("-", "_").replace("_hourly", ""))
+
+        # Pre-process dates
+        date_list: list[str] = ensure_list(mars_request["date"])
+        date_list_extended = self.get_date_list_extended(
+            date_list, time_zone_hour, self.config.get("first_valid_date", "1940-01-01")
+        )
+
+        accumulation_period = self.get_validated_accumulation_period(mars_request)
 
         # Split by variable as time handling varies, and best to have a clean consistent approach
         variables = ensure_list(self.input_request["variable"])
