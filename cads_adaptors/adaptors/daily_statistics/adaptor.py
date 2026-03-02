@@ -257,10 +257,12 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
         mars_request = copy(mapped_request)
 
         # Extract the non-MARS parameters from the request, with defaults if not provided
-        statistic: str = mars_request.pop("daily_statistic", "daily_mean")
-        time_zone: str = mars_request.pop("time_zone", "UTC+00:00")
+        #  The must always be single values, as checked in the pre_mapping_modifications step
+        #  TODO: Refactor this after/during the request handling refactor
+        statistic: str = ensure_list(mars_request.pop("daily_statistic", "daily_mean"))[0]
+        time_zone: str = ensure_list(mars_request.pop("time_zone", "UTC+00:00"))[0]
         time_zone_hour: int = int(time_zone.lower().replace("utc", "")[:3])
-        frequency_str: str = mars_request.pop("frequency", "1_hourly")
+        frequency_str: str = ensure_list(mars_request.pop("frequency", "1_hourly"))[0]
         frequency: int = int(frequency_str.replace("_hourly", ""))
 
         # Pre-process dates
