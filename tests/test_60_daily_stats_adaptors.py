@@ -46,9 +46,12 @@ def test_remove_partial_periods_consecutive_dates():
     )
 
     out_times = result["test"].coords["valid_time"].values
-    assert out_times.tolist() == np.array(
-        ["2020-01-02", "2020-01-03", "2020-01-04"], dtype="datetime64[ns]"
-    ).tolist()
+    assert (
+        out_times.tolist()
+        == np.array(
+            ["2020-01-02", "2020-01-03", "2020-01-04"], dtype="datetime64[ns]"
+        ).tolist()
+    )
 
 
 def test_remove_partial_periods_non_consecutive_dates():
@@ -60,9 +63,10 @@ def test_remove_partial_periods_non_consecutive_dates():
     )
 
     out_times = result["test"].coords["valid_time"].values
-    assert out_times.tolist() == np.array(
-        ["2020-01-02", "2020-01-04"], dtype="datetime64[ns]"
-    ).tolist()
+    assert (
+        out_times.tolist()
+        == np.array(["2020-01-02", "2020-01-04"], dtype="datetime64[ns]").tolist()
+    )
 
 
 def test_pre_mapping_modifications_sets_receipt_and_download_format():
@@ -94,9 +98,7 @@ def test_pre_mapping_modifications_sets_receipt_and_download_format():
         ("frequency", ["1_hourly", "3_hourly"], "Multiple frequency"),
     ],
 )
-def test_pre_mapping_modifications_rejects_multiple_values(
-    key, value, expected_error
-):
+def test_pre_mapping_modifications_rejects_multiple_values(key, value, expected_error):
     adaptor = Era5DailyStatisticsCdsAdaptor(form=None, context=RecordingContext())
 
     request = {key: value}
@@ -108,7 +110,9 @@ def test_get_date_list_extended_adds_buffer_days():
     adaptor = Era5DailyStatisticsCdsAdaptor(form=None, context=RecordingContext())
 
     dates = adaptor.get_date_list_extended(
-        ["2020-01-02", "2020-01-03"], time_zone_hour=0, first_valid_date_str="1940-01-01"
+        ["2020-01-02", "2020-01-03"],
+        time_zone_hour=0,
+        first_valid_date_str="1940-01-01",
     )
 
     assert dates == ["2020-01-01", "2020-01-02", "2020-01-03", "2020-01-04"]
