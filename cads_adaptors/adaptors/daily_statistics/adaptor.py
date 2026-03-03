@@ -127,7 +127,7 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
 
         # If single date, selection is singular::
         if len(date_list) == 1:
-            selection = date_list
+            selection: Any = date_list
         else:
             # Slicing is faster, so slice if we can:
             consecutive_dates = True
