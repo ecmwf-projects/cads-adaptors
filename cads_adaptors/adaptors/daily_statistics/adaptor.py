@@ -340,7 +340,7 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
         variable_mapping_reversed = {v: k for k, v in variable_mapping.items()}
         variables = [
             variable_mapping_reversed.get(var, var)
-            for var in ensure_list(mapped_request["variable"])
+            for var in ensure_list(mars_request["param"])
         ]
 
         self.context.debug(f"Daily stats, variable_mapping = {variable_mapping}")
