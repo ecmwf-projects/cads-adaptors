@@ -158,13 +158,16 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
     ) -> tuple[Request, ProcessingKwargs]:
         request, kwargs = super().pre_mapping_modifications(request)
 
+        # Ensure that data_format is removed from request, output is always netCDF
+        _ = request.pop("data_format", None)
+
         # Extract post-process steps from the request before applying the mapping
         if kwargs["post_process_steps"]:
             self.context.add_user_visible_log(
                 "WARNING: Post-processing steps cannot be applied to the daily statistics datasets. "
                 "The post-processing steps you have requested have been ignored"
             )
-            kwargs["post_process_steps"] = []
+        kwargs["post_process_steps"] = []
 
         # Some quick checks to ensure valid request
         if len(ensure_list(request.get("daily_statistic", "daily_mean"))) > 1:
