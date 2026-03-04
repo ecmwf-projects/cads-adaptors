@@ -159,7 +159,7 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
         request, kwargs = super().pre_mapping_modifications(request)
 
         # Ensure that data_format is removed from request, output is always netCDF
-        _ = request.pop("data_format", None)
+        request.pop("data_format", None)
 
         # Extract post-process steps from the request before applying the mapping
         if kwargs["post_process_steps"]:
@@ -341,14 +341,13 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
         # Split by variable as time handling varies, and best to have a clean consistent approach
         variable_mapping = self.mapping.get("remap", {}).get("variable", {})
         variable_mapping_reversed = {v: k for k, v in variable_mapping.items()}
-        variables = [
-            variable_mapping_reversed.get(var, var)
-            for var in ensure_list(mars_request["param"])
-        ]
 
         self.context.debug(f"Daily stats, variable_mapping = {variable_mapping}")
         # Map variables to param ids
-        param_ids = {var: variable_mapping.get(var, var) for var in variables}
+        param_ids = {
+            variable_mapping_reversed.get(param, param): param
+            for param in ensure_list(mars_request["param"])
+        }
         self.context.debug(f"Daily stats, param_ids = {param_ids}")
 
         results: list[str] = []
