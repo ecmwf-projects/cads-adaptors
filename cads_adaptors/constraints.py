@@ -3,11 +3,18 @@
 import copy
 import itertools
 import re
+from enum import Enum
 from typing import Any
 
 from datetimerange import DateTimeRange
 
 from . import adaptors, exceptions, translators
+
+
+class ApplyConstraintsMethod(Enum):
+    OLD_FASHION = "old"  # slow, but allowing more complex selections (with inconsistent dimensions set)
+    NEW_FASHION = "new"  # faster, but only allowing simple selections (with consistent dimensions set)
+    QUBED_BASED = "qubed_based"  # not implemented yet
 
 
 def get_unsupported_vars(
@@ -92,6 +99,7 @@ def apply_constraints(
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
     widget_types: dict[str, str] = dict(),
+    apply_constraints_method: str | None = None,
 ) -> dict[str, list[Any]]:
     """
     Apply dataset constraints to the current selection.
@@ -112,9 +120,24 @@ def apply_constraints(
         if key not in constraint_keys:
             form.pop(key, None)
             selection.pop(key, None)
-    result = apply_constraints_in_old_cds_fashion(
-        form, selection, constraints, widget_types=widget_types
-    )
+
+    if apply_constraints_method is None:
+        apply_constraints_method = ApplyConstraintsMethod.OLD_FASHION.value
+
+    if apply_constraints_method == ApplyConstraintsMethod.OLD_FASHION.value:
+        result = apply_constraints_in_old_cds_fashion(
+            form, selection, constraints, widget_types=widget_types
+        )
+    elif apply_constraints_method == ApplyConstraintsMethod.NEW_FASHION.value:
+        result = get_form_state(form, selection, constraints)
+    elif apply_constraints_method == ApplyConstraintsMethod.QUBED_BASED.value:
+        raise NotImplementedError(
+            f"{apply_constraints_method} method is not implemented yet."
+        )
+    else:
+        raise NotImplementedError(
+            f"{apply_constraints_method} method is not implemented (neither it is foreseen)."
+        )
     result.update(format_to_json(always_valid))
 
     return result
@@ -485,6 +508,7 @@ def validate_constraints(
     cds_form: list[dict[str, Any]] | dict[str, Any] | None,
     request: adaptors.Request,
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
+    apply_constraints_method: str | None = None,
 ) -> dict[str, list[str]]:
     parsed_form = parse_form(cds_form)
     unsupported_vars = get_unsupported_vars(cds_form)
@@ -503,7 +527,7 @@ def validate_constraints(
     }
 
     return apply_constraints(
-        parsed_form, selection, constraints, widget_types=widget_types
+        parsed_form, selection, constraints, widget_types, apply_constraints_method
     )
 
 
