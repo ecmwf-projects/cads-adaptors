@@ -8,7 +8,7 @@ from cads_adaptors.exceptions import InvalidRequest
 
 
 class RecordingContext(Context):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.logs: list[str] = []
         self.errors: list[str] = []
@@ -80,10 +80,9 @@ def test_pre_mapping_modifications_sets_receipt_and_download_format():
         "time_zone": "UTC+00:00",
         "frequency": "1_hourly",
     }
-    out_request = adaptor.pre_mapping_modifications(request)
+    out_request, out_kwargs = adaptor.pre_mapping_modifications(request)
 
-    assert adaptor.receipt is False
-    assert adaptor.download_format == "zip"
+    assert out_kwargs["download_format"] == "zip"
     assert "receipt" not in out_request
     assert "post_process" not in out_request
     assert "download_format" not in out_request

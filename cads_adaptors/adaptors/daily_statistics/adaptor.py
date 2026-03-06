@@ -20,6 +20,7 @@ from typing import Any
 
 import dateutil
 
+from cads_adaptors.adaptors.cds import ProcessingKwargs, Request
 from cads_adaptors.adaptors.mars import MarsCdsAdaptor, execute_mars
 from cads_adaptors.exceptions import InvalidRequest
 from cads_adaptors.tools.general import ensure_list
@@ -152,19 +153,21 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
 
         return out_xarray_dict
 
-    def pre_mapping_modifications(self, request):
-        # Move the receipt flag from the request to the adaptor attributes (currently not in use)
-        self.receipt = request.pop("receipt", False)
+    def pre_mapping_modifications(
+        self, request: Request
+    ) -> tuple[Request, ProcessingKwargs]:
+        request, kwargs = super().pre_mapping_modifications(request)
+
+        # Ensure that data_format is removed from request, output is always netCDF
+        request.pop("data_format", None)
 
         # Extract post-process steps from the request before applying the mapping
-        if request.pop("post_process", []):
+        if kwargs["post_process_steps"]:
             self.context.add_user_visible_log(
                 "WARNING: Post-processing steps cannot be applied to the daily statistics datasets. "
                 "The post-processing steps you have requested have been ignored"
             )
-
-        download_format = request.pop("download_format", "zip")
-        self.set_download_format(ensure_list(download_format))
+        kwargs["post_process_steps"] = []
 
         # Some quick checks to ensure valid request
         if len(ensure_list(request.get("daily_statistic", "daily_mean"))) > 1:
@@ -180,7 +183,7 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
                 "Multiple frequency values in a single request is not supported."
             )
 
-        return request
+        return request, kwargs
 
     def get_date_list_extended(
         self, date_list: list[str], time_zone_hour: int, first_valid_date_str: str
@@ -262,11 +265,11 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
         non_mars_keys = non_mars_keys or ["daily_statistic", "time_zone", "frequency"]
         non_mars_elements = {}
         mars_request = {}
-        for key in request:
+        for key, value in request.items():
             if key in non_mars_keys:
-                non_mars_elements[key] = request.pop(key)
+                non_mars_elements[key] = value
             else:
-                mars_request[key] = request[key]
+                mars_request[key] = value
 
         return mars_request, non_mars_elements
 
@@ -301,17 +304,17 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
                 )
         return accumulation_period or 1
 
-    def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
-        request = self.normalise_request(request=request)
-
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
         # Turn back into a single request
-        if len(self.mapped_requests) > 1:
-            mapped_request = merge_requests(self.mapped_requests)
+        if len(mapped_requests) > 1:
+            mapped_request = merge_requests(mapped_requests)
         else:
-            mapped_request = self.mapped_requests[0]
+            mapped_request = mapped_requests[0]
 
-        # Ensure that data_format is removed from request, output is always netCDF
-        _ = mapped_request.pop("data_format", None)
         self.context.info(f"Daily stats, mapped_request = {mapped_request}")
 
         # Separate out the MARS and non-MARS elements of the request, as we need to handle them differently.
@@ -336,12 +339,15 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
         accumulation_period = self.get_validated_accumulation_period(mars_request)
 
         # Split by variable as time handling varies, and best to have a clean consistent approach
-        variables = ensure_list(self.input_request["variable"])
         variable_mapping = self.mapping.get("remap", {}).get("variable", {})
+        variable_mapping_reversed = {v: k for k, v in variable_mapping.items()}
 
         self.context.debug(f"Daily stats, variable_mapping = {variable_mapping}")
         # Map variables to param ids
-        param_ids = {var: variable_mapping.get(var, var) for var in variables}
+        param_ids = {
+            variable_mapping_reversed.get(param, param): param
+            for param in ensure_list(mars_request["param"])
+        }
         self.context.debug(f"Daily stats, param_ids = {param_ids}")
 
         results: list[str] = []
@@ -400,7 +406,7 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
 
             # Create daily statistic post processing step.
             # NOTE: Could append existing pp_steps here, but for now just overwrite
-            self.post_process_steps = self.pp_mapping(
+            post_process_steps = self.pp_mapping(
                 [
                     {
                         "method": statistic,
@@ -412,7 +418,7 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
             )
 
             results += self.convert_format(
-                self.post_process(mars_result),
+                self.post_process(mars_result, post_process_steps),
                 "netcdf",
                 context=self.context,
                 config=self.config,
@@ -425,10 +431,5 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
                 "the statistic you requested and try again."
             )
             raise InvalidRequest("No data returned")
-
-        # A check to ensure that if there is more than one result file, and download_format
-        #  is as_source, we over-ride and zip the files
-        if len(results) > 1 and self.download_format == "as_source":
-            self.download_format = "zip"
 
         return results

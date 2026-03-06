@@ -1,43 +1,44 @@
 from typing import Any
 
 from cads_adaptors import mapping
-from cads_adaptors.adaptors import cds
+from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, ProcessingKwargs, Request
 
 
-class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
+class UrlCdsAdaptor(AbstractCdsAdaptor):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.area: list[Any] | None = None
         # URL adaptor should default to intersecting constraints
         self.intersect_constraints_bool: bool = self.config.get(
             "intersect_constraints", True
         )
 
-    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
-        request = super().pre_mapping_modifications(request)
-        default_download_format = "zip"
+    def pre_mapping_modifications(
+        self, request: dict[str, Any]
+    ) -> tuple[Request, ProcessingKwargs]:
+        request, kwargs = super().pre_mapping_modifications(request)
 
         # TODO: Remove legacy syntax all together
-        download_format = request.pop("format", default_download_format)
+        download_format = request.pop("format", kwargs["download_format"])
         download_format = request.pop("download_format", download_format)
-        self.set_download_format(download_format)
+        kwargs["download_format"] = self.get_download_format(download_format)
 
         # TODO: Implement for all adaptors in normalise_request
         request = mapping.area_as_mapping(request, self.mapping, self.context)
 
         # If area still in request it is to be used by the area selector post-processor
-        self.area = request.pop("area", None)
+        kwargs["area"] = request.pop("area", None)
 
-        return request
+        return request, kwargs
 
-    def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
         from cads_adaptors.tools import area_selector, general, url_tools
 
-        request = self.normalise_request(request)
-        assert self.mapped_requests is not None  # Type-setting
-
         requests_urls = url_tools.requests_to_urls(
-            self.mapped_requests,
+            mapped_requests,
             patterns=self.config["patterns"],
         )
 
@@ -57,10 +58,10 @@ class UrlCdsAdaptor(cds.AbstractCdsAdaptor):
 
         paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
 
-        if self.area is not None:
+        if (area := processing_kwargs["area"]) is not None:
             paths = area_selector.area_selector_paths(
                 paths,
-                self.area,
+                area,
                 self.context,
                 **self.config.get("post_processing_kwargs", {}),
             )
