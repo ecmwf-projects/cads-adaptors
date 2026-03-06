@@ -19,6 +19,7 @@ dependencies = [
   "cryptography",
   "DateTimeRange",
   "owslib",
+  "pydantic",
   "python-dateutil",
   "structlog",
   "jsonschema"
@@ -50,7 +51,6 @@ complete = [
   "netcdf4",
   "numpy",
   "pandas",
-  "pydantic",
   "python-dateutil",
   "pyyaml",
   "requests",
