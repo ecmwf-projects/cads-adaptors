@@ -8,12 +8,14 @@ import zipstream
 
 # compression parameters for the supported file types
 # feel free to adjust or add entries
+# Note: zipstream-new does not support per-entry compression levels;
+# ZIP_DEFLATED entries use the library's default level.
 UNKNOWN_EXTENSION = "UNKNOWN_EXTENSION"
-UNKNOWN_EXTENSION_PARAMS = {"algo": zipfile.ZIP_STORED, "level": 0}
+UNKNOWN_EXTENSION_PARAMS = {"algo": zipfile.ZIP_STORED}
 COMPRESSION_PARAMS = {
-    "nc": {"algo": zipfile.ZIP_DEFLATED, "level": 0},
-    "grib": {"algo": zipfile.ZIP_DEFLATED, "level": 4},
-    "csv": {"algo": zipfile.ZIP_DEFLATED, "level": 6},
+    "nc": {"algo": zipfile.ZIP_STORED},
+    "grib": {"algo": zipfile.ZIP_DEFLATED},
+    "csv": {"algo": zipfile.ZIP_DEFLATED},
 }
 
 
@@ -69,7 +71,6 @@ def zip_paths(
             path,
             arcname=archive_name,
             compress_type=compression_params["algo"],
-            compresslevel=compression_params["level"],
         )
 
     if receipt is not None:
