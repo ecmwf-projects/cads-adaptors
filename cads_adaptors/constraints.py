@@ -135,8 +135,8 @@ def apply_constraints(
             f"{apply_constraints_method} method is not implemented yet."
         )
     else:
-        raise NotImplementedError(
-            f"{apply_constraints_method} method is not implemented (neither it is foreseen)."
+        raise exceptions.CdsConfigError(
+            f"{apply_constraints_method} is not a recognised apply-constraints method."
         )
     result.update(format_to_json(always_valid))
 
@@ -375,7 +375,7 @@ def get_form_state(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
-) -> dict[str, set[Any]]:
+) -> dict[str, list[Any]]:
     """
     Call get_possible_values() once for each key in form.
 
@@ -405,7 +405,7 @@ def get_form_state(
     }
     :type: dict[str, set[Any]]:
 
-    :rtype: dict[str, set[Any]]
+    :rtype: dict[str, list[Any]]
     :return: a dictionary containing all form values to be left active given the current selection
 
     e.g.
@@ -420,7 +420,7 @@ def get_form_state(
             sub_selection.pop(key)
         sub_results = get_possible_values(form, sub_selection, constraints)
         result[key] = sub_results.setdefault(key, set())
-    return result
+    return format_to_json(result)
 
 
 def get_always_valid_params(

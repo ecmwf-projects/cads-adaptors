@@ -66,8 +66,8 @@ def test_get_form_state() -> None:
     ]
 
     assert constraints.get_form_state(form, {"level": {"500"}}, raw_constraints) == {
-        "level": {"500", "850"},
-        "param": {"Z"},
+        "level": ["500", "850"],
+        "param": ["Z"],
     }
 
 
@@ -234,10 +234,6 @@ def test_apply_constraints_in_old_cds_fashion_for_dateranges() -> None:
         assert is_a_match(answer, expected_answer)
 
 
-def compare_sets_in_dicts(d1: dict[str, list[Any]], d2: dict[str, list[Any]]):
-    return d1.keys() == d2.keys() and all(set(d1[k]) == set(d2[k]) for k in d1.keys())
-
-
 def test_apply_constraints() -> None:
     form = {"level": {"500", "850"}, "param": {"Z", "T"}, "number": {"1"}}
 
@@ -252,12 +248,12 @@ def test_apply_constraints() -> None:
 
     # when the "old" and "new" methods should do the same thing
     implemented_apply_constraints_methods = ["old", "new"]
-    expected_result = {"level": {"500", "850"}, "param": {"Z"}, "number": {"1"}}
+    expected_result = {"level": ["500", "850"], "param": ["Z"], "number": ["1"]}
     for method in implemented_apply_constraints_methods:
         result = constraints.apply_constraints(
             form, {"level": {"500"}}, raw_constraints, apply_constraints_method=method
         )
-        assert compare_sets_in_dicts(result, expected_result)
+        assert is_a_match(result, expected_result)
 
     # when the "old" and "new" methods should differ
     form = {
@@ -276,22 +272,22 @@ def test_apply_constraints() -> None:
     old_result = constraints.apply_constraints(
         form, {"level": {"500"}}, raw_constraints, apply_constraints_method="old"
     )
-    excepted_old_result = {
+    expected_old_result = {
         "param": ["lA", "lB", "D", "E"],
         "level": ["500", "850"],
         "number": ["1", "2", "3"],
     }
-    assert compare_sets_in_dicts(old_result, excepted_old_result)
+    assert is_a_match(old_result, expected_old_result)
 
     new_result = constraints.apply_constraints(
         form, {"level": {"500"}}, raw_constraints, apply_constraints_method="new"
     )
-    excepted_new_result = {
+    expected_new_result = {
         "param": ["lA", "lB"],
         "level": ["500", "850"],
         "number": ["1", "2"],
     }
-    assert compare_sets_in_dicts(new_result, excepted_new_result)
+    assert is_a_match(new_result, expected_new_result)
 
 
 @pytest.mark.parametrize(
@@ -311,12 +307,18 @@ def test_apply_constraints_errors(selections: dict[str, set[Any]]) -> None:
     with pytest.raises(exceptions.ParameterError, match="invalid param 'foo'"):
         constraints.apply_constraints(form, selections, raw_constraints)
 
-    not_implemented_apply_constraints_methods = ["qubed_based", "not_implemented"]
-    for method in not_implemented_apply_constraints_methods:
-        with pytest.raises(NotImplementedError):
-            constraints.apply_constraints(
-                form, selections, raw_constraints, apply_constraints_method=method
-            )
+    with pytest.raises(NotImplementedError):
+        constraints.apply_constraints(
+            form, selections, raw_constraints, apply_constraints_method="qubed_based"
+        )
+
+    with pytest.raises(exceptions.CdsConfigError):
+        constraints.apply_constraints(
+            form,
+            selections,
+            raw_constraints,
+            apply_constraints_method="not_implemented",
+        )
 
 
 def test_parse_constraints() -> None:
@@ -511,12 +513,15 @@ def test_validate_constraints() -> None:
     for method in implemented_apply_constraints_methods:
         constraints.validate_constraints(raw_form, selections, raw_constraints, method)
 
-    not_implemented_apply_constraints_methods = ["qubed_based", "not_implemented"]
-    for method in not_implemented_apply_constraints_methods:
-        with pytest.raises(NotImplementedError):
-            constraints.validate_constraints(
-                raw_form, selections, raw_constraints, method
-            )
+    with pytest.raises(NotImplementedError):
+        constraints.validate_constraints(
+            raw_form, selections, raw_constraints, "qubed_based"
+        )
+
+    with pytest.raises(exceptions.CdsConfigError):
+        constraints.validate_constraints(
+            raw_form, selections, raw_constraints, "not_implemented"
+        )
 
 
 def test_legacy_intersect_constraints():
