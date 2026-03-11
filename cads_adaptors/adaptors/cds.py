@@ -134,7 +134,13 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
-        return constraints.validate_constraints(self.form, request, self.constraints)
+        apply_constraints_method = self.config.get("apply_constraints_method")
+        return constraints.validate_constraints(
+            self.form,
+            request,
+            self.constraints,
+            apply_constraints_method=apply_constraints_method,
+        )
 
     def intersect_constraints(self, request: Request) -> list[Request]:
         return constraints.legacy_intersect_constraints(
