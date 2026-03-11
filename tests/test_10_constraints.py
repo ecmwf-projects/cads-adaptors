@@ -246,8 +246,11 @@ def test_apply_constraints() -> None:
         "number"
     ] == ["1"]
 
-    # when the "old" and "new" methods should do the same thing
-    implemented_apply_constraints_methods = ["old", "new"]
+    # homogeneous dimensionality constraints
+    implemented_apply_constraints_methods = [
+        "mixed_dimensionality_requests",
+        "homogeneous_dimensionality_requests",
+    ]
     expected_result = {"level": ["500", "850"], "param": ["Z"], "number": ["1"]}
     for method in implemented_apply_constraints_methods:
         result = constraints.apply_constraints(
@@ -255,7 +258,7 @@ def test_apply_constraints() -> None:
         )
         assert is_a_match(result, expected_result)
 
-    # when the "old" and "new" methods should differ
+    # mixed dimensionality constraints
     form = {
         "param": {"lA", "lB", "lC", "D", "E"},
         "level": {"500", "850"},
@@ -270,7 +273,10 @@ def test_apply_constraints() -> None:
     ]
 
     old_result = constraints.apply_constraints(
-        form, {"level": {"500"}}, raw_constraints, apply_constraints_method="old"
+        form,
+        {"level": {"500"}},
+        raw_constraints,
+        apply_constraints_method="mixed_dimensionality_requests",
     )
     expected_old_result = {
         "param": ["lA", "lB", "D", "E"],
@@ -280,7 +286,10 @@ def test_apply_constraints() -> None:
     assert is_a_match(old_result, expected_old_result)
 
     new_result = constraints.apply_constraints(
-        form, {"level": {"500"}}, raw_constraints, apply_constraints_method="new"
+        form,
+        {"level": {"500"}},
+        raw_constraints,
+        apply_constraints_method="homogeneous_dimensionality_requests",
     )
     expected_new_result = {
         "param": ["lA", "lB"],
@@ -509,7 +518,10 @@ def test_validate_constraints() -> None:
 
     constraints.validate_constraints(raw_form, selections, raw_constraints)
 
-    implemented_apply_constraints_methods = ["old", "new"]
+    implemented_apply_constraints_methods = [
+        "mixed_dimensionality_requests",
+        "homogeneous_dimensionality_requests",
+    ]
     for method in implemented_apply_constraints_methods:
         constraints.validate_constraints(raw_form, selections, raw_constraints, method)
 

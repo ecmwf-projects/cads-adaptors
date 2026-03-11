@@ -12,8 +12,14 @@ from . import adaptors, exceptions, translators
 
 
 class ApplyConstraintsMethod(Enum):
-    OLD_FASHION = "old"  # slow, but allowing more complex selections (with inconsistent dimensions set)
-    NEW_FASHION = "new"  # faster, but only allowing simple selections (with consistent dimensions set)
+    # the method introduced (but rarely used) in CDS2.0, also known as the "new" method
+    # faster, but only allowing simple selections
+    # (with homogeneous dimensions set for all pieces of data in the request)
+    HOMOGENEOUS_DIMENSIONALITY_REQUESTS = "homogeneous_dimensionality_requests"
+    # the method introduced in CDS1.0 (the most used in CDS2.0), also known as the "old" method
+    # slower, but allowing more complex selections
+    # (mixed dimensions sets for pieces of data in the same request are possible)
+    MIXED_DIMENSIONALITY_REQUESTS = "mixed_dimensionality_requests"
     QUBED_BASED = "qubed_based"  # not implemented yet
 
 
@@ -106,8 +112,10 @@ def apply_constraints(
 
     :param form: a dictionary of all selectable values
     grouped by field name
-    :param constraints: a list of all constraints
     :param selection: a dictionary containing the current selection
+    :param constraints: a list of all constraints
+    :param widget_types: a dictionary containing the type of each widget
+    :param apply_constraints_method: the apply-constraints method, default="mixed_dimensionality_requests"
     :return: a dictionary containing all values that should be left
     active for selection, in JSON format
     """
@@ -122,13 +130,21 @@ def apply_constraints(
             selection.pop(key, None)
 
     if apply_constraints_method is None:
-        apply_constraints_method = ApplyConstraintsMethod.OLD_FASHION.value
+        apply_constraints_method = (
+            ApplyConstraintsMethod.MIXED_DIMENSIONALITY_REQUESTS.value
+        )
 
-    if apply_constraints_method == ApplyConstraintsMethod.OLD_FASHION.value:
+    if (
+        apply_constraints_method
+        == ApplyConstraintsMethod.MIXED_DIMENSIONALITY_REQUESTS.value
+    ):
         result = apply_constraints_in_old_cds_fashion(
             form, selection, constraints, widget_types=widget_types
         )
-    elif apply_constraints_method == ApplyConstraintsMethod.NEW_FASHION.value:
+    elif (
+        apply_constraints_method
+        == ApplyConstraintsMethod.HOMOGENEOUS_DIMENSIONALITY_REQUESTS.value
+    ):
         result = get_form_state(form, selection, constraints)
     elif apply_constraints_method == ApplyConstraintsMethod.QUBED_BASED.value:
         raise NotImplementedError(
@@ -409,7 +425,7 @@ def get_form_state(
     :return: a dictionary containing all form values to be left active given the current selection
 
     e.g.
-    {'level': {'500', '850'}, 'param': {'T', 'Z'}, 'step': {'24', '36', '48'}}
+    {'level': ['500', '850'], 'param': ['T', 'Z'], 'step': ['24', '36', '48']}
 
     """
     result: dict[str, set[Any]] = {key: set() for key in form}
@@ -527,7 +543,11 @@ def validate_constraints(
     }
 
     return apply_constraints(
-        parsed_form, selection, constraints, widget_types, apply_constraints_method
+        parsed_form,
+        selection,
+        constraints,
+        widget_types=widget_types,
+        apply_constraints_method=apply_constraints_method,
     )
 
 
