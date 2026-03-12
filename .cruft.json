@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/ecmwf-projects/cookiecutter-conda-package",
-  "commit": "d8e38d412bfd81121857042e6b2b755b0bbac1c5",
+  "commit": "8db27d6831019b8ca87366f95d79e9b9fed6f4a9",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -9,11 +9,11 @@
       "project_short_description": "CADS data retrieve utilities to be used by adaptors",
       "copyright_holder": "European Union",
       "copyright_year": "2022",
-      "mypy_strict": "True",
-      "integration_tests": "False",
-      "pypi": "false",
+      "mypy_strict": true,
+      "integration_tests": false,
+      "pypi": false,
       "_template": "https://github.com/ecmwf-projects/cookiecutter-conda-package",
-      "_commit": "d8e38d412bfd81121857042e6b2b755b0bbac1c5"
+      "_commit": "8db27d6831019b8ca87366f95d79e9b9fed6f4a9"
     }
   },
   "directory": null
