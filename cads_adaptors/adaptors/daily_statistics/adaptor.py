@@ -262,11 +262,11 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
         non_mars_keys = non_mars_keys or ["daily_statistic", "time_zone", "frequency"]
         non_mars_elements = {}
         mars_request = {}
-        for key in request:
+        for key, value in request.items():
             if key in non_mars_keys:
-                non_mars_elements[key] = request.pop(key)
+                non_mars_elements[key] = value
             else:
-                mars_request[key] = request[key]
+                mars_request[key] = value
 
         return mars_request, non_mars_elements
 
