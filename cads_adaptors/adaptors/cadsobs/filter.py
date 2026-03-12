@@ -77,8 +77,8 @@ def filter_asset_and_save(
                 )
         else:
             # Sometimes no data will be found as for example requested station may not
-            # have the requested varaibles available.
-            logger.debug("No data found in asset for the query paramater.")
+            # have the requested variables available.
+            logger.debug("No data found in asset for the query parameter.")
 
 
 def _get_mask(incobj: h5netcdf.File, retrieve_params: RetrieveParams) -> numpy.ndarray:
