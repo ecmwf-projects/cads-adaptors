@@ -314,6 +314,7 @@ def test_adaptor(tmp_path, monkeypatch):
         # Filtering processing level 1 leaves only the soil_temperature available
         assert np.array_equal(np.unique(actual_variables), [b"soil_temperature"])
 
+
 def test_adaptor_mapped_requests(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
