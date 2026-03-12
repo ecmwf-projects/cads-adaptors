@@ -25,6 +25,7 @@ from cads_adaptors.adaptors.cadsobs.utils import (
     get_vars_in_cdm_lite,
     handle_coordinate_renaming,
 )
+from cads_adaptors.exceptions import CadsObsRuntimeError
 
 logger = logging.getLogger(__name__)
 
@@ -114,11 +115,20 @@ def _apply_extra_filters(
         return masks_combined
     for field, filter_values in retrieve_params.extra_filters.items():
         if field not in incobj.variables:
-            raise RuntimeError(f"{field=} in extra filters not found.")
+            raise CadsObsRuntimeError(
+                f"Field '{field}' in extra_filters not found in the dataset."
+            )
         field_values = incobj.variables[field][:]
-        # Strings need to be concatenated
+        # Strings need to be concatenated; normalize filter values to bytes to match
         if incobj.variables[field].dtype.kind == "S":
             field_values = concat_str_array(field_values)
+            if isinstance(filter_values, list):
+                filter_values = [
+                    v.encode("utf-8") if isinstance(v, str) else v
+                    for v in filter_values
+                ]
+            elif isinstance(filter_values, str):
+                filter_values = filter_values.encode("utf-8")
         if isinstance(filter_values, list):
             field_mask = numpy.isin(field_values, filter_values)
         else:
