@@ -313,7 +313,7 @@ def test_adaptor(tmp_path, monkeypatch):
     with h5netcdf.File(tempfile) as actual:
         actual_variables = concat_str_array(actual.variables["observed_variable"][:])
         # Filtering processing level 1 leaves only the soil_temperature available
-        assert np.unique(actual_variables) == [b"soil_temperature"]
+        assert np.array_equal(np.unique(actual_variables), [b"soil_temperature"])
 
 def test_adaptor_mapped_requests(tmp_path, monkeypatch):
     monkeypatch.setattr(
