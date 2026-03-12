@@ -60,7 +60,7 @@ def retrieve_data(
             message = "No data was found, try a different parameter combination."
             # context.add_user_visible_error(message)
             raise CadsObsRuntimeError(message)
-        # Add atributes
+        # Add attributes
         add_attributes(oncobj, field_attributes, global_attributes)
     # If the user asked for a CSV, we transform the file to CSV and zip it
     if retrieve_args.params.format == "netCDF":
