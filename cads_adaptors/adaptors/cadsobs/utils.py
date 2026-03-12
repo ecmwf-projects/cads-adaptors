@@ -64,7 +64,7 @@ def handle_coordinate_renaming(vars_in_cdm_lite: list[str]) -> tuple[dict, list[
     just latitude. In case latitude|observations is not available, we rename
     latitude|station_configuration or latitude|header_table, the one available.
     In case both latitude|station_configuration and latitude|header_table are available,
-    we won't rename them as we don't know hot to combine them.
+    we won't rename them as we don't know how to combine them.
     """
     vars_to_rename: dict[str, str] = dict()
     for varname in vars_in_cdm_lite.copy():
