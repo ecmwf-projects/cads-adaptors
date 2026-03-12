@@ -26,9 +26,9 @@ def retrieve_data(
 ) -> Path:
     """Loop over the netCDFs in the storage, open and filter the requested data.
 
-    The data requested is saved to the output file. The index dimensionis resized each
-    time in order to append the new data found in each file. Finally the data is
-    transformed to CSV if this is the format requested.
+    The requested data is saved to the output file. The index dimension is resized each
+    time to append the new data found in each file. Finally, the data is converted to
+    CSV if that format is requested.
     """
     import h5netcdf
 
