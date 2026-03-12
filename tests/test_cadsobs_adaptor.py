@@ -356,11 +356,11 @@ def test_adaptor_cuon(tmp_path, monkeypatch):
     with tempfile.open("wb") as tmpf:
         tmpf.write(result.read())
     assert tempfile.stat().st_size > 0
-    actual = h5netcdf.File(tempfile)
-    assert actual.dimensions["index"].size > 0
-    actual_levels = actual.variables["z_coordinate"][:]
-    assert np.array_equal(np.unique(actual_levels), [70000, 85000])
-    assert not any([f in actual for f in CUON_DISABLED_FIELDS])
+    with h5netcdf.File(tempfile) as actual:
+        assert actual.dimensions["index"].size > 0
+        actual_levels = actual.variables["z_coordinate"][:]
+        assert np.array_equal(np.unique(actual_levels), [70000, 85000])
+        assert not any([f in actual for f in CUON_DISABLED_FIELDS])
 
 
 def test_adaptor_estimate_costs(tmp_path, monkeypatch):
