@@ -17,6 +17,7 @@ class RetrieveParams(BaseModel, extra="ignore"):
     month: None | List[int] = None
     day: None | List[int] = None
     format: RetrieveFormat = "netCDF"
+    extra_filters: dict[str, str | int | float | list[str | int | float]] | None = None
 
 
 class RetrieveArgs(BaseModel):
