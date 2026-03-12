@@ -106,7 +106,7 @@ def _apply_extra_filters(
 ) -> numpy.ndarray:
     """Apply the mask for requested extra filters if any.
 
-    We use the extra_filters field in the request. The filter support single values
+    We use the extra_filters field in the request. The filter supports single values
     (text or numeric) and also lists calling "isin".
     """
     # We need this here for mypy not to complain
