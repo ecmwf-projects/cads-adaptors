@@ -1,4 +1,6 @@
+import contextlib
 import logging
+import os
 import pathlib
 from datetime import datetime, timedelta
 from typing import Any, Type
@@ -7,10 +9,13 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
+from zarr.storage import FsspecStore
 
 from cads_adaptors import ArcoDataLakeCdsAdaptor
 from cads_adaptors.adaptors import Context
 from cads_adaptors.exceptions import ArcoDataLakeNoDataError, InvalidRequest
+
+does_not_raise = contextlib.nullcontext
 
 
 @pytest.fixture
@@ -152,6 +157,56 @@ def test_arco_normalise_request(
 ) -> None:
     request = arco_adaptor.normalise_request(original)
     assert request == expected
+
+
+@pytest.mark.parametrize(
+    "this_request,costing_kwargs,expected_weight",
+    [
+        (
+            {
+                "data_format": ["nc"],
+                "location": {
+                    "longitude": 1,
+                    "latitude": "2",
+                },
+                "date": 1990,
+                "variable": ("foo", "bar"),
+            },
+            dict(),
+            1,
+        ),
+        (
+            {
+                "data_format": ["nc"],
+                "area": [1, 1, 0, 2],
+                "date": 1990,
+                "variable": ("foo", "bar"),
+            },
+            dict(),
+            16,
+        ),
+        (
+            {
+                "data_format": ["nc"],
+                "area": [1, 1, 0, 2],
+                "date": 1990,
+                "variable": ("foo", "bar"),
+            },
+            {
+                "spatial_resolution": {"latitude": 0.5, "longitude": 0.5},
+            },
+            4,
+        ),
+    ],
+)
+def test_arco_area_weight(
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    this_request: dict[str, Any],
+    costing_kwargs: dict[str, Any],
+    expected_weight: int,
+) -> None:
+    weight = arco_adaptor.area_weight(this_request, **costing_kwargs)
+    assert weight == expected_weight
 
 
 @pytest.mark.parametrize(
@@ -526,3 +581,112 @@ def test_connection_problems(
         "Cannot access the ARCO Data Lake"
         in arco_adaptor.context.user_visible_errors[-1]  # type: ignore[attr-defined]
     )
+
+
+@pytest.mark.parametrize(
+    "open_dataset_kwargs, raises",
+    [
+        ({"consolidated": True, "chunks": "auto"}, does_not_raise()),
+        ({"wrong": "foo"}, pytest.raises(TypeError)),
+    ],
+)
+def test_arco_open_dataset_kwargs(
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    monkeypatch: pytest.MonkeyPatch,
+    open_dataset_kwargs: dict[str, Any],
+    raises: contextlib.nullcontext,
+):
+    request = {
+        "variable": "FOO",
+        "location": {"latitude": 0, "longitude": 0},
+        "date": "2000",
+        "data_format": "netcdf",
+    }
+    monkeypatch.setitem(arco_adaptor.config, "open_dataset_kwargs", open_dataset_kwargs)
+    with raises:
+        arco_adaptor.retrieve(request)
+
+
+@pytest.mark.parametrize(
+    "to_netcdf_kwargs, raises",
+    [
+        ({"format": "NETCDF4", "encoding": {"foo": {"zlib": True}}}, does_not_raise()),
+        ({"wrong": "foo"}, pytest.raises(TypeError)),
+    ],
+)
+def test_arco_to_netcdf_kwargs(
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    monkeypatch: pytest.MonkeyPatch,
+    to_netcdf_kwargs: dict[str, Any],
+    raises: contextlib.nullcontext,
+):
+    request = {
+        "variable": "FOO",
+        "location": {"latitude": 0, "longitude": 0},
+        "date": "2000",
+        "data_format": "netcdf",
+    }
+    monkeypatch.setitem(arco_adaptor.config, "to_netcdf_kwargs", to_netcdf_kwargs)
+    with raises:
+        arco_adaptor.retrieve(request)
+
+
+@pytest.mark.parametrize(
+    "to_csv_kwargs, raises",
+    [
+        ({"index": False, "float_format": "%.2f"}, does_not_raise()),
+        ({"wrong": "foo"}, pytest.raises(TypeError)),
+    ],
+)
+def test_arco_to_csv_kwargs(
+    arco_adaptor: ArcoDataLakeCdsAdaptor,
+    monkeypatch: pytest.MonkeyPatch,
+    to_csv_kwargs: dict[str, Any],
+    raises: contextlib.nullcontext,
+):
+    request = {
+        "variable": "FOO",
+        "location": {"latitude": 0, "longitude": 0},
+        "date": "2000",
+        "data_format": "csv",
+    }
+    monkeypatch.setitem(arco_adaptor.config, "to_csv_kwargs", to_csv_kwargs)
+    with raises:
+        arco_adaptor.retrieve(request)
+
+
+EXPECTED_STORAGE_OPTIONS = {
+    "key": "test_access_key",
+    "secret": "test_secret_key",
+    "client_kwargs": {"endpoint_url": "https://s3.test-endpoint.com"},
+    "asynchronous": True,
+}
+
+
+def test_arco_store_setup_from_config(arco_adaptor: ArcoDataLakeCdsAdaptor) -> None:
+    arco_adaptor.config["use_dss_store"] = True
+    arco_adaptor.config["url"] = "https://test.hostname.ec/test/path"
+    arco_adaptor.config["DSS_ARCO_S3_SECRET_KEY"] = "test_secret_key"
+    arco_adaptor.config["DSS_ARCO_S3_ACCESS_KEY"] = "test_access_key"
+    arco_adaptor.config["DSS_ARCO_S3_ENDPOINT_URL"] = "https://s3.test-endpoint.com"
+    arco_store = arco_adaptor.custom_dss_store()
+    assert isinstance(arco_store, FsspecStore)
+    assert arco_store.path == "test/path"
+    assert arco_store.fs.storage_options == EXPECTED_STORAGE_OPTIONS
+    assert PermissionError in arco_store.allowed_exceptions
+
+    arco_adaptor.config["path"] = "test/path"
+    assert arco_store.path == "test/path"
+
+
+def test_arco_store_setup_from_env(arco_adaptor: ArcoDataLakeCdsAdaptor) -> None:
+    arco_adaptor.config["use_dss_store"] = True
+    arco_adaptor.config["path"] = "test/path"
+    os.environ["DSS_ARCO_S3_SECRET_KEY"] = "test_secret_key"
+    os.environ["DSS_ARCO_S3_ACCESS_KEY"] = "test_access_key"
+    os.environ["DSS_ARCO_S3_ENDPOINT_URL"] = "https://s3.test-endpoint.com"
+    arco_store_env = arco_adaptor.custom_dss_store()
+    assert isinstance(arco_store_env, FsspecStore)
+    assert arco_store_env.path == "test/path"
+    assert arco_store_env.fs.storage_options == EXPECTED_STORAGE_OPTIONS
+    assert PermissionError in arco_store_env.allowed_exceptions

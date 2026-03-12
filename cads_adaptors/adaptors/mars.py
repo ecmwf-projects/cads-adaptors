@@ -1,21 +1,26 @@
 import os
 import pathlib
 import time
-from typing import Any, BinaryIO
+from typing import Any
 
-from cads_adaptors.adaptors import Context, Request, cds
+from cads_adaptors.adaptors import Context, Request
+from cads_adaptors.adaptors.cds import (
+    AbstractCdsAdaptor,
+    CachingArgs,
+    ProcessingKwargs,
+)
 from cads_adaptors.exceptions import (
-    CdsConfigError,
     MarsNoDataError,
     MarsRuntimeError,
     MarsSystemError,
 )
-from cads_adaptors.tools.adaptor_tools import handle_data_format
+from cads_adaptors.tools import adaptor_tools
 from cads_adaptors.tools.date_tools import implement_embargo
 from cads_adaptors.tools.general import (
     ensure_list,
     split_requests_on_keys,
 )
+from cads_adaptors.tools.simulate_preinterpolation import simulate_preinterpolation
 
 # This hard requirement of MARS requests should be moved to the proxy MARS client
 ALWAYS_SPLIT_ON: list[str] = [
@@ -99,12 +104,21 @@ def execute_mars(
     reply = cluster.execute(requests, env, target)
     reply_message = str(reply.message)
     delta_time = time.time() - time0
-    filesize = os.path.getsize(target)
-    context.info(
-        f"MARS Request complete. Filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds.",
-        delta_time=delta_time,
-        filesize=filesize,
-    )
+    if os.path.exists(target):
+        filesize = os.path.getsize(target)
+        context.info(
+            f"The MARS Request produced a target "
+            f"(filesize={filesize * 1e-6} Mb, delta_time= {delta_time:.2f} seconds).",
+            delta_time=delta_time,
+            filesize=filesize,
+        )
+    else:
+        filesize = 0
+        context.info(
+            f"The MARS request produced no target (delta_time= {delta_time:.2f} seconds).",
+            delta_time=delta_time,
+        )
+
     context.debug(message=reply_message)
 
     if reply.error:
@@ -134,22 +148,112 @@ def execute_mars(
     return target
 
 
-class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
+def minimal_mars_schema(
+    allow_duplicate_values_keys=None,
+    remove_duplicate_values=False,
+    key_regex=None,
+    value_regex=None,
+):
+    """A minimal schema that ensures all values are lists of strings. Also
+    ensures non-post-processing keys don't contain duplicate values.
+    """
+    # Regular expressions for valid keys and values. The one_char_minimum regex
+    # matches any number of non-whitespace and space characters as long as there
+    # is at least one non-whitespace.
+    one_char_minimum = r"[\S ]*\S[\S ]*"
+    whitespace = r"[ \t]*"
+    key_regex = key_regex or rf"^{whitespace}{one_char_minimum}{whitespace}\Z"
+    value_regex = value_regex or rf"^{whitespace}{one_char_minimum}{whitespace}\Z"
+
+    # These are the only keys permitted to have duplicate values. Duplicate
+    # values for field-selection keys sometimes leads to MARS rejecting the
+    # request but other times can result in duplicate output fields which can
+    # cause downstream problems. Manuel advises not to rely on specific MARS
+    # behaviour when given duplicate values so we reject them in advance.
+    postproc_keys = ["grid", "area"] + (allow_duplicate_values_keys or [])
+
+    # Form a regex that matches any key that will not be interpreted as one of
+    # postproc_keys by MARS. i.e. a case-insensitive regex that matches anything
+    # other than optional whitespace followed by a sequence of characters whose
+    # lead characters match lead characters of one of postproc_keys. This
+    # complexity is required because MARS will interpret all of the following as
+    # area: "ArEa", "areaXYZ", "are", "arefoo".
+    same_lead_chars = [
+        "(".join(list(k)) + "".join([")?"] * (len(k) - 1)) for k in postproc_keys
+    ]
+    not_postproc_key = r"(?i)^(?!\s*(" + "|".join(same_lead_chars) + "))"
+
+    # Minimal schema
+    schema = {
+        "_draft": "7",
+        "allOf": [  # All following schemas must match.
+            # Basic requirements for all keys
+            {
+                "type": "object",  # Item is a dict
+                "minProperties": 1,  # ...with at least 1 key
+                "patternProperties": {
+                    key_regex: {  # ...with names matching this
+                        "type": "array",  # ...must hold lists
+                        "minItems": 1,  # ...of at least 1 item
+                        "items": {
+                            "type": "string",  # ...which are strings
+                            "pattern": value_regex,  # ...matching this regex
+                            "_onErrorShowPattern": False,  # (error msg control)
+                        },
+                    }
+                },
+                "additionalProperties": False,  # ...with no non-matching keys
+                "_onErrorShowPattern": False,  # (error msg control)
+            },
+            # Additional requirement for some keys
+            {
+                "type": "object",  # Item is a dict
+                "patternProperties": {
+                    not_postproc_key: {  # ...in which non post-processing keys
+                        "type": "array",
+                        "uniqueItems": True,  # ...containing duplicates
+                        # ... are rejected or have duplicates removed
+                        "_noRemoveDuplicates": not remove_duplicate_values,
+                    }
+                },
+            },
+        ],
+    }
+
+    return schema
+
+
+class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
-    def retrieve(self, request: Request) -> BinaryIO:
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        return CachingArgs(
+            mapped_requests=[request],
+            avoid_cache=False,
+            kwargs=ProcessingKwargs(
+                download_format="as_source", area=[], post_process_steps=[]
+            ),
+        )
+
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
         result = execute_mars(
-            request,
+            mapped_requests,
             context=self.context,
             target_dir=self.cache_tmp_path,
         )
-        return open(result, "rb")
+        return [result]
 
 
-class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.data_format: str | None = None
+class MarsCdsAdaptor(AbstractCdsAdaptor):
+    def __init__(self, *args, **config) -> None:
+        super().__init__(*args, **config)
+        schema_options = config.get("schema_options", {})
+        if not schema_options.get("disable_adaptor_schema"):
+            self.adaptor_schema = minimal_mars_schema(**schema_options)
 
     def convert_format(self, *args, **kwargs):
         from cads_adaptors.tools.convertors import convert_format
@@ -168,9 +272,11 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
         kwargs.setdefault("context", self.context)
         return monthly_reduce(*args, **kwargs)
 
-    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+    def pre_mapping_modifications(
+        self, request: dict[str, Any]
+    ) -> tuple[Request, ProcessingKwargs]:
         """Implemented in normalise_request, before the mapping is applied."""
-        request = super().pre_mapping_modifications(request)
+        request, kwargs = super().pre_mapping_modifications(request)
 
         if "format" in request:
             self.context.add_user_visible_error(
@@ -179,62 +285,65 @@ class MarsCdsAdaptor(cds.AbstractCdsAdaptor):
                 "therefore it is not guaranteed to work."
             )
         # Remove "format" from request if it exists
-        data_format = request.pop("format", "grib")
-        data_format = handle_data_format(request.get("data_format", data_format))
+        data_format = request.pop("format", ["grib"])
+        data_format = adaptor_tools.handle_data_format(
+            request.get("data_format", data_format)
+        )
 
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             data_format = "netcdf"
-            request.setdefault("download_format", "zip")
+            request.setdefault("download_format", ["zip"])
 
         # Enforce value of data_format to normalized value
-        request["data_format"] = data_format
+        request["data_format"] = [data_format]
 
         default_download_format = "as_source"
-        download_format = request.pop("download_format", default_download_format)
-        self.set_download_format(
+        download_format = ensure_list(
+            request.pop("download_format", default_download_format)
+        )[0]
+        kwargs["download_format"] = self.get_download_format(
             download_format, default_download_format=default_download_format
         )
 
-        return request
+        # Perform actions necessary to simulate pre-interpolation of fields to
+        # a regular grid?
+        if cfg := self.config.get("simulate_preinterpolation"):
+            request = simulate_preinterpolation(request, cfg, self.context)
 
-    def retrieve_list_of_results(self, request: dict[str, Any]) -> list[str]:
-        # Call normalise_request to set self.mapped_requests
-        request = self.normalise_request(request)
+        return request, kwargs
 
-        data_formats = [req.pop("data_format", None) for req in self.mapped_requests]
-        data_formats = list(set(data_formats))
-        if len(data_formats) != 1 or data_formats[0] is None:
-            # It should not be possible to reach here, if it is, there is a problem.
-            raise CdsConfigError(
-                "Something has gone wrong in preparing your request, "
-                "please try to submit your request again. "
-                "If the problem persists, please contact user support."
-            )
-        self.data_format = data_formats[0]
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
+        # Get data_format from the list of mapped_requests, performs an additional
+        # check that only one data_format is present across all mapped_requests,
+        # and ensures a normalised value.
+        mapped_requests, data_format = (
+            adaptor_tools.get_data_format_from_mapped_requests(mapped_requests)
+        )
 
         result = execute_mars(
-            self.mapped_requests,
+            mapped_requests,
             context=self.context,
             config=self.config,
             mapping=self.mapping,
             target_dir=self.cache_tmp_path,
         )
 
-        results_dict = self.post_process(result)
+        results_dict = self.post_process(
+            result, processing_kwargs["post_process_steps"]
+        )
 
         # TODO?: Generalise format conversion to be a post-processor
         paths = self.convert_format(
             results_dict,
-            self.data_format,
+            data_format,
             context=self.context,
             config=self.config,
             target_dir=str(self.cache_tmp_path),
         )
-
-        # A check to ensure that if there is more than one path, and download_format
-        #  is as_source, we over-ride and zip up the files
-        if len(paths) > 1 and self.download_format == "as_source":
-            self.download_format = "zip"
 
         return paths

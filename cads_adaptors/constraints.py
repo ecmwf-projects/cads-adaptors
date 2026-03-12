@@ -3,11 +3,24 @@
 import copy
 import itertools
 import re
+from enum import Enum
 from typing import Any
 
 from datetimerange import DateTimeRange
 
 from . import adaptors, exceptions, translators
+
+
+class ApplyConstraintsMethod(Enum):
+    # the method introduced (but rarely used) in CDS2.0, also known as the "new" method
+    # faster, but only allowing simple selections
+    # (with homogeneous dimensions set for all pieces of data in the request)
+    HOMOGENEOUS_DIMENSIONALITY_REQUESTS = "homogeneous_dimensionality_requests"
+    # the method introduced in CDS1.0 (the most used in CDS2.0), also known as the "old" method
+    # slower, but allowing more complex selections
+    # (mixed dimensions sets for pieces of data in the same request are possible)
+    MIXED_DIMENSIONALITY_REQUESTS = "mixed_dimensionality_requests"
+    QUBED_BASED = "qubed_based"  # not implemented yet
 
 
 def get_unsupported_vars(
@@ -92,14 +105,17 @@ def apply_constraints(
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
     widget_types: dict[str, str] = dict(),
+    apply_constraints_method: str | None = None,
 ) -> dict[str, list[Any]]:
     """
     Apply dataset constraints to the current selection.
 
     :param form: a dictionary of all selectable values
     grouped by field name
-    :param constraints: a list of all constraints
     :param selection: a dictionary containing the current selection
+    :param constraints: a list of all constraints
+    :param widget_types: a dictionary containing the type of each widget
+    :param apply_constraints_method: the apply-constraints method, default="mixed_dimensionality_requests"
     :return: a dictionary containing all values that should be left
     active for selection, in JSON format
     """
@@ -112,9 +128,32 @@ def apply_constraints(
         if key not in constraint_keys:
             form.pop(key, None)
             selection.pop(key, None)
-    result = apply_constraints_in_old_cds_fashion(
-        form, selection, constraints, widget_types=widget_types
-    )
+
+    if apply_constraints_method is None:
+        apply_constraints_method = (
+            ApplyConstraintsMethod.MIXED_DIMENSIONALITY_REQUESTS.value
+        )
+
+    if (
+        apply_constraints_method
+        == ApplyConstraintsMethod.MIXED_DIMENSIONALITY_REQUESTS.value
+    ):
+        result = apply_constraints_in_old_cds_fashion(
+            form, selection, constraints, widget_types=widget_types
+        )
+    elif (
+        apply_constraints_method
+        == ApplyConstraintsMethod.HOMOGENEOUS_DIMENSIONALITY_REQUESTS.value
+    ):
+        result = get_form_state(form, selection, constraints)
+    elif apply_constraints_method == ApplyConstraintsMethod.QUBED_BASED.value:
+        raise NotImplementedError(
+            f"{apply_constraints_method} method is not implemented yet."
+        )
+    else:
+        raise exceptions.CdsConfigError(
+            f"{apply_constraints_method} is not a recognised apply-constraints method."
+        )
     result.update(format_to_json(always_valid))
 
     return result
@@ -237,17 +276,15 @@ def apply_constraints_in_old_cds_fashion(
             if selected_widget_name in constraint:
                 constraint_is_intersected = False
                 if selected_widget_type == "DateRangeWidget":
-                    assert len(selected_widget_options) == 1, (
-                        "More than one selected date range!"
-                    )
-                    selected_range = gen_time_range_from_string(
-                        next(iter(selected_widget_options))
-                    )
+                    selected_ranges = [
+                        gen_time_range_from_string(selected_range)
+                        for selected_range in selected_widget_options
+                    ]
                     valid_ranges = [
                         gen_time_range_from_string(valid_range)
                         for valid_range in constraint[selected_widget_name]
                     ]
-                    if temporal_intersection_between(selected_range, valid_ranges):
+                    if temporal_intersection_between(selected_ranges, valid_ranges):
                         constraint_is_intersected = True
                 else:
                     constraint_selection_intersection = (
@@ -354,7 +391,7 @@ def get_form_state(
     form: dict[str, set[Any]],
     selection: dict[str, set[Any]],
     constraints: list[dict[str, set[Any]]],
-) -> dict[str, set[Any]]:
+) -> dict[str, list[Any]]:
     """
     Call get_possible_values() once for each key in form.
 
@@ -384,11 +421,11 @@ def get_form_state(
     }
     :type: dict[str, set[Any]]:
 
-    :rtype: dict[str, set[Any]]
+    :rtype: dict[str, list[Any]]
     :return: a dictionary containing all form values to be left active given the current selection
 
     e.g.
-    {'level': {'500', '850'}, 'param': {'T', 'Z'}, 'step': {'24', '36', '48'}}
+    {'level': ['500', '850'], 'param': ['T', 'Z'], 'step': ['24', '36', '48']}
 
     """
     result: dict[str, set[Any]] = {key: set() for key in form}
@@ -399,7 +436,7 @@ def get_form_state(
             sub_selection.pop(key)
         sub_results = get_possible_values(form, sub_selection, constraints)
         result[key] = sub_results.setdefault(key, set())
-    return result
+    return format_to_json(result)
 
 
 def get_always_valid_params(
@@ -487,6 +524,7 @@ def validate_constraints(
     cds_form: list[dict[str, Any]] | dict[str, Any] | None,
     request: adaptors.Request,
     constraints: list[dict[str, Any]] | dict[str, Any] | None,
+    apply_constraints_method: str | None = None,
 ) -> dict[str, list[str]]:
     parsed_form = parse_form(cds_form)
     unsupported_vars = get_unsupported_vars(cds_form)
@@ -505,7 +543,11 @@ def validate_constraints(
     }
 
     return apply_constraints(
-        parsed_form, selection, constraints, widget_types=widget_types
+        parsed_form,
+        selection,
+        constraints,
+        widget_types=widget_types,
+        apply_constraints_method=apply_constraints_method,
     )
 
 
@@ -532,11 +574,12 @@ def get_temporal_intersection(
 
 
 def temporal_intersection_between(
-    selected: DateTimeRange, ranges: list[DateTimeRange]
+    selected_ranges: list[DateTimeRange], ranges: list[DateTimeRange]
 ) -> bool:
     for valid in ranges:
-        if selected.intersection(valid).is_valid_timerange():
-            return True
+        for selected in selected_ranges:
+            if selected.intersection(valid).is_valid_timerange():
+                return True
     return False
 
 

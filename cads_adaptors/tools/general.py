@@ -110,6 +110,22 @@ def decrypt(
     return decrypted.decode()
 
 
+def decrypt_recursive(data: Any, **kwargs) -> Any:
+    decrypted_data = data
+    # Recursively decrypt strings in data structures
+    if isinstance(data, dict):
+        decrypted_data = {}
+        for k, v in data.items():
+            decrypted_data[k] = decrypt_recursive(v, **kwargs)
+    elif isinstance(data, list):
+        decrypted_data = []
+        for item in data:
+            decrypted_data.append(decrypt_recursive(item, **kwargs))
+    elif isinstance(data, str):
+        decrypted_data = decrypt(token=data, **kwargs)
+    return decrypted_data
+
+
 def strtobool(value: str) -> bool:
     if value.lower() in ("y", "yes", "t", "true", "on", "1"):
         return True

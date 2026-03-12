@@ -9,7 +9,7 @@ from cads_adaptors.tools import convertors
 # GRIB file with multiple level types
 TEST_GRIB_FILE = "https://sites.ecmwf.int/repository/earthkit-data/test-data/era5-levels-members.grib"
 # GRIB file with multiple expver and stream values
-TEST_GRIB_FILE_2 = "https://get.ecmwf.int/repository/test-data/cfgrib/era5-2t-tp-mwp-multi-expver-and-stream.grib"
+TEST_GRIB_FILE_2 = "https://sites.ecmwf.int/repository/earthkit-data/test-data/era5-2t-tp-mwp-multi-expver-and-stream.grib"
 TEST_NC_FILE = (
     "https://sites.ecmwf.int/repository/earthkit-data/test-data/test_single.nc"
 )

@@ -66,9 +66,172 @@ def test_get_form_state() -> None:
     ]
 
     assert constraints.get_form_state(form, {"level": {"500"}}, raw_constraints) == {
-        "level": {"500", "850"},
-        "param": {"Z"},
+        "level": ["500", "850"],
+        "param": ["Z"],
     }
+
+
+def is_a_match(d1: dict[str, list[Any]], d2: dict[str, list[Any]]):
+    return d1.keys() == d2.keys() and all(set(d1[k]) == set(d2[k]) for k in d1.keys())
+
+
+def test_apply_constraints_in_old_cds_fashion() -> None:
+    form = {
+        "param": {"lA", "lB", "lC", "D", "E"},
+        "level": {"500", "850"},
+        "number": {"1", "2", "3"},
+    }
+
+    raw_constraints = [
+        {"param": {"lA", "lB"}, "level": {"500"}, "number": {"1", "2"}},
+        {"param": {"lC"}, "level": {"850"}, "number": {"1"}},
+        {"param": {"D"}, "number": {"3"}},
+        {"param": {"E"}, "number": {"1", "3"}},
+    ]
+
+    expected_answers_to_queries = [
+        (
+            {"level": {"500"}},
+            {
+                "param": ["lA", "lB", "D", "E"],
+                "level": ["500", "850"],
+                "number": ["1", "2", "3"],
+            },
+        ),
+        (
+            {"level": {"850"}},
+            {"param": ["lC", "D", "E"], "level": ["500", "850"], "number": ["1", "3"]},
+        ),
+        (
+            {"number": {"1"}},
+            {
+                "param": ["lA", "lB", "lC", "E"],
+                "level": ["500", "850"],
+                "number": ["1", "2", "3"],
+            },
+        ),
+        (
+            {"param": {"lC"}},
+            {"param": ["lA", "lB", "lC", "D", "E"], "level": ["850"], "number": ["1"]},
+        ),
+        (
+            {"param": {"E"}},
+            {"param": ["lA", "lB", "lC", "D", "E"], "level": [], "number": ["1", "3"]},
+        ),
+        (
+            {"param": {"lA", "E"}},
+            {
+                "param": ["lA", "lB", "lC", "D", "E"],
+                "level": ["500"],
+                "number": ["1", "2", "3"],
+            },
+        ),
+        (
+            {"param": {"lA", "E"}, "number": {"3"}},
+            {"param": ["D", "E"], "level": [], "number": ["1", "2", "3"]},
+        ),
+        (
+            {"param": {"lA", "E"}, "level": {"500"}},
+            {
+                "param": ["lA", "lB", "D", "E"],
+                "level": ["500"],
+                "number": ["1", "2", "3"],
+            },
+        ),
+        (
+            {"param": {"lA", "E"}, "level": {"500"}, "number": {"3"}},
+            {"param": ["D", "E"], "level": [], "number": ["1", "2", "3"]},
+        ),
+    ]
+
+    for query, expected_answer in expected_answers_to_queries:
+        answer = constraints.apply_constraints_in_old_cds_fashion(
+            form, query, raw_constraints
+        )
+        assert is_a_match(answer, expected_answer)
+
+
+def test_apply_constraints_in_old_cds_fashion_for_dateranges() -> None:
+    form = {
+        "param": {"lA", "lB", "lC", "D", "E"},
+        "level": {"500", "850"},
+        "date": {"2000-01-01/2025-12-01"},
+    }
+
+    raw_constraints = [
+        {
+            "param": {"lA", "lB"},
+            "level": {"500"},
+            "date": {"2000-01-01/2020-01-01", "2023-01-01/2023-07-01"},
+        },
+        {"param": {"lC"}, "level": {"850"}, "date": {"2023-07-01/2024-12-31"}},
+        {"param": {"D"}, "date": {"2000-01-01/2024-12-31"}},
+        {"param": {"E"}, "date": {"2000-01-01/2025-12-01"}},
+    ]
+
+    expected_answers_to_queries = [
+        (
+            {"level": {"500"}},
+            {
+                "param": ["lA", "lB", "D", "E"],
+                "level": ["500", "850"],
+                "date": [
+                    "2000-01-01/2020-01-01",
+                    "2023-01-01/2023-07-01",
+                    "2000-01-01/2024-12-31",
+                    "2000-01-01/2025-12-01",
+                ],
+            },
+        ),
+        (
+            {"date": {"2010-01-01/2011-12-31"}},
+            {
+                "param": ["lA", "lB", "D", "E"],
+                "level": ["500"],
+                "date": ["2000-01-01/2025-12-01"],
+            },
+        ),
+        (
+            {"date": {"2021-01-01/2022-01-01"}},
+            {"param": ["D", "E"], "level": [], "date": ["2000-01-01/2025-12-01"]},
+        ),
+        (
+            {"date": {"2023-07-01"}},
+            {
+                "param": ["lA", "lB", "lC", "D", "E"],
+                "level": ["500", "850"],
+                "date": ["2000-01-01/2025-12-01"],
+            },
+        ),
+        (
+            {"level": {"850"}, "date": {"2023-07-01"}},
+            {
+                "param": ["lC", "D", "E"],
+                "level": ["500", "850"],
+                "date": [
+                    "2000-01-01/2024-12-31",
+                    "2000-01-01/2025-12-01",
+                    "2023-07-01/2024-12-31",
+                ],
+            },
+        ),
+        (
+            {"param": {"lA"}, "date": {"2019-07-01"}},
+            {
+                "param": ["lA", "lB", "D", "E"],
+                "level": ["500"],
+                "date": ["2000-01-01/2020-01-01", "2023-01-01/2023-07-01"],
+            },
+        ),
+    ]
+
+    widget_types = {"date": "DateRangeWidget"}
+
+    for query, expected_answer in expected_answers_to_queries:
+        answer = constraints.apply_constraints_in_old_cds_fashion(
+            form, query, raw_constraints, widget_types
+        )
+        assert is_a_match(answer, expected_answer)
 
 
 def test_apply_constraints() -> None:
@@ -82,6 +245,58 @@ def test_apply_constraints() -> None:
     assert constraints.apply_constraints(form, {"level": {"500"}}, raw_constraints)[
         "number"
     ] == ["1"]
+
+    # homogeneous dimensionality constraints
+    implemented_apply_constraints_methods = [
+        "mixed_dimensionality_requests",
+        "homogeneous_dimensionality_requests",
+    ]
+    expected_result = {"level": ["500", "850"], "param": ["Z"], "number": ["1"]}
+    for method in implemented_apply_constraints_methods:
+        result = constraints.apply_constraints(
+            form, {"level": {"500"}}, raw_constraints, apply_constraints_method=method
+        )
+        assert is_a_match(result, expected_result)
+
+    # mixed dimensionality constraints
+    form = {
+        "param": {"lA", "lB", "lC", "D", "E"},
+        "level": {"500", "850"},
+        "number": {"1", "2", "3"},
+    }
+
+    raw_constraints = [
+        {"param": {"lA", "lB"}, "level": {"500"}, "number": {"1", "2"}},
+        {"param": {"lC"}, "level": {"850"}, "number": {"1"}},
+        {"param": {"D"}, "number": {"3"}},
+        {"param": {"E"}, "number": {"1", "3"}},
+    ]
+
+    old_result = constraints.apply_constraints(
+        form,
+        {"level": {"500"}},
+        raw_constraints,
+        apply_constraints_method="mixed_dimensionality_requests",
+    )
+    expected_old_result = {
+        "param": ["lA", "lB", "D", "E"],
+        "level": ["500", "850"],
+        "number": ["1", "2", "3"],
+    }
+    assert is_a_match(old_result, expected_old_result)
+
+    new_result = constraints.apply_constraints(
+        form,
+        {"level": {"500"}},
+        raw_constraints,
+        apply_constraints_method="homogeneous_dimensionality_requests",
+    )
+    expected_new_result = {
+        "param": ["lA", "lB"],
+        "level": ["500", "850"],
+        "number": ["1", "2"],
+    }
+    assert is_a_match(new_result, expected_new_result)
 
 
 @pytest.mark.parametrize(
@@ -100,6 +315,19 @@ def test_apply_constraints_errors(selections: dict[str, set[Any]]) -> None:
     ]
     with pytest.raises(exceptions.ParameterError, match="invalid param 'foo'"):
         constraints.apply_constraints(form, selections, raw_constraints)
+
+    with pytest.raises(NotImplementedError):
+        constraints.apply_constraints(
+            form, selections, raw_constraints, apply_constraints_method="qubed_based"
+        )
+
+    with pytest.raises(exceptions.CdsConfigError):
+        constraints.apply_constraints(
+            form,
+            selections,
+            raw_constraints,
+            apply_constraints_method="not_implemented",
+        )
 
 
 def test_parse_constraints() -> None:
@@ -289,6 +517,23 @@ def test_validate_constraints() -> None:
     ]
 
     constraints.validate_constraints(raw_form, selections, raw_constraints)
+
+    implemented_apply_constraints_methods = [
+        "mixed_dimensionality_requests",
+        "homogeneous_dimensionality_requests",
+    ]
+    for method in implemented_apply_constraints_methods:
+        constraints.validate_constraints(raw_form, selections, raw_constraints, method)
+
+    with pytest.raises(NotImplementedError):
+        constraints.validate_constraints(
+            raw_form, selections, raw_constraints, "qubed_based"
+        )
+
+    with pytest.raises(exceptions.CdsConfigError):
+        constraints.validate_constraints(
+            raw_form, selections, raw_constraints, "not_implemented"
+        )
 
 
 def test_legacy_intersect_constraints():
