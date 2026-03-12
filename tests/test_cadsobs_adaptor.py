@@ -118,7 +118,6 @@ TEST_REQUEST = {
     "variable": [
         "maximum_air_temperature",
         "maximum_relative_humidity",
-        "soil_temperature",
     ],
     "year": "2007",
     "month": ["11"],
