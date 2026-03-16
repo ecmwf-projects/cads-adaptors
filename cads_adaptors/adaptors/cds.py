@@ -1,6 +1,5 @@
 import bisect
 import dataclasses
-import datetime
 import os
 import pathlib
 import random
@@ -575,28 +574,35 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         job: JobMetadata,
         results: ResultsMetadata | None,
     ) -> dict[str, Any]:
+        """Standard receipt content.
+
+        Args:
+            request (Request): User request
+            collection (CollectionMetadata): Collection metadata
+            job (JobMetadata): Job metadata
+            results (ResultsMetadata | None): Results metadata
+
+        Returns
+        -------
+            dict[str, Any]: Receipt content
+        """
         receipt = {
+            "request-id": job.request_id,
             "collection-id": self.collection_id,
             "request": request,
-            "request-timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            # Get static URLs:
-            "user-support": job.user_support_url,
-            "privacy-policy": "https://cds.climate.copernicus.eu/disclaimer-privacy",
-            # TODO: Change to URLs for licence instead of slug
+            "message": job.message,
+            "created_at": job.created,
+            "started_at": job.started,
+            "finished_at": job.finished,
+            "updated_at": job.updated,
+            "origin": job.origin,
+            "traceback": job.traceback,
+            "collection-url": collection.url,
+            "user_support_url": job.user_support_url,
             "licence": [
                 f"{licence.title} (version {licence.revision})"
                 for licence in collection.licences or []
             ],
-            "user_uid": job.user_id,
-            "request_uid": job.request_id,
-            #
-            # TODO: Add URL/DNS information to the context for populating these fields:
-            # "web-portal": self.???, # Need update to information available to adaptors
-            # "api-access": "https://url-to-data-api/{self.collection_id}"
-            # "metadata-api-access": "https://url-to-metadata-api/{self.collection_id}"
-            #
-            # TODO: Add metadata information to config, this could also be done via the metadata api
-            # "citation": self.???, # Need update to information available to adaptors
             **self.config.get("additional_receipt_info", {}),
         }
         if results is not None:
