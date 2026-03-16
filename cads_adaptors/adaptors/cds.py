@@ -597,6 +597,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "updated_at": job.updated,
             "origin": job.origin,
             "traceback": job.traceback,
+            "collection-url": collection.url,
             "user_support_url": job.user_support_url,
             "licence": [
                 f"{licence.title} (version {licence.revision})"
