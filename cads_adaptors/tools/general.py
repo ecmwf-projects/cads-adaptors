@@ -17,6 +17,12 @@ def ensure_list(input_item: Any) -> list:
     return [input_item]
 
 
+def ensure_list_values(dicts):
+    for d in dicts:
+        for key in d:
+            d[key] = ensure_list(d[key])
+
+
 SPLIT_BY_MONTH_KEY = "__split_by_month"
 
 

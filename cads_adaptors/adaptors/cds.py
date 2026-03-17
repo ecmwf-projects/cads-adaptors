@@ -15,13 +15,25 @@ from cads_adaptors.exceptions import (
     InvalidRequest,
 )
 from cads_adaptors.models import CollectionMetadata, JobMetadata, ResultsMetadata
-from cads_adaptors.tools.general import ensure_list
+from cads_adaptors.tools.general import ensure_list, ensure_list_values
 from cads_adaptors.tools.hcube_tools import hcubes_intdiff2
 from cads_adaptors.validation import enforce
 
 DEFAULT_COST_TYPE = "size"
 DEFAULT_COST_TYPE_FOR_COSTING_CLASS = DEFAULT_COST_TYPE
 COST_TYPE_WITH_HIGHEST_COST_LIMIT_RATIO_FOR_COSTING_CLASS = "highest_cost_limit_ratio"
+
+
+def is_request_overlapping_fine_grained_embargos(
+    requests: list[dict[str, Any]], embargos: list[dict[str, Any]]
+) -> bool:
+    if embargos is not None:
+        ensure_list_values(requests)
+        ensure_list_values(embargos)
+        interection, _, _ = hcubes_intdiff2(requests, embargos)
+        if interection:
+            return True
+    return False
 
 
 class ProcessingKwargs(TypedDict):
@@ -301,11 +313,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             download_format=self.download_format,
         )
 
-    def ensure_list_values(self, dicts):
-        for d in dicts:
-            for key in d:
-                d[key] = ensure_list(d[key])
-
     def satisfy_conditions(
         self,
         requests: list[dict[str, list[Any]]],
@@ -364,10 +371,10 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         try:
             self.conditional_tagging = self.config.get("conditional_tagging", None)
             if self.conditional_tagging is not None:
-                self.ensure_list_values(intersected_requests)
+                ensure_list_values(intersected_requests)
                 for tag in self.conditional_tagging:
                     conditions = self.conditional_tagging[tag]
-                    self.ensure_list_values(conditions)
+                    ensure_list_values(conditions)
                     if self.satisfy_conditions(intersected_requests, conditions):
                         hidden_tag = f"__{tag}"
                         request[hidden_tag] = "true"
@@ -375,6 +382,16 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             self.context.add_stdout(
                 f"An error occured while attempting conditional tagging: {e!r}"
             )
+
+        # strict fine-grained embargos (i.e. if the request overlaps with the embargo, it fails)
+        self.fine_grained_embargos = self.config.get("fine_grained_embargos", None)
+        if self.fine_grained_embargos is not None:
+            if is_request_overlapping_fine_grained_embargos(
+                intersected_requests, self.fine_grained_embargos
+            ):
+                message = f"AccessError: Restricted access to {self.collection_id} data"
+                self.context.add_user_visible_error(message=message)
+                raise InvalidRequest(message)
 
         # Map the list of requests
         mapped_requests = [
