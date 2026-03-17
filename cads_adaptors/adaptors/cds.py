@@ -590,21 +590,24 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             "request-id": job.request_id,
             "collection-id": self.collection_id,
             "request": request,
-            "message": job.message,
-            "created_at": job.created,
-            "started_at": job.started,
-            "finished_at": job.finished,
-            "updated_at": job.updated,
+            "status": job.status,
+            "created-at": job.created,
+            "started-at": job.started,
+            "finished-at": job.finished,
+            "updated-at": job.updated,
             "origin": job.origin,
-            "traceback": job.traceback,
             "collection-url": collection.url,
-            "user_support_url": job.user_support_url,
+            "user-support-url": job.user_support_url,
             "licence": [
                 f"{licence.title} (version {licence.revision})"
                 for licence in collection.licences or []
             ],
             **self.config.get("additional_receipt_info", {}),
         }
+        if job.message is not None:
+            receipt["message"] = job.message
+        if job.traceback is not None:
+            receipt["traceback"] = job.traceback
         if results is not None:
             receipt["filename"] = results.file_local_path
             receipt["download-size"] = results.file_size
