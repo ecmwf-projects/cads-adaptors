@@ -600,7 +600,7 @@ def execute_mars(
             target_dir=target_dir,
         )
 
-class DirectMarsCdsAdaptor(cds.AbstractCdsAdaptor):
+class DirectMarsCdsAdaptor(AbstractCdsAdaptor):
     resources = {"MARS_CLIENT": 1}
 
     def get_caching_args(self, request: Request) -> CachingArgs:
