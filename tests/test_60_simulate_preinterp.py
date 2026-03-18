@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import re
 from copy import deepcopy
@@ -10,6 +11,7 @@ from cads_adaptors.exceptions import CdsConfigError, InvalidRequest
 from cads_adaptors.tools.simulate_preinterpolation import simulate_preinterpolation
 
 logger = logging.getLogger(__name__)
+does_not_raise = contextlib.nullcontext
 
 
 def test_no_area():
@@ -19,17 +21,22 @@ def test_no_area():
     assert req == {"grid": ["0.1", "0.2"]}
 
 
-def test_within_adaptor():
+@pytest.mark.parametrize(
+    "simulate_preinterpolation, raises",
+    [
+        ({}, does_not_raise()),
+        ({"random_key": "random_value"}, pytest.raises(CdsConfigError)),
+    ],
+)
+def test_within_adaptor(
+    simulate_preinterpolation: dict[str, str], raises: contextlib.nullcontext
+) -> None:
     """Test calling from adaptor object."""
-    config = {"simulate_preinterpolation": {}}
+    config = {"simulate_preinterpolation": simulate_preinterpolation}
     adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
     assert adp.normalise_request({"area": ["1/2/3/4"]}) == {"area": ["1/2/3/4"]}
-
-    # Unrecognised keys should raise a CdsConfigError
-    config = {"simulate_preinterpolation": {"random_key": "random_value"}}
-    adp = MarsCdsAdaptor(form=None, context=Context(logger=logger), **deepcopy(config))
-    with pytest.raises(CdsConfigError):
-        adp.normalise_request({"area": ["1/2/3/4"]})
+    with raises:
+        adp.check_validity({"area": ["1/2/3/4"]})
 
 
 def test_bad_areas():

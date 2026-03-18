@@ -1,9 +1,12 @@
 import os
 import re
-from typing import BinaryIO
 
-from cads_adaptors import mapping
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+from cads_adaptors.adaptors.cds import (
+    AbstractCdsAdaptor,
+    CachingArgs,
+    ProcessingKwargs,
+    Request,
+)
 from cads_adaptors.exceptions import RoocsRuntimeError, RoocsValueError
 
 ROOK_URL = "http://compute.mips.climate.copernicus.eu/wps"
@@ -19,8 +22,17 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         self.facet_search = self.config.get("facet_search", dict())
         self.operators = self.config.get("operators", dict())
 
-    def retrieve(self, request: Request) -> BinaryIO:
-        from cads_adaptors.tools import download_tools, url_tools
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        args = super().get_caching_args(request)
+        args.must_be_one_mapped_request()
+        return args
+
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
+        from cads_adaptors.tools import url_tools
 
         os.environ["ROOK_URL"] = self.config.get("ROOK_URL", ROOK_URL)
 
@@ -33,7 +45,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         if "timeout" in self.config:
             download_kwargs["timeout"] = self.config["timeout"]
 
-        request = mapping.apply_mapping(request, self.mapping, context=self.context)
+        (request,) = mapped_requests
 
         workflow = self.construct_workflow(request)
         try:
@@ -48,9 +60,7 @@ class RoocsCdsAdaptor(AbstractCdsAdaptor):
         urls += [response.provenance(), response.provenance_image()]
 
         self.context.debug(f"DOWNLOAD KWARGS: {download_kwargs}")
-        paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
-
-        return download_tools.DOWNLOAD_FORMATS["zip"](paths)
+        return url_tools.try_download(urls, context=self.context, **download_kwargs)
 
     def construct_workflow(self, request):
         os.environ["ROOK_URL"] = self.config.get("ROOK_URL", ROOK_URL)

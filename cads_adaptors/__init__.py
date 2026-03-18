@@ -32,11 +32,7 @@ from cads_adaptors.adaptors.cams_regional_fc import (
 )
 from cads_adaptors.adaptors.cams_solar_rad import CamsSolarRadiationTimeseriesAdaptor
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, DummyCdsAdaptor
-from cads_adaptors.adaptors.insitu import (
-    InsituDatabaseCdsAdaptor,
-    InsituGlamodCdsAdaptor,
-)
-from cads_adaptors.adaptors.legacy import LegacyCdsAdaptor
+from cads_adaptors.adaptors.daily_statistics import Era5DailyStatisticsCdsAdaptor
 from cads_adaptors.adaptors.mars import DirectMarsCdsAdaptor, MarsCdsAdaptor
 from cads_adaptors.adaptors.multi import MultiAdaptor, MultiMarsCdsAdaptor
 from cads_adaptors.adaptors.roocs import RoocsCdsAdaptor
@@ -53,9 +49,6 @@ __all__ = [
     "DirectMarsCdsAdaptor",
     "DummyAdaptor",
     "DummyCdsAdaptor",
-    "InsituDatabaseCdsAdaptor",
-    "InsituGlamodCdsAdaptor",
-    "LegacyCdsAdaptor",
     "MarsCdsAdaptor",
     "UrlCdsAdaptor",
     "MultiAdaptor",
@@ -67,4 +60,5 @@ __all__ = [
     "ObservationsAdaptor",
     "CamsSolarRadiationTimeseriesAdaptor",
     "ArcoDataLakeCdsAdaptor",
+    "Era5DailyStatisticsCdsAdaptor",
 ]

@@ -473,3 +473,4 @@ $RECYCLE.BIN/
 test.ipynb
 
 .conda/
+.opencode
