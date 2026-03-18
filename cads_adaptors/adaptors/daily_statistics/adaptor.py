@@ -276,33 +276,33 @@ class Era5DailyStatisticsCdsAdaptor(MarsCdsAdaptor):
     def get_validated_accumulation_period(self, mars_request: dict[str, Any]) -> int:
         # TODO: The accumulation_period logic is hard-coded to ERA5, i.e. based on the dataset value.
         #       It could be made more flexible in the future if required
-        if mars_dataset := mars_request.get("dataset", None):
-            mars_dataset = ensure_list(mars_dataset)
-            if len(mars_dataset) > 1:
-                raise InvalidRequest(
-                    "Only one product_type per request is supported for daily statistics."
-                )
-            mars_request["dataset"] = mars_dataset[0]
-            # Accumulation period is required for adjusting the request time
-            #  to get the correct values for the day requested
-            # The default values below are for ERA5 oper. Technically, members for ERA5 wave data should be 1
-            #  but as there are no accumulated variables in the wave data, we can ignore this.
-            accumulation_period_to_dataset_mapping = self.config.get(
-                "accumulation_period_to_dataset_mapping",
-                {
-                    "reanalysis": 1,
-                    "mean": 3,
-                    "members": 3,
-                },
+        # If not provided, assume reanalysis
+        mars_dataset = ensure_list(mars_request.get("dataset", "reanalysis))
+        if len(mars_dataset) > 1:
+            raise InvalidRequest(
+                "Only one product_type per request is supported for daily statistics."
             )
-            accumulation_period = accumulation_period_to_dataset_mapping.get(
-                mars_request["dataset"], None
+        mars_request["dataset"] = mars_dataset[0]
+        # Accumulation period is required for adjusting the request time
+        #  to get the correct values for the day requested
+        # The default values below are for ERA5 oper. Technically, members for ERA5 wave data should be 1
+        #  but as there are no accumulated variables in the wave data, we can ignore this.
+        accumulation_period_to_dataset_mapping = self.config.get(
+            "accumulation_period_to_dataset_mapping",
+            {
+                "reanalysis": 1,
+                "mean": 3,
+                "members": 3,
+            },
+        )
+        accumulation_period = accumulation_period_to_dataset_mapping.get(
+            mars_request["dataset"], None
+        )
+        if accumulation_period is None:
+            raise InvalidRequest(
+                f"Unrecognised product_type: {mars_request['dataset']}"
             )
-            if accumulation_period is None:
-                raise InvalidRequest(
-                    f"Unrecognised product_type: {mars_request['dataset']}"
-                )
-        return accumulation_period or 1
+        return accumulation_period
 
     def retrieve_list_of_results(
         self,
