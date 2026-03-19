@@ -1,10 +1,11 @@
 import bisect
+import dataclasses
 import os
 import pathlib
+import random
 import time
 from copy import deepcopy
-from random import randint
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, TypedDict
 
 from cads_adaptors import constraints, costing, mapping
 from cads_adaptors.adaptors import AbstractAdaptor, Context, Request
@@ -13,6 +14,7 @@ from cads_adaptors.exceptions import (
     GeoServerError,
     InvalidRequest,
 )
+from cads_adaptors.models import CollectionMetadata, JobMetadata, ResultsMetadata
 from cads_adaptors.tools.general import ensure_list
 from cads_adaptors.tools.hcube_tools import hcubes_intdiff2
 from cads_adaptors.validation import enforce
@@ -20,6 +22,30 @@ from cads_adaptors.validation import enforce
 DEFAULT_COST_TYPE = "size"
 DEFAULT_COST_TYPE_FOR_COSTING_CLASS = DEFAULT_COST_TYPE
 COST_TYPE_WITH_HIGHEST_COST_LIMIT_RATIO_FOR_COSTING_CLASS = "highest_cost_limit_ratio"
+
+
+class ProcessingKwargs(TypedDict):
+    download_format: str
+    area: list[float | int] | dict[str, float | int]
+    post_process_steps: list[dict[str, Any]]
+
+
+@dataclasses.dataclass
+class CachingArgs:
+    mapped_requests: list[Request]
+    avoid_cache: bool
+    kwargs: ProcessingKwargs
+
+    def must_be_one_mapped_request(self) -> None:
+        if len(self.mapped_requests) != 1:
+            raise InvalidRequest("Empty or multiple requests are not supported.")
+
+    @property
+    def sorted_mapped_requests(self) -> list[Request]:
+        return [dict(sorted(request.items())) for request in self.mapped_requests]
+
+    def get_no_cache_randint(self) -> int:
+        return random.randint(1, 2**128) if self.avoid_cache else 0
 
 
 class AbstractCdsAdaptor(AbstractAdaptor):
@@ -40,21 +66,18 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         super().__init__(form, context, cache_tmp_path, **config)
 
         # The following attributes are updated during the retireve method
-        self.input_request: Request = dict()
-        self.mapped_request: Request = dict()
         self.download_format: str = "zip"
-        self.receipt: bool = config.pop("receipt", False)
         self.schemas: list[dict[str, Any]] = config.pop("schemas", [])
         self.intersect_constraints_bool: bool = config.get(
             "intersect_constraints", False
         )
         self.embargo: dict[str, int] | None = config.get("embargo", None)
-        # Flag to ensure we only normalise the request once
-        self.normalised: bool = False
-        # List of steps to perform after retrieving the data
-        self.post_process_steps: list[dict[str, Any]] = [{}]
 
-    def retrieve_list_of_results(self, request: Request) -> list[str]:
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
         """
         Return a list of results, which are paths to files that have been downloaded,
         and post-processed if necessary.
@@ -64,11 +87,32 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         """
         raise NotImplementedError
 
+    def uncached_retrieve(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> BinaryIO:
+        result = self.retrieve_list_of_results(
+            mapped_requests=mapped_requests,
+            processing_kwargs=processing_kwargs,
+        )
+        return self.make_download_object(
+            result, download_format=processing_kwargs["download_format"]
+        )
+
     def retrieve(self, request: Request) -> BinaryIO:
-        result = self.retrieve_list_of_results(request)
-        return self.make_download_object(result)
+        import cacholote
+
+        args = self.get_caching_args(request)
+        return cacholote.cacheable(
+            self.uncached_retrieve,
+            no_cache=args.get_no_cache_randint(),
+            collection_id=self.collection_id,
+        )(args.sorted_mapped_requests, args.kwargs)
 
     def check_validity(self, request: Request) -> None:
+        _ = self.get_caching_args(request)
+
         layer = self.config.get("geoserver-layer")
         if layer is not None:
             try:
@@ -89,7 +133,13 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         return
 
     def apply_constraints(self, request: Request) -> dict[str, Any]:
-        return constraints.validate_constraints(self.form, request, self.constraints)
+        apply_constraints_method = self.config.get("apply_constraints_method")
+        return constraints.validate_constraints(
+            self.form,
+            request,
+            self.constraints,
+            apply_constraints_method=apply_constraints_method,
+        )
 
     def intersect_constraints(self, request: Request) -> list[Request]:
         return constraints.legacy_intersect_constraints(
@@ -233,21 +283,23 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
         return costs
 
-    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+    def pre_mapping_modifications(
+        self, request: dict[str, Any]
+    ) -> tuple[Request, ProcessingKwargs]:
         """
         Method called before the mapping is applied to the request. This will differ for each
         adaptor, so is separated out from the normalise_request method.
         """
-        # Move the receipt flag from the request to the adaptor attributes (currently not in use)
-        self.receipt = request.pop("receipt", False)
-
         # Extract post-process steps from the request before applying the mapping
-        self.post_process_steps = request.pop("post_process", [])
+        post_process_steps = request.pop("post_process", [])
         self.context.debug(
-            f"Post-process steps extracted from request:\n{self.post_process_steps}"
+            f"Post-process steps extracted from request:\n{post_process_steps}"
         )
-
-        return request
+        return request, ProcessingKwargs(
+            post_process_steps=post_process_steps,
+            area=[],
+            download_format=self.download_format,
+        )
 
     def ensure_list_values(self, dicts):
         for d in dicts:
@@ -273,12 +325,9 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         The returned request needs to be compatible with the web-portal, it is currently what is used
         on the "Your requests" page, hence it should not be modified to much from the user's request.
         """
-        if self.normalised:
-            return request
-
         # Make a copy of the original request for debugging purposes
-        self.input_request = deepcopy(request)
-        self.context.debug(f"Input request:\n{self.input_request}")
+        request = deepcopy(request)
+        self.context.debug(f"Input request:\n{request}")
 
         # Enforce the schema on the input request
         schemas = self.schemas
@@ -289,30 +338,37 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             schemas = schemas + [adaptor_schema]
         for schema in schemas:
             request = enforce.enforce(request, schema, self.context.logger)
+        return dict(sorted(request.items()))
+
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        avoid_cache = self.config.get("avoid_cache", False)
+        request = self.normalise_request(request)
 
         # Pre-mapping modifications
-        working_request = self.pre_mapping_modifications(deepcopy(request))
+        working_request, cache_kwargs = self.pre_mapping_modifications(
+            deepcopy(request)
+        )
 
         # If specified by the adaptor, intersect the request with the constraints.
         # The intersected_request is a list of requests
         if self.intersect_constraints_bool:
-            self.intersected_requests = self.intersect_constraints(working_request)
-            if len(self.intersected_requests) == 0:
+            intersected_requests = self.intersect_constraints(working_request)
+            if len(intersected_requests) == 0:
                 msg = "Error: no intersection with the constraints."
                 self.context.add_user_visible_error(message=msg)
                 raise InvalidRequest(msg)
         else:
-            self.intersected_requests = ensure_list(working_request)
+            intersected_requests = ensure_list(working_request)
 
         # Implement a request-level tagging system
         try:
             self.conditional_tagging = self.config.get("conditional_tagging", None)
             if self.conditional_tagging is not None:
-                self.ensure_list_values(self.intersected_requests)
+                self.ensure_list_values(intersected_requests)
                 for tag in self.conditional_tagging:
                     conditions = self.conditional_tagging[tag]
                     self.ensure_list_values(conditions)
-                    if self.satisfy_conditions(self.intersected_requests, conditions):
+                    if self.satisfy_conditions(intersected_requests, conditions):
                         hidden_tag = f"__{tag}"
                         request[hidden_tag] = "true"
         except Exception as e:
@@ -321,8 +377,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             )
 
         # Map the list of requests
-        self.mapped_requests = [
-            self.apply_mapping(i_request) for i_request in self.intersected_requests
+        mapped_requests = [
+            self.apply_mapping(i_request) for i_request in intersected_requests
         ]
 
         # Implement embargo if specified
@@ -330,37 +386,27 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             from cads_adaptors.tools.date_tools import implement_embargo
 
             try:
-                self.mapped_requests, cacheable_embargo = implement_embargo(
-                    self.mapped_requests, self.embargo
+                mapped_requests, cacheable_embargo = implement_embargo(
+                    mapped_requests, self.embargo
                 )
             except ValueError as e:
                 self.context.add_user_visible_error(message=f"{e}")
                 raise InvalidRequest(f"{e}")
 
             if not cacheable_embargo:
-                # Add an uncacheable key to the request
-                random_key = str(randint(0, 2**128))
-                request["__part_of_request_under_embargo"] = random_key
-
-        # At this point, the self.mapped_requests could be used to create a requesthash
-
-        # For backwards compatibility, we set self.mapped_request to the first request, and assume
-        #  it is the only one. Adaptors should be updated to use self.mapped_requests instead.
-        self.mapped_request = self.mapped_requests[0]
+                avoid_cache = True
 
         self.context.info(
-            f"Request mapped to (collection_id={self.collection_id}):\n{self.mapped_requests}"
+            f"Request mapped to (collection_id={self.collection_id}):\n{mapped_requests}"
         )
 
-        # Avoid the cache by adding a random key-value pair to the request (if cache avoidance is on)
-        if self.config.get("avoid_cache", False):
-            random_key = str(randint(0, 2**128))
-            request["__in_adaptor_no_cache"] = random_key
+        return CachingArgs(
+            mapped_requests=mapped_requests,
+            avoid_cache=avoid_cache,
+            kwargs=cache_kwargs,
+        )
 
-        self.normalised = True
-        return request
-
-    def set_download_format(self, download_format, default_download_format="zip"):
+    def get_download_format(self, download_format, default_download_format="zip"):
         """Check that requested download format is supported by the adaptor, and if not set to default."""
         # Apply any mapping
         mapped_formats = self.apply_mapping(
@@ -369,24 +415,25 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             }
         )
 
-        self.download_format = mapped_formats["download_format"]
-        if isinstance(self.download_format, list):
+        download_format = mapped_formats["download_format"]
+        if isinstance(download_format, list):
             try:
-                assert len(self.download_format) == 1
+                assert len(download_format) == 1
             except AssertionError:
                 message = "Multiple download formats specified, only one is allowed"
                 self.context.add_user_visible_error(message=message)
                 raise InvalidRequest(message)
-            self.download_format = self.download_format[0]
+            download_format = download_format[0]
 
         from cads_adaptors.tools.download_tools import DOWNLOAD_FORMATS
 
-        if self.download_format not in DOWNLOAD_FORMATS:
+        if download_format not in DOWNLOAD_FORMATS:
             self.context.add_user_visible_log(
                 "WARNING: Download format not supported for this dataset. "
                 f"Defaulting to {default_download_format}."
             )
-            self.download_format = default_download_format
+            download_format = default_download_format
+        return download_format
 
     def get_licences(self, request: Request) -> list[tuple[str, int]]:
         return self.licences
@@ -400,11 +447,13 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         ]
         return pp_config
 
-    def post_process(self, result: Any) -> dict[str, Any]:
+    def post_process(
+        self, result: Any, post_process_steps: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Perform post-process steps on the retrieved data."""
-        for i, pp_step in enumerate(self.pp_mapping(self.post_process_steps)):
+        for i, pp_step in enumerate(self.pp_mapping(post_process_steps)):
             self.context.info(
-                f"Performing post-process step {i + 1} of {len(self.post_process_steps)}: {pp_step}"
+                f"Performing post-process step {i + 1} of {len(post_process_steps)}: {pp_step}"
             )
             # TODO: pp_mapping should have ensured "method" is always present
 
@@ -465,11 +514,7 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         paths = ensure_list(paths)
         filenames = [os.path.basename(path) for path in paths]
         # TODO: use request-id instead of hash
-        if self.input_request is None:
-            self.input_request = {}
-        kwargs.setdefault(
-            "base_target", f"{self.collection_id}-{hash(tuple(self.input_request))}"
-        )
+        kwargs.setdefault("base_target", f"{self.collection_id}-{hash(time.time())}")
 
         # Allow possibility of over-riding the download format from the adaptor
         download_format = kwargs.get("download_format", self.download_format)
@@ -479,12 +524,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         if len(paths) > 1 and download_format == "as_source":
             download_format = "zip"
 
-        # Allow adaptor possibility of over-riding request value
-        if kwargs.get("receipt", self.receipt):
-            receipt_kwargs = kwargs.pop("receipt_kwargs", {})
-            kwargs.setdefault(
-                "receipt", self.make_receipt(filenames=filenames, **receipt_kwargs)
-            )
         self.context.debug(
             f"Creating download object as {download_format} with paths:\n{paths}\n and kwargs:\n{kwargs}"
         )
@@ -530,59 +569,58 @@ class AbstractCdsAdaptor(AbstractAdaptor):
 
     def make_receipt(
         self,
-        input_request: Request | None = None,
-        download_size: Any = None,
-        filenames: list = [],
-        **kwargs,
+        request: Request,
+        collection: CollectionMetadata,
+        job: JobMetadata,
+        results: ResultsMetadata | None,
     ) -> dict[str, Any]:
+        """Standard receipt content.
+
+        Args:
+            request (Request): User request
+            collection (CollectionMetadata): Collection metadata
+            job (JobMetadata): Job metadata
+            results (ResultsMetadata | None): Results metadata
+
+        Returns
+        -------
+            dict[str, Any]: Receipt content
         """
-        Create a receipt to be included in the downloaded archive.
-
-        **kwargs contains any other fields that are calculated during the runtime of the adaptor
-        """
-        from datetime import datetime as dt
-
-        # Allow adaptor to override and provide sanitized "input_request" if necessary
-        if input_request is None:
-            input_request = self.input_request
-
-        # Update kwargs with default values
-        if download_size is None:
-            download_size = "unknown"
-
         receipt = {
+            "request-id": job.request_id,
             "collection-id": self.collection_id,
-            "request": input_request,
-            "request-timestamp": dt.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "download-size": download_size,
-            "filenames": filenames,
-            # Get static URLs:
-            "user-support": "https://support.ecmwf.int",
-            "privacy-policy": "https://cds.climate.copernicus.eu/disclaimer-privacy",
-            # TODO: Change to URLs for licence instead of slug
+            "request": request,
+            "status": job.status,
+            "created-at": job.created,
+            "started-at": job.started,
+            "finished-at": job.finished,
+            "updated-at": job.updated,
+            "origin": job.origin,
+            "collection-url": collection.url,
+            "user-support-url": job.user_support_url,
             "licence": [
-                f"{licence[0]} (version {licence[1]})" for licence in self.licences
+                f"{licence.title} (version {licence.revision})"
+                for licence in collection.licences or []
             ],
-            "user_uid": self.config.get("user_uid"),
-            "request_uid": self.config.get("request_uid"),
-            #
-            # TODO: Add URL/DNS information to the context for populating these fields:
-            # "web-portal": self.???, # Need update to information available to adaptors
-            # "api-access": "https://url-to-data-api/{self.collection_id}"
-            # "metadata-api-access": "https://url-to-metadata-api/{self.collection_id}"
-            #
-            # TODO: Add metadata information to config, this could also be done via the metadata api
-            # "citation": self.???, # Need update to information available to adaptors
-            **kwargs,
             **self.config.get("additional_receipt_info", {}),
         }
-
+        if job.message is not None:
+            receipt["message"] = job.message
+        if job.traceback is not None:
+            receipt["traceback"] = job.traceback
+        if results is not None:
+            receipt["filename"] = results.file_local_path
+            receipt["download-size"] = results.file_size
         return receipt
 
 
 class DummyCdsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
         dummy_file = self.cache_tmp_path / "dummy.grib"
         with dummy_file.open("w") as fp:
             fp.write("DUMMY CONTENT")
-        return open(dummy_file, "rb")
+        return [str(dummy_file)]

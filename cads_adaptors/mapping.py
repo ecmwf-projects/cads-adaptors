@@ -7,7 +7,6 @@ import os
 from typing import Any
 
 import owslib.util
-import owslib.wfs
 import owslib.wms
 
 from cads_adaptors import Context, exceptions
@@ -440,6 +439,8 @@ def get_features_in_area(
     exceptions.GeoServerError
         If there is an error connecting to or retrieving data from the WFS service.
     """
+    import owslib.wfs
+
     try:
         wfs = owslib.wfs.WebFeatureService(
             os.environ.get("GEOSERVER_URL"),

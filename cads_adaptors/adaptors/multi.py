@@ -1,7 +1,7 @@
 from typing import Any
 
 from cads_adaptors import AbstractCdsAdaptor, mapping
-from cads_adaptors.adaptors import Request
+from cads_adaptors.adaptors.cds import ProcessingKwargs, Request
 from cads_adaptors.adaptors.mars import minimal_mars_schema
 from cads_adaptors.exceptions import (
     CdsConfigurationError,
@@ -185,38 +185,46 @@ class MultiAdaptor(AbstractCdsAdaptor):
 
         return sub_adaptors
 
-    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
-        request = super().pre_mapping_modifications(request)
+    def pre_mapping_modifications(
+        self, request: dict[str, Any]
+    ) -> tuple[Request, ProcessingKwargs]:
+        request, kwargs = super().pre_mapping_modifications(request)
 
         download_format = request.pop("download_format", ["zip"])
         download_format = ensure_list(download_format)[0]
-        self.set_download_format(download_format)
+        kwargs["download_format"] = self.get_download_format(download_format)
 
-        return request
+        return request, kwargs
 
-    def retrieve_list_of_results(self, request: Request) -> list[str]:
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
         # If running the request (on the worker), we disable the intersection of constraints
         # in the parent request.
         self.intersect_constraints_bool = False
-        request = self.normalise_request(request)
 
         # We merge our list of split requests back into a single request.
         # If required the sub-adaptors will repeat intersect constraints.
         # We do not want to create a very large number of sub-adaptors
-        if len(self.mapped_requests) > 0:
-            self.mapped_request = merge_requests(self.mapped_requests)
+        if len(mapped_requests) > 0:
+            mapped_request = merge_requests(mapped_requests)
         else:
-            self.mapped_request = self.mapped_requests[0]
+            mapped_request = mapped_requests[0]
 
-        self.context.info(f"MultiAdaptor, full_request: {self.mapped_request}")
+        self.context.info(f"MultiAdaptor, full_request: {mapped_request}")
 
-        sub_adaptors = self.split_adaptors(self.mapped_request)
+        sub_adaptors = self.split_adaptors(mapped_request)
 
         paths: list[str] = []
         exception_logs: dict[str, str] = {}
         for adaptor_tag, [adaptor, req] in sub_adaptors.items():
             try:
-                this_result = adaptor.retrieve_list_of_results(req)
+                sub_args = adaptor.get_caching_args(req)
+                this_result = adaptor.retrieve_list_of_results(
+                    sub_args.mapped_requests, sub_args.kwargs
+                )
             except Exception as err:
                 exception_logs[adaptor_tag] = f"{err}"
             else:
@@ -245,24 +253,30 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
         return convert_format(*args, **kwargs)
 
-    def pre_mapping_modifications(self, request: dict[str, Any]) -> dict[str, Any]:
+    def pre_mapping_modifications(
+        self, request: dict[str, Any]
+    ) -> tuple[Request, ProcessingKwargs]:
         """Implemented in normalise_request, before the mapping is applied."""
-        request = super().pre_mapping_modifications(request)
+        request, kwargs = super().pre_mapping_modifications(request)
 
         # TODO: Remove legacy syntax all together
         data_format = request.pop("format", ["grib"])
-        data_format = request.pop("data_format", data_format)
-        data_format = ensure_list(data_format)[0]
+        data_format = adaptor_tools.handle_data_format(
+            request.get("data_format", data_format)
+        )
 
         # Account from some horribleness from the legacy system:
         if data_format.lower() in ["netcdf.zip", "netcdf_zip", "netcdf4.zip"]:
             data_format = "netcdf"
             request.setdefault("download_format", ["zip"])
 
+        # Enforce value of data_format to normalized value
+        request["data_format"] = [data_format]
+
         default_download_format = "as_source"
         download_format = request.pop("download_format", [default_download_format])
         download_format = ensure_list(download_format)[0]
-        self.set_download_format(
+        kwargs["download_format"] = self.get_download_format(
             download_format, default_download_format=default_download_format
         )
 
@@ -271,41 +285,42 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
         if cfg := self.config.get("simulate_preinterpolation"):
             request = simulate_preinterpolation(request, cfg, self.context)
 
-        # Apply any mapping
-        mapped_formats = self.apply_mapping({"data_format": data_format})
-        # TODO: Add this extra mapping to apply_mapping?
-        self.data_format = adaptor_tools.handle_data_format(
-            mapped_formats["data_format"]
-        )
-        return request
+        return request, kwargs
 
-    def retrieve_list_of_results(self, request: Request) -> list[str]:
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
         """For MultiMarsCdsAdaptor we just want to apply mapping from each adaptor."""
         from cads_adaptors.adaptors.mars import execute_mars
 
-        request = self.normalise_request(request)
         # This will apply any top level multi-adaptor mapping, currently not used but could potentially
         #   be useful to reduce the repetitive config in each sub-adaptor of adaptor.json
 
-        # self.mapped_requests contains the schema-checked, intersected and (top-level mapping) mapped request
+        # mapped_requests contains the schema-checked, intersected and (top-level mapping) mapped request
         self.context.debug(
-            f"MultiMarsCdsAdaptor, mapped full request: {self.mapped_requests}"
+            f"MultiMarsCdsAdaptor, mapped full request: {mapped_requests}"
+        )
+
+        mapped_requests, data_format = (
+            adaptor_tools.get_data_format_from_mapped_requests(mapped_requests)
         )
 
         # We now split the mapped_request into sub-adaptors
-        mapped_requests = []
+        new_mapped_requests = []
         for adaptor_tag, adaptor_desc in self.config["adaptors"].items():
             this_adaptor = adaptor_tools.get_adaptor(adaptor_desc, self.form)
             this_values = adaptor_desc.get("values", {})
             extract_subrequest_kwargs = self.get_extract_subrequest_kwargs(
                 this_adaptor.config
             )
-            for mapped_request_piece in self.mapped_requests:
+            for mapped_request_piece in mapped_requests:
                 this_request = self.extract_subrequest(
                     mapped_request_piece, this_values, **extract_subrequest_kwargs
                 )
                 if len(this_request) > 0:
-                    mapped_requests.append(
+                    new_mapped_requests.append(
                         mapping.apply_mapping(
                             this_request, this_adaptor.mapping, context=self.context
                         )
@@ -316,10 +331,10 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
             )
 
         self.context.debug(
-            f"MultiMarsCdsAdaptor, mapped and split requests: {mapped_requests}"
+            f"MultiMarsCdsAdaptor, mapped and split requests: {new_mapped_requests}"
         )
         result = execute_mars(
-            mapped_requests,
+            new_mapped_requests,
             context=self.context,
             config=self.config,
             mapping=self.mapping,
@@ -328,13 +343,10 @@ class MultiMarsCdsAdaptor(MultiAdaptor):
 
         paths = self.convert_format(
             result,
-            self.data_format,
+            data_format,
             self.context,
             self.config,
             target_dir=str(self.cache_tmp_path),
         )
-
-        if len(paths) > 1 and self.download_format == "as_source":
-            self.download_format = "zip"
 
         return paths
