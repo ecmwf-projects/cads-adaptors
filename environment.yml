@@ -1,6 +1,7 @@
 # environment.yml: Mandatory dependencies only.
 channels:
 - conda-forge
+- eumetsat
 - nodefaults
 # EXAMPLE:
 # dependencies:
@@ -15,6 +16,7 @@ dependencies:
 - cryptography
 - dask
 - DateTimeRange
+- eumdac
 - fsspec
 - h5netcdf
 - jinja2
