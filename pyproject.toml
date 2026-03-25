@@ -43,7 +43,7 @@ complete = [
   "cftime",
   "dask",
   "eccodes",
-  "earthkit-transforms>=0.5.2",
+  "earthkit-transforms>=0.5.4,<1.0.0",
   "fsspec",
   "h5netcdf",
   "jinja2",
