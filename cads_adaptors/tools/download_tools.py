@@ -1,9 +1,10 @@
-import itertools
+import io
 import os
 import zipfile
 from typing import Any, BinaryIO, Callable, Dict, List
 
 import yaml
+import zipstream
 
 # compression parameters for the supported file types
 # feel free to adjust or add entries
@@ -24,11 +25,32 @@ def determine_file_type(path: str) -> str:
     return extension
 
 
-def group_files_by_type(paths: list[str]):
-    return itertools.groupby(paths, key=determine_file_type)
+class _ZipStreamIO(io.RawIOBase):
+    def __init__(self, zf: zipstream.ZipFile, paths_to_delete: List[str]):
+        self._chunks = iter(zf)
+        self._buf = b""
+        self._paths_to_delete = paths_to_delete
+
+    def readable(self) -> bool:
+        return True
+
+    def readinto(self, b: bytearray) -> int:
+        while not self._buf:
+            try:
+                self._buf = next(self._chunks)
+            except StopIteration:
+                return 0  # EOF
+        n = min(len(b), len(self._buf))
+        b[:n] = self._buf[:n]
+        self._buf = self._buf[n:]
+        return n
+
+    def close(self) -> None:
+        super().close()
+        for path in self._paths_to_delete:
+            os.remove(path)
 
 
-# TODO zipstream for archive creation
 def zip_paths(
     paths: List[str],
     base_target: str = "output-data",
@@ -36,43 +58,28 @@ def zip_paths(
     compression_params_lookup_table: dict[str, dict[str, int]] = COMPRESSION_PARAMS,
     **kwargs,
 ) -> BinaryIO:
-    target = f"{base_target}.zip"
-
-    files_grouped_by_type = group_files_by_type(paths)
-
-    for file_type, paths_for_file_type in files_grouped_by_type:
-        # determine compression parameters for the current file type
-        compression_params = compression_params_lookup_table.get(
-            file_type, UNKNOWN_EXTENSION_PARAMS
-        )
-        compression_algorithm = compression_params["algo"]
-        compression_level = compression_params["level"]
-
-        # perform the compression
-        with zipfile.ZipFile(
-            target,
-            mode="a",
-            compression=compression_algorithm,
-            compresslevel=compression_level,
-        ) as archive:
-            for path in paths_for_file_type:
-                if kwargs.get("preserve_dir", False):
-                    archive_name = path
-                else:
-                    archive_name = os.path.basename(path)
-                archive.write(path, archive_name)
-
-            if receipt is not None:
-                yaml_output: str = yaml.safe_dump(receipt, indent=2)
-                archive.writestr(
-                    f"receipt-{base_target}.yaml",
-                    data=yaml_output,
-                )
+    zf = zipstream.ZipFile(mode="w")
 
     for path in paths:
-        os.remove(path)
+        compression_params = compression_params_lookup_table.get(
+            determine_file_type(path), UNKNOWN_EXTENSION_PARAMS
+        )
+        archive_name = path if kwargs.get("preserve_dir", False) else os.path.basename(path)
+        zf.write(
+            path,
+            arcname=archive_name,
+            compress_type=compression_params["algo"],
+            compresslevel=compression_params["level"],
+        )
 
-    return open(target, "rb")
+    if receipt is not None:
+        yaml_output: str = yaml.safe_dump(receipt, indent=2)
+        zf.writestr(
+            f"receipt-{base_target}.yaml",
+            data=yaml_output.encode(),
+        )
+
+    return io.BufferedReader(_ZipStreamIO(zf, paths))
 
 
 # TODO use targzstream
