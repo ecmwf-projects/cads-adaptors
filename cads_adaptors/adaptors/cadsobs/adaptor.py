@@ -8,7 +8,11 @@ from cads_adaptors.adaptors.cds import (
     ProcessingKwargs,
     Request,
 )
-from cads_adaptors.exceptions import CadsObsRuntimeError, InvalidRequest
+from cads_adaptors.exceptions import (
+    CadsObsConnectionError,
+    CadsObsRuntimeError,
+    InvalidRequest,
+)
 
 
 class ObservationsAdaptor(AbstractCdsAdaptor):
@@ -19,14 +23,14 @@ class ObservationsAdaptor(AbstractCdsAdaptor):
     def retrieve(self, request):
         try:
             output = super().retrieve(request)
-        except KeyError as e:
-            self.context.add_user_visible_error(repr(e))
-            raise InvalidRequest(repr(e))
-        except CadsObsRuntimeError as e:
-            self.context.add_user_visible_error(repr(e))
-            raise InvalidRequest(repr(e))
+        except (KeyError, InvalidRequest) as e:
+            self.context.add_user_visible_error(str(e))
+            raise InvalidRequest(str(e))
+        except (CadsObsRuntimeError, CadsObsConnectionError) as e:
+            self.context.add_user_visible_error(str(e))
+            raise InvalidRequest(str(e))
         except Exception as e:
-            self.context.add_user_visible_error(repr(e))
+            self.context.add_user_visible_error(str(e))
             raise e
         return output
 

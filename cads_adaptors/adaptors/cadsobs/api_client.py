@@ -1,7 +1,7 @@
 from typing import Literal
 
 from cads_adaptors import Context
-from cads_adaptors.exceptions import CadsObsConnectionError
+from cads_adaptors.exceptions import CadsObsConnectionError, CadsObsRuntimeError
 
 RequestMethod = Literal["GET", "POST"]
 
@@ -16,8 +16,11 @@ class CadsobsApiClient:
         self.context = context
         self.requests = requests
 
-    def raise_user_visible_error(self, message: str, error_type=CadsObsConnectionError):
-        # self.context.add_user_visible_error(message)
+    def raise_user_visible_error(
+        self,
+        message: str,
+        error_type: type[CadsObsConnectionError] | type[CadsObsRuntimeError],
+    ):
         raise error_type(message)
 
     def _send_request_and_capture_exceptions(
@@ -52,7 +55,12 @@ class CadsobsApiClient:
             )
             self.raise_user_visible_error(
                 f"Request to observations API failed: {message}",
-                CadsObsConnectionError,
+                CadsObsRuntimeError,
+            )
+        except requests.exceptions.RequestException as e:
+            self.raise_user_visible_error(
+                f"An unexpected error occurred when contacting the observations API: {e}",
+                CadsObsRuntimeError,
             )
         return response.json()
 
@@ -66,10 +74,18 @@ class CadsobsApiClient:
     def _get_error_message(self, response) -> tuple[str, str]:
         """Get information on the error from the request response."""
         try:
-            # This is not standard, we set it up like this in the server.
-            detail = response.json()["detail"]
-            message = detail["message"]
-            traceback = detail["traceback"]
+            response_json = response.json()
+            detail = response_json.get("detail", {})
+            if isinstance(detail, dict):
+                message = detail.get("message", response.reason)
+                traceback = detail.get("traceback", response.content.decode("UTF-8"))
+            elif isinstance(detail, list):
+                # This is the format for FastAPI validation errors
+                message = f"Validation Error: {detail}"
+                traceback = response.content.decode("UTF-8")
+            else:
+                message = str(detail)
+                traceback = response.content.decode("UTF-8")
         except (self.requests.JSONDecodeError, TypeError, KeyError):
             # When the exception is not handled well by the API server response.content
             # will not be JSON parseable or it won't have the expected fields.

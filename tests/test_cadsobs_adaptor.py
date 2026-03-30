@@ -7,7 +7,7 @@ import pytest
 
 from cads_adaptors import Context, ObservationsAdaptor
 from cads_adaptors.adaptors.cadsobs.api_client import CadsobsApiClient
-from cads_adaptors.exceptions import CadsObsConnectionError, InvalidRequest
+from cads_adaptors.exceptions import InvalidRequest
 
 # get numbered vars programatically, as they are to many to add by hand to
 # the list
@@ -247,13 +247,38 @@ class ClientErrorMockerCadsobsApiClient(MockerCadsobsApiClient):
 class BackendErrorCadsobsApiClient(CadsobsApiClient):
     def _send_request(self, endpoint, method, payload):
         response = self.requests.Response()
-        response.code = "expired"
-        response.error_type = "expired"
         response.status_code = 400
         response._content = (
             b'{"detail": {"message" : "Error: something failed somehow", '
             b'"traceback": "this is a traceback" }}'
         )
+        return response
+
+
+class BackendErrorMissingTracebackCadsobsApiClient(CadsobsApiClient):
+    def _send_request(self, endpoint, method, payload):
+        response = self.requests.Response()
+        response.status_code = 400
+        response.reason = "Bad Request"
+        response._content = b'{"detail": {"message" : "Error without traceback"}}'
+        return response
+
+
+class BackendErrorValidationListCadsobsApiClient(CadsobsApiClient):
+    def _send_request(self, endpoint, method, payload):
+        response = self.requests.Response()
+        response.status_code = 422
+        response.reason = "Unprocessable Entity"
+        response._content = b'{"detail": [{"loc": ["query", "variable"], "msg": "field required", "type": "value_error.missing"}]}'  # noqa E501
+        return response
+
+
+class BackendErrorStringDetailCadsobsApiClient(CadsobsApiClient):
+    def _send_request(self, endpoint, method, payload):
+        response = self.requests.Response()
+        response.status_code = 500
+        response.reason = "Internal Server Error"
+        response._content = b'{"detail": "Simple string error"}'
         return response
 
 
@@ -365,8 +390,8 @@ def test_adaptor_error(tmp_path, monkeypatch):
     adaptor.context.add_user_visible_error = Mock()
     with pytest.raises(RuntimeError) as e:
         adaptor.retrieve(TEST_REQUEST)
-    expected_error = "RuntimeError('This is a test error')"
-    assert repr(e.value) == expected_error
+    expected_error = "This is a test error"
+    assert str(e.value) == expected_error
     adaptor.context.add_user_visible_error.assert_called_with(expected_error)
 
 
@@ -410,10 +435,10 @@ def test_connection_error(tmp_path):
     test_form = {}
     adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
     adaptor.context.add_user_visible_error = Mock()
-    with pytest.raises(CadsObsConnectionError) as e:
+    with pytest.raises(InvalidRequest) as e:
         adaptor.retrieve(TEST_REQUEST)
-    expected_error = 'CadsObsConnectionError("Can\'t connect to the observations API.")'
-    assert repr(e.value) == expected_error
+    expected_error = "Can't connect to the observations API."
+    assert expected_error in str(e.value)
     adaptor.context.add_user_visible_error.assert_called_with(expected_error)
 
 
@@ -426,5 +451,46 @@ def test_api_error(tmp_path, monkeypatch):
     )
     adaptor.context.add_user_visible_error = Mock()
     adaptor.context.add_stderr = Mock()
-    with pytest.raises(CadsObsConnectionError):
+    with pytest.raises(InvalidRequest) as e:
         adaptor.retrieve(TEST_REQUEST)
+    assert "Error: something failed somehow" in str(e.value)
+
+
+def test_api_error_missing_traceback(tmp_path, monkeypatch):
+    test_form = {}
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        BackendErrorMissingTracebackCadsobsApiClient,
+    )
+    adaptor.context.add_user_visible_error = Mock()
+    with pytest.raises(InvalidRequest) as e:
+        adaptor.retrieve(TEST_REQUEST)
+    assert "Error without traceback" in str(e.value)
+
+
+def test_api_error_validation_list(tmp_path, monkeypatch):
+    test_form = {}
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        BackendErrorValidationListCadsobsApiClient,
+    )
+    adaptor.context.add_user_visible_error = Mock()
+    with pytest.raises(InvalidRequest) as e:
+        adaptor.retrieve(TEST_REQUEST)
+    assert "Validation Error" in str(e.value)
+    assert "field required" in str(e.value)
+
+
+def test_api_error_string_detail(tmp_path, monkeypatch):
+    test_form = {}
+    adaptor = ObservationsAdaptor(form=test_form, **TEST_ADAPTOR_CONFIG)
+    monkeypatch.setattr(
+        "cads_adaptors.adaptors.cadsobs.adaptor.CadsobsApiClient",
+        BackendErrorStringDetailCadsobsApiClient,
+    )
+    adaptor.context.add_user_visible_error = Mock()
+    with pytest.raises(InvalidRequest) as e:
+        adaptor.retrieve(TEST_REQUEST)
+    assert "Simple string error" in str(e.value)
