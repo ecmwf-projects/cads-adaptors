@@ -118,6 +118,7 @@ TEST_REQUEST = {
     "variable": [
         "maximum_air_temperature",
         "maximum_relative_humidity",
+        "soil_temperature",
     ],
     "year": "2007",
     "month": ["11"],
@@ -287,7 +288,7 @@ def test_adaptor(tmp_path, monkeypatch):
         ]
         assert np.array_equal(np.unique(actual_variables), expected_variables)
     # Check if the parameters have been properly mapped.
-    assert adaptor.mapped_request == {
+    assert adaptor.get_caching_args(TEST_REQUEST).mapped_requests[0] == {
         "dataset_source": "uscrn_daily",
         "format": "netCDF",
         "variables": [
@@ -333,6 +334,7 @@ def test_adaptor_mapped_requests(tmp_path, monkeypatch):
             "variables": [
                 "daily_maximum_air_temperature",
                 "daily_maximum_relative_humidity",
+                "soil_temperature",
             ],
             "year": [2007],
             "month": [11],
