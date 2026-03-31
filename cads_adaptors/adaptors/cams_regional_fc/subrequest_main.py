@@ -56,4 +56,4 @@ def subrequest_main(backend, request, child_config, context):
         context.add_stderr(message)
         raise RuntimeError(message) from None
 
-    return open(target, "rb")
+    return target

@@ -66,8 +66,8 @@ def test_get_form_state() -> None:
     ]
 
     assert constraints.get_form_state(form, {"level": {"500"}}, raw_constraints) == {
-        "level": {"500", "850"},
-        "param": {"Z"},
+        "level": ["500", "850"],
+        "param": ["Z"],
     }
 
 
@@ -246,6 +246,58 @@ def test_apply_constraints() -> None:
         "number"
     ] == ["1"]
 
+    # homogeneous dimensionality constraints
+    implemented_apply_constraints_methods = [
+        "mixed_dimensionality_requests",
+        "homogeneous_dimensionality_requests",
+    ]
+    expected_result = {"level": ["500", "850"], "param": ["Z"], "number": ["1"]}
+    for method in implemented_apply_constraints_methods:
+        result = constraints.apply_constraints(
+            form, {"level": {"500"}}, raw_constraints, apply_constraints_method=method
+        )
+        assert is_a_match(result, expected_result)
+
+    # mixed dimensionality constraints
+    form = {
+        "param": {"lA", "lB", "lC", "D", "E"},
+        "level": {"500", "850"},
+        "number": {"1", "2", "3"},
+    }
+
+    raw_constraints = [
+        {"param": {"lA", "lB"}, "level": {"500"}, "number": {"1", "2"}},
+        {"param": {"lC"}, "level": {"850"}, "number": {"1"}},
+        {"param": {"D"}, "number": {"3"}},
+        {"param": {"E"}, "number": {"1", "3"}},
+    ]
+
+    old_result = constraints.apply_constraints(
+        form,
+        {"level": {"500"}},
+        raw_constraints,
+        apply_constraints_method="mixed_dimensionality_requests",
+    )
+    expected_old_result = {
+        "param": ["lA", "lB", "D", "E"],
+        "level": ["500", "850"],
+        "number": ["1", "2", "3"],
+    }
+    assert is_a_match(old_result, expected_old_result)
+
+    new_result = constraints.apply_constraints(
+        form,
+        {"level": {"500"}},
+        raw_constraints,
+        apply_constraints_method="homogeneous_dimensionality_requests",
+    )
+    expected_new_result = {
+        "param": ["lA", "lB"],
+        "level": ["500", "850"],
+        "number": ["1", "2"],
+    }
+    assert is_a_match(new_result, expected_new_result)
+
 
 @pytest.mark.parametrize(
     "selections",
@@ -263,6 +315,19 @@ def test_apply_constraints_errors(selections: dict[str, set[Any]]) -> None:
     ]
     with pytest.raises(exceptions.ParameterError, match="invalid param 'foo'"):
         constraints.apply_constraints(form, selections, raw_constraints)
+
+    with pytest.raises(NotImplementedError):
+        constraints.apply_constraints(
+            form, selections, raw_constraints, apply_constraints_method="qubed_based"
+        )
+
+    with pytest.raises(exceptions.CdsConfigError):
+        constraints.apply_constraints(
+            form,
+            selections,
+            raw_constraints,
+            apply_constraints_method="not_implemented",
+        )
 
 
 def test_parse_constraints() -> None:
@@ -452,6 +517,23 @@ def test_validate_constraints() -> None:
     ]
 
     constraints.validate_constraints(raw_form, selections, raw_constraints)
+
+    implemented_apply_constraints_methods = [
+        "mixed_dimensionality_requests",
+        "homogeneous_dimensionality_requests",
+    ]
+    for method in implemented_apply_constraints_methods:
+        constraints.validate_constraints(raw_form, selections, raw_constraints, method)
+
+    with pytest.raises(NotImplementedError):
+        constraints.validate_constraints(
+            raw_form, selections, raw_constraints, "qubed_based"
+        )
+
+    with pytest.raises(exceptions.CdsConfigError):
+        constraints.validate_constraints(
+            raw_form, selections, raw_constraints, "not_implemented"
+        )
 
 
 def test_legacy_intersect_constraints():

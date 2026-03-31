@@ -12,5 +12,7 @@ def set_cache(
     with cacholote.config.set(
         cache_db_urlpath="sqlite:///" + str(tmp_path / "cacholote.db"),
         cache_files_urlpath=str(tmp_path / "cache_files"),
+        raise_all_encoding_errors=True,
+        use_cache=False,
     ):
         yield

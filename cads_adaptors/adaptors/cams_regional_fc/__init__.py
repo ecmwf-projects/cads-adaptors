@@ -1,6 +1,9 @@
-from typing import BinaryIO
-
-from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, Request
+from cads_adaptors.adaptors.cds import (
+    AbstractCdsAdaptor,
+    CachingArgs,
+    ProcessingKwargs,
+    Request,
+)
 
 STACK_TEMP_DIR = "/tmp/cams-europe-air-quality-forecasts/temp"
 STACK_DOWNLOAD_DIR = "/tmp/cams-europe-air-quality-forecasts/download"
@@ -8,30 +11,63 @@ DEFAULT_NO_CACHE_KEY = "_no_cache"
 
 
 class CAMSEuropeAirQualityForecastsAdaptor(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
-        from .cams_regional_fc import cams_regional_fc
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.download_format = "as_source"
 
-        request.pop("__in_adaptor_no_cache", None)
-        self.normalise_request(request)
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
+        from .cams_regional_fc import cams_regional_fc
 
         # for now this is needed down the road to enforce the schema
         # in ./cds-common/cds_common/request_schemas/enforce_schema.py
         setattr(self.context, "request", {"mapping": self.mapping})
 
-        result_file = cams_regional_fc(self.context, self.config, self.mapped_requests)
+        result_file = cams_regional_fc(self.context, self.config, mapped_requests)
 
-        return open(result_file, "rb")
+        return [result_file]
 
 
 class CAMSEuropeAirQualityForecastsAdaptorForLatestData(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.download_format = "as_source"
+
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        args = super().get_caching_args(request)
+        args.must_be_one_mapped_request()
+        return args
+
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
         from .subrequest_main import subrequest_main
 
-        return subrequest_main("latest", request, self.config, self.context)
+        (request,) = mapped_requests
+        return [subrequest_main("latest", request, self.config, self.context)]
 
 
 class CAMSEuropeAirQualityForecastsAdaptorForArchivedData(AbstractCdsAdaptor):
-    def retrieve(self, request: Request) -> BinaryIO:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.download_format = "as_source"
+
+    def get_caching_args(self, request: Request) -> CachingArgs:
+        args = super().get_caching_args(request)
+        args.must_be_one_mapped_request()
+        return args
+
+    def retrieve_list_of_results(
+        self,
+        mapped_requests: list[Request],
+        processing_kwargs: ProcessingKwargs,
+    ) -> list[str]:
         from .subrequest_main import subrequest_main
 
-        return subrequest_main("archived", request, self.config, self.context)
+        (request,) = mapped_requests
+        return [subrequest_main("archived", request, self.config, self.context)]
