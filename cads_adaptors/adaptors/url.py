@@ -1,4 +1,8 @@
+import eumdac
+import os
+import shutil
 from typing import Any
+import zipfile
 
 from cads_adaptors import mapping
 from cads_adaptors.adaptors.cds import AbstractCdsAdaptor, ProcessingKwargs, Request
@@ -44,19 +48,64 @@ class UrlCdsAdaptor(AbstractCdsAdaptor):
 
         # try to download URLs
         urls = [ru["url"] for ru in requests_urls]
-        download_kwargs: dict[str, Any] = self.config.get("download_kwargs", {})
-        # Handle legacy syntax for authentication
-        if "auth" in self.config:
-            download_kwargs.setdefault(
-                "auth",
-                (self.config["auth"]["username"], self.config["auth"]["password"]),
-            )
-        if "auth" in download_kwargs:
-            username, password = download_kwargs["auth"]
-            password = general.decrypt(token=password, ignore_errors=True)
-            download_kwargs["auth"] = (username, password)
+        download_interface_type = self.config.get("download_interface_type", "multiurl")
+        
+        if download_interface_type == "multiurl":
+            download_kwargs: dict[str, Any] = self.config.get("download_kwargs", {})
+            # Handle legacy syntax for authentication
+            if "auth" in self.config:
+                download_kwargs.setdefault(
+                    "auth",
+                    (self.config["auth"]["username"], self.config["auth"]["password"]),
+                )
+            if "auth" in download_kwargs:
+                username, password = download_kwargs["auth"]
+                password = general.decrypt(token=password, ignore_errors=True)
+                download_kwargs["auth"] = (username, password)
 
-        paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
+            paths = url_tools.try_download(urls, context=self.context, **download_kwargs)
+        elif download_interface_type == "eumdac":
+            # fetch credentials and collection id from config and environment variables
+            consumer_key = os.environ["EUMDAC_CONSUMER_KEY"]
+            consumer_secret = os.environ["EUMDAC_CONSUMER_SECRET"]
+            eum_collection_id = self.config["eum_collection_id"]
+
+            # connect to EUM data store and the collection, search for products and download them
+            credentials = (consumer_key, consumer_secret)
+            token = eumdac.AccessToken(credentials)
+            datastore = eumdac.DataStore(token)
+            selected_collection = datastore.get_collection(eum_collection_id)
+
+            # search for products in the EUM data store collection
+            titles = "{" + ",".join(urls) + "}"
+            products = selected_collection.search(title=titles)
+
+            self.context.add_stdout(f"Found Datasets: {products.total_results} datasets for the given time range")
+            for i, product in enumerate(products):
+                self.context.add_stdout(f"{i}, {str(product)}, {product.entries}")
+
+            # download the matched products (which might come as zip archives)
+            downloaded_products = []
+            for product in products:
+                with product.open() as fsrc, open(fsrc.name, mode='wb') as fdst:
+                    shutil.copyfileobj(fsrc, fdst)
+                    downloaded_products.append(fsrc.name)
+                    self.context.add_stdout(f'Download of product {product} finished.')
+
+            # extract the individual zip archives and keep only the netcdf parts
+            paths = []
+            for product in downloaded_products:
+                self.context.debug(f"Extracting downloaded product: {product}...")
+                if product.endswith(".zip"):
+                    with zipfile.ZipFile(product, "r") as archive:
+                        for file in archive.namelist():
+                            if file.endswith(".nc"):
+                                path = archive.extract(file)
+                                paths.append(path)
+                                self.context.debug(f" - {product}:{path}")
+                elif product.endswith(".nc"):
+                    paths.append(product)
+                    self.context.debug(f" - {product}:{product}")
 
         if (area := processing_kwargs["area"]) is not None:
             paths = area_selector.area_selector_paths(
