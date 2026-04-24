@@ -143,25 +143,22 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         while isinstance(req_user_id, (list, tuple)) and req_user_id:
             req_user_id = req_user_id[0]
         if req_user_id:
-
             # Is the current ADS user a downstream service?
             for service, uids in self.config.get("downstream_services", {}).items():
                 if not isinstance(uids, (list, tuple)):
                     uids = [uids]
                 if self.config["user_uid"] in uids:
-
                     # We prepend the service name to the user ID both to prevent
                     # inter-service user ID clashes and to allow Vaisala to
                     # identify those requests that come from these services.
                     user_id = str(req_user_id)
                     prefix = f"{service}_"
-                    self.context.info(f"Using {service} user ID for backend: "
-                                      f"{user_id}")
+                    self.context.info(f"Using {service} user ID for backend: {user_id}")
 
         # Hash the user ID in case it contains anything private. Add a string
         # that's secret from Vaisala to make it harder to reverse.
         user_id = hashlib.md5(
-            (str(user_id)+"_dont_tell_Vaisala_").encode()
+            (str(user_id) + "_dont_tell_Vaisala_").encode()
         ).hexdigest()
 
         # The prefix is not hashed because Vaisala need to be able to see it
