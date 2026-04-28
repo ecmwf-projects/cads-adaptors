@@ -394,12 +394,6 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         # The intersected_request is a list of requests.
         intersected_requests = self.get_intersected_requests(working_request)
 
-        # Implement a request-level tagging system
-        tags = self.get_request_tags_from_intersected_requests(intersected_requests)
-        for tag in tags:
-            hidden_tag = f"__{tag}"
-            request[hidden_tag] = "true"
-
         # Map the list of requests
         mapped_requests = [
             self.apply_mapping(i_request) for i_request in intersected_requests
