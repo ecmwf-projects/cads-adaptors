@@ -14,7 +14,6 @@ dependencies:
 - cftime
 - cryptography
 - dask
-- DateTimeRange
 - fsspec
 - h5netcdf
 - jinja2
@@ -36,5 +35,6 @@ dependencies:
 - xarray
 - zarr
 - pip:
+  - DateTimeRange
   - rooki
-  - earthkit-transforms>=0.5.2
+  - earthkit-transforms>=0.5.4,<1.0.0

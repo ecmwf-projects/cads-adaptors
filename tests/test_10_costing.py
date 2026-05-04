@@ -518,6 +518,58 @@ def test_estimate_number_of_fields_ignore_keys() -> None:
     assert number_of_fields == 4
 
 
+def test_estimate_number_of_fields_area_ignored_by_default() -> None:
+    """Test that area key is ignored by default but included when ignore_keys=[]."""
+    form = [
+        {
+            "name": "variable",
+            "label": "Variable",
+            "details": {"values": {"temperature", "precipitation"}},
+            "type": "StringListWidget",
+        },
+        {
+            "name": "year",
+            "label": "Year",
+            "details": {"values": {"2020", "2021"}},
+            "type": "StringListWidget",
+        },
+        {
+            "name": "area",
+            "label": "Area",
+            "details": {"values": {"north", "south", "east", "west"}},
+            "type": "StringListWidget",  # Use StringListWidget, not GeographicExtentWidget
+        },
+    ]
+
+    # Test 1: area key should NOT change result by default (area is ignored)
+    request_without_area = {
+        "variable": ["temperature", "precipitation"],
+        "year": ["2020", "2021"],
+    }
+    request_with_area = {
+        "variable": ["temperature", "precipitation"],
+        "year": ["2020", "2021"],
+        "area": ["north", "south"],
+    }
+
+    # Without area in request: 2 variables * 2 years = 4 fields
+    fields_without_area = costing.estimate_number_of_fields(form, request_without_area)
+    assert fields_without_area == 4
+
+    # With area in request but ignored by default: still 4 fields
+    fields_with_area = costing.estimate_number_of_fields(form, request_with_area)
+    assert fields_with_area == 4, "area key should be ignored by default"
+
+    # Test 2: area key SHOULD change result when ignore_keys=[]
+    fields_with_area_included = costing.estimate_number_of_fields(
+        form, request_with_area, ignore_keys=[]
+    )
+    # Now area contributes: 2 variables * 2 years * 2 area values (from request) = 8 fields
+    assert fields_with_area_included == 8, (
+        "area key should be counted when ignore_keys=[]"
+    )
+
+
 def test_estimate_costs() -> None:
     from cads_adaptors import DummyCdsAdaptor
 

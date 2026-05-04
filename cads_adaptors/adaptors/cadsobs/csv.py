@@ -5,17 +5,15 @@ from pathlib import Path
 import xarray
 
 from cads_adaptors.adaptors.cadsobs.models import RetrieveArgs
-from cads_adaptors.adaptors.cadsobs.utils import _get_output_path
 from cads_adaptors.tools.general import ensure_list
 
 logger = logging.getLogger(__name__)
 
 
 def to_csv(
-    output_dir: Path, output_path_netcdf: Path, retrieve_args: RetrieveArgs
+    output_path: Path, output_path_netcdf: Path, retrieve_args: RetrieveArgs
 ) -> Path:
     """Transform the output netCDF to CSV format."""
-    output_path = _get_output_path(output_dir, retrieve_args.dataset, "csv")
     # Beware xarray will silently ignore the chunk size if the dimension does not exist
     cdm_lite_dataset = xarray.open_dataset(
         output_path_netcdf, chunks=dict(index=50000), decode_times=True
@@ -101,11 +99,8 @@ def get_csv_header(
     return header
 
 
-def to_zip(input_file_path: Path) -> Path:
+def to_zip(input_file_path: Path, output_zip_path: Path) -> Path:
     """Zips the given file into a .zip archive."""
-    # Determine output zip path
-    output_zip_path = input_file_path.with_suffix(".zip")
-
     # Create zip archive
     with zipfile.ZipFile(output_zip_path, "w") as zipf:
         zipf.write(input_file_path, arcname=input_file_path.name)
