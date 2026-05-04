@@ -36,8 +36,7 @@ class AbstractAdaptor(abc.ABC):
 
 class AbstractCdsAdaptor(CADSAdaptor):
     # implement CDS defaults
-    def retrieve(self, request):
-        ...
+    def retrieve(self, request): ...
 ```
 
 ```python
