@@ -237,6 +237,25 @@ class AbstractAdaptor(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def get_request_tags(self, request: Request) -> list[str]:
+        """
+        Get tags associated with the request.
+
+        These tags can be used for various purposes, e.g. to apply specific qos rules.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming request.
+
+        Returns
+        -------
+        list[str]
+            List of tags.
+        """
+        pass
+
+    @abc.abstractmethod
     def retrieve(self, request: Request) -> BinaryIO:
         """
         Retrieve file associated with the request.
@@ -380,3 +399,6 @@ class DummyAdaptor(AbstractAdaptor):
         if results is not None:
             receipt["results"] = results.model_dump()
         return receipt
+
+    def get_request_tags(self, request: Request) -> list[str]:
+        return []

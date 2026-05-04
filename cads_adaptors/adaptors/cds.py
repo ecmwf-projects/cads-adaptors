@@ -340,6 +340,47 @@ class AbstractCdsAdaptor(AbstractAdaptor):
             request = enforce.enforce(request, schema, self.context.logger)
         return dict(sorted(request.items()))
 
+    def get_intersected_requests(self, request: Request) -> list[Request]:
+        """
+        If specified by the adaptor, intersect the request with the constraints.
+        The intersected_request is a list of requests.
+        """
+        if self.intersect_constraints_bool:
+            intersected_requests = self.intersect_constraints(request)
+            if len(intersected_requests) == 0:
+                msg = "Error: no intersection with the constraints."
+                self.context.add_user_visible_error(message=msg)
+                raise InvalidRequest(msg)
+        else:
+            intersected_requests = ensure_list(request)
+        return intersected_requests
+
+    def get_request_tags_from_intersected_requests(
+        self, intersected_requests: list[Request]
+    ) -> list[str]:
+        tags = []
+        try:
+            self.conditional_tagging = self.config.get("conditional_tagging", None)
+            if self.conditional_tagging is not None:
+                self.ensure_list_values(intersected_requests)
+                for tag in self.conditional_tagging:
+                    conditions = self.conditional_tagging[tag]
+                    self.ensure_list_values(conditions)
+                    if self.satisfy_conditions(intersected_requests, conditions):
+                        tags.append(tag)
+        except Exception as e:
+            self.context.add_stdout(
+                f"An error occured while attempting conditional tagging: {e!r}"
+            )
+        return tags
+
+    def get_request_tags(self, request: Request) -> list[str]:
+        request = self.normalise_request(request)
+        working_request, _ = self.pre_mapping_modifications(deepcopy(request))
+        intersected_requests = self.get_intersected_requests(working_request)
+        tags = self.get_request_tags_from_intersected_requests(intersected_requests)
+        return tags
+
     def get_caching_args(self, request: Request) -> CachingArgs:
         avoid_cache = self.config.get("avoid_cache", False)
         request = self.normalise_request(request)
@@ -350,31 +391,8 @@ class AbstractCdsAdaptor(AbstractAdaptor):
         )
 
         # If specified by the adaptor, intersect the request with the constraints.
-        # The intersected_request is a list of requests
-        if self.intersect_constraints_bool:
-            intersected_requests = self.intersect_constraints(working_request)
-            if len(intersected_requests) == 0:
-                msg = "Error: no intersection with the constraints."
-                self.context.add_user_visible_error(message=msg)
-                raise InvalidRequest(msg)
-        else:
-            intersected_requests = ensure_list(working_request)
-
-        # Implement a request-level tagging system
-        try:
-            self.conditional_tagging = self.config.get("conditional_tagging", None)
-            if self.conditional_tagging is not None:
-                self.ensure_list_values(intersected_requests)
-                for tag in self.conditional_tagging:
-                    conditions = self.conditional_tagging[tag]
-                    self.ensure_list_values(conditions)
-                    if self.satisfy_conditions(intersected_requests, conditions):
-                        hidden_tag = f"__{tag}"
-                        request[hidden_tag] = "true"
-        except Exception as e:
-            self.context.add_stdout(
-                f"An error occured while attempting conditional tagging: {e!r}"
-            )
+        # The intersected_request is a list of requests.
+        intersected_requests = self.get_intersected_requests(working_request)
 
         # Map the list of requests
         mapped_requests = [
