@@ -89,12 +89,12 @@ def test_user_id_service_multi():
 
 def test_verify_fails():
     """Check that verify returns False for strings that have not been created
-       with encode()"""
-
+    with encode().
+    """
     assert not verify("")
     assert not verify("a")
     x = encode("foo")
     assert verify(x)
-    assert not verify(x+"a")
+    assert not verify(x + "a")
     assert not verify(x[0:-1])
-    assert not verify(x[0:-1]+" ")
+    assert not verify(x[0:-1] + " ")
