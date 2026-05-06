@@ -154,6 +154,7 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
                     user_id = str(req_user_id)
                     prefix = f"{service}_"
                     self.context.info(f"Using {service} user ID for backend: {user_id}")
+                    break
 
         # Hash the user ID after adding a string that's secret from Vaisala to
         # make it harder for them to reverse it and regain the original ID. We
