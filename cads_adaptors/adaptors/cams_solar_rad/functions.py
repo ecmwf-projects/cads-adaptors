@@ -47,6 +47,7 @@ def encode(user_id):
     secret string. The string is only known by ECMWF and the contractor. This
     allows the contractor have confidence that the request has come from us.
     """
+    user_id = str(user_id)
     hash = hashlib.md5(
         (user_id + os.environ["CAMS_SOLAR_SECRET_STRING"]).encode()
     ).hexdigest()
@@ -62,7 +63,8 @@ def verify(encoded_user_id):
     """
     # Remove the last 32 characters which are the hash of the user ID
     user_id = encoded_user_id[:-32]
-    # Then check that adding the hash back on returns the input string
+    # Then check that re-encoding returns the input string. This verifies that
+    # whoever generated the hash knew the secret string.
     return encode(user_id) == encoded_user_id
 
 

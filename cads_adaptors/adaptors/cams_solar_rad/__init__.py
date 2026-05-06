@@ -155,13 +155,17 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
                     prefix = f"{service}_"
                     self.context.info(f"Using {service} user ID for backend: {user_id}")
 
-        # Hash the user ID in case it contains anything private. Add a string
-        # that's secret from Vaisala to make it harder to reverse.
+        # Hash the user ID after adding a string that's secret from Vaisala to
+        # make it harder for them to reverse it and regain the original ID. We
+        # do this since there may be privacy concerns in giving them unaltered
+        # user IDs.
         user_id = hashlib.md5(
             (str(user_id) + "_dont_tell_Vaisala_").encode()
         ).hexdigest()
 
-        # The prefix is not hashed because Vaisala need to be able to see it
+        # The prefix is not hashed because Vaisala need to be able to see it in
+        # order to count the number of users and requests that come from
+        # downstream services.
         return f"{prefix}{user_id}"
 
     def _result_filename(self, request):
