@@ -1,9 +1,12 @@
-from os import environ
+import pytest
 
 from cads_adaptors import CamsSolarRadiationTimeseriesAdaptor
 from cads_adaptors.adaptors.cams_solar_rad.functions import encode, verify
 
-environ["CAMS_SOLAR_SECRET_STRING"] = "whatever"
+
+@pytest.fixture(autouse=True)
+def _set_cams_solar_secret_string(monkeypatch):
+    monkeypatch.setenv("CAMS_SOLAR_SECRET_STRING", "whatever")
 
 
 def test_user_id_normal():
