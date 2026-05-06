@@ -1,3 +1,4 @@
+import hashlib
 from typing import Any
 
 from cads_adaptors.adaptors.cams_solar_rad.functions import (
@@ -122,24 +123,51 @@ class CamsSolarRadiationTimeseriesAdaptor(AbstractCdsAdaptor):
         return [outfile]
 
     def _user_id(self, mreq):
-        """Return the current user ID, unless the current user is Wekeo and they've
-        provided a user ID in the request, in which case return that. This means that Wekeo
-        users don't get considered as a single user by the backend provider, and so are
-        allowed separate individual quotas for the number of requests they can make per day.
+        """Return the current user ID, unless the current user is a known
+        provider of downstream services to multiple other users and they've
+        provided a user ID in the request, in which case return that. This means
+        that Wekeo/Mondas users don't get considered as a single user by the
+        backend provider, and so are allowed separate individual quotas for the
+        number of requests they can make per day.
         """
+        self.context.debug(
+            "Downstream services " + repr(self.config.get("downstream_services"))
+        )
+
+        # Defaults
+        user_id = self.config["user_uid"]
+        prefix = ""
+
+        # Is there a user-provided user ID?
         req_user_id = mreq.get("_user_id")
         while isinstance(req_user_id, (list, tuple)) and req_user_id:
             req_user_id = req_user_id[0]
-        self.context.debug(
-            "Wekeo user IDs are " + repr(self.config.get("wekeo_user_ids"))
-        )
-        if req_user_id and self.config["user_uid"] in self.config.get(
-            "wekeo_user_ids", []
-        ):
-            self.context.info(f"Using WEKEO user ID for backend: {req_user_id}")
-            return str(req_user_id)
-        else:
-            return self.config["user_uid"]
+        if req_user_id:
+            # Is the current ADS user a downstream service?
+            for service, uids in self.config.get("downstream_services", {}).items():
+                if not isinstance(uids, (list, tuple)):
+                    uids = [uids]
+                if self.config["user_uid"] in uids:
+                    # We prepend the service name to the user ID both to prevent
+                    # inter-service user ID clashes and to allow Vaisala to
+                    # identify those requests that come from these services.
+                    user_id = str(req_user_id)
+                    prefix = f"{service}_"
+                    self.context.info(f"Using {service} user ID for backend: {user_id}")
+                    break
+
+        # Hash the user ID after adding a string that's secret from Vaisala to
+        # make it harder for them to reverse it and regain the original ID. We
+        # do this since there may be privacy concerns in giving them unaltered
+        # user IDs.
+        user_id = hashlib.md5(
+            (str(user_id) + "_dont_tell_Vaisala_").encode()
+        ).hexdigest()
+
+        # The prefix is not hashed because Vaisala need to be able to see it in
+        # order to count the number of users and requests that come from
+        # downstream services.
+        return f"{prefix}{user_id}"
 
     def _result_filename(self, request):
         request_uid = self.config.get("request_uid", "no-request-uid")
