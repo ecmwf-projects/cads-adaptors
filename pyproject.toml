@@ -59,7 +59,8 @@ complete = [
   "tabulate",
   "tqdm",
   "xarray",
-  "zarr"
+  "zarr",
+  "zipstream-new"
 ]
 tests = [
   "pytest",
